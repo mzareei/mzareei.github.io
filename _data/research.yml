@@ -1,49 +1,57 @@
 # ============================================================
 #  RESEARCH THEMES
 #  One entry per research area, rendered as a card on the Research page.
-#  Connect each theme to related publications, students, projects, collaborators.
-#  --- ALL ENTRIES BELOW ARE PLACEHOLDERS. Replace with real content. ---
-#  TODO: Keep descriptions factual; do not overstate scope or results.
+#  Themes derived from Mahdi Zareei's CV and publications.
+#  TODO: refine the descriptions and fill in related students/projects.
 # ============================================================
 
-- name: "Artificial Intelligence & Machine Learning"
-  description: "[TODO: 2–3 sentences describing your work in this area.]"
-  related_publications: "[TODO: titles or 'see Publications']"
-  related_students: "[TODO: student name(s)]"
-  related_projects: "[TODO: project title(s)]"
-  collaborators: "[TODO: external collaborators]"
+- name: "Information & Network Security"
+  description: >-
+    Security and privacy for wireless and distributed systems, including
+    authentication and signcryption schemes, attribute-based access control and
+    keyword search, trust models for VANETs and fog computing, and intrusion
+    detection for reconfigurable wireless networks.
+  related_publications: "See Publications (security, signcryption, access control)"
+  related_students: "[TODO]"
+  related_projects: "[TODO]"
+  collaborators: "C. Vargas-Rosales (Tecnológico de Monterrey); A. Waheed; S. A. Soleymani; [TODO]"
+
+- name: "Applied Machine Learning"
+  description: >-
+    Machine and deep learning applied to real-world problems such as medical and
+    biomedical signal analysis, image segmentation, demand forecasting, and
+    community detection in complex networks.
+  related_publications: "See Publications (deep learning, image segmentation)"
+  related_students: "[TODO]"
+  related_projects: "[TODO]"
+  collaborators: "[TODO]"
 
 - name: "Natural Language Processing"
-  description: "[TODO: short description of your NLP research.]"
-  related_publications: "[TODO]"
-  related_students: "[TODO]"
+  description: >-
+    Sentiment and emotion analysis, multilingual language modelling, and
+    large-scale social-media analytics — including monitoring the emotional
+    response to the COVID-19 pandemic in Mexico.
+  related_publications: "León-Sandoval, Zareei et al. (sentiment analysis); see Publications"
+  related_students: "[TODO: text emotion detection PhD]"
   related_projects: "[TODO]"
-  collaborators: "[TODO]"
+  collaborators: "L. I. Barbosa-Santillán; L. E. Falcón Morales; [TODO]"
 
-- name: "Cybersecurity"
-  description: "[TODO: short description of your security research.]"
-  related_publications: "[TODO]"
+- name: "Wireless Sensor & Cognitive Radio Networks"
+  description: >-
+    Mobility-aware MAC protocols, cognitive radio ad-hoc and sensor networks,
+    clustering and routing architectures, and energy-harvesting sensor networks
+    for environmental monitoring.
+  related_publications: "Zareei et al. (MAC protocols, cognitive radio surveys); see Publications"
   related_students: "[TODO]"
-  related_projects: "[TODO]"
-  collaborators: "[TODO]"
+  related_projects: "Energy-Harvesting Sensor Networks for Environmental Monitoring (The Royal Society)"
+  collaborators: "C. Vargas-Rosales; R. Villalpando-Hernández; [TODO]"
 
-- name: "Internet of Things (IoT)"
-  description: "[TODO: short description of your IoT research.]"
-  related_publications: "[TODO]"
-  related_students: "[TODO]"
-  related_projects: "[TODO]"
-  collaborators: "[TODO]"
-
-- name: "Blockchain & Distributed Systems"
-  description: "[TODO: short description of your blockchain research.]"
-  related_publications: "[TODO]"
-  related_students: "[TODO]"
-  related_projects: "[TODO]"
-  collaborators: "[TODO]"
-
-- name: "Mental Health Technologies & Applied AI Systems"
-  description: "[TODO: short description of applied/health AI research.]"
-  related_publications: "[TODO]"
+- name: "Internet of Things & Vehicular Networks"
+  description: >-
+    Software-defined and secure architectures for vehicular networks (VANET),
+    IoT communication and caching, underwater acoustic networks, and
+    energy-efficient protocol design.
+  related_publications: "See Publications (SDN/VANET, IoT, underwater networks)"
   related_students: "[TODO]"
   related_projects: "[TODO]"
   collaborators: "[TODO]"

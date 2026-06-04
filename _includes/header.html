@@ -10,7 +10,7 @@
 
     <nav id="primary-nav" class="site-nav" aria-label="Primary">
       {%- comment -%} Navigation items. Add/remove links here to change the menu. {%- endcomment -%}
-      {%- assign nav_items = "/,about|/cv/,cv|/research/,research|/publications/,publications|/projects/,projects|/students/,students|/teaching/,teaching|/blog/,blog|/news/,news|/contact/,contact" | split: "|" -%}
+      {%- assign nav_items = "/,about|/publications/,publications|/cv/,cv|/teaching/,teaching|/blog/,blog" | split: "|" -%}
       {%- for item in nav_items -%}
         {%- assign parts = item | split: "," -%}
         {%- assign href = parts[0] -%}

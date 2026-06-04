@@ -1,61 +1,70 @@
 ---
 title: Publications
-subtitle: Journal papers, conference papers, book chapters, and preprints.
-description: Publications by [Your Full Name], filterable by year and type.
+subtitle: Peer-reviewed journal and conference publications.
+description: Publications by Mahdi Zareei — journal articles, reviews, and conference papers.
 ---
-<!-- Publications are edited in _data/publications.yml -->
+<!--
+  Publications are edited in _data/publications.yml.
+  They are grouped by year into collapsible sections; the most recent years are
+  open by default (see the `recent_open` value below to change which years open).
+-->
 
 {% assign pubs = site.data.publications | sort: "year" | reverse %}
-{% assign years = pubs | map: "year" | uniq %}
+{% assign years = pubs | map: "year" | uniq | sort | reverse %}
+{% assign recent_open = 2024 %}{% comment %} years >= this are expanded on load {% endcomment %}
 
-<div class="pub-filters">
-  <label for="filter-year">Year</label>
-  <select id="filter-year">
-    <option value="all">All</option>
-    {% for y in years %}<option value="{{ y }}">{{ y }}</option>{% endfor %}
-  </select>
+<p class="pub-summary">
+  {{ pubs | size }} publications · journal articles &amp; reviews and conference papers.
+  Full list also on
+  {% if site.profiles.scopus and site.profiles.scopus != "" %}<a href="{{ site.profiles.scopus }}" rel="noopener">Scopus</a>{% endif %}{% if site.profiles.google_scholar and site.profiles.google_scholar != "" %} and <a href="{{ site.profiles.google_scholar }}" rel="noopener">Google Scholar</a>{% endif %}.
+</p>
 
-  <label for="filter-type">Type</label>
-  <select id="filter-type">
-    <option value="all">All</option>
-    <option value="journal">Journal papers</option>
-    <option value="conference">Conference papers</option>
-    <option value="book_chapter">Book chapters</option>
-    <option value="preprint">Preprints</option>
-  </select>
+<div class="pub-controls">
+  <button type="button" class="pub-control" id="pub-expand">Expand all</button>
+  <button type="button" class="pub-control" id="pub-collapse">Collapse all</button>
 </div>
 
-{% comment %} Render grouped by type, in a fixed order. {% endcomment %}
-{% assign type_order = "journal,conference,book_chapter,preprint" | split: "," %}
-{% assign type_names = "Journal papers,Conference papers,Book chapters,Preprints" | split: "," %}
+{% for year in years %}
+  {% assign group = pubs | where: "year", year %}
+  <details class="pub-year" {% if year >= recent_open %}open{% endif %}>
+    <summary class="pub-year__summary">
+      <span class="pub-year__label">{{ year }}</span>
+      <span class="pub-year__count">{{ group | size }}</span>
+      <i class="fa-solid fa-chevron-down pub-year__chev" aria-hidden="true"></i>
+    </summary>
 
-{% for t in type_order %}
-  {% assign group = pubs | where: "type", t %}
-  {% if group.size > 0 %}
-    <div data-pub-group="{{ t }}">
-      <h2 class="pub-type-heading">{{ type_names[forloop.index0] }}</h2>
-      <ul class="pub-list">
-        {% for pub in group %}
-          <li class="pub-item" data-year="{{ pub.year }}" data-type="{{ pub.type }}">
-            <span class="pub-item__year">{{ pub.year }}</span>
-            <div>
-              <p class="pub-item__title">{{ pub.title }}</p>
-              <p class="pub-item__authors">{{ pub.authors }}</p>
-              <p class="pub-item__venue">{{ pub.venue }}</p>
-              <div class="pub-item__links">
-                {% if pub.doi and pub.doi != "" %}<a href="https://doi.org/{{ pub.doi }}" rel="noopener">DOI</a>{% endif %}
-                {% if pub.url and pub.url != "" %}<a href="{{ pub.url }}" rel="noopener">Link</a>{% endif %}
-                {% if pub.pdf and pub.pdf != "" %}<a href="{{ pub.pdf | relative_url }}">PDF</a>{% endif %}
-                {% if pub.code and pub.code != "" %}<a href="{{ pub.code }}" rel="noopener">Code/Data</a>{% endif %}
-              </div>
+    <ol class="pub-list">
+      {% for pub in group %}
+        <li class="pub-item" data-type="{{ pub.type }}">
+          <div class="pub-item__body">
+            <p class="pub-item__title">{{ pub.title }}</p>
+            <p class="pub-item__authors">{{ pub.authors }}</p>
+            <p class="pub-item__venue">{{ pub.venue }}</p>
+            <div class="pub-item__links">
+              <span class="pub-tag pub-tag--{{ pub.type }}">{% if pub.type == 'conference' %}Conference{% elsif pub.type == 'book_chapter' %}Book chapter{% elsif pub.type == 'preprint' %}Preprint{% else %}Journal{% endif %}</span>
+              {% if pub.doi and pub.doi != "" %}<a href="https://doi.org/{{ pub.doi }}" rel="noopener">DOI</a>{% endif %}
+              {% if pub.url and pub.url != "" %}<a href="{{ pub.url }}" rel="noopener">Scopus</a>{% endif %}
+              {% if pub.pdf and pub.pdf != "" %}<a href="{{ pub.pdf | relative_url }}">PDF</a>{% endif %}
+              {% if pub.code and pub.code != "" %}<a href="{{ pub.code }}" rel="noopener">Code/Data</a>{% endif %}
+              {% if pub.cites and pub.cites > 0 %}<span class="pub-cites" title="Citations (Scopus snapshot)"><i class="fa-solid fa-quote-right" aria-hidden="true"></i> {{ pub.cites }}</span>{% endif %}
             </div>
-          </li>
-        {% endfor %}
-      </ul>
-    </div>
-  {% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ol>
+  </details>
 {% endfor %}
 
 {% if pubs.size == 0 %}
   <p class="pub-empty">No publications yet. Add entries to <code>_data/publications.yml</code>.</p>
 {% endif %}
+
+<script>
+  (function () {
+    var details = Array.prototype.slice.call(document.querySelectorAll('.pub-year'));
+    var ex = document.getElementById('pub-expand');
+    var co = document.getElementById('pub-collapse');
+    if (ex) ex.addEventListener('click', function () { details.forEach(function (d) { d.open = true; }); });
+    if (co) co.addEventListener('click', function () { details.forEach(function (d) { d.open = false; }); });
+  })();
+</script>

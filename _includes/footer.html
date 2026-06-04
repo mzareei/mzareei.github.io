@@ -1,11 +1,18 @@
 <footer class="site-footer">
   <div class="container site-footer__inner">
+    <nav class="site-footer__nav" aria-label="Secondary">
+      {%- assign foot_items = "/,about|/research/,research|/publications/,publications|/projects/,projects|/students/,students|/teaching/,teaching|/cv/,cv|/blog/,blog|/news/,news|/contact/,contact" | split: "|" -%}
+      {%- for item in foot_items -%}
+        {%- assign parts = item | split: "," -%}
+        <a class="site-footer__navlink" href="{{ parts[0] | relative_url }}">{{ parts[1] }}</a>
+      {%- endfor -%}
+    </nav>
+
+    <p class="site-footer__links">{% include profile-links.html %}</p>
+
     <p class="site-footer__copy">
       © {{ 'now' | date: "%Y" }} {{ site.name }}.
-      Built with <a href="https://jekyllrb.com/" rel="noopener">Jekyll</a> and hosted on GitHub Pages.
-    </p>
-    <p class="site-footer__links">
-      {% include profile-links.html %}
+      Built with <a href="https://jekyllrb.com/" rel="noopener">Jekyll</a> · hosted on GitHub Pages.
     </p>
   </div>
 </footer>

@@ -1,58 +1,942 @@
 # ============================================================
-#  PUBLICATIONS
-#  Add one entry per publication. Newest first is conventional.
-#  Required: title, authors, venue, year, type
-#  Optional: doi, url, pdf, code, note
-#  `type` must be one of: journal | conference | book_chapter | preprint
-#  (these map to the section headings on the Publications page)
-#
-#  --- ALL ENTRIES BELOW ARE PLACEHOLDERS. Replace with real data. ---
-#  TODO: Delete these examples and add your own publications.
+#  PUBLICATIONS  — imported from Scopus (export 04 June 2026)
+#  Grouped by year on the Publications page (newest years open by default).
+#  type: journal | conference | book_chapter | preprint
+#  To add a new paper, copy an entry below and edit the fields.
+#  Citation counts (`cites`) are a Scopus snapshot and will go stale.
 # ============================================================
 
-- title: "[TODO: Journal paper title]"
-  authors: "[Your Name], Co-author A., Co-author B."
-  venue: "[Journal name], vol. X, no. Y, pp. 1–10"
+- title: 'Explainable Artificial Intelligence in Software Engineering: Current Trends, Gaps, and Future Directions'
+  authors: A. Khan, A. Ali, M. I. Mohmand, <strong>M. Zareei</strong>, R. R. Biswal
+  venue: IEEE Access, vol. 14, pp. 56947–56972
+  year: 2026
+  type: journal
+  doi: 10.1109/ACCESS.2026.3679576
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-105035014085&doi=10.1109%2fACCESS.2026.3679576&partnerID=40&md5=095ec78a2be887d8ed472d2b5acdc46a
+  cites: 0
+- title: A Blockchain-Enabled Privacy-Preserving IoT Framework With Domain-Adaptive Anomaly Detection in Zero-Trust Environments
+  authors: F. Alanazi, <strong>M. Zareei</strong>, M. García Martínez
+  venue: IEEE Access, vol. 13, pp. 206883–206895
   year: 2025
   type: journal
-  doi: ""          # e.g. 10.1000/xxxx  -> rendered as https://doi.org/...
-  url: ""          # publisher/landing page
-  pdf: ""          # e.g. /assets/pdfs/2025-journal.pdf
-  code: ""         # e.g. https://github.com/...
-  note: "Placeholder entry."
-
-- title: "[TODO: Conference paper title]"
-  authors: "Student S., [Your Name]"
-  venue: "[Conference name] (ACRONYM '25)"
+  doi: 10.1109/ACCESS.2025.3624661
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-105019773225&doi=10.1109%2fACCESS.2025.3624661&partnerID=40&md5=22344f117146d3b4f91f4e2df9387cd4
+  cites: 0
+- title: Assessing the Effect of Writing Style Features in Detecting Depression on Social Media
+  authors: L. H. Burgueño Paz, <strong>M. Zareei</strong>, A. de León Languré
+  venue: Lecture Notes in Networks and Systems, vol. 1447 LNNS, pp. 401–411
   year: 2025
   type: conference
-  doi: ""
-  url: ""
-  pdf: ""
-  code: ""
-
-- title: "[TODO: Earlier conference paper title]"
-  authors: "[Your Name], Collaborator C."
-  venue: "[Conference name] (ACRONYM '24)"
+  doi: 10.1007/978-3-031-93109-3_36
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-105018577669&doi=10.1007%2f978-3-031-93109-3_36&partnerID=40&md5=f59e71fdd61bd28611b32707803980bf
+  cites: 0
+- title: 'DRHRP: A Deep Reinforcement Learning–Based Hybrid Routing Protocol for UAV–Enabled Wireless Networks'
+  authors: <strong>M. Zareei</strong>, J. A. P. Díaz
+  venue: Lecture Notes in Computer Science, vol. 15649 LNCS, pp. 401–409
+  year: 2025
+  type: conference
+  doi: 10.1007/978-3-031-96997-3_25
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-105010612993&doi=10.1007%2f978-3-031-96997-3_25&partnerID=40&md5=e0d3fb424041d2c588369b0104faac27
+  cites: 0
+- title: Machine Learning Model for Road Anomaly Detection Using Smartphone Accelerometer Data
+  authors: <strong>M. Zareei</strong>, C. A. López Castañeda, F. Alanazi, F. Granda, J. A. Pèrez-Diaz
+  venue: IEEE Access, vol. 13, pp. 122841–122851
+  year: 2025
+  type: journal
+  doi: 10.1109/ACCESS.2025.3586812
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-105010343718&doi=10.1109%2fACCESS.2025.3586812&partnerID=40&md5=3e494e506789d78e8a2d4625d64485b9
+  cites: 3
+- title: Machine Translation for Suicidal Content from English to Spanish. A Comparative Study
+  authors: F. A. Arenas Enciso, <strong>M. Zareei</strong>, A. de León Languré
+  venue: Lecture Notes in Networks and Systems, vol. 1447 LNNS, pp. 454–464
+  year: 2025
+  type: conference
+  doi: 10.1007/978-3-031-93109-3_40
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-105018581731&doi=10.1007%2f978-3-031-93109-3_40&partnerID=40&md5=f3baa0ce16369829d7d6faa7a13e0acf
+  cites: 0
+- title: Multi-Agent Deep Reinforcement Learning for Dynamic Routing in MANETs Using Graph Neural Networks
+  authors: F. Alanazi, <strong>M. Zareei</strong>
+  venue: IEEE Access, vol. 13, pp. 152469–152478
+  year: 2025
+  type: journal
+  doi: 10.1109/ACCESS.2025.3601994
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-105014028509&doi=10.1109%2fACCESS.2025.3601994&partnerID=40&md5=66a019b457c66640c062520be20453e7
+  cites: 3
+- title: Predicting the 2024 Mexican Presidential Election with Social Media
+  authors: H. Gutiérrez, <strong>M. Zareei</strong>, A. de León Languré, K. Brito
+  venue: Lecture Notes in Computer Science (including subseries Lecture Notes in Artificial Intelligence and Lecture Notes in Bioinformatics), vol. 15247 LNAI, pp. 224–233
+  year: 2025
+  type: conference
+  doi: 10.1007/978-3-031-75543-9_17
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85208073008&doi=10.1007%2f978-3-031-75543-9_17&partnerID=40&md5=6b756a4e243a656c7925a08c17cf46f7
+  cites: 3
+- title: 'Privacy-Preserving Emotion Detection: Evaluating the Trade-Off Between K-Anonymity and Model Performance'
+  authors: A. d. L. Langure, <strong>M. Zareei</strong>
+  venue: IEEE Access, vol. 13, pp. 105901–105910
+  year: 2025
+  type: journal
+  doi: 10.1109/ACCESS.2025.3578958
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-105008271214&doi=10.1109%2fACCESS.2025.3578958&partnerID=40&md5=5eafd4cec2f81e6f0b0f0d2434f2d317
+  cites: 4
+- title: 'PRIVOT: Privacy-Resilient Intelligent DAG Blockchain Architecture for IoT'
+  authors: F. Alanazi, <strong>M. Zareei</strong>, A. Rodríguez Arreola
+  venue: IEEE Access, vol. 13, pp. 137592–137602
+  year: 2025
+  type: journal
+  doi: 10.1109/ACCESS.2025.3593365
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-105012471983&doi=10.1109%2fACCESS.2025.3593365&partnerID=40&md5=275682bbf73ebb2c83c173775ba21177
+  cites: 1
+- title: 'Simulation Tools for Cognitive Radio Network: A Survey'
+  authors: A. K. M. M. Islam, R. Bin Rabbani, M. S. Aadeeb, <strong>M. Zareei</strong>, N. Mansoor, M. M. Zubaer
+  venue: IEEE Access, vol. 13
+  year: 2025
+  type: journal
+  doi: 10.1109/ACCESS.2025.3537498
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85217926992&doi=10.1109%2fACCESS.2025.3537498&partnerID=40&md5=ea674adef183f15080e27a21cd677203
+  cites: 6
+- title: Talent Identification in Football Using Supervised Machine Learning
+  authors: I. D. de León Rodríguez, <strong>M. Zareei</strong>, A. de León Languré
+  venue: Lecture Notes in Computer Science (including subseries Lecture Notes in Artificial Intelligence and Lecture Notes in Bioinformatics), vol. 15246 LNAI, pp. 16–27
+  year: 2025
+  type: conference
+  doi: 10.1007/978-3-031-75540-8_2
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85208035009&doi=10.1007%2f978-3-031-75540-8_2&partnerID=40&md5=e875e36f1ae8efcac0fd590b0c749246
+  cites: 2
+- title: 'AICyber-Chain: Combining AI and Blockchain for Improved Cybersecurity'
+  authors: Z. Ullah, A. Waheed, M. Ismail Mohmand, S. Basar, <strong>M. Zareei</strong>, F. Granda
+  venue: IEEE Access, vol. 12, pp. 142194–142214
+  year: 2024
+  type: journal
+  doi: 10.1109/ACCESS.2024.3463976
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85204736277&doi=10.1109%2fACCESS.2024.3463976&partnerID=40&md5=a503feb42245870111c1ab5f892908b7
+  cites: 16
+- title: An optimized dynamic attribute-based searchable encryption scheme
+  authors: S. Khan, S. Khan, A. Waheed, G. Mehmood, <strong>M. Zareei</strong>, F. Alanazi
+  venue: PLoS ONE, vol. 19
+  year: 2024
+  type: journal
+  doi: 10.1371/journal.pone.0268803
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85208065052&doi=10.1371%2fjournal.pone.0268803&partnerID=40&md5=e741a00d86fe522579137dcbd5f1c60c
+  cites: 6
+- title: 'Dynamic Property Preservation in AIoT: A Machine Learning Approach for Data-Efficient Model Transformation'
+  authors: G. Jadoon, A. Ahmed, I. Ud Din, A. Almogren, <strong>M. Zareei</strong>, R. Biswal, A. Altameem
+  venue: IEEE Access, vol. 12, pp. 130707–130722
+  year: 2024
+  type: journal
+  doi: 10.1109/ACCESS.2024.3454717
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85203509075&doi=10.1109%2fACCESS.2024.3454717&partnerID=40&md5=64ed2565aa895fd14b823fa4934f5dd8
+  cites: 3
+- title: 'Enhancing Hyperspectral Image Analysis With Deep Learning: An Innovative Hybrid Approach for Improved Detection and Classification Using Deep-Detect'
+  authors: Z. Zulfiqar, Z. Zulfiqar, N. A. Khan, M. A. Khan, I. U. Din, A. Almogren, <strong>M. Zareei</strong>, M. G. Martínez
+  venue: IEEE Access, vol. 12, pp. 149272–149287
+  year: 2024
+  type: journal
+  doi: 10.1109/ACCESS.2024.3475480
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85207154261&doi=10.1109%2fACCESS.2024.3475480&partnerID=40&md5=7ef6fcfe10d55838da033b1754c873d2
+  cites: 1
+- title: Evaluating the Effect of Emotion Models on the Generalizability of Text Emotion Detection Systems
+  authors: A. De Leon Langure, <strong>M. Zareei</strong>
+  venue: IEEE Access, vol. 12, pp. 70489–70500
+  year: 2024
+  type: journal
+  doi: 10.1109/ACCESS.2024.3401203
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85193250131&doi=10.1109%2fACCESS.2024.3401203&partnerID=40&md5=d45f2bf18e021e7877ef21464c814f87
+  cites: 18
+- title: Improving Text Emotion Detection Through Comprehensive Dataset Quality Analysis
+  authors: A. De Leon Langure, <strong>M. Zareei</strong>
+  venue: IEEE Access, vol. 12, pp. 166512–166536
+  year: 2024
+  type: journal
+  doi: 10.1109/ACCESS.2024.3491856
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85208673880&doi=10.1109%2fACCESS.2024.3491856&partnerID=40&md5=e773fa42e6fa7c8bcf117ba951e941d4
+  cites: 10
+- title: 'Limitless FaaS: Overcoming serverless Functions Execution Time Limits with Invoke Driven Architecture and Memory Checkpoints'
+  authors: R. L. Andraca, <strong>M. Zareei</strong>
+  venue: 2024 10th International Conference on Web Research, ICWR 2024, pp. 210–215
   year: 2024
   type: conference
-  doi: ""
-  url: ""
-  pdf: ""
-  code: ""
-
-- title: "[TODO: Book chapter title]"
-  authors: "[Your Name]"
-  venue: "In: [Book title], [Publisher], ch. X"
+  doi: 10.1109/ICWR61162.2024.10533362
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85194898005&doi=10.1109%2fICWR61162.2024.10533362&partnerID=40&md5=7e51bee22018490b5617332f798fc5be
+  cites: 1
+- title: 'MicroTrust: Empowering Microgrids With Smart Peer-to-Peer Energy Sharing Through Trust Management in IoT'
+  authors: W. Ali, I. U. Din, A. Almogren, <strong>M. Zareei</strong>, R. Biswal
+  venue: IEEE Access, vol. 12, pp. 134985–134996
   year: 2024
-  type: book_chapter
-  doi: ""
-  url: ""
-
-- title: "[TODO: Preprint title]"
-  authors: "[Your Name], Co-author A."
-  venue: "arXiv:XXXX.XXXXX"
-  year: 2025
-  type: preprint
-  url: ""
-  pdf: ""
+  type: journal
+  doi: 10.1109/ACCESS.2024.3459936
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85204080804&doi=10.1109%2fACCESS.2024.3459936&partnerID=40&md5=cdd5c997dd43c6ae0eb9c42168324534
+  cites: 2
+- title: 'Securing the Metaverse: A Blockchain-Enabled Zero-Trust Architecture for Virtual Environments'
+  authors: I. Ud Din, K. Habib Khan, A. Almogren, <strong>M. Zareei</strong>, J. Arturo Perez Diaz
+  venue: IEEE Access, vol. 12, pp. 92337–92347
+  year: 2024
+  type: journal
+  doi: 10.1109/ACCESS.2024.3423400
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85197565495&doi=10.1109%2fACCESS.2024.3423400&partnerID=40&md5=c358fc26d5de4daf901e504adef42ce8
+  cites: 18
+- title: 'Social Media for Predicting the Mexican Presidential Election: Beyond X and Facebook'
+  authors: H. A. Gutierrez, A. De León, <strong>M. Zareei</strong>, K. Dos Santos
+  venue: ACM International Conference Proceeding Series, pp. 348–357
+  year: 2024
+  type: conference
+  doi: 10.1145/3680127.3680213
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85216082306&doi=10.1145%2f3680127.3680213&partnerID=40&md5=9d150112b25a220394bc5b4b1343c19e
+  cites: 1
+- title: Transparent Multifactor Authentication Algorithm Based on Geolocation
+  authors: C. J. Garcia-Trevino, J. A. Perez-Diaz, C. Vargas-Rosales, <strong>M. Zareei</strong>
+  venue: IEEE Access, vol. 12, pp. 84691–84705
+  year: 2024
+  type: journal
+  doi: 10.1109/ACCESS.2024.3412691
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85196122068&doi=10.1109%2fACCESS.2024.3412691&partnerID=40&md5=7ea18163cd7082cb041a55fae5a862bf
+  cites: 7
+- title: 'A Fresh Look at Routing Protocols in Unmanned Aerial Vehicular Networks: A Survey'
+  authors: N. Mansoor, M. I. Hossain, A. Rozario, <strong>M. Zareei</strong>, A. R. Arreola
+  venue: IEEE Access, vol. 11, pp. 66289–66308
+  year: 2023
+  type: journal
+  doi: 10.1109/ACCESS.2023.3290871
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85163500367&doi=10.1109%2fACCESS.2023.3290871&partnerID=40&md5=11784a7e200aa47c35025f54af3a521a
+  cites: 55
+- title: A Review of Blockchain Approaches for KYC
+  authors: N. Mansoor, K. F. Antora, P. Deb, T. A. Arman, A. A. Manaf, <strong>M. Zareei</strong>
+  venue: IEEE Access, vol. 11, pp. 121013–121042
+  year: 2023
+  type: journal
+  doi: 10.1109/ACCESS.2023.3328536
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85176811797&doi=10.1109%2fACCESS.2023.3328536&partnerID=40&md5=bb9d45bbbeb14a607dbab6b588f58f27
+  cites: 24
+- title: 'Breaking Barriers in Sentiment Analysis and Text Emotion Detection: Toward a Unified Assessment Framework'
+  authors: A. D. L. Langure, <strong>M. Zareei</strong>
+  venue: IEEE Access, vol. 11, pp. 125698–125715
+  year: 2023
+  type: journal
+  doi: 10.1109/ACCESS.2023.3331323
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85177064351&doi=10.1109%2fACCESS.2023.3331323&partnerID=40&md5=8ad2a99b1e016003def3428b2855ce65
+  cites: 13
+- title: 'Securing IoT With Deep Federated Learning: A Trust-Based Malicious Node Identification Approach'
+  authors: K. A. Awan, I. Ud Din, <strong>M. Zareei</strong>, A. Almogren, B. Seo-Kim, J. A. Perez-Diaz
+  venue: IEEE Access, vol. 11, pp. 58901–58914
+  year: 2023
+  type: journal
+  doi: 10.1109/ACCESS.2023.3284677
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85162701159&doi=10.1109%2fACCESS.2023.3284677&partnerID=40&md5=03ffb4c909e91ae19d2647d7e2d2922a
+  cites: 22
+- title: An Efficient and Secure Revocation-Enabled Attribute-Based Access Control for eHealth in Smart Society
+  authors: S. Khan, W. Iqbal, A. Waheed, G. Mehmood, S. Khan, <strong>M. Zareei</strong>, R. R. Biswal
+  venue: Sensors, vol. 22
+  year: 2022
+  type: journal
+  doi: 10.3390/s22010336
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85122000789&doi=10.3390%2fs22010336&partnerID=40&md5=099980293a1ed0f386ec177a43be0a8a
+  cites: 21
+- title: Article An Efficient Defocus Blur Segmentation Scheme Based on Hybrid LTP and PCNN
+  authors: S. Basar, A. Waheed, M. Ali, S. Zahid, <strong>M. Zareei</strong>, R. R. Biswal
+  venue: Sensors, vol. 22
+  year: 2022
+  type: journal
+  doi: 10.3390/s22072724
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85127427610&doi=10.3390%2fs22072724&partnerID=40&md5=34b6d528e8eb57775303af374054aab3
+  cites: 18
+- title: ECG-Based Driver's Stress Detection Using Deep Transfer Learning and Fuzzy Logic Approaches
+  authors: M. Amin, K. Ullah, M. Asif, A. Waheed, S. U. Haq, <strong>M. Zareei</strong>, R. Biswal
+  venue: IEEE Access, vol. 10, pp. 29788–29809
+  year: 2022
+  type: journal
+  doi: 10.1109/ACCESS.2022.3158658
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85126296071&doi=10.1109%2fACCESS.2022.3158658&partnerID=40&md5=eb6cf6e65b5d59a98851ccba21c682ee
+  cites: 46
+- title: Fault Tolerant DHT-Based Routing in MANET
+  authors: S. Zahid, K. Ullah, A. Waheed, S. Basar, <strong>M. Zareei</strong>, R. R. Biswal
+  venue: Sensors, vol. 22
+  year: 2022
+  type: journal
+  doi: 10.3390/s22114280
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85131168101&doi=10.3390%2fs22114280&partnerID=40&md5=9822b247a5829a97c303ebb1bd16f64a
+  cites: 11
+- title: 'Identification and Analysis of Factors Influencing Turnover Intention of Pakistan IT Professionals: An Empirical Study'
+  authors: H. Farooq, U. I. Janjua, T. M. Madni, A. Waheed, <strong>M. Zareei</strong>, F. Alanazi
+  venue: IEEE Access, vol. 10, pp. 64234–64256
+  year: 2022
+  type: journal
+  doi: 10.1109/ACCESS.2022.3181753
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85132763334&doi=10.1109%2fACCESS.2022.3181753&partnerID=40&md5=42c66561b525810039cd7cee846bb9d1
+  cites: 24
+- title: Land-cover classification and its impact on Peshawar's land surface temperature using remote sensing
+  authors: S. U. Islam, S. Jan, A. Waheed, G. Mehmood, <strong>M. Zareei</strong>, F. Alanazi
+  venue: Computers, Materials and Continua, vol. 70, pp. 4123–4145
+  year: 2022
+  type: journal
+  doi: 10.32604/cmc.2022.019226
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85116017714&doi=10.32604%2fcmc.2022.019226&partnerID=40&md5=fd442c612c6703b27f287fbceb5e06f6
+  cites: 14
+- title: Measuring the Impact of Language Models in Sentiment Analysis for Mexico’s COVID-19 Pandemic
+  authors: E. León-Sandoval, <strong>M. Zareei</strong>, L. I. Barbosa-Santillán, L. E. Falcón Morales
+  venue: Electronics (Switzerland), vol. 11
+  year: 2022
+  type: journal
+  doi: 10.3390/electronics11162483
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85137410606&doi=10.3390%2felectronics11162483&partnerID=40&md5=809e2c9af60b7ea7d0118436166e5b0e
+  cites: 2
+- title: 'Monitoring the Emotional Response to the COVID-19 Pandemic Using Sentiment Analysis: A Case Study in Mexico'
+  authors: E. León-Sandoval, <strong>M. Zareei</strong>, L. I. Barbosa-Santillán, L. E. Falcón Morales, A. Pareja Lora, G. Ochoa Ruiz
+  venue: Computational Intelligence and Neuroscience, vol. 2022
+  year: 2022
+  type: journal
+  doi: 10.1155/2022/4914665
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85131217682&doi=10.1155%2f2022%2f4914665&partnerID=40&md5=f75bdbc6a2f7206de9f04ad6f23c1946
+  cites: 9
+- title: QoS Aware and Fault Tolerance Based Software-Defined Vehicular Networks Using Cloud-Fog Computing
+  authors: S. A. Syed, M. Rashid, S. Hussain, F. Azim, H. Zahid, A. Umer, A. Waheed, <strong>M. Zareei</strong>, C. Vargas-Rosales
+  venue: Sensors, vol. 22
+  year: 2022
+  type: journal
+  doi: 10.3390/s22010401
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85122155593&doi=10.3390%2fs22010401&partnerID=40&md5=7284e79c736e3c6a968ea54778716432
+  cites: 29
+- title: 'SF-LAP: Secure M2M Communication in IIoT with a Single-Factor Lightweight Authentication Protocol'
+  authors: K. Shahzad, M. Alam, N. Javaid, A. Waheed, S. A. Chaudhry, N. Mansoor, <strong>M. Zareei</strong>
+  venue: Journal of Sensors, vol. 2022
+  year: 2022
+  type: journal
+  doi: 10.1155/2022/1309402
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85142457933&doi=10.1155%2f2022%2f1309402&partnerID=40&md5=48dca35cd87d373acbc2f998f53648f6
+  cites: 14
+- title: Towards security automation in Software Defined Networks
+  authors: N. M. Yungaicela-Naula, C. Vargas-Rosales, J. A. Pérez-Díaz, <strong>M. Zareei</strong>
+  venue: Computer Communications, vol. 183, pp. 64–82
+  year: 2022
+  type: journal
+  doi: 10.1016/j.comcom.2021.11.014
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85120987614&doi=10.1016%2fj.comcom.2021.11.014&partnerID=40&md5=ba4cec2a308448f51e8aa7bb3b3cd0ad
+  cites: 46
+- title: Using Big Data and Serverless Architecture to Follow the Emotional Response to the COVID-19 Pandemic in Mexico
+  authors: E. León-Sandoval, <strong>M. Zareei</strong>, L. I. Barbosa-Santillán, L. E. F. Morales
+  venue: Communications in Computer and Information Science, vol. 1660 CCIS, pp. 145–159
+  year: 2022
+  type: conference
+  doi: 10.1007/978-3-031-23821-5_11
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85146667178&doi=10.1007%2f978-3-031-23821-5_11&partnerID=40&md5=aa44470349dcd763adfdf561eab9c1aa
+  cites: 1
+- title: A Novel Defocused Image Segmentation Method Based on PCNN and LBP
+  authors: S. Basar, M. Ali, G. Ochoa-Ruiz, A. Waheed, G. Rodriguez-Hernandez, <strong>M. Zareei</strong>
+  venue: IEEE Access, vol. 9, pp. 87219–87240
+  year: 2021
+  type: journal
+  doi: 10.1109/ACCESS.2021.3084905
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85107370314&doi=10.1109%2fACCESS.2021.3084905&partnerID=40&md5=5286cef9cb70ec1e861e39616a1da01e
+  cites: 16
+- title: A security and privacy scheme based on node and message authentication and trust in fog-enabled VANET
+  authors: S. A. Soleymani, S. Goudarzi, M. H. Anisi, <strong>M. Zareei</strong>, A. H. Abdullah, N. Kama
+  venue: Vehicular Communications, vol. 29
+  year: 2021
+  type: journal
+  doi: 10.1016/j.vehcom.2021.100335
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85100056979&doi=10.1016%2fj.vehcom.2021.100335&partnerID=40&md5=5e8e7ed9a9b9fe72a362da1504cb8d45
+  cites: 62
+- title: A Simple and Secure Reformation-Based Password Scheme
+  authors: M. Ali, A. Baloch, A. Waheed, <strong>M. Zareei</strong>, R. Manzoor, H. Sajid, F. Alanazi
+  venue: IEEE Access, vol. 9, pp. 11655–11674
+  year: 2021
+  type: journal
+  doi: 10.1109/ACCESS.2020.3049052
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85099210908&doi=10.1109%2fACCESS.2020.3049052&partnerID=40&md5=1bce97ad47705cd2a32860453f6397e1
+  cites: 17
+- title: 'ABKS-PBM: Attribute-Based Keyword Search with Partial Bilinear Map'
+  authors: S. Khan, S. Khan, <strong>M. Zareei</strong>, F. Alanazi, N. Kama, M. Alam, A. Anjum
+  venue: IEEE Access, vol. 9, pp. 46313–46324
+  year: 2021
+  type: journal
+  doi: 10.1109/ACCESS.2021.3068194
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85103263667&doi=10.1109%2fACCESS.2021.3068194&partnerID=40&md5=b3c756eb24a0c9fa2c48aa68379da8da
+  cites: 7
+- title: Acute Myeloid Leukemia (AML) Detection Using AlexNet Model
+  authors: M. Shaheen, R. Khan, R. Biswal, M. Ullah, A. Khan, M. I. Uddin, <strong>M. Zareei</strong>, A. Waheed
+  venue: Complexity, vol. 2021
+  year: 2021
+  type: journal
+  doi: 10.1155/2021/6658192
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85107666668&doi=10.1155%2f2021%2f6658192&partnerID=40&md5=4ddf64e395d24971b846315ad395ea7d
+  cites: 54
+- title: An Efficient and Secure Session Key Management Scheme in Wireless Sensor Network
+  authors: G. Mehmood, M. S. Khan, A. Waheed, <strong>M. Zareei</strong>, M. Fayaz, T. Sadad, N. Kama, A. Azmi
+  venue: Complexity, vol. 2021
+  year: 2021
+  type: journal
+  doi: 10.1155/2021/6577492
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85108949708&doi=10.1155%2f2021%2f6577492&partnerID=40&md5=31fe749377a30562bd28d59ce4f6be99
+  cites: 33
+- title: An Improved Identity-Based Generalized Signcryption Scheme for Secure Multi-Access Edge Computing Empowered Flying Ad Hoc Networks
+  authors: N. Din, A. Waheed, <strong>M. Zareei</strong>, F. Alanazi
+  venue: IEEE Access, vol. 9, pp. 120704–120714
+  year: 2021
+  type: journal
+  doi: 10.1109/ACCESS.2021.3108130
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85113903609&doi=10.1109%2fACCESS.2021.3108130&partnerID=40&md5=f0634ff7fa347b9cc4b9df1213c4d4ca
+  cites: 27
+- title: Ant Lion Optimizer Based Clustering Algorithm for Wireless Body Area Networks in Livestock Industry
+  authors: F. Saleem, M. N. Majeed, J. Iqbal, A. Waheed, A. Rauf, <strong>M. Zareei</strong>, E. M. Mohamed
+  venue: IEEE Access, vol. 9, pp. 114495–114513
+  year: 2021
+  type: journal
+  doi: 10.1109/ACCESS.2021.3104643
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85113941230&doi=10.1109%2fACCESS.2021.3104643&partnerID=40&md5=d97c58ce20e0f1fac21f7db38e31cfc4
+  cites: 33
+- title: 'Automated test case generation from requirements: A systematic literature review'
+  authors: A. Mustafa, W. M. Wan-Kadir, N. Ibrahim, M. A. Shah, M. Younas, A. Khan, <strong>M. Zareei</strong>, F. Alanazi
+  venue: Computers, Materials and Continua, vol. 67, pp. 1819–1833
+  year: 2021
+  type: journal
+  doi: 10.32604/cmc.2021.014391
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85102529055&doi=10.32604%2fcmc.2021.014391&partnerID=40&md5=81b2216f0fd4042d45e24e77f6b64e89
+  cites: 25
+- title: Efficient network selection using multi fuzzy criteria for confidential data transmission in wireless body sensor networks
+  authors: J. Iqbal, A. I. Umar, N. Ul Amin, A. Waheed, S. Abdullah, <strong>M. Zareei</strong>, M. A. K. Khattak
+  venue: Journal of Intelligent and Fuzzy Systems, vol. 41, pp. 37–55
+  year: 2021
+  type: journal
+  doi: 10.3233/JIFS-191104
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85113231722&doi=10.3233%2fJIFS-191104&partnerID=40&md5=4491f25f3462caccc50084ed986cb5ff
+  cites: 1
+- title: Ergodic capacity evaluation of multi-hop decode-and-forward mimo-ofdm relaying network
+  authors: L. Jan, M. H. Zafar, A. Waheed, <strong>M. Zareei</strong>, F. Alanazi
+  venue: Computers, Materials and Continua, vol. 68, pp. 3133–3145
+  year: 2021
+  type: journal
+  doi: 10.32604/cmc.2021.014857
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85105618469&doi=10.32604%2fcmc.2021.014857&partnerID=40&md5=7c08b7eb7796912be8d596ec33883649
+  cites: 1
+- title: 'Lc-ids: Loci-constellation-based intrusion detection for reconfigurable wireless networks'
+  authors: J. Zuniga-Mejia, R. Villalpando-Hernandez, C. Vargas-Rosales, <strong>M. Zareei</strong>
+  venue: Electronics (Switzerland), vol. 10
+  year: 2021
+  type: journal
+  doi: 10.3390/electronics10243053
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85120642559&doi=10.3390%2felectronics10243053&partnerID=40&md5=fdf1d07924433314303486f188123568
+  cites: 0
+- title: On the design of efficient hierarchic architecture for software defined vehicular networks
+  authors: M. Adnan, J. Iqbal, A. Waheed, N. U. Amin, <strong>M. Zareei</strong>, S. Goudarzi, A. Umer
+  venue: Sensors (Switzerland), vol. 21, pp. 1–18
+  year: 2021
+  type: journal
+  doi: 10.3390/s21041400
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85101150530&doi=10.3390%2fs21041400&partnerID=40&md5=f2703c9825ae69fcd647d4a7105b662b
+  cites: 22
+- title: 'OO-ABMS: Online/Offline-Aided Attribute-Based Multi-Keyword Search'
+  authors: S. Khan, <strong>M. Zareei</strong>, S. Khan, F. Alanazi, M. Alam, A. Waheed
+  venue: IEEE Access, vol. 9, pp. 114392–114406
+  year: 2021
+  type: journal
+  doi: 10.1109/ACCESS.2021.3104899
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85113207280&doi=10.1109%2fACCESS.2021.3104899&partnerID=40&md5=1406f273b8fe65aa402ccd4e6e119e8f
+  cites: 6
+- title: Resource allocation and optimization in device-to-device communication 5G networks
+  authors: F. A. Al-Zahrani, I. Khan, <strong>M. Zareei</strong>, A. Zeb, A. Waheed
+  venue: Computers, Materials and Continua, vol. 69, pp. 1201–1214
+  year: 2021
+  type: journal
+  doi: 10.32604/cmc.2021.018386
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85107757783&doi=10.32604%2fcmc.2021.018386&partnerID=40&md5=0350ef3f326aa3099c542f19eaac7be0
+  cites: 8
+- title: 'RM-ADR: Resource management adaptive data rate for mobile application in LoRaWAN'
+  authors: K. Anwar, T. Rahman, A. Zeb, I. Khan, <strong>M. Zareei</strong>, C. Vargas-Rosales
+  venue: Sensors, vol. 21
+  year: 2021
+  type: journal
+  doi: 10.3390/s21237980
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85120035338&doi=10.3390%2fs21237980&partnerID=40&md5=fece33f504f87ac12459d33034f39719
+  cites: 39
+- title: Towards the design of efficient and secure architecture for software-defined vehicular networks
+  authors: M. Adnan, J. Iqbal, A. Waheed, N. U. Amin, <strong>M. Zareei</strong>, A. Umer, E. M. Mohamed
+  venue: Sensors, vol. 21
+  year: 2021
+  type: journal
+  doi: 10.3390/s21113902
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85107216667&doi=10.3390%2fs21113902&partnerID=40&md5=2cda6767d1373bbec6f3fb5affa0d3f9
+  cites: 22
+- title: 'Traffic queuing management in the internet of things: An optimized red algorithm based approach'
+  authors: A. Waheed, N. H. Khan, <strong>M. Zareei</strong>, S. U. Islam, L. Jan, A. I. Umar, E. M. Mohamed
+  venue: Computers, Materials and Continua, vol. 66, pp. 359–372
+  year: 2021
+  type: journal
+  doi: 10.32604/cmc.2020.012196
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85096477694&doi=10.32604%2fcmc.2020.012196&partnerID=40&md5=7551764d52d4f37a2e590ec948dbc6ea
+  cites: 5
+- title: Two-Hop Relay Probing in WiGig Device-to-Device Networks Using Sleeping Contextual Bandits
+  authors: E. M. Mohamed, S. Hashima, K. Hatano, S. A. Aldossari, <strong>M. Zareei</strong>, M. Rihan
+  venue: IEEE Wireless Communications Letters, vol. 10, pp. 1581–1585
+  year: 2021
+  type: journal
+  doi: 10.1109/LWC.2021.3074972
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85104580612&doi=10.1109%2fLWC.2021.3074972&partnerID=40&md5=e24a063e79a00337390989529351de87
+  cites: 29
+- title: A hybrid prediction model for energy-efficient data collection in wireless sensor networks
+  authors: S. A. Soleymani, S. Goudarzi, N. Kama, S. A. Ismail, M. Ali, Z. M. D. Zainal, <strong>M. Zareei</strong>
+  venue: Symmetry, vol. 12
+  year: 2020
+  type: journal
+  doi: 10.3390/sym12122024
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85101712548&doi=10.3390%2fsym12122024&partnerID=40&md5=36f1dd747d7a93095bc6aeb02c76f681
+  cites: 26
+- title: A lightweight and secure attribute-based multi receiver generalized signcryption scheme for body sensor networks
+  authors: J. Iqbal, A. Waheed, <strong>M. Zareei</strong>, A. I. Umar, N. U. Amin, A. Aldosary, E. M. Mohamed
+  venue: IEEE Access, vol. 8, pp. 200283–200304
+  year: 2020
+  type: journal
+  doi: 10.1109/ACCESS.2020.3035324
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85102881400&doi=10.1109%2fACCESS.2020.3035324&partnerID=40&md5=d2f9c54b640bce3cc8ee228403e37eca
+  cites: 17
+- title: A priori multiobjective self-adaptive multi-population based Jaya algorithm to optimize DErS operations and electrical tasks
+  authors: A. Manzoor, M. A. Judge, A. Almogren, A. Akhunzada, S. Fattah, A. Gani, <strong>M. Zareei</strong>
+  venue: IEEE Access, vol. 8, pp. 181163–181175
+  year: 2020
+  type: journal
+  doi: 10.1109/ACCESS.2020.3028274
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85097741466&doi=10.1109%2fACCESS.2020.3028274&partnerID=40&md5=bad24525c784e0336a12b88648adcb52
+  cites: 26
+- title: A trust model using edge nodes and a cuckoo filter for securing VANET under the NLoS condition
+  authors: S. A. Soleymani, S. Goudarzi, M. H. Anisi, N. Kama, S. A. Ismail, A. Azmi, <strong>M. Zareei</strong>, A. H. Abdullah
+  venue: Symmetry, vol. 12
+  year: 2020
+  type: journal
+  doi: 10.3390/SYM12040609
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85084594789&doi=10.3390%2fSYM12040609&partnerID=40&md5=469e173a64585567e6be5724021be2b1
+  cites: 33
+- title: A Trust-Based Energy-Efficient and Reliable Communication Scheme (Trust-Based ERCS) for Remote Patient Monitoring in Wireless Body Area Networks
+  authors: G. Mehmood, M. Z. Khan, A. Waheed, <strong>M. Zareei</strong>, E. M. Mohamed
+  venue: IEEE Access, vol. 8, pp. 131397–131413
+  year: 2020
+  type: journal
+  doi: 10.1109/ACCESS.2020.3007405
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85089481809&doi=10.1109%2fACCESS.2020.3007405&partnerID=40&md5=41628d7fb35b9927a9e2e5423543144d
+  cites: 104
+- title: Analysis for Disease Gene Association Using Machine Learning
+  authors: M. Sikandar, R. Sohail, Y. Saeed, A. Zeb, <strong>M. Zareei</strong>, M. A. Khan, A. Khan, A. Aldosary, E. M. Mohamed
+  venue: IEEE Access, vol. 8, pp. 160616–160626
+  year: 2020
+  type: journal
+  doi: 10.1109/ACCESS.2020.3020592
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85091309988&doi=10.1109%2fACCESS.2020.3020592&partnerID=40&md5=d2a29ace116a2060a8213475f715d954
+  cites: 17
+- title: Certificateless Proxy Reencryption Scheme (CPRES) Based on Hyperelliptic Curve for Access Control in Content-Centric Network (CCN)
+  authors: Z. Ullah, A. Zeb, I. Ullah, K. M. Awan, Y. Saeed, M. I. Uddin, M. A. Al-Khasawneh, M. Mahmoud, <strong>M. Zareei</strong>
+  venue: Mobile Information Systems, vol. 2020
+  year: 2020
+  type: journal
+  doi: 10.1155/2020/4138516
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85089305663&doi=10.1155%2f2020%2f4138516&partnerID=40&md5=628f96364ab6598a5b97c934c5db0e80
+  cites: 34
+- title: Cryptanalysis and Improvement of a Proxy Signcryption Scheme in the Standard Computational Model
+  authors: A. Waheed, A. I. Umar, <strong>M. Zareei</strong>, N. Din, N. U. Amin, J. Iqbal, Y. Saeed, E. M. Mohamed
+  venue: IEEE Access, vol. 8, pp. 131188–131201
+  year: 2020
+  type: journal
+  doi: 10.1109/ACCESS.2020.3009351
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85089465399&doi=10.1109%2fACCESS.2020.3009351&partnerID=40&md5=4571138c53c16e0a412af96d5a9f88e9
+  cites: 19
+- title: Effective Demand Forecasting Model Using Business Intelligence Empowered with Machine Learning
+  authors: M. A. Khan, S. Saqib, T. Alyas, A. Ur Rehman, Y. Saeed, A. Zeb, <strong>M. Zareei</strong>, E. M. Mohamed
+  venue: IEEE Access, vol. 8, pp. 116013–116023
+  year: 2020
+  type: journal
+  doi: 10.1109/ACCESS.2020.3003790
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85087835927&doi=10.1109%2fACCESS.2020.3003790&partnerID=40&md5=4b9d86f15ac0f5e8924382a26d8bb6ba
+  cites: 102
+- title: Energy-Efficient Centrally Controlled Caching Contents for Information-Centric Internet of Things
+  authors: H. Asmat, F. Ullah, <strong>M. Zareei</strong>, A. Khan, E. M. Mohamed
+  venue: IEEE Access, vol. 8, pp. 126358–126369
+  year: 2020
+  type: journal
+  doi: 10.1109/ACCESS.2020.3008193
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85088704836&doi=10.1109%2fACCESS.2020.3008193&partnerID=40&md5=c5bb75fdd07d6b559ab1afa2f8a44af0
+  cites: 23
+- title: Modeling, Simulation and Optimization of Power Plant Energy Sustainability for IoT Enabled Smart Cities Empowered with Deep Extreme Learning Machine
+  authors: S. Abbas, M. A. Khan, L. E. Falcon-Morales, A. Rehman, Y. Saeed, <strong>M. Zareei</strong>, A. Zeb, E. M. Mohamed
+  venue: IEEE Access, vol. 8, pp. 39982–39997
+  year: 2020
+  type: journal
+  doi: 10.1109/ACCESS.2020.2976452
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85081624146&doi=10.1109%2fACCESS.2020.2976452&partnerID=40&md5=746d6ede65fbd085d6660849f216cc51
+  cites: 102
+- title: 'Modem design for underwater acoustic networks: Taxonomy, capabilities, challenges, applications and future trends'
+  authors: A. Khan, A. Ur Rahman, <strong>M. Zareei</strong>, N. Us Sama, C. Vargas-Rosales, J. Qadir, E. M. Mohamed
+  venue: Journal of Intelligent and Fuzzy Systems, vol. 39, pp. 8161–8171
+  year: 2020
+  type: journal
+  doi: 10.3233/JIFS-189137
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85097629626&doi=10.3233%2fJIFS-189137&partnerID=40&md5=b54ee287519e4bc95f4efc7bff82a6d3
+  cites: 3
+- title: Movie Review Summarization Using Supervised Learning and Graph-Based Ranking Algorithm
+  authors: A. Khan, M. A. Gul, <strong>M. Zareei</strong>, R. Biswal, A. Zeb, M. Naeem, Y. Saeed, N. Salim
+  venue: Computational Intelligence and Neuroscience, vol. 2020
+  year: 2020
+  type: journal
+  doi: 10.1155/2020/7526580
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85086883509&doi=10.1155%2f2020%2f7526580&partnerID=40&md5=e3aff0f5ff9c1c42c9e3de0eebb18fb8
+  cites: 23
+- title: Relay Probing for Millimeter Wave Multi-Hop D2D Networks
+  authors: E. M. Mohamed, B. M. Elhalawany, H. S. Khallaf, <strong>M. Zareei</strong>, A. Zeb, M. A. Abdelghany
+  venue: IEEE Access, vol. 8, pp. 30560–30574
+  year: 2020
+  type: journal
+  doi: 10.1109/ACCESS.2020.2972614
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85081053930&doi=10.1109%2fACCESS.2020.2972614&partnerID=40&md5=bddc649f3ea9983ce4a91264e5be1857
+  cites: 42
+- title: 'SiFSO: Fish Swarm Optimization-Based Technique for Efficient Community Detection in Complex Networks'
+  authors: Y. Ahmad, M. Ullah, R. Khan, B. Shafi, A. Khan, <strong>M. Zareei</strong>, A. Aldosary, E. M. Mohamed
+  venue: Complexity, vol. 2020
+  year: 2020
+  type: journal
+  doi: 10.1155/2020/6695032
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85098186708&doi=10.1155%2f2020%2f6695032&partnerID=40&md5=79bd40b325aa6065d630eb05b337bccf
+  cites: 10
+- title: Text-Independent Speaker Identification through Feature Fusion and Deep Neural Network
+  authors: R. Jahangir, Y. W. Teh, N. A. Memon, G. Mujtaba, <strong>M. Zareei</strong>, U. Ishtiaq, M. Z. Akhtar, I. Ali
+  venue: IEEE Access, vol. 8, pp. 32187–32202
+  year: 2020
+  type: journal
+  doi: 10.1109/ACCESS.2020.2973541
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85081097110&doi=10.1109%2fACCESS.2020.2973541&partnerID=40&md5=f18a7971ca5bfefdeb6def99c4cca03a
+  cites: 102
+- title: 'Unsupervised color image segmentation: A case of RGB histogram based K-means clustering initialization'
+  authors: S. Basar, M. Ali, G. Ochoa-Ruiz, <strong>M. Zareei</strong>, A. Waheed, A. Adnan
+  venue: PLoS ONE, vol. 15
+  year: 2020
+  type: journal
+  doi: 10.1371/journal.pone.0240015
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85094106676&doi=10.1371%2fjournal.pone.0240015&partnerID=40&md5=d543415f184125680b0f42dffc8d1ee7
+  cites: 64
+- title: 'Urdu ligature recognition system: An evolutionary approach'
+  authors: N. H. Khan, A. Adnan, A. Waheed, <strong>M. Zareei</strong>, A. Aldosary, E. M. Mohamed
+  venue: Computers, Materials and Continua, vol. 66, pp. 1347–1367
+  year: 2020
+  type: journal
+  doi: 10.32604/cmc.2020.013715
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85097175917&doi=10.32604%2fcmc.2020.013715&partnerID=40&md5=accee3110f07e71e35efa947e821fb44
+  cites: 8
+- title: A Lightweight and provable secured certificateless signcryption approach for crowdsourced IIoT applications
+  authors: I. Ullah, N. U. Amin, <strong>M. Zareei</strong>, A. Zeb, H. Khattak, A. Khan, S. Goudarzi
+  venue: Symmetry, vol. 11
+  year: 2019
+  type: journal
+  doi: 10.3390/sym11111386
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85075518679&doi=10.3390%2fsym11111386&partnerID=40&md5=0e6131abd7c7f4d8dd7d92448c4048c9
+  cites: 34
+- title: An Efficient Paradigm for Multiband WiGig D2D Networks
+  authors: E. M. Mohamed, M. A. Abdelghany, <strong>M. Zareei</strong>
+  venue: IEEE Access, vol. 7, pp. 70032–70045
+  year: 2019
+  type: journal
+  doi: 10.1109/ACCESS.2019.2918583
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85067258766&doi=10.1109%2fACCESS.2019.2918583&partnerID=40&md5=9baffca95028718d2059628f8cb0a09a
+  cites: 36
+- title: Efficient transmission power control for energy-harvesting cognitive radio sensor network
+  authors: <strong>M. Zareei</strong>, C. Vargas-Rosales, R. V. Hernndez, E. Azpilicueta
+  venue: 2019 IEEE 30th International Symposium on Personal, Indoor and Mobile Radio Communications, PIMRC Workshops 2019
+  year: 2019
+  type: conference
+  doi: 10.1109/PIMRCW.2019.8880825
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85074903912&doi=10.1109%2fPIMRCW.2019.8880825&partnerID=40&md5=4ebc3535ab3c14679424d45c47af4cde
+  cites: 19
+- title: Energy balanced localization-free cooperative noise-aware routing protocols for underwater wireless sensor networks
+  authors: J. Qadir, A. Khan, <strong>M. Zareei</strong>, C. Vargas-Rosales
+  venue: Energies, vol. 12
+  year: 2019
+  type: journal
+  doi: 10.3390/en12224263
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85076152889&doi=10.3390%2fen12224263&partnerID=40&md5=b7e8eb276aaa2595be794f67c1cc2a47
+  cites: 14
+- title: Energy-effective cooperative and reliable delivery routing protocols for underwater wireless sensor networks
+  authors: U. Ullah, A. Khan, <strong>M. Zareei</strong>, I. Ali, H. A. Khattak, I. Ud Din
+  venue: Energies, vol. 12
+  year: 2019
+  type: journal
+  doi: 10.3390/en12132630
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85068735085&doi=10.3390%2fen12132630&partnerID=40&md5=c62733f64292885644ae50798b3bffd4
+  cites: 39
+- title: Enhancing the performance of energy harvesting sensor networks for environmental monitoring applications
+  authors: <strong>M. Zareei</strong>, C. Vargas-Rosales, M. H. Anisi, L. Musavian, R. Villalpando-Hernandez, S. Goudarzi, E. M. Mohamed
+  venue: Energies, vol. 12
+  year: 2019
+  type: journal
+  doi: 10.3390/en12142794
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85069606619&doi=10.3390%2fen12142794&partnerID=40&md5=09cd24227f5a25eab288eba1a7641291
+  cites: 19
+- title: HoliTrust-A holistic cross-domain trust management mechanism for service-centric internet of things
+  authors: K. A. Awan, I. U. Din, <strong>M. Zareei</strong>, M. Talha, M. Guizani, S. U. Jadoon
+  venue: IEEE Access, vol. 7, pp. 52191–52201
+  year: 2019
+  type: journal
+  doi: 10.1109/ACCESS.2019.2912469
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85066104598&doi=10.1109%2fACCESS.2019.2912469&partnerID=40&md5=e9494cd5811417048d7dec459483ee70
+  cites: 77
+- title: In-Vehicle Cognitive Route Decision Using Fuzzy Modeling and Artificial Neural Network
+  authors: Y. Saeed, K. Ahmed, <strong>M. Zareei</strong>, A. Zeb, C. Vargas-Rosales, K. M. Awan
+  venue: IEEE Access, vol. 7, pp. 20262–20272
+  year: 2019
+  type: journal
+  doi: 10.1109/ACCESS.2019.2895832
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85062232873&doi=10.1109%2fACCESS.2019.2895832&partnerID=40&md5=dd5fcc4aef8aba8a8bedf2e5346febd8
+  cites: 21
+- title: Towards a Fog Enabled Efficient Car Parking Architecture
+  authors: K. S. Awaisi, A. Abbas, <strong>M. Zareei</strong>, H. A. Khattak, M. U. Shahid Khan, M. Ali, I. Ud Din, S. Shah
+  venue: IEEE Access, vol. 7, pp. 159100–159111
+  year: 2019
+  type: journal
+  doi: 10.1109/ACCESS.2019.2950950
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85077984432&doi=10.1109%2fACCESS.2019.2950950&partnerID=40&md5=0ab8c853c8f5aa17b7bb27137acc4153
+  cites: 103
+- title: 'Game theory-based cooperation for underwater acoustic sensor networks: Taxonomy, review, research challenges and directions'
+  authors: D. Muhammed, M. H. Anisi, <strong>M. Zareei</strong>, C. Vargas-Rosales, A. Khan
+  venue: Sensors (Switzerland), vol. 18
+  year: 2018
+  type: journal
+  doi: 10.3390/s18020425
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85041514562&doi=10.3390%2fs18020425&partnerID=40&md5=d3a8f804de5aa9044dec0e3951e0a03c
+  cites: 43
+- title: 'Mobility-aware medium access control protocols for wireless sensor networks: A survey'
+  authors: <strong>M. Zareei</strong>, A. M. Islam, C. Vargas-Rosales, N. Mansoor, S. Goudarzi, M. H. Rehmani
+  venue: Journal of Network and Computer Applications, vol. 104, pp. 21–37
+  year: 2018
+  type: journal
+  doi: 10.1016/j.jnca.2017.12.009
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85039442916&doi=10.1016%2fj.jnca.2017.12.009&partnerID=40&md5=f963ea7dd15d57848d477177e6d11592
+  cites: 54
+- title: 'RARE: A Spectrum Aware Cross-Layer MAC Protocol for Cognitive Radio Ad-Hoc Networks'
+  authors: N. Mansoor, A. K. M. M. Islam, <strong>M. Zareei</strong>, C. Vargas-Rosales
+  venue: IEEE Access, vol. 6, pp. 22210–22227
+  year: 2018
+  type: journal
+  doi: 10.1109/ACCESS.2018.2807781
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85042350741&doi=10.1109%2fACCESS.2018.2807781&partnerID=40&md5=7c7b69155bdd3eeb1ee80539605d06b9
+  cites: 38
+- title: The effects of an Adaptive and Distributed Transmission Power Control on the performance of energy harvesting sensor networks
+  authors: <strong>M. Zareei</strong>, C. Vargas-Rosales, R. Villalpando-Hernandez, L. Azpilicueta, M. H. Anisi, M. H. Rehmani
+  venue: Computer Networks, vol. 137, pp. 69–82
+  year: 2018
+  type: journal
+  doi: 10.1016/j.comnet.2018.03.016
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85044504633&doi=10.1016%2fj.comnet.2018.03.016&partnerID=40&md5=1532d240fbe989419e2732b761f4ab81
+  cites: 22
+- title: A novel on-demand routing protocol for cluster-based Cognitive Radio ad-hoc Network
+  authors: N. Mansoor, A. M. Islam, <strong>M. Zareei</strong>, S. Baharun, S. Komaki
+  venue: IEEE Region 10 Annual International Conference, Proceedings/TENCON, pp. 632–636
+  year: 2017
+  type: conference
+  doi: 10.1109/TENCON.2016.7848079
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85015362839&doi=10.1109%2fTENCON.2016.7848079&partnerID=40&md5=76ae9d5f82f99840c28e221551cbaf2a
+  cites: 6
+- title: A secure trust model based on fuzzy logic in vehicular Ad Hoc networks with fog computing
+  authors: S. A. Soleymani, A. H. Abdullah, <strong>M. Zareei</strong>, M. H. Anisi, C. Vargas-Rosales, M. Khurram Khan, S. Goudarzi
+  venue: IEEE Access, vol. 5, pp. 15619–15629
+  year: 2017
+  type: journal
+  doi: 10.1109/ACCESS.2017.2733225
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85028449681&doi=10.1109%2fACCESS.2017.2733225&partnerID=40&md5=1786a96d78cc0181abc5058775634053
+  cites: 235
+- title: ABC-PSO for vertical handover in heterogeneous wireless networks
+  authors: S. Goudarzi, W. H. Hassan, M. H. Anisi, A. Soleymani, M. Sookhak, M. K. Khan, A. H. A. Hashim, <strong>M. Zareei</strong>
+  venue: Neurocomputing, vol. 256, pp. 63–81
+  year: 2017
+  type: journal
+  doi: 10.1016/j.neucom.2016.08.136
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85015303765&doi=10.1016%2fj.neucom.2016.08.136&partnerID=40&md5=ba8027d7003ecdf5204a1f41e0ee48a6
+  cites: 57
+- title: 'Medium access control protocols for cognitive radio ad hoc networks: A survey'
+  authors: <strong>M. Zareei</strong>, A. Muzahidul Islam, S. Baharun, C. Vargas-Rosales, L. Azpilicueta, N. Mansoor
+  venue: Sensors (Switzerland), vol. 17
+  year: 2017
+  type: journal
+  doi: 10.3390/s17092136
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85029706680&doi=10.3390%2fs17092136&partnerID=40&md5=74a99143be2cad57a1e18d64131bf4e4
+  cites: 23
+- title: State-aware re-configuration model for multi-radio wireless mesh networks
+  authors: O. M. Zakaria, A. H. A. Hashim, W. H. Hassan, O. O. Khalifa, M. Azram, S. Goudarzi, L. B. Jivanadham, <strong>M. Zareei</strong>
+  venue: KSII Transactions on Internet and Information Systems, vol. 11, pp. 146–145
+  year: 2017
+  type: journal
+  doi: 10.3837/tiis.2017.01.008
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85011105985&doi=10.3837%2ftiis.2017.01.008&partnerID=40&md5=99d6db534b17b81cd0c72df4ca179174
+  cites: 5
+- title: 'Clustering analysis in wireless sensor networks: The ambit of performance metrics and schemes taxonomy'
+  authors: A. Zeb, A. Muzahidul Islam, <strong>M. Zareei</strong>, I. Al Mamoon, N. Mansoor, S. Baharun, Y. Katayama, S. Komaki
+  venue: International Journal of Distributed Sensor Networks, vol. 12
+  year: 2016
+  type: journal
+  doi: 10.1177/155014774979142
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85009168062&doi=10.1177%2f155014774979142&partnerID=40&md5=ef699b8f49032a28b6dc3d383f7533c0
+  cites: 80
+- title: 'CMCS: a cross-layer mobility-aware MAC protocol for cognitive radio sensor networks'
+  authors: <strong>M. Zareei</strong>, A. M. Muzahidul Islam, N. Mansoor, S. Baharun, E. M. Mohamed, S. Sampei
+  venue: Eurasip Journal on Wireless Communications and Networking, vol. 2016
+  year: 2016
+  type: journal
+  doi: 10.1186/s13638-016-0652-y
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-84978164649&doi=10.1186%2fs13638-016-0652-y&partnerID=40&md5=164a3d2ce9bfd90154c611bc040332d2
+  cites: 17
+- title: Dynamic spectrum allocation for cognitive radio ad hoc network
+  authors: <strong>M. Zareei</strong>, A. M. Islam, N. Mansoor, S. Baharun
+  venue: Proceedings of 2015 3rd International Conference on Advances in Electrical Engineering, ICAEE 2015, pp. 178–181
+  year: 2016
+  type: conference
+  doi: 10.1109/ICAEE.2015.7506825
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-84981289227&doi=10.1109%2fICAEE.2015.7506825&partnerID=40&md5=570dc11ae32de21ba440fa874c920136
+  cites: 7
+- title: 'Joint channel assignment and routing in multiradio multichannel wireless mesh networks: Design considerations and approaches'
+  authors: O. M. Zakaria, A. H. A. Hashim, W. H. Hassan, O. O. Khalifa, M. Azram, L. B. Jivanadham, M. L. Sanni, <strong>M. Zareei</strong>
+  venue: Journal of Computer Networks and Communications, vol. 2016
+  year: 2016
+  type: journal
+  doi: 10.1155/2016/2769685
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-84978763736&doi=10.1155%2f2016%2f2769685&partnerID=40&md5=34e210a9a57cb196232e79e4f6c2685d
+  cites: 13
+- title: On-Demand Hybrid Routing for Cognitive Radio Ad-Hoc Network
+  authors: <strong>M. Zareei</strong>, E. M. Mohamed, M. H. Anisi, C. V. Rosales, K. Tsukamoto, M. K. Khan
+  venue: IEEE Access, vol. 4, pp. 8294–8302
+  year: 2016
+  type: journal
+  doi: 10.1109/ACCESS.2016.2626721
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85012981925&doi=10.1109%2fACCESS.2016.2626721&partnerID=40&md5=912ccdf5b016612a48d235178db6b4b1
+  cites: 43
+- title: A novel node joining alogoritm for spectrum aware cluster-based cognitive radio ad-hoc networks
+  authors: N. Mansoor, A. M. Islam, <strong>M. Zareei</strong>, S. Baharun, S. Komaki
+  venue: '2015 10th Asian Control Conference: Emerging Control Techniques for a Sustainable World, ASCC 2015'
+  year: 2015
+  type: conference
+  doi: 10.1109/ASCC.2015.7244895
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-84957632252&doi=10.1109%2fASCC.2015.7244895&partnerID=40&md5=f539b9bf24abe4ef75dd8423839b0276
+  cites: 2
+- title: A stable cluster-based architecture for cognitive radio ad-hoc networks
+  authors: N. Mansoor, A. K. M. M. Islam, <strong>M. Zareei</strong>, S. Baharun, S. Komaki
+  venue: IEEE Region 10 Annual International Conference, Proceedings/TENCON, vol. 2015-January
+  year: 2015
+  type: conference
+  doi: 10.1109/TENCON.2014.7022403
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-84940535123&doi=10.1109%2fTENCON.2014.7022403&partnerID=40&md5=a94546c1fdc70bc9241ba707686d5304
+  cites: 2
+- title: 'Cognitive Radio Ad-Hoc Network Architectures: A Survey'
+  authors: N. Mansoor, A. Muzahidul Islam, <strong>M. Zareei</strong>, S. Baharun, T. Wakabayashi, S. Komaki
+  venue: Wireless Personal Communications, vol. 81, pp. 1117–1142
+  year: 2015
+  type: journal
+  doi: 10.1007/s11277-014-2175-3
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-84926277750&doi=10.1007%2fs11277-014-2175-3&partnerID=40&md5=fdf8d07ab59b4c9aff20333191d061fb
+  cites: 41
+- title: Construction of a robust clustering algorithm for cognitive radio ad-hoc network
+  authors: N. Mansoor, A. Muzahidul Islam, <strong>M. Zareei</strong>, S. Baharun, S. Komaki
+  venue: Lecture Notes of the Institute for Computer Sciences, Social-Informatics and Telecommunications Engineering, LNICST, vol. 156, pp. 759–766
+  year: 2015
+  type: conference
+  doi: 10.1007/978-3-319-24540-9_63
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-84952658835&doi=10.1007%2f978-3-319-24540-9_63&partnerID=40&md5=87a9ae5999c4977352d31c8c82c0a8e2
+  cites: 3
+- title: Cross-layer mobility-aware MAC protocol for cognitive radio sensor network
+  authors: <strong>M. Zareei</strong>, A. M. Islam, N. Mansoor, S. Baharun, E. M. Mohamed, S. Sampei
+  venue: 2015 4th International Conference on Informatics, Electronics and Vision, ICIEV 2015
+  year: 2015
+  type: conference
+  doi: 10.1109/ICIEV.2015.7334039
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-84961844575&doi=10.1109%2fICIEV.2015.7334039&partnerID=40&md5=ac98014917534c5454dd8a0c8f1ba398
+  cites: 2
+- title: Energy efficient handover management in cluster based wireless sensor network
+  authors: <strong>M. Zareei</strong>, M. I. Alghamdi, A. K. M. M. Islam, S. Baharun, R. Budiarto
+  venue: International Conference on Electrical Engineering, Computer Science and Informatics (EECSI), vol. 1, pp. 433–436
+  year: 2014
+  type: conference
+  doi: 10.11591/eecsi.1.388
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-85020917100&doi=10.11591%2feecsi.1.388&partnerID=40&md5=457a7b37446d1025c9776ddb0270fc6e
+  cites: 3
+- title: Mobility-aware timeout medium access control protocol for wireless sensor networks
+  authors: <strong>M. Zareei</strong>, A. M. Islam, A. Zeb, S. Baharun, S. Komaki
+  venue: AEU - International Journal of Electronics and Communications, vol. 68, pp. 1000–1006
+  year: 2014
+  type: journal
+  doi: 10.1016/j.aeue.2014.05.014
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-84906256261&doi=10.1016%2fj.aeue.2014.05.014&partnerID=40&md5=0e11809ff20fa9fb81f92db54111b5d5
+  cites: 17
+- title: Determination the response modification factors of buckling restrained braced frames
+  authors: M. Mahmoudi, M. Zaree
+  venue: Procedia Engineering, vol. 54, pp. 222–231
+  year: 2013
+  type: conference
+  doi: 10.1016/j.proeng.2013.03.020
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-84891675054&doi=10.1016%2fj.proeng.2013.03.020&partnerID=40&md5=f6be2ab37627865187d6232e4c65a6f2
+  cites: 29
+- title: Evaluating the displacement amplification factors of concentrically braced steel frames
+  authors: M. Mahmoudi, M. Zaree
+  venue: International Journal of Advanced Structural Engineering, vol. 5
+  year: 2013
+  type: journal
+  doi: 10.1186/2008-6695-5-13
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-84975321829&doi=10.1186%2f2008-6695-5-13&partnerID=40&md5=fa2eac9657a54461a38cf69ae83f016d
+  cites: 4
+- title: Performance based design using force reduction factor and displacement amplification factors for BFS
+  authors: M. Mahmoudi, M. Zaree
+  venue: Asian Journal of Civil Engineering, vol. 14, pp. 577–586
+  year: 2013
+  type: journal
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-84882712182&partnerID=40&md5=6f9b6871d87eb3a1132e4097d4d0dd45
+  cites: 3
+- title: Sensorial design for installation art through E-learning
+  authors: M. M. Tehrani, K. Y. Lim, <strong>M. Zareei</strong>
+  venue: Proceedings - 2013 International Conference on Informatics and Creative Multimedia, ICICM 2013, pp. 165–167
+  year: 2013
+  type: conference
+  doi: 10.1109/ICICM.2013.36
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-84893646271&doi=10.1109%2fICICM.2013.36&partnerID=40&md5=20151d90d32842385ee46cb8eada2068
+  cites: 0
+- title: Spectrum aware cluster-based architecture for cognitive radio ad-hoc networks
+  authors: N. Mansoor, A. Muzahidul Islam, <strong>M. Zareei</strong>, S. Baharun, S. Komaki
+  venue: Proceedings of 2013 2nd International Conference on Advances in Electrical Engineering, ICAEE 2013, pp. 181–185
+  year: 2013
+  type: conference
+  doi: 10.1109/ICAEE.2013.6750329
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-84896480605&doi=10.1109%2fICAEE.2013.6750329&partnerID=40&md5=a224d6dd8569b33969132026d9f87958
+  cites: 18
+- title: A comparative study of short range wireless sensor network on high density networks
+  authors: <strong>M. Zareei</strong>, A. Zarei, R. Budiarto, M. A. Omar
+  venue: 17th Asia-Pacific Conference on Communications, APCC 2011, pp. 247–252
+  year: 2011
+  type: conference
+  doi: 10.1109/APCC.2011.6152813
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-84857872789&doi=10.1109%2fAPCC.2011.6152813&partnerID=40&md5=2710d759817d1ae984a7906031a8899b
+  cites: 16
+- title: 'EMS-MAC: Energy efficient contention-based medium access control protocol for mobile sensor networks'
+  authors: <strong>M. Zareei</strong>, A. Taghizadeh, R. Budiarto, T. C. Wan
+  venue: Computer Journal, vol. 54, pp. 1963–1972
+  year: 2011
+  type: journal
+  doi: 10.1093/comjnl/bxr053
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-82955225011&doi=10.1093%2fcomjnl%2fbxr053&partnerID=40&md5=19109380e7b353db658533e350f060f0
+  cites: 19
+- title: Enhanced mobile lightweight Medium Access Control protocol for wireless sensor networks
+  authors: E. T. Yazdi, A. A. Mohamed, <strong>M. Zareei</strong>, T. C. Wan
+  venue: ISWTA 2011 - 2011 IEEE Symposium on Wireless Technology and Applications, pp. 152–155
+  year: 2011
+  type: conference
+  doi: 10.1109/ISWTA.2011.6089399
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-83655190951&doi=10.1109%2fISWTA.2011.6089399&partnerID=40&md5=8a3ce5fb09374e53e4579f2555e4ab31
+  cites: 2
+- title: Evaluating the overstrength of concentrically braced steel frame systems considering members post-buckling strength
+  authors: M. Mahmoudi, M. Zaree
+  venue: International Journal of Civil Engineering, vol. 9, pp. 57–62
+  year: 2011
+  type: journal
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-79952777801&partnerID=40&md5=aa76aff8f8c04c8754b0daca8f8f43dc
+  cites: 12
+- title: Study of mobility effect on energy efficiency in medium access control protocols
+  authors: <strong>M. Zareei</strong>, R. Budiarto, T. C. Wan
+  venue: ISCI 2011 - 2011 IEEE Symposium on Computers and Informatics, pp. 759–763
+  year: 2011
+  type: conference
+  doi: 10.1109/ISCI.2011.5959013
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-80052105561&doi=10.1109%2fISCI.2011.5959013&partnerID=40&md5=ca9afaf6196cc2f3b61b7c2fb2fbb676
+  cites: 5
+- title: Evaluating response modification factors of concentrically braced steel frames
+  authors: M. Mahmoudi, M. Zaree
+  venue: Journal of Constructional Steel Research, vol. 66, pp. 1196–1204
+  year: 2010
+  type: journal
+  doi: 10.1016/j.jcsr.2010.04.004
+  url: https://www.scopus.com/inward/record.uri?eid=2-s2.0-78649346997&doi=10.1016%2fj.jcsr.2010.04.004&partnerID=40&md5=2aabaf21d9f622c319815c5b7b34d6ff
+  cites: 84
