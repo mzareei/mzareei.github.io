@@ -1,15 +1,12 @@
 ---
 title: Curriculum Vitae
 subtitle: A web version of my CV. A downloadable PDF is also available.
-description: Curriculum vitae of [Your Full Name] — positions, education, publications, grants, teaching, and service.
+description: Curriculum vitae of Mahdi Zareei — positions, education, awards, grants, editorial roles, teaching, and supervision.
 ---
 <!--
-  Web CV. Edit the sections below directly.
-  Many sections pull from shared data files so you only update them once:
-    - Publications  -> _data/publications.yml
-    - Projects      -> _data/projects.yml
-    - Students      -> _data/students.yml
-  TODO: Replace all bracketed placeholders.
+  Web CV. Most facts are written directly below; publications and student counts
+  are pulled from the shared data files so they update automatically.
+  Scientometrics are a 2024 snapshot — update the numbers as needed.
 -->
 
 <p>
@@ -22,47 +19,41 @@ description: Curriculum vitae of [Your Full Name] — positions, education, publ
 
 <section class="cv-section">
   <h2>Academic positions</h2>
-  <div class="cv-entry"><div class="cv-entry__line">
-    <span>[TODO: Position title], [Institution]</span><span class="cv-entry__when">[2024 – present]</span>
-  </div></div>
-  <div class="cv-entry"><div class="cv-entry__line">
-    <span>[TODO: Previous position], [Institution]</span><span class="cv-entry__when">[2019 – 2024]</span>
-  </div></div>
+  <div class="cv-entry"><div class="cv-entry__line"><span>Research Professor — School of Engineering and Sciences, Tecnológico de Monterrey, Mexico</span><span class="cv-entry__when">2019 – present</span></div></div>
+  <div class="cv-entry"><div class="cv-entry__line"><span>Postdoctoral Researcher — Tecnológico de Monterrey, Mexico</span><span class="cv-entry__when">2017 – 2019</span></div></div>
+  <div class="cv-entry"><div class="cv-entry__line"><span>Teaching / Research Assistant — Malaysia-Japan International Institute of Technology, Universiti Teknologi Malaysia</span><span class="cv-entry__when">2013 – 2016</span></div></div>
+  <div class="cv-entry"><div class="cv-entry__line"><span>Teaching Assistant — Universiti Sains Malaysia</span><span class="cv-entry__when">2010 – 2012</span></div></div>
 </section>
 
 <section class="cv-section">
   <h2>Education</h2>
-  <div class="cv-entry"><div class="cv-entry__line">
-    <span>PhD in [Field], [University]</span><span class="cv-entry__when">[Year]</span>
-  </div></div>
-  <div class="cv-entry"><div class="cv-entry__line">
-    <span>MSc in [Field], [University]</span><span class="cv-entry__when">[Year]</span>
-  </div></div>
-  <div class="cv-entry"><div class="cv-entry__line">
-    <span>BSc in [Field], [University]</span><span class="cv-entry__when">[Year]</span>
-  </div></div>
+  <div class="cv-entry"><div class="cv-entry__line"><span>Ph.D. in Wireless Communication — Malaysia-Japan International Institute of Technology, Universiti Teknologi Malaysia</span><span class="cv-entry__when">2013 – 2016</span></div>
+    <p class="cv-entry__sub">Dissertation: Mobility-aware MAC protocol for Cognitive Radio Sensor Networks.</p></div>
+  <div class="cv-entry"><div class="cv-entry__line"><span>Visiting Research Student — Sampei Lab, Graduate School of Engineering, Osaka University, Japan</span><span class="cv-entry__when">2015</span></div></div>
+  <div class="cv-entry"><div class="cv-entry__line"><span>M.Sc. in Computer Science — Universiti Sains Malaysia (USM)</span><span class="cv-entry__when">2010 – 2012</span></div>
+    <p class="cv-entry__sub">Dissertation: EMS-MAC — Energy-Aware Contention-based MAC Protocol for Mobile Sensor Networks.</p></div>
+  <div class="cv-entry"><div class="cv-entry__line"><span>B.Eng. in Software Engineering — Payame Noor University (PNU), Hamedan, Iran</span><span class="cv-entry__when">2002 – 2008</span></div></div>
 </section>
 
 <section class="cv-section">
   <h2>Research interests</h2>
-  <p>Artificial intelligence, machine learning, natural language processing,
-     cybersecurity, IoT, blockchain, mental health technologies, and applied AI systems.
-     <span class="todo">TODO: refine.</span></p>
+  <p>Information and network security; applied machine learning; natural language
+     processing and sentiment analysis; wireless sensor and cognitive radio networks;
+     Internet of Things and vehicular networks.</p>
 </section>
 
 <section class="cv-section">
   <h2>Selected publications</h2>
-  <p>See the full, filterable list on the <a href="{{ '/publications/' | relative_url }}">Publications</a> page.</p>
-  <ul class="pub-list">
+  <p>{{ site.data.publications | size }} peer-reviewed publications in total. Full,
+     year-by-year list on the <a href="{{ '/publications/' | relative_url }}">Publications</a> page.
+     Most recent:</p>
+  <ul class="pub-list" style="border:0;">
     {% assign pubs = site.data.publications | sort: "year" | reverse %}
     {% for pub in pubs limit: 5 %}
       <li class="pub-item">
-        <span class="pub-item__year">{{ pub.year }}</span>
-        <div>
-          <p class="pub-item__title">{{ pub.title }}</p>
-          <p class="pub-item__authors">{{ pub.authors }}</p>
-          <p class="pub-item__venue">{{ pub.venue }}</p>
-        </div>
+        <p class="pub-item__title">{{ pub.title }} <span class="cv-entry__when">({{ pub.year }})</span></p>
+        <p class="pub-item__authors">{{ pub.authors }}</p>
+        <p class="pub-item__venue">{{ pub.venue }}</p>
       </li>
     {% endfor %}
   </ul>
@@ -70,51 +61,64 @@ description: Curriculum vitae of [Your Full Name] — positions, education, publ
 
 <section class="cv-section">
   <h2>Grants and funded projects</h2>
-  <ul>
-    {% for p in site.data.projects %}
-      <li>{{ p.title }}{% if p.funding_source and p.funding_source != "" %} — {{ p.funding_source }}{% endif %}{% if p.duration %} ({{ p.duration }}){% endif %} — <em>{{ p.role }}</em></li>
-    {% endfor %}
-  </ul>
-  <p class="todo">TODO: ensure funding details in _data/projects.yml are accurate; do not list amounts that are not public.</p>
+  <div class="cv-entry"><div class="cv-entry__line"><span><strong>Energy-Harvesting Sensor Networks for Environmental Monitoring: Bridging the Research-Implementation Gap</strong> — The Royal Society (IES\R3\170342). Partners: Tecnológico de Monterrey &amp; University of Essex.</span><span class="cv-entry__when">2018 – 2020</span></div></div>
+  <p class="todo">TODO: add any additional grants here (internal funding, CONAHCYT, industry, etc.).</p>
 </section>
 
 <section class="cv-section">
-  <h2>Teaching</h2>
-  <ul>
-    {% for course in site.courses %}
-      <li><a href="{{ course.url | relative_url }}">{{ course.title }}</a>{% if course.semester %} — {{ course.semester }}{% endif %}</li>
-    {% endfor %}
-  </ul>
-  <p>See the <a href="{{ '/teaching/' | relative_url }}">Teaching</a> page for materials.</p>
-</section>
-
-<section class="cv-section">
-  <h2>Student supervision</h2>
-  <p>{{ site.data.students.phd | size }} PhD, {{ site.data.students.msc | size }} MSc, and
-     {{ site.data.students.graduated | size }} graduated students.
-     See the <a href="{{ '/students/' | relative_url }}">Students</a> page.</p>
+  <h2>Awards and recognitions</h2>
+  <div class="cv-entry"><div class="cv-entry__line"><span>Círculo de Profesores Destacados (Circle of Outstanding Professors), Tecnológico de Monterrey</span><span class="cv-entry__when">2022 – 23</span></div></div>
+  <div class="cv-entry"><div class="cv-entry__line"><span>Elevated to IEEE Senior Member</span><span class="cv-entry__when">2020</span></div></div>
+  <div class="cv-entry"><div class="cv-entry__line"><span>Best Lecturer (Master's degree, based on student evaluations)</span><span class="cv-entry__when">2019</span></div></div>
+  <div class="cv-entry"><div class="cv-entry__line"><span>Full Fellowship Award — MJIIT, Universiti Teknologi Malaysia</span><span class="cv-entry__when">2013 – 2016</span></div></div>
+  <div class="cv-entry"><div class="cv-entry__line"><span>JASSO Fellowship — Sampei Lab, Osaka University, Japan</span><span class="cv-entry__when">2015</span></div></div>
+  <div class="cv-entry"><div class="cv-entry__line"><span>Best Research Proposal — Japanese Chamber of Trade &amp; Industry, Malaysia (also 2013)</span><span class="cv-entry__when">2015</span></div></div>
+  <div class="cv-entry"><div class="cv-entry__line"><span>Best Paper Awards — IWNCSP (2015), ICAICT Chittagong (2015), AUN/SEED-Net ICEEE (2014), MJIIS (2013)</span><span class="cv-entry__when">2013 – 2015</span></div></div>
 </section>
 
 <section class="cv-section">
   <h2>Editorial and reviewing activities</h2>
   <ul>
-    <li>[TODO: Editorial board member, JOURNAL] <span class="cv-entry__when">[Years]</span></li>
-    <li>[TODO: Reviewer for JOURNAL / CONFERENCE]</li>
-    <li>[TODO: Program committee member, CONFERENCE]</li>
+    <li>Associate Editor — <em>IEEE Access</em> (2017 – present)</li>
+    <li>Associate Editor — <em>Ad Hoc &amp; Sensor Wireless Networks</em> (2020 – present)</li>
+    <li>Associate Editor — <em>PLOS One</em></li>
+    <li>Reviewer for leading venues including <em>ACM Computing Surveys</em>, <em>IEEE Internet of Things Journal</em>, <em>EURASIP Journal on Wireless Communications and Networking</em>, and the <em>International Journal of Communication Systems</em></li>
+    <li>Technical committee member — AUN/SEED-Net ICEEE (2014); 1st Int. Conf. on Advanced Information and Communication Technology (2016)</li>
   </ul>
 </section>
 
 <section class="cv-section">
-  <h2>Awards and recognitions</h2>
+  <h2>Teaching</h2>
+  <p>At Tecnológico de Monterrey (2019 – present): Information Security, Distributed
+     Systems, Data Science, and Network Fundamentals. See the
+     <a href="{{ '/teaching/' | relative_url }}">Teaching</a> page for course materials.</p>
+  <p>Earlier (as Teaching Assistant): Principles of Programming, Data Structures
+     (USM); Network Engineering, Software Engineering (UTM).</p>
+</section>
+
+<section class="cv-section">
+  <h2>Student supervision</h2>
+  <p>Main and co-advisor for PhD and Master's students, and committee member for
+     8 PhD students (2017 – 2023). See the
+     <a href="{{ '/students/' | relative_url }}">Students</a> page.</p>
+</section>
+
+<section class="cv-section">
+  <h2>Professional service &amp; memberships</h2>
   <ul>
-    <li>[TODO: Award name, awarding body] <span class="cv-entry__when">[Year]</span></li>
+    <li>Member, Mexican National System of Researchers (SNI), Level I</li>
+    <li>Senior Member, IEEE; member of the IEEE Communications Society (since 2010)</li>
+    <li>Google Certified Educator — Level 2 (2019 – present)</li>
   </ul>
 </section>
 
 <section class="cv-section">
-  <h2>Professional service</h2>
-  <ul>
-    <li>[TODO: Committee / organizing role]</li>
-    <li>[TODO: Society membership]</li>
-  </ul>
+  <h2>Scientometrics</h2>
+  <p>As of 2024: h-index 34 · i10-index 71 · 100+ publications · 3300+ citations
+     <span class="cv-entry__when">(verify against Scholar/Scopus before quoting)</span>.</p>
+  <p class="card__meta">
+    ORCID <a href="https://orcid.org/0000-0001-6623-1758" rel="noopener">0000-0001-6623-1758</a> ·
+    Scopus Author ID <a href="https://www.scopus.com/authid/detail.uri?authorId=48762315500" rel="noopener">48762315500</a> ·
+    Web of Science ResearcherID D-8043-2013
+  </p>
 </section>

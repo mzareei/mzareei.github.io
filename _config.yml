@@ -40,7 +40,7 @@ baseurl: ""
 # ---- Academic profile links (TODO: replace with your real URLs) ----
 # Leave a value blank ("") to hide that icon/link.
 profiles:
-  cv: "/assets/cv/cv.pdf"                  # downloadable PDF CV (TODO: add the PDF file)
+  cv: ""                                    # set to "/assets/cv/cv.pdf" after adding the PDF to assets/cv/
   google_scholar: ""                        # TODO: send your Google Scholar profile URL
   orcid: "https://orcid.org/0000-0001-6623-1758"
   scopus: "https://www.scopus.com/authid/detail.uri?authorId=48762315500"

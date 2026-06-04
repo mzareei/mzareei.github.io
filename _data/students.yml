@@ -1,54 +1,47 @@
 # ============================================================
-#  SUPERVISED STUDENTS
-#  Grouped into four categories rendered on the Students page:
-#    phd | msc | graduated | undergrad
-#  --- ALL ENTRIES BELOW ARE PLACEHOLDERS. Replace with real data. ---
-#  TODO: Do NOT invent real student names. Keep entries respectful and professional.
-#        Get consent before publishing a student's name on a public site.
+#  SUPERVISED STUDENTS  (from CV "Advisory Activities")
+#  Groups: phd | msc | graduated | undergrad
+#  NOTE: the CV lists theses without student names. Names are left as
+#  placeholders — add them only with each student's consent.
+#  Also: committee member for 8 PhD students (2017–2023); see CV.
 # ============================================================
 
 phd:
-  - name: "[TODO: PhD student name]"
-    program: "PhD in Computer Science"
-    title: "[Thesis title or working title]"
-    status: "In progress (started 2024)"
-    topic: "[Main research topic]"
-    outcomes: ""                 # TODO: publications/outcomes if any
-
-  - name: "[TODO: PhD student name]"
-    program: "PhD in Computer Science"
-    title: "[Thesis title]"
-    status: "In progress (started 2023)"
-    topic: "[Main research topic]"
+  - name: "[Add student name — with consent]"
+    program: "PhD — Main advisor"
+    title: "Text Emotion Detection"
+    status: "In progress (since 2022)"
+    topic: "Natural language processing / affective computing"
     outcomes: ""
 
+  - name: "[Add student name — with consent]"
+    program: "PhD — Main advisor"
+    title: "Leveraging shared semantic knowledge for multiple-language support applied to sentiment analysis in micro-blogging platforms"
+    status: "In progress (since 2019)"
+    topic: "Multilingual NLP / sentiment analysis"
+    outcomes: "Related publications with León-Sandoval et al."
+
 msc:
-  - name: "[TODO: MSc student name]"
-    program: "MSc in Computer Science"
-    title: "[Thesis/project title]"
-    status: "In progress"
-    topic: "[Main research topic]"
+  - name: "[Add student name — with consent]"
+    program: "MSc — Main advisor"
+    title: "MU-MIMO distributed beamforming in RF energy-harvesting cognitive radio sensor networks"
+    status: "In progress (since 2019)"
+    topic: "Wireless communications / energy harvesting"
     outcomes: ""
 
 graduated:
-  - name: "[TODO: Graduated student name]"
-    program: "PhD in Computer Science"
-    title: "[Thesis title]"
-    status: "Graduated 2023"
-    topic: "[Main research topic]"
-    outcomes: "[TODO: current position / key publication]"
-
-  - name: "[TODO: Graduated student name]"
-    program: "MSc in Computer Science"
-    title: "[Thesis title]"
+  - name: "[Add student name — with consent]"
+    program: "MSc — Main advisor"
+    title: "Road asphalt monitoring system: pothole detection"
     status: "Graduated 2022"
-    topic: "[Main research topic]"
+    topic: "Applied machine learning / computer vision"
     outcomes: ""
 
-undergrad:
-  - name: "[TODO: Undergraduate researcher name]"
-    program: "BSc — Undergraduate research"
-    title: "[Project title]"
-    status: "2025"
-    topic: "[Main research topic]"
+  - name: "[Add student name — with consent]"
+    program: "PhD — Co-advisor"
+    title: "Reception of multiple users in reconfigurable wireless networks"
+    status: "Graduated (2018)"
+    topic: "Reconfigurable wireless networks"
     outcomes: ""
+
+# undergrad: []   # TODO: add undergraduate research students if any
