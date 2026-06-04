@@ -1,0 +1,34 @@
+{%- comment -%}
+  Renders the row of academic profile links as icons.
+  Values come from `profiles:` in _config.yml. Blank values are skipped.
+  Icons: Font Awesome (fa-*) and Academicons (ai ai-*).
+{%- endcomment -%}
+<span class="social-icons">
+  {%- if site.email and site.email != "" -%}
+    <a class="social-icons__item" href="mailto:{{ site.email }}" aria-label="Email" title="Email"><i class="fa-solid fa-envelope"></i></a>
+  {%- endif -%}
+  {%- if site.profiles.cv and site.profiles.cv != "" -%}
+    <a class="social-icons__item" href="{{ site.profiles.cv | relative_url }}" aria-label="CV (PDF)" title="CV (PDF)"><i class="fa-solid fa-file-lines"></i></a>
+  {%- endif -%}
+  {%- if site.profiles.google_scholar and site.profiles.google_scholar != "" -%}
+    <a class="social-icons__item" href="{{ site.profiles.google_scholar }}" rel="noopener" aria-label="Google Scholar" title="Google Scholar"><i class="ai ai-google-scholar"></i></a>
+  {%- endif -%}
+  {%- if site.profiles.orcid and site.profiles.orcid != "" -%}
+    <a class="social-icons__item" href="{{ site.profiles.orcid }}" rel="noopener" aria-label="ORCID" title="ORCID"><i class="ai ai-orcid"></i></a>
+  {%- endif -%}
+  {%- if site.profiles.scopus and site.profiles.scopus != "" -%}
+    <a class="social-icons__item" href="{{ site.profiles.scopus }}" rel="noopener" aria-label="Scopus" title="Scopus"><i class="ai ai-scopus"></i></a>
+  {%- endif -%}
+  {%- if site.profiles.dblp and site.profiles.dblp != "" -%}
+    <a class="social-icons__item" href="{{ site.profiles.dblp }}" rel="noopener" aria-label="DBLP" title="DBLP"><i class="ai ai-dblp"></i></a>
+  {%- endif -%}
+  {%- if site.profiles.researchgate and site.profiles.researchgate != "" -%}
+    <a class="social-icons__item" href="{{ site.profiles.researchgate }}" rel="noopener" aria-label="ResearchGate" title="ResearchGate"><i class="ai ai-researchgate"></i></a>
+  {%- endif -%}
+  {%- if site.profiles.github and site.profiles.github != "" -%}
+    <a class="social-icons__item" href="{{ site.profiles.github }}" rel="noopener" aria-label="GitHub" title="GitHub"><i class="fa-brands fa-github"></i></a>
+  {%- endif -%}
+  {%- if site.profiles.linkedin and site.profiles.linkedin != "" -%}
+    <a class="social-icons__item" href="{{ site.profiles.linkedin }}" rel="noopener" aria-label="LinkedIn" title="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
+  {%- endif -%}
+</span>

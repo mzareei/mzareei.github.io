@@ -1,0 +1,33 @@
+<header class="site-header">
+  <div class="container site-header__inner">
+    <a class="site-header__brand" href="{{ '/' | relative_url }}">{{ site.name }}</a>
+
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="primary-nav">
+      <span class="nav-toggle__bar"></span>
+      <span class="nav-toggle__bar"></span>
+      <span class="nav-toggle__bar"></span>
+    </button>
+
+    <nav id="primary-nav" class="site-nav" aria-label="Primary">
+      {%- comment -%} Navigation items. Add/remove links here to change the menu. {%- endcomment -%}
+      {%- assign nav_items = "/,about|/cv/,cv|/research/,research|/publications/,publications|/projects/,projects|/students/,students|/teaching/,teaching|/blog/,blog|/news/,news|/contact/,contact" | split: "|" -%}
+      {%- for item in nav_items -%}
+        {%- assign parts = item | split: "," -%}
+        {%- assign href = parts[0] -%}
+        {%- assign label = parts[1] -%}
+        {%- assign current = page.url | default: "/" -%}
+        {%- if href == "/" -%}
+          {%- if current == "/" -%}{%- assign is_active = true -%}{%- else -%}{%- assign is_active = false -%}{%- endif -%}
+        {%- else -%}
+          {%- if current contains href -%}{%- assign is_active = true -%}{%- else -%}{%- assign is_active = false -%}{%- endif -%}
+        {%- endif -%}
+        <a class="site-nav__link{% if is_active %} is-active{% endif %}" href="{{ href | relative_url }}">{{ label }}</a>
+      {%- endfor -%}
+
+      <button class="theme-toggle" type="button" aria-label="Switch between light and dark theme" title="Toggle light / dark theme">
+        <span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true">☀</span>
+        <span class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true">☾</span>
+      </button>
+    </nav>
+  </div>
+</header>

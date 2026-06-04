@@ -1,0 +1,54 @@
+# ============================================================
+#  SUPERVISED STUDENTS
+#  Grouped into four categories rendered on the Students page:
+#    phd | msc | graduated | undergrad
+#  --- ALL ENTRIES BELOW ARE PLACEHOLDERS. Replace with real data. ---
+#  TODO: Do NOT invent real student names. Keep entries respectful and professional.
+#        Get consent before publishing a student's name on a public site.
+# ============================================================
+
+phd:
+  - name: "[TODO: PhD student name]"
+    program: "PhD in Computer Science"
+    title: "[Thesis title or working title]"
+    status: "In progress (started 2024)"
+    topic: "[Main research topic]"
+    outcomes: ""                 # TODO: publications/outcomes if any
+
+  - name: "[TODO: PhD student name]"
+    program: "PhD in Computer Science"
+    title: "[Thesis title]"
+    status: "In progress (started 2023)"
+    topic: "[Main research topic]"
+    outcomes: ""
+
+msc:
+  - name: "[TODO: MSc student name]"
+    program: "MSc in Computer Science"
+    title: "[Thesis/project title]"
+    status: "In progress"
+    topic: "[Main research topic]"
+    outcomes: ""
+
+graduated:
+  - name: "[TODO: Graduated student name]"
+    program: "PhD in Computer Science"
+    title: "[Thesis title]"
+    status: "Graduated 2023"
+    topic: "[Main research topic]"
+    outcomes: "[TODO: current position / key publication]"
+
+  - name: "[TODO: Graduated student name]"
+    program: "MSc in Computer Science"
+    title: "[Thesis title]"
+    status: "Graduated 2022"
+    topic: "[Main research topic]"
+    outcomes: ""
+
+undergrad:
+  - name: "[TODO: Undergraduate researcher name]"
+    program: "BSc — Undergraduate research"
+    title: "[Project title]"
+    status: "2025"
+    topic: "[Main research topic]"
+    outcomes: ""

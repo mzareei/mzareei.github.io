@@ -1,0 +1,61 @@
+---
+title: Publications
+subtitle: Journal papers, conference papers, book chapters, and preprints.
+description: Publications by [Your Full Name], filterable by year and type.
+---
+<!-- Publications are edited in _data/publications.yml -->
+
+{% assign pubs = site.data.publications | sort: "year" | reverse %}
+{% assign years = pubs | map: "year" | uniq %}
+
+<div class="pub-filters">
+  <label for="filter-year">Year</label>
+  <select id="filter-year">
+    <option value="all">All</option>
+    {% for y in years %}<option value="{{ y }}">{{ y }}</option>{% endfor %}
+  </select>
+
+  <label for="filter-type">Type</label>
+  <select id="filter-type">
+    <option value="all">All</option>
+    <option value="journal">Journal papers</option>
+    <option value="conference">Conference papers</option>
+    <option value="book_chapter">Book chapters</option>
+    <option value="preprint">Preprints</option>
+  </select>
+</div>
+
+{% comment %} Render grouped by type, in a fixed order. {% endcomment %}
+{% assign type_order = "journal,conference,book_chapter,preprint" | split: "," %}
+{% assign type_names = "Journal papers,Conference papers,Book chapters,Preprints" | split: "," %}
+
+{% for t in type_order %}
+  {% assign group = pubs | where: "type", t %}
+  {% if group.size > 0 %}
+    <div data-pub-group="{{ t }}">
+      <h2 class="pub-type-heading">{{ type_names[forloop.index0] }}</h2>
+      <ul class="pub-list">
+        {% for pub in group %}
+          <li class="pub-item" data-year="{{ pub.year }}" data-type="{{ pub.type }}">
+            <span class="pub-item__year">{{ pub.year }}</span>
+            <div>
+              <p class="pub-item__title">{{ pub.title }}</p>
+              <p class="pub-item__authors">{{ pub.authors }}</p>
+              <p class="pub-item__venue">{{ pub.venue }}</p>
+              <div class="pub-item__links">
+                {% if pub.doi and pub.doi != "" %}<a href="https://doi.org/{{ pub.doi }}" rel="noopener">DOI</a>{% endif %}
+                {% if pub.url and pub.url != "" %}<a href="{{ pub.url }}" rel="noopener">Link</a>{% endif %}
+                {% if pub.pdf and pub.pdf != "" %}<a href="{{ pub.pdf | relative_url }}">PDF</a>{% endif %}
+                {% if pub.code and pub.code != "" %}<a href="{{ pub.code }}" rel="noopener">Code/Data</a>{% endif %}
+              </div>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+{% endfor %}
+
+{% if pubs.size == 0 %}
+  <p class="pub-empty">No publications yet. Add entries to <code>_data/publications.yml</code>.</p>
+{% endif %}

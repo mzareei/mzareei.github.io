@@ -1,0 +1,20 @@
+{%- comment -%}
+  Reusable project card. Pass a project object as `p`:
+  {% include project-card.html p=some_project %}
+{%- endcomment -%}
+{%- assign p = include.p -%}
+<article class="card">
+  <h3>{{ p.title }}</h3>
+  <p class="card__meta">
+    {% if p.status == "active" %}<span class="status status--active">Active</span>
+    {% elsif p.status == "review" %}<span class="status status--review">Under review</span>
+    {% else %}<span class="status status--completed">Completed</span>{% endif %}
+    {% if p.duration %} · {{ p.duration }}{% endif %}
+  </p>
+  <p>{{ p.description }}</p>
+  <p class="card__meta"><strong>Role:</strong> {{ p.role }}</p>
+  {% if p.funding_source and p.funding_source != "" %}<p class="card__meta"><strong>Funding:</strong> {{ p.funding_source }}{% if p.amount and p.amount != "" %} ({{ p.amount }}){% endif %}</p>{% endif %}
+  {% if p.collaborators and p.collaborators != "" %}<p class="card__meta"><strong>Collaborators:</strong> {{ p.collaborators }}</p>{% endif %}
+  {% if p.related_publications and p.related_publications != "" %}<p class="card__meta"><strong>Related publications:</strong> {{ p.related_publications }}</p>{% endif %}
+  {% if p.related_students and p.related_students != "" %}<p class="card__meta"><strong>Related students:</strong> {{ p.related_students }}</p>{% endif %}
+</article>

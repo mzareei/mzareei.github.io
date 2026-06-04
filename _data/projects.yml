@@ -1,0 +1,51 @@
+# ============================================================
+#  RESEARCH PROJECTS
+#  Add one entry per project.
+#  status must be one of: active | completed | review
+#  --- ALL ENTRIES BELOW ARE PLACEHOLDERS. Replace with real data. ---
+#  TODO: Do NOT invent funding, amounts, or collaborators. Leave blank if unknown.
+# ============================================================
+
+- title: "[TODO: Active project title]"
+  status: active
+  description: "[Short description of the project's goals and approach.]"
+  role: "Principal Investigator"          # TODO: e.g. PI / Co-PI / Collaborator
+  funding_source: "[TODO: funding agency or leave blank]"
+  amount: ""                               # TODO: e.g. "$XXX,XXX" — leave blank if not public
+  duration: "2024 – 2026"                  # TODO
+  collaborators: "[TODO: names/institutions]"
+  related_publications: "[TODO: link or title]"
+  related_students: "[TODO: student name(s)]"
+
+- title: "[TODO: Second active project title]"
+  status: active
+  description: "[Short description.]"
+  role: "Co-Investigator"
+  funding_source: ""
+  amount: ""
+  duration: "2025 – present"
+  collaborators: ""
+  related_publications: ""
+  related_students: ""
+
+- title: "[TODO: Completed project title]"
+  status: completed
+  description: "[Short description of a finished project and its outcomes.]"
+  role: "Principal Investigator"
+  funding_source: "[TODO]"
+  amount: ""
+  duration: "2021 – 2023"
+  collaborators: ""
+  related_publications: ""
+  related_students: ""
+
+- title: "[TODO: Project under review/proposal]"
+  status: review
+  description: "[Short description of a proposal currently under review.]"
+  role: "Principal Investigator"
+  funding_source: "[TODO: agency the proposal was submitted to]"
+  amount: ""
+  duration: "Proposed 2026 – 2028"
+  collaborators: ""
+  related_publications: ""
+  related_students: ""

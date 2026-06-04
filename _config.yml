@@ -1,0 +1,91 @@
+# ============================================================
+#  SITE CONFIGURATION
+#  Edit the values in this file to update site-wide settings.
+#  After editing _config.yml you must restart `jekyll serve`
+#  (changes here are NOT picked up by live-reload).
+# ============================================================
+
+# ---- Identity (TODO: replace all placeholders) ----
+name: "[Your Full Name]"                 # TODO: e.g. "Dr. Jane Doe"
+title: "[Your Academic Title]"           # TODO: e.g. "Associate Professor of Computer Science"
+affiliation: "[Department], [University]" # TODO: e.g. "Department of Computer Science, Example University"
+affiliation_url: ""                       # TODO (optional): link for the affiliation on the home page
+tagline: "Research professor · Computer Science" # TODO: short tagline shown under your name on the home page
+short_summary: >-                         # TODO: 1-2 sentence summary shown on the home page
+  Research professor in Computer Science working on artificial intelligence,
+  machine learning, and applied AI systems. [TODO: edit this summary.]
+
+email: "zarei.1982@gmail.com"             # TODO: replace with your professional/academic email
+
+# ---- SEO / metadata ----
+description: >-                            # Used for <meta description> and Open Graph
+  Academic homepage of [Your Full Name], [Academic Title] at [University].
+  Research in AI, machine learning, NLP, cybersecurity, IoT, blockchain,
+  and applied AI systems. CV, publications, projects, students, and teaching.
+keywords: >-
+  [Your Name], computer science, artificial intelligence, machine learning,
+  natural language processing, cybersecurity, IoT, blockchain,
+  mental health technologies, applied AI, research professor
+lang: en
+
+# ---- URLs ----
+# For a GitHub user/organization page (username.github.io) leave baseurl empty.
+# For a project page (username.github.io/repo) set baseurl: "/repo".
+url: "https://mzareei.github.io"
+baseurl: ""
+
+# ---- Academic profile links (TODO: replace with your real URLs) ----
+# Leave a value blank ("") to hide that icon/link.
+profiles:
+  cv: "/assets/cv/cv.pdf"                  # downloadable PDF CV (place file in assets/cv/)
+  google_scholar: ""                        # TODO: https://scholar.google.com/citations?user=XXXX
+  orcid: ""                                 # TODO: https://orcid.org/0000-0000-0000-0000
+  scopus: ""                                # TODO: https://www.scopus.com/authid/detail.uri?authorId=XXXX
+  github: "https://github.com/mzareei"      # TODO: confirm/replace
+  linkedin: ""                              # TODO: https://www.linkedin.com/in/your-handle
+  dblp: ""                                  # TODO (optional): https://dblp.org/pid/XXXX
+  researchgate: ""                          # TODO (optional)
+
+# ---- Build settings ----
+markdown: kramdown
+permalink: pretty
+timezone: Etc/UTC
+
+# Collections: each course lives as its own file in _courses/
+collections:
+  courses:
+    output: true
+    permalink: /teaching/:name/
+
+# Default front-matter so pages do not need to repeat `layout`
+defaults:
+  - scope:
+      path: ""
+      type: pages
+    values:
+      layout: page
+  - scope:
+      path: ""
+      type: courses
+    values:
+      layout: course
+  - scope:
+      path: ""
+      type: posts
+    values:
+      layout: post
+
+# Files/folders Jekyll should ignore
+exclude:
+  - README.md
+  - Gemfile
+  - Gemfile.lock
+  - vendor
+  - .gitignore
+  - LICENSE
+
+# Plugins (all supported on GitHub Pages)
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+  - jekyll-sitemap

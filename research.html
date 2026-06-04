@@ -1,0 +1,24 @@
+---
+title: Research
+subtitle: Research themes and how they connect to my publications, projects, and students.
+description: Research themes of [Your Full Name] in AI, machine learning, NLP, cybersecurity, IoT, blockchain, and applied AI.
+---
+<!-- Research themes are edited in _data/research.yml -->
+
+<div class="grid grid--2">
+  {% for theme in site.data.research %}
+    <article class="card">
+      <h3>{{ theme.name }}</h3>
+      <p>{{ theme.description }}</p>
+
+      <p class="card__meta"><strong>Related publications:</strong> {{ theme.related_publications }}</p>
+      <p class="card__meta"><strong>Related projects:</strong> {{ theme.related_projects }}</p>
+      <p class="card__meta"><strong>Related students:</strong> {{ theme.related_students }}</p>
+      <p class="card__meta"><strong>External collaborators:</strong> {{ theme.collaborators }}</p>
+    </article>
+  {% endfor %}
+</div>
+
+<p style="margin-top:1.5rem;" class="todo">
+  TODO: Edit the themes, descriptions, and connections in <code>_data/research.yml</code>.
+</p>

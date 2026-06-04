@@ -1,0 +1,120 @@
+---
+title: Curriculum Vitae
+subtitle: A web version of my CV. A downloadable PDF is also available.
+description: Curriculum vitae of [Your Full Name] — positions, education, publications, grants, teaching, and service.
+---
+<!--
+  Web CV. Edit the sections below directly.
+  Many sections pull from shared data files so you only update them once:
+    - Publications  -> _data/publications.yml
+    - Projects      -> _data/projects.yml
+    - Students      -> _data/students.yml
+  TODO: Replace all bracketed placeholders.
+-->
+
+<p>
+  {% if site.profiles.cv and site.profiles.cv != "" %}
+    <a class="btn" href="{{ site.profiles.cv | relative_url }}">Download CV (PDF)</a>
+  {% else %}
+    <span class="todo">TODO: add assets/cv/cv.pdf and set profiles.cv in _config.yml</span>
+  {% endif %}
+</p>
+
+<section class="cv-section">
+  <h2>Academic positions</h2>
+  <div class="cv-entry"><div class="cv-entry__line">
+    <span>[TODO: Position title], [Institution]</span><span class="cv-entry__when">[2024 – present]</span>
+  </div></div>
+  <div class="cv-entry"><div class="cv-entry__line">
+    <span>[TODO: Previous position], [Institution]</span><span class="cv-entry__when">[2019 – 2024]</span>
+  </div></div>
+</section>
+
+<section class="cv-section">
+  <h2>Education</h2>
+  <div class="cv-entry"><div class="cv-entry__line">
+    <span>PhD in [Field], [University]</span><span class="cv-entry__when">[Year]</span>
+  </div></div>
+  <div class="cv-entry"><div class="cv-entry__line">
+    <span>MSc in [Field], [University]</span><span class="cv-entry__when">[Year]</span>
+  </div></div>
+  <div class="cv-entry"><div class="cv-entry__line">
+    <span>BSc in [Field], [University]</span><span class="cv-entry__when">[Year]</span>
+  </div></div>
+</section>
+
+<section class="cv-section">
+  <h2>Research interests</h2>
+  <p>Artificial intelligence, machine learning, natural language processing,
+     cybersecurity, IoT, blockchain, mental health technologies, and applied AI systems.
+     <span class="todo">TODO: refine.</span></p>
+</section>
+
+<section class="cv-section">
+  <h2>Selected publications</h2>
+  <p>See the full, filterable list on the <a href="{{ '/publications/' | relative_url }}">Publications</a> page.</p>
+  <ul class="pub-list">
+    {% assign pubs = site.data.publications | sort: "year" | reverse %}
+    {% for pub in pubs limit: 5 %}
+      <li class="pub-item">
+        <span class="pub-item__year">{{ pub.year }}</span>
+        <div>
+          <p class="pub-item__title">{{ pub.title }}</p>
+          <p class="pub-item__authors">{{ pub.authors }}</p>
+          <p class="pub-item__venue">{{ pub.venue }}</p>
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="cv-section">
+  <h2>Grants and funded projects</h2>
+  <ul>
+    {% for p in site.data.projects %}
+      <li>{{ p.title }}{% if p.funding_source and p.funding_source != "" %} — {{ p.funding_source }}{% endif %}{% if p.duration %} ({{ p.duration }}){% endif %} — <em>{{ p.role }}</em></li>
+    {% endfor %}
+  </ul>
+  <p class="todo">TODO: ensure funding details in _data/projects.yml are accurate; do not list amounts that are not public.</p>
+</section>
+
+<section class="cv-section">
+  <h2>Teaching</h2>
+  <ul>
+    {% for course in site.courses %}
+      <li><a href="{{ course.url | relative_url }}">{{ course.title }}</a>{% if course.semester %} — {{ course.semester }}{% endif %}</li>
+    {% endfor %}
+  </ul>
+  <p>See the <a href="{{ '/teaching/' | relative_url }}">Teaching</a> page for materials.</p>
+</section>
+
+<section class="cv-section">
+  <h2>Student supervision</h2>
+  <p>{{ site.data.students.phd | size }} PhD, {{ site.data.students.msc | size }} MSc, and
+     {{ site.data.students.graduated | size }} graduated students.
+     See the <a href="{{ '/students/' | relative_url }}">Students</a> page.</p>
+</section>
+
+<section class="cv-section">
+  <h2>Editorial and reviewing activities</h2>
+  <ul>
+    <li>[TODO: Editorial board member, JOURNAL] <span class="cv-entry__when">[Years]</span></li>
+    <li>[TODO: Reviewer for JOURNAL / CONFERENCE]</li>
+    <li>[TODO: Program committee member, CONFERENCE]</li>
+  </ul>
+</section>
+
+<section class="cv-section">
+  <h2>Awards and recognitions</h2>
+  <ul>
+    <li>[TODO: Award name, awarding body] <span class="cv-entry__when">[Year]</span></li>
+  </ul>
+</section>
+
+<section class="cv-section">
+  <h2>Professional service</h2>
+  <ul>
+    <li>[TODO: Committee / organizing role]</li>
+    <li>[TODO: Society membership]</li>
+  </ul>
+</section>

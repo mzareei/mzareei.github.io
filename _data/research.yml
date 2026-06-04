@@ -1,0 +1,49 @@
+# ============================================================
+#  RESEARCH THEMES
+#  One entry per research area, rendered as a card on the Research page.
+#  Connect each theme to related publications, students, projects, collaborators.
+#  --- ALL ENTRIES BELOW ARE PLACEHOLDERS. Replace with real content. ---
+#  TODO: Keep descriptions factual; do not overstate scope or results.
+# ============================================================
+
+- name: "Artificial Intelligence & Machine Learning"
+  description: "[TODO: 2–3 sentences describing your work in this area.]"
+  related_publications: "[TODO: titles or 'see Publications']"
+  related_students: "[TODO: student name(s)]"
+  related_projects: "[TODO: project title(s)]"
+  collaborators: "[TODO: external collaborators]"
+
+- name: "Natural Language Processing"
+  description: "[TODO: short description of your NLP research.]"
+  related_publications: "[TODO]"
+  related_students: "[TODO]"
+  related_projects: "[TODO]"
+  collaborators: "[TODO]"
+
+- name: "Cybersecurity"
+  description: "[TODO: short description of your security research.]"
+  related_publications: "[TODO]"
+  related_students: "[TODO]"
+  related_projects: "[TODO]"
+  collaborators: "[TODO]"
+
+- name: "Internet of Things (IoT)"
+  description: "[TODO: short description of your IoT research.]"
+  related_publications: "[TODO]"
+  related_students: "[TODO]"
+  related_projects: "[TODO]"
+  collaborators: "[TODO]"
+
+- name: "Blockchain & Distributed Systems"
+  description: "[TODO: short description of your blockchain research.]"
+  related_publications: "[TODO]"
+  related_students: "[TODO]"
+  related_projects: "[TODO]"
+  collaborators: "[TODO]"
+
+- name: "Mental Health Technologies & Applied AI Systems"
+  description: "[TODO: short description of applied/health AI research.]"
+  related_publications: "[TODO]"
+  related_students: "[TODO]"
+  related_projects: "[TODO]"
+  collaborators: "[TODO]"

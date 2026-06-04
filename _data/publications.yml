@@ -1,0 +1,58 @@
+# ============================================================
+#  PUBLICATIONS
+#  Add one entry per publication. Newest first is conventional.
+#  Required: title, authors, venue, year, type
+#  Optional: doi, url, pdf, code, note
+#  `type` must be one of: journal | conference | book_chapter | preprint
+#  (these map to the section headings on the Publications page)
+#
+#  --- ALL ENTRIES BELOW ARE PLACEHOLDERS. Replace with real data. ---
+#  TODO: Delete these examples and add your own publications.
+# ============================================================
+
+- title: "[TODO: Journal paper title]"
+  authors: "[Your Name], Co-author A., Co-author B."
+  venue: "[Journal name], vol. X, no. Y, pp. 1–10"
+  year: 2025
+  type: journal
+  doi: ""          # e.g. 10.1000/xxxx  -> rendered as https://doi.org/...
+  url: ""          # publisher/landing page
+  pdf: ""          # e.g. /assets/pdfs/2025-journal.pdf
+  code: ""         # e.g. https://github.com/...
+  note: "Placeholder entry."
+
+- title: "[TODO: Conference paper title]"
+  authors: "Student S., [Your Name]"
+  venue: "[Conference name] (ACRONYM '25)"
+  year: 2025
+  type: conference
+  doi: ""
+  url: ""
+  pdf: ""
+  code: ""
+
+- title: "[TODO: Earlier conference paper title]"
+  authors: "[Your Name], Collaborator C."
+  venue: "[Conference name] (ACRONYM '24)"
+  year: 2024
+  type: conference
+  doi: ""
+  url: ""
+  pdf: ""
+  code: ""
+
+- title: "[TODO: Book chapter title]"
+  authors: "[Your Name]"
+  venue: "In: [Book title], [Publisher], ch. X"
+  year: 2024
+  type: book_chapter
+  doi: ""
+  url: ""
+
+- title: "[TODO: Preprint title]"
+  authors: "[Your Name], Co-author A."
+  venue: "arXiv:XXXX.XXXXX"
+  year: 2025
+  type: preprint
+  url: ""
+  pdf: ""

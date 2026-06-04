@@ -1,0 +1,21 @@
+---
+layout: page
+title: Blog
+subtitle: Notes, announcements, and write-ups.
+description: Blog posts by [Your Full Name].
+---
+<!-- Posts live in _posts/. Add a file named YYYY-MM-DD-title.md to publish a post. -->
+
+{% if site.posts.size > 0 %}
+<ul class="post-list">
+  {% for post in site.posts %}
+    <li class="post-list__item">
+      <p class="post-list__date">{{ post.date | date: "%B %-d, %Y" }}</p>
+      <h3 class="post-list__title"><a href="{{ post.url | relative_url }}">{{ post.title }}</a></h3>
+      <p class="post-list__excerpt">{{ post.description | default: post.excerpt | strip_html | truncate: 180 }}</p>
+    </li>
+  {% endfor %}
+</ul>
+{% else %}
+  <p class="pub-empty">No posts yet. Add a file to <code>_posts/</code> named <code>YYYY-MM-DD-title.md</code>.</p>
+{% endif %}
