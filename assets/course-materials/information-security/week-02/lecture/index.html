@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Week 2 · Lecture 1 — Authentication</title>
+<meta name="description" content="Authentication: factors, biometrics, password storage, hashing, salting, brute force, and multi-factor authentication. Week 2, Lecture 1 of TC2007B.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="topbar"><div class="fill" id="progress"></div></div>
+
+<div class="controls">
+  <button class="ui-btn" id="langBtn" title="Español / English">ES</button>
+  <button class="ui-btn" id="themeBtn" title="Light / Dark">☀</button>
+</div>
+
+<main class="deck" id="deck">
+
+  <!-- ===================== A. ORIENTATION ===================== -->
+
+  <!-- S1 — Title -->
+  <section class="slide title-slide active" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>TC2007B · Semana 2 · Clase 1"><span class="dot"></span>TC2007B · Week 2 · Lecture 1</span>
+      <h1 data-es="Autenticación">Authentication</h1>
+      <div class="title-rule"></div>
+      <p class="lead" data-es="Cómo un sistema llega a confiar en que eres quien dices ser.">How a system comes to trust that you are who you say you are.</p>
+      <div class="title-meta">
+        <span class="pill" data-es="Profesor: Mahdi Zareei">Instructor: Mahdi Zareei</span>
+        <span class="pill" data-es="Contraseñas · biometría · MFA">Passwords · biometrics · MFA</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- S2 — Objectives -->
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Qué veremos hoy"><span class="dot"></span>What we'll cover</span>
+      <h2 data-es="Objetivos de la clase">Lecture objectives</h2>
+      <div class="grid cols-2">
+        <div class="card accent-top"><span class="ico">🎯</span><h3 data-es="Por qué importa">Why it matters</h3><p data-es="Entender el papel de la autenticación en la seguridad.">Understand the role authentication plays in security.</p></div>
+        <div class="card teal-top"><span class="ico">🧰</span><h3 data-es="Cómo se implementa">How it's implemented</h3><p data-es="Explorar las formas de autenticar a un usuario.">Explore the ways a user can be authenticated.</p></div>
+        <div class="card warn-top"><span class="ico">🗄️</span><h3 data-es="Almacenamiento de contraseñas">Storing passwords</h3><p data-es="Discutir cómo (no) guardar contraseñas.">Discuss how to (and how not to) store passwords.</p></div>
+        <div class="card good-top"><span class="ico">#️⃣</span><h3 data-es="Un poco de hashing">A bit of hashing</h3><p data-es="Funciones hash, sal y endurecimiento.">Hash functions, salting, and stretching.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S3 — What is authentication -->
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Definición"><span class="dot"></span>Definition</span>
+      <h2 data-es="¿Qué es la autenticación?">What is authentication?</h2>
+      <div class="definition">
+        <blockquote data-es="“El proceso de establecer confianza en las identidades de usuario que se presentan electrónicamente a un sistema de información.”">“The process of establishing confidence in user identities that are presented electronically to an information system.”</blockquote>
+        <span class="src" data-es="— NIST SP 800-63-3, Guía de Autenticación Digital (oct. 2016)">— NIST SP 800-63-3, Digital Authentication Guideline (Oct 2016)</span>
+      </div>
+      <div class="callout note"><span class="tag" data-es="Clave">Key</span><p data-es="La palabra es <strong>confianza</strong>. La autenticación no es certeza absoluta — es elevar la confianza lo suficiente para el riesgo en juego.">The word is <strong>confidence</strong>. Authentication isn't absolute certainty — it's raising confidence enough for the risk at hand.</p></div>
+    </div>
+  </section>
+
+  <!-- S4 — Authn vs Authz -->
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>No las confundas"><span class="dot"></span>Don't confuse these</span>
+      <h2 data-es="Autenticación vs. autorización">Authentication vs. authorization</h2>
+      <div class="split">
+        <div class="card accent-top"><span class="ico">🪪</span><h3 data-es="Autenticación — <em>quién eres</em>">Authentication — <em>who you are</em></h3><p data-es="Verifica tu identidad. ¿Eres realmente Mahdi?">Verifies your identity. Are you really Mahdi?</p></div>
+        <div class="card teal-top"><span class="ico">🔑</span><h3 data-es="Autorización — <em>qué puedes hacer</em>">Authorization — <em>what you can do</em></h3><p data-es="Decide tus permisos una vez identificado. ¿Puede Mahdi entrar a esta sala?">Decides your permissions once identified. May Mahdi enter this room?</p></div>
+      </div>
+      <div class="callout check"><span class="tag" data-es="Analogía">Analogy</span><p data-es="En el aeropuerto: el <strong>pasaporte</strong> te autentica (quién eres); el <strong>pase de abordar</strong> te autoriza (a qué vuelo y asiento). Primero una, luego la otra.">At the airport: your <strong>passport</strong> authenticates you (who you are); your <strong>boarding pass</strong> authorizes you (which flight and seat). One then the other.</p></div>
+    </div>
+  </section>
+
+  <!-- S5 — Authentication goals + confusion matrix -->
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Dos objetivos en tensión"><span class="dot"></span>Two goals in tension</span>
+      <h2 data-es="Las metas de la autenticación: dos errores que evitar">Authentication goals: two errors to avoid</h2>
+      <div class="split">
+        <div class="card good-top"><h3 data-es="Disponibilidad">Availability</h3><p data-es="El usuario <strong>legítimo</strong> debe poder autenticarse. Evitar <strong>falsos negativos</strong> (rechazar a quien sí es).">The <strong>legitimate</strong> user must be able to authenticate. Avoid <strong>false negatives</strong> (rejecting the real person).</p></div>
+        <div class="card danger-top"><h3 data-es="Autenticidad">Authenticity</h3><p data-es="Quien <strong>no</strong> es el usuario no debe poder autenticarse. Evitar <strong>falsos positivos</strong> (aceptar a un impostor).">Someone who is <strong>not</strong> the user must not authenticate. Avoid <strong>false positives</strong> (accepting an impostor).</p></div>
+      </div>
+      <div class="callout discuss"><span class="tag" data-es="Discusión">Discuss</span><p data-es="¿Qué error es peor: que la bóveda de un banco a veces deje pasar a un impostor, o que a veces bloquee al dueño legítimo? ¿Y para desbloquear tu teléfono? La respuesta <em>depende del contexto</em>.">Which is worse: a bank vault that occasionally lets an impostor in, or one that occasionally locks out the rightful owner? And for unlocking your phone? The answer <em>depends on context</em>.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== B. HOW IT'S IMPLEMENTED ===================== -->
+
+  <!-- S6 — Divider -->
+  <section class="slide section" data-section="The factors" data-section-es="Los factores">
+    <div class="slide-inner">
+      <div class="num">01</div>
+      <h1 data-es="¿Cómo probamos quién eres?">How do we prove who you are?</h1>
+      <p class="lead" data-es="Los cuatro factores de autenticación.">The four authentication factors.</p>
+    </div>
+  </section>
+
+  <!-- S7 — Four factors -->
+  <section class="slide" data-section="The factors" data-section-es="Los factores">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Cuatro maneras (solas o combinadas)"><span class="dot"></span>Four means (alone or combined)</span>
+      <h2 data-es="Los cuatro factores de autenticación">The four authentication factors</h2>
+      <div class="grid cols-2">
+        <div class="card accent-top"><span class="ico">🧠</span><h3 data-es="Algo que <em>sabes</em>">Something you <em>know</em></h3><p data-es="Contraseña, PIN, respuestas a preguntas. <em>Riesgo: se adivina o se roba.</em>">Password, PIN, answers to questions. <em>Risk: can be guessed or stolen.</em></p></div>
+        <div class="card teal-top"><span class="ico">🔐</span><h3 data-es="Algo que <em>tienes</em>">Something you <em>have</em></h3><p data-es="Tarjeta, token, llave física, código del teléfono. <em>Riesgo: se pierde o se falsifica.</em>">Keycard, token, physical key, phone code. <em>Risk: can be lost or forged.</em></p></div>
+        <div class="card good-top"><span class="ico">🧬</span><h3 data-es="Algo que <em>eres</em> (biometría estática)">Something you <em>are</em> (static biometrics)</h3><p data-es="Huella, iris, rostro. <em>Riesgo: no puedes cambiarlo si se filtra.</em>">Fingerprint, iris, face. <em>Risk: you can't change it if it leaks.</em></p></div>
+        <div class="card warn-top"><span class="ico">✍️</span><h3 data-es="Algo que <em>haces</em> (biometría dinámica)">Something you <em>do</em> (dynamic biometrics)</h3><p data-es="Voz, escritura, ritmo de tecleo. <em>Riesgo: varía con el estado de la persona.</em>">Voice, handwriting, typing rhythm. <em>Risk: varies with the person's state.</em></p></div>
+      </div>
+      <p class="muted" style="margin-top:1rem" data-es="Ejemplo cotidiano: tu tarjeta del cajero (<strong>tienes</strong>) + tu PIN (<strong>sabes</strong>) = dos factores.">Everyday example: your ATM card (<strong>have</strong>) + your PIN (<strong>know</strong>) = two factors.</p>
+    </div>
+  </section>
+
+  <!-- S8 — Activity: Menti placeholder -->
+  <section class="slide activity" data-section="The factors" data-section-es="Los factores">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Actividad · Encuesta en vivo">◆ Activity · Live poll</span>
+      <h2 style="margin-top:1rem" data-es="¿Qué factores has usado HOY?">Which factors have you used TODAY?</h2>
+      <p class="lead" style="max-width:54ch" data-es="Antes de salir de casa probablemente usaste varios sin notarlo: desbloquear el teléfono (eres), PIN del banco (sabes), llave del coche (tienes)…">Before leaving home you probably used several without noticing: unlocking your phone (are), bank PIN (know), car key (have)…</p>
+      <div class="placeholder">
+        <span class="ph-tag">⚑ Menti — pega el código/QR vigente</span>
+        <p style="margin-top:.8rem" data-es="Sustituye con el código de Menti de esta sesión (los códigos cambian cada vez). Ej.: ve a <strong>menti.com</strong> e introduce el código, o muestra el QR.">Replace with this session's Menti code (codes change each time). E.g., go to <strong>menti.com</strong> and enter the code, or show the QR.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S9 — Accuracy vs cost (biometric scatter) -->
+  <section class="slide" data-section="The factors" data-section-es="Los factores">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Biometría: el compromiso"><span class="dot"></span>Biometrics: the trade-off</span>
+      <h2 data-es="Exactitud vs. costo de los métodos biométricos">Accuracy vs. cost of biometric methods</h2>
+      <svg class="conceptmap" viewBox="0 0 1000 380" role="img" aria-label="Scatter of biometric methods by cost and accuracy">
+        <g stroke="#2c3f5e" stroke-width="1.5">
+          <line x1="90" y1="330" x2="950" y2="330"/>
+          <line x1="90" y1="40" x2="90" y2="330"/>
+        </g>
+        <g font-family="Inter" font-size="15" fill="#aebfd6">
+          <text x="520" y="368" text-anchor="middle" class="ax-cost">Cost  →</text>
+          <text x="30" y="185" text-anchor="middle" transform="rotate(-90 30 185)" class="ax-acc">Accuracy  →</text>
+        </g>
+        <g font-family="Inter" font-size="17" font-weight="700">
+          <g><circle cx="180" cy="285" r="9" fill="#ffb454"/><text x="195" y="290" fill="#eef4ff" class="b-sign">Signature</text></g>
+          <g><circle cx="230" cy="250" r="9" fill="#ffb454"/><text x="245" y="255" fill="#eef4ff" class="b-voice">Voice</text></g>
+          <g><circle cx="430" cy="235" r="9" fill="#4ea1ff"/><text x="445" y="240" fill="#eef4ff" class="b-hand">Hand geometry</text></g>
+          <g><circle cx="500" cy="170" r="9" fill="#4ea1ff"/><text x="515" y="175" fill="#eef4ff" class="b-face">Face</text></g>
+          <g><circle cx="470" cy="110" r="9" fill="#5fe08a"/><text x="485" y="115" fill="#eef4ff" class="b-finger">Fingerprint</text></g>
+          <g><circle cx="820" cy="80" r="9" fill="#5fe08a"/><text x="700" y="70" fill="#eef4ff" class="b-iris">Iris / Retina</text></g>
+        </g>
+      </svg>
+      <div class="callout discuss"><span class="tag" data-es="Discusión">Discuss</span><p data-es="La huella suele ser el “punto dulce”: alta exactitud a costo moderado. ¿Vale el iris su costo para una escuela? ¿Para un centro de datos? (También puede ser una encuesta Menti.)">Fingerprint is often the "sweet spot": high accuracy at moderate cost. Is iris worth its cost for a school? For a data center? (Could also be a Menti poll.)</p></div>
+      <p class="figure-note" data-es="Posiciones aproximadas e ilustrativas del compromiso costo/exactitud; varían según la tecnología y el proveedor.">Approximate, illustrative positions of the cost/accuracy trade-off; varies by technology and vendor.</p>
+    </div>
+  </section>
+
+  <!-- S10 — How biometrics work: enrollment vs verification -->
+  <section class="slide" data-section="The factors" data-section-es="Los factores">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Cómo funciona la biometría"><span class="dot"></span>How biometrics work</span>
+      <h2 data-es="Dos fases: registro y verificación">Two phases: enrollment and verification</h2>
+      <p class="muted" data-es="<strong>Registro</strong> (una vez): se captura tu rasgo y se guarda una <em>plantilla</em>."><strong>Enrollment</strong> (once): your trait is captured and a <em>template</em> is stored.</p>
+      <div class="flow">
+        <div class="node breach"><span class="n-label accent" data-es="Sensor">Sensor</span><span class="n-sub" data-es="capta el rasgo">captures trait</span></div>
+        <div class="arrow">→</div>
+        <div class="node attack"><span class="n-label" style="color:var(--violet)" data-es="Extraer rasgos">Feature extract</span><span class="n-sub" data-es="datos clave">key features</span></div>
+        <div class="arrow">→</div>
+        <div class="node good-node"><span class="n-label good" data-es="Plantilla">Template</span><span class="n-sub" data-es="se guarda">stored</span></div>
+      </div>
+      <p class="muted" style="margin-top:1rem" data-es="<strong>Verificación</strong> (cada vez): se vuelve a captar y se <em>compara</em> con la plantilla — no es igualdad exacta, sino <em>parecido</em>."><strong>Verification</strong> (each time): captured again and <em>compared</em> to the template — not an exact match, but a <em>similarity score</em>.</p>
+      <div class="flow">
+        <div class="node breach"><span class="n-label accent" data-es="Nueva captura">New capture</span></div>
+        <div class="arrow">→</div>
+        <div class="node attack"><span class="n-label" style="color:var(--violet)" data-es="Comparar con plantilla">Match vs template</span></div>
+        <div class="arrow">→</div>
+        <div class="node vuln"><span class="n-label warn" data-es="¿Supera el umbral?">Above threshold?</span><span class="n-sub" data-es="Sí / No">Yes / No</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S11 — FMR vs FNR threshold -->
+  <section class="slide" data-section="The factors" data-section-es="Los factores">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El umbral lo decide todo"><span class="dot"></span>The threshold decides everything</span>
+      <h2 data-es="Falsa aceptación vs. falso rechazo">False match vs. false non-match</h2>
+      <svg class="conceptmap" viewBox="0 0 1000 320" role="img" aria-label="Two overlapping distributions with a threshold line">
+        <g stroke="#2c3f5e" stroke-width="1.5"><line x1="60" y1="270" x2="950" y2="270"/></g>
+        <path d="M80,270 C250,270 250,90 400,90 C550,90 550,270 720,270 Z" fill="rgba(95,224,138,.18)" stroke="#5fe08a" stroke-width="2"/>
+        <path d="M300,270 C470,270 470,120 620,120 C770,120 770,270 940,270 Z" fill="rgba(255,107,107,.16)" stroke="#ff6b6b" stroke-width="2"/>
+        <line x1="510" y1="50" x2="510" y2="285" stroke="#4ea1ff" stroke-width="2.5" stroke-dasharray="6 5"/>
+        <g font-family="Inter" font-weight="700" font-size="17">
+          <text x="300" y="80" fill="#5fe08a" class="d-gen">Genuine users</text>
+          <text x="700" y="110" fill="#ff6b6b" class="d-imp">Impostors</text>
+          <text x="520" y="44" fill="#4ea1ff" font-size="15" class="d-thr">threshold</text>
+        </g>
+        <g font-family="Inter" font-size="13" fill="#aebfd6">
+          <text x="610" y="255" class="d-fnr">false rejects ↙</text>
+          <text x="360" y="255" class="d-fmr">↘ false accepts</text>
+        </g>
+      </svg>
+      <div class="callout discuss"><span class="tag" data-es="Discusión">Discuss</span><p data-es="Mover el umbral a la derecha reduce impostores aceptados pero rechaza a más usuarios reales. Y recuerda: <strong>si te roban la huella, no puedes “cambiarla”</strong> como una contraseña. ¿Deberían los biométricos reemplazar a las contraseñas?">Sliding the threshold right blocks more impostors but rejects more real users. And remember: <strong>if your fingerprint is stolen, you can't "change" it</strong> like a password. Should biometrics replace passwords?</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== C. PASSWORDS ===================== -->
+
+  <!-- S12 — Divider -->
+  <section class="slide section" data-section="Passwords" data-section-es="Contraseñas">
+    <div class="slide-inner">
+      <div class="num">02</div>
+      <h1 data-es="Contraseñas">Passwords</h1>
+      <p class="lead" data-es="La defensa más usada — y la más mal implementada.">The most-used line of defense — and the most mis-implemented.</p>
+    </div>
+  </section>
+
+  <!-- S13 — Password-based authentication -->
+  <section class="slide" data-section="Passwords" data-section-es="Contraseñas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Lo básico"><span class="dot"></span>The basics</span>
+      <h2 data-es="Autenticación basada en contraseña">Password-based authentication</h2>
+      <ul class="clean">
+        <li data-es="El usuario da un <strong>nombre/login</strong> y una <strong>contraseña</strong>; el sistema la compara con la almacenada para ese login.">The user provides a <strong>name/login</strong> and a <strong>password</strong>; the system compares it with the one stored for that login.</li>
+        <li data-es="El <strong>ID de usuario</strong> determina si está autorizado a acceder al sistema.">The <strong>user ID</strong> determines whether they're authorized to access the system.</li>
+        <li data-es="El ID determina los <strong>privilegios</strong> del usuario (p. ej., usuario normal vs. “superusuario”).">The ID determines the user's <strong>privileges</strong> (e.g., normal user vs. "superuser").</li>
+        <li data-es="Se usa en el <strong>control de acceso discrecional</strong> (DAC).">It's used in <strong>discretionary access control</strong> (DAC).</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- S14 — Method 1: store plaintext -->
+  <section class="slide" data-section="Passwords" data-section-es="Contraseñas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>¿Cómo verificar la contraseña?"><span class="dot"></span>How to check the password?</span>
+      <h2 data-es="Método 1: guardar la lista de contraseñas (¡no lo hagas!)">Method 1: store the list of passwords (don't!)</h2>
+      <p class="lead" style="max-width:54ch" data-es="Guardar una contraseña por usuario en el archivo del sistema, legible solo por root/admin.">Store one password per user in the system file, readable only by root/admin.</p>
+      <div class="callout discuss"><span class="tag" data-es="¿Qué puede salir mal?">What could go wrong?</span><p data-es="¿Y si los permisos quedan mal configurados? ¿Por qué debería el admin <em>conocer</em> tu contraseña? Si hay una brecha, <strong>todas</strong> las contraseñas quedan expuestas al atacante.">What if the permissions are set wrong? Why should the admin <em>know</em> your password at all? If there's a breach, <strong>every</strong> password is exposed to the attacker.</p></div>
+      <p class="muted" style="margin-top:1rem" data-es="Por eso esta opción está esencialmente prohibida en cualquier sistema serio.">This is why this option is essentially forbidden in any serious system.</p>
+    </div>
+  </section>
+
+  <!-- S15 — Method 2: store a hash -->
+  <section class="slide" data-section="Passwords" data-section-es="Contraseñas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Mejor idea"><span class="dot"></span>A better idea</span>
+      <h2 data-es="Método 2: no guardes la contraseña — guarda su hash">Method 2: don't store the password — store its hash</h2>
+      <p class="lead" style="max-width:56ch" data-es="Guardamos algo <em>derivado</em> de la contraseña con una función hash <strong>de un solo sentido</strong>; al iniciar sesión, hasheamos lo tecleado y comparamos los hashes.">We store something <em>derived</em> from the password using a <strong>one-way</strong> hash function; at login we hash what's typed and compare the hashes.</p>
+      <div class="flow">
+        <div class="node breach"><span class="n-label accent" data-es="Contraseña">Password</span><span class="n-sub" data-es="lo que tecleas">what you type</span></div>
+        <div class="arrow">→</div>
+        <div class="node attack"><span class="n-label" style="color:var(--violet)">H( · )</span><span class="n-sub" data-es="función de un solo sentido">one-way function</span></div>
+        <div class="arrow">→</div>
+        <div class="node good-node"><span class="n-label good" data-es="Hash">Hash</span><span class="n-sub" data-es="cadena de longitud fija">fixed-length string</span></div>
+      </div>
+      <div class="callout note" style="margin-top:1.2rem"><span class="tag" data-es="Idea">Idea</span><p data-es="El admin nunca ve tu contraseña; solo compara hashes. Aun si roban el archivo, no obtienen las contraseñas… directamente.">The admin never sees your password; only hashes are compared. Even if the file is stolen, they don't get the passwords… directly.</p></div>
+    </div>
+  </section>
+
+  <!-- S16 — Hash function properties -->
+  <section class="slide" data-section="Passwords" data-section-es="Contraseñas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Funciones hash"><span class="dot"></span>Hash functions</span>
+      <h2 data-es="¿Qué hace especial a una función hash?">What makes a hash function special?</h2>
+      <div class="grid cols-3">
+        <div class="card accent-top"><h3 data-es="De un solo sentido">One-way</h3><p data-es="Fácil de calcular hacia adelante; <strong>inviable</strong> de revertir.">Easy to compute forward; <strong>infeasible</strong> to reverse.</p></div>
+        <div class="card teal-top"><h3 data-es="Determinista">Deterministic</h3><p data-es="La misma entrada → siempre el mismo hash.">Same input → always the same hash.</p></div>
+        <div class="card good-top"><h3 data-es="Longitud fija">Fixed length</h3><p data-es="Cualquier entrada → salida del mismo tamaño.">Any input → same-size output.</p></div>
+      </div>
+      <div class="callout check"><span class="tag" data-es="Analogía">Analogy</span><p data-es="Como una licuadora: meter fruta y hacer un licuado es trivial; reconstruir la fruta exacta a partir del licuado, no. O como una <em>huella digital</em> de los datos.">Like a blender: turning fruit into a smoothie is trivial; reconstructing the exact fruit from the smoothie is not. Or like a <em>fingerprint</em> of the data.</p></div>
+    </div>
+  </section>
+
+  <!-- S17 — Hash table example -->
+  <section class="slide" data-section="Passwords" data-section-es="Contraseñas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Ejemplo"><span class="dot"></span>Example</span>
+      <h2 data-es="Lo que realmente se guarda">What actually gets stored</h2>
+      <table class="compare">
+        <thead><tr><th data-es="ID">ID</th><th data-es="Contraseña en claro (NO se guarda)">Clear password (NOT stored)</th><th data-es="Hash almacenado">Stored hash</th></tr></thead>
+        <tbody>
+          <tr><td>Patricia123</td><td class="map-from">myfirstpet</td><td class="mono" style="font-size:.8em">8850C743…1DA61B98</td></tr>
+          <tr><td>Monica_abc</td><td class="map-from">myboyfriend</td><td class="mono" style="font-size:.8em">49921083…A0267904</td></tr>
+          <tr><td>Lucia_xyz</td><td class="map-from">mycarplate</td><td class="mono" style="font-size:.8em">1C5EA88A…05F6D7D1</td></tr>
+        </tbody>
+      </table>
+      <div class="callout discuss" style="margin-top:1.1rem"><span class="tag" data-es="Nota">Note</span><p data-es="El sistema solo guarda la columna derecha. Pero fíjate: estas contraseñas son débiles y comunes — eso importará en un momento.">The system only keeps the right column. But notice: these passwords are weak and common — that will matter in a moment.</p></div>
+    </div>
+  </section>
+
+  <!-- S18 — Threat model -->
+  <section class="slide" data-section="Passwords" data-section-es="Contraseñas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Modelo de amenaza"><span class="dot"></span>Threat model</span>
+      <h2 data-es="Supón que el atacante YA tiene el archivo de hashes">Assume the attacker already has the hash file</h2>
+      <p class="lead" style="max-width:56ch" data-es="Asumimos la propiedad de un solo sentido — pero también que el atacante consiguió el archivo (shadow file).">We assume the one-way property — but also that the attacker obtained the file (the shadow file).</p>
+      <div class="split">
+        <div class="card warn-top"><h3 data-es="Ataque de diccionario">Dictionary attack</h3><p data-es="Si conocemos contraseñas comunes, calculamos su hash y buscamos coincidencias.">If we know common passwords, we hash them and look for matches.</p></div>
+        <div class="card danger-top"><h3 data-es="Ataque offline">Offline attack</h3><p data-es="Con los hashes en mano y <strong>tiempo de sobra</strong>, el atacante prueba sin límites ni bloqueos.">With the hashes in hand and <strong>plenty of time</strong>, the attacker tests endlessly — no lockouts.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S19 — Password vulnerabilities (attack -> countermeasure) -->
+  <section class="slide" data-section="Passwords" data-section-es="Contraseñas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Ataques y contramedidas"><span class="dot"></span>Attacks &amp; countermeasures</span>
+      <h2 data-es="Cómo se atacan las contraseñas — y cómo defenderlas">How passwords get attacked — and defended</h2>
+      <table class="compare">
+        <thead><tr><th data-es="Ataque">Attack</th><th data-es="Contramedida">Countermeasure</th></tr></thead>
+        <tbody>
+          <tr><td class="map-from" data-es="Diccionario offline">Offline dictionary</td><td class="map-to" data-es="Proteger el archivo; detección de intrusiones; reemitir contraseñas si se filtra">Protect the file; intrusion detection; reissue passwords if leaked</td></tr>
+          <tr><td class="map-from" data-es="Ataque a una cuenta específica">Specific-account guessing</td><td class="map-to" data-es="Bloqueo de cuenta tras N intentos (típico: 5)">Account lockout after N tries (typically 5)</td></tr>
+          <tr><td class="map-from" data-es="Contraseña popular contra muchos IDs">Popular-password attack</td><td class="map-to" data-es="Prohibir contraseñas comunes; vigilar patrones de IPs/cookies">Ban common passwords; watch IP/cookie patterns</td></tr>
+          <tr><td class="map-from" data-es="Secuestro de estación (sesión abierta)">Workstation hijacking</td><td class="map-to" data-es="Cierre de sesión automático por inactividad">Auto-logout after inactivity</td></tr>
+          <tr><td class="map-from" data-es="Errores del usuario / ingeniería social">User mistakes / social engineering</td><td class="map-to" data-es="Capacitación; combinar con otro factor">Training; combine with another factor</td></tr>
+          <tr><td class="map-from" data-es="Reutilización en varios sitios / espionaje de red">Password reuse / eavesdropping</td><td class="map-to" data-es="No reutilizar; cifrar el canal (no basta cifrar la contraseña)">Don't reuse; encrypt the channel (encrypting the password alone isn't enough)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- S20 — Brute force numbers -->
+  <section class="slide" data-section="Passwords" data-section-es="Contraseñas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Fuerza bruta"><span class="dot"></span>Brute force</span>
+      <h2 data-es="La longitud y la aleatoriedad lo son todo">Length and randomness are everything</h2>
+      <div class="stats">
+        <div class="stat people"><span class="big">10⁸/s</span><span class="lbl" data-es="hashes MD5 por segundo en una GPU (software público)">MD5 hashes/sec on a GPU (public software)</span></div>
+        <div class="stat cost"><span class="big">~10 min</span><span class="lbl" data-es="6 caracteres (may/min/dígitos): 62⁶ posibilidades">6 chars (upper/lower/digits): 62⁶ possibilities</span></div>
+        <div class="stat good-stat"><span class="big">~6 días</span><span class="lbl" data-es="8 caracteres aleatorios">8 random characters</span></div>
+      </div>
+      <div class="callout discuss" style="margin-top:1.1rem"><span class="tag" data-es="Discusión">Discuss</span><p data-es="Cada carácter extra multiplica el trabajo. Por eso una frase larga (“correct horse battery staple”) puede vencer a “P@ss1!”. ¿Larga y memorable, o corta y compleja?">Each extra character multiplies the work. That's why a long passphrase ("correct horse battery staple") can beat "P@ss1!". Long-and-memorable, or short-and-complex?</p></div>
+      <p class="figure-note" data-es="Cifras del material original, a modo de orden de magnitud; las velocidades reales dependen del hardware y crecen con el tiempo (hoy, miles de millones/seg).">Figures from the source material, as orders of magnitude; real speeds are hardware-dependent and rise over time (today, billions/sec).</p>
+    </div>
+  </section>
+
+  <!-- S21 — Activity: SCAN ME placeholder -->
+  <section class="slide activity" data-section="Passwords" data-section-es="Contraseñas">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Actividad · Pruébalo">◆ Activity · Try it</span>
+      <h2 style="margin-top:1rem" data-es="¿Qué tan segura es tu contraseña?">How secure is your password?</h2>
+      <p class="lead" style="max-width:54ch" data-es="Estima cuánto tardaría un ataque de fuerza bruta en adivinar una contraseña de ejemplo (¡no uses una real!).">Estimate how long brute force would take to guess an example password (don't use a real one!).</p>
+      <div class="placeholder">
+        <span class="ph-tag">⚑ Código QR — pega tu enlace/QR vigente</span>
+        <p style="margin-top:.8rem" data-es="Sustituye con el QR “SCAN ME” de tu diapositiva original (no se conoce el destino). Una herramienta de demostración adecuada es un estimador de “tiempo para descifrar una contraseña”. Verifica el enlace antes de usarlo en clase.">Replace with the original "SCAN ME" QR (its destination isn't known). A suitable demo tool is a "time-to-crack a password" estimator. Verify the link before class.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S22 — Reducing attacker work -->
+  <section class="slide" data-section="Passwords" data-section-es="Contraseñas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El atacante es astuto"><span class="dot"></span>The attacker is smart</span>
+      <h2 data-es="Los atacantes no prueban al azar">Attackers don't guess at random</h2>
+      <ul class="clean">
+        <li data-es="Las contraseñas <strong>no</strong> son realmente aleatorias — la gente elige cosas memorables.">Passwords are <strong>not</strong> really random — people pick memorable things.</li>
+        <li data-es="Prueban primero las <strong>contraseñas populares</strong> (123456, password, nombres…).">They try <strong>popular passwords</strong> first (123456, password, names…).</li>
+        <li data-es="Reducen el espacio de búsqueda con <strong>ingeniería social</strong> (tu mascota, tu equipo, tu cumpleaños).">They shrink the search space with <strong>social engineering</strong> (your pet, your team, your birthday).</li>
+      </ul>
+      <div class="callout discuss"><span class="tag" data-es="Reflexiona">Reflect</span><p data-es="Mira la tabla de hace unos minutos: “myfirstpet”, “myboyfriend”… ¿cuántas de esas caerían en el primer segundo de un ataque de diccionario?">Look back at the earlier table: "myfirstpet", "myboyfriend"… how many would fall in the first second of a dictionary attack?</p></div>
+    </div>
+  </section>
+
+  <!-- S23 — Salt -->
+  <section class="slide" data-section="Passwords" data-section-es="Contraseñas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Sal (salt)"><span class="dot"></span>Salt</span>
+      <h2 data-es="¿Y si dos usuarios eligen la misma contraseña?">What if two users pick the same password?</h2>
+      <p class="muted" data-es="Añade una <strong>sal</strong> aleatoria antes de hashear; guárdala junto al hash; al verificar, usa la misma sal con la contraseña tecleada.">Add a random <strong>salt</strong> before hashing; store it with the hash; to verify, use the same salt with the typed password.</p>
+      <table class="compare">
+        <thead><tr><th data-es="Usuario">User</th><th data-es="Contraseña">Password</th><th data-es="Sal">Salt</th><th data-es="Hash( contraseña + sal )">Hash( password + salt )</th></tr></thead>
+        <tbody>
+          <tr><td>Ana</td><td class="map-from">verano2024</td><td class="mono">9f3a</td><td class="mono" style="font-size:.8em">B1C4…77E2</td></tr>
+          <tr><td>Beto</td><td class="map-from">verano2024</td><td class="mono">2db8</td><td class="mono" style="font-size:.8em">04AF…9C10</td></tr>
+        </tbody>
+      </table>
+      <div class="callout check" style="margin-top:1rem"><span class="tag" data-es="La clave">The point</span><p data-es="<strong>Misma contraseña, hashes distintos.</strong> Como añadir un ingrediente único a cada receta: dos platos idénticos terminan con un sabor diferente."><strong>Same password, different hashes.</strong> Like adding a unique ingredient to each recipe: two identical dishes end up tasting different.</p></div>
+    </div>
+  </section>
+
+  <!-- S24 — Rainbow tables -->
+  <section class="slide" data-section="Passwords" data-section-es="Contraseñas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Por qué la sal importa tanto"><span class="dot"></span>Why salt matters so much</span>
+      <h2 data-es="La sal derrota las tablas precalculadas">Salt defeats precomputed tables</h2>
+      <div class="split">
+        <div class="card danger-top"><h3 data-es="Tablas arcoíris (rainbow tables)">Rainbow tables</h3><p data-es="El atacante <strong>precalcula</strong> hashes de millones de contraseñas una vez y luego busca coincidencias al instante en cualquier archivo robado.">The attacker <strong>precomputes</strong> hashes of millions of passwords once, then instantly looks up matches in any stolen file.</p></div>
+        <div class="card good-top"><h3 data-es="Con sal, no sirven">Salt breaks them</h3><p data-es="Una sal única por usuario obliga a recalcular todo <strong>para cada usuario</strong> — la precomputación deja de servir.">A unique per-user salt forces recomputation <strong>for every single user</strong> — precomputation no longer helps.</p></div>
+      </div>
+      <div class="callout note" style="margin-top:1.2rem"><span class="tag" data-es="Resumen">In short</span><p data-es="Sin sal: romper un archivo de un millón de cuentas cuesta casi lo mismo que romper una. Con sal: cuesta un millón de veces más.">Without salt: cracking a million-account file costs almost the same as cracking one. With salt: it costs a million times more.</p></div>
+    </div>
+  </section>
+
+  <!-- S25 — Key stretching -->
+  <section class="slide" data-section="Passwords" data-section-es="Contraseñas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Endurecimiento (key stretching)"><span class="dot"></span>Key stretching</span>
+      <h2 data-es="Haz que cada intento sea lento a propósito">Make each guess deliberately slow</h2>
+      <div class="flow">
+        <div class="node breach"><span class="n-label accent" data-es="Contraseña + Sal">Password + Salt</span></div>
+        <div class="arrow">→</div>
+        <div class="node attack"><span class="n-label" style="color:var(--violet)" data-es="Hash ×1000s">Hash ×1000s</span><span class="n-sub" data-es="se repite muchas veces">repeated many times</span></div>
+        <div class="arrow">→</div>
+        <div class="node good-node"><span class="n-label good" data-es="Hash final">Final hash</span></div>
+      </div>
+      <div class="callout check" style="margin-top:1.3rem"><span class="tag" data-es="Idea">Idea</span><p data-es="Repetir el hash miles de veces es imperceptible para un login legítimo, pero multiplica por miles el costo de un ataque de fuerza bruta. Usa funciones <strong>lentas</strong> de diseño: <strong>bcrypt, scrypt, Argon2, PBKDF2</strong> — no MD5/SHA rápidos.">Repeating the hash thousands of times is unnoticeable for one honest login, but multiplies a brute-force attack's cost by thousands. Use deliberately <strong>slow</strong> functions: <strong>bcrypt, scrypt, Argon2, PBKDF2</strong> — not fast MD5/SHA.</p></div>
+    </div>
+  </section>
+
+  <!-- S26 — Problems with passwords -->
+  <section class="slide" data-section="Passwords" data-section-es="Contraseñas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El problema de fondo"><span class="dot"></span>The underlying problem</span>
+      <h2 data-es="Las contraseñas son un mal necesario">Passwords are a necessary evil</h2>
+      <div class="grid cols-2">
+        <div class="card warn-top"><h3 data-es="Usabilidad vs. seguridad">Usability vs. security</h3><p data-es="A más longitud y complejidad, peor usabilidad. Las contraseñas usables son fáciles de adivinar.">More length/complexity → worse usability. Usable passwords are easy to guess.</p></div>
+        <div class="card danger-top"><h3 data-es="Phishing">Phishing</h3><p data-es="El usuario no verifica <em>quién</em> le pide la contraseña.">Users don't authenticate <em>who</em> is asking for the password.</p></div>
+        <div class="card danger-top"><h3 data-es="Reutilización">Reuse</h3><p data-es="Robada una vez, se usa muchas veces — y en muchos sitios.">Stolen once, used many times — and across many sites.</p></div>
+        <div class="card accent-top"><h3 data-es="Memoria humana">Human memory</h3><p data-es="Recordamos pocas; por eso existen políticas de cambio frecuente.">We remember few; hence policies to change them often.</p></div>
+      </div>
+      <div class="callout discuss" style="margin-top:1rem"><span class="tag" data-es="Debate">Debate</span><p data-es="El material dice “cambia las contraseñas con frecuencia”. Pero la guía moderna del NIST <strong>desaconseja</strong> la rotación forzada (lleva a contraseñas peores). ¿Quién tiene razón? (Verifica la guía vigente.)">The material says "change passwords frequently." But modern NIST guidance <strong>discourages</strong> forced rotation (it leads to worse passwords). Who's right? (Verify current guidance.)</p></div>
+    </div>
+  </section>
+
+  <!-- S27 — Best practices -->
+  <section class="slide" data-section="Passwords" data-section-es="Contraseñas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Buenas prácticas"><span class="dot"></span>Best practices</span>
+      <h2 data-es="Qué hacer (admins y usuarios)">What to do (admins &amp; users)</h2>
+      <div class="split">
+        <div class="card accent-top"><h3 data-es="Administradores de sistemas">System administrators</h3>
+          <p data-es="• Nunca guardes contraseñas en claro.<br>• Guarda solo hashes con <strong>sal aleatoria</strong> y limita el acceso.<br>• Evita funciones hash rápidas de propósito general.">• Never store passwords in the clear.<br>• Store only hashes with a <strong>random salt</strong>, and limit access.<br>• Avoid fast general-purpose hash functions.</p></div>
+        <div class="card good-top"><h3 data-es="Usuarios">Users</h3>
+          <p data-es="• Usa un <strong>gestor de contraseñas</strong>.<br>• Contraseñas largas y únicas por sitio.<br>• Activa un segundo factor.">• Use a <strong>password manager</strong>.<br>• Long, unique passwords per site.<br>• Turn on a second factor.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== D. BEYOND PASSWORDS ===================== -->
+
+  <!-- S28 — Divider -->
+  <section class="slide section" data-section="Beyond passwords" data-section-es="Más allá de la contraseña">
+    <div class="slide-inner">
+      <div class="num">03</div>
+      <h1 data-es="Más allá de la contraseña">Beyond the password</h1>
+      <p class="lead" data-es="Combinar factores para reducir el riesgo.">Combining factors to cut risk.</p>
+    </div>
+  </section>
+
+  <!-- S29 — MFA what -->
+  <section class="slide" data-section="Beyond passwords" data-section-es="Más allá de la contraseña">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Autenticación multifactor"><span class="dot"></span>Multi-factor authentication</span>
+      <h2 data-es="¿Qué es la autenticación multifactor (MFA)?">What is multi-factor authentication (MFA)?</h2>
+      <div class="flow">
+        <div class="node breach"><span class="n-label accent" data-es="Algo que sabes">Something you know</span><span class="n-sub" data-es="contraseña">password</span></div>
+        <div class="arrow">+</div>
+        <div class="node vuln"><span class="n-label warn" data-es="Algo que tienes">Something you have</span><span class="n-sub" data-es="código del teléfono">phone code</span></div>
+        <div class="arrow">=</div>
+        <div class="node good-node"><span class="n-label good" data-es="Acceso concedido">Access granted</span><span class="n-sub" data-es="✓">✓</span></div>
+      </div>
+      <div class="callout check" style="margin-top:1.4rem"><span class="tag" data-es="Por qué funciona">Why it works</span><p data-es="Un atacante tendría que vencer <strong>dos tipos distintos</strong> de factor a la vez. Robar tu contraseña ya no basta.">An attacker would have to defeat <strong>two different kinds</strong> of factor at once. Stealing your password is no longer enough.</p></div>
+    </div>
+  </section>
+
+  <!-- S30 — MFA advantages -->
+  <section class="slide" data-section="Beyond passwords" data-section-es="Más allá de la contraseña">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Ventajas del MFA"><span class="dot"></span>Advantages of MFA</span>
+      <h2 data-es="Por qué vale la pena el paso extra">Why the extra step is worth it</h2>
+      <div class="grid cols-3">
+        <div class="card good-top"><span class="ico">🛡️</span><h3 data-es="Resiste fugas de la base de datos">Survives a database breach</h3><p data-es="Aunque roben el archivo de contraseñas, falta el segundo factor.">Even if the password file is stolen, the second factor is missing.</p></div>
+        <div class="card accent-top"><span class="ico">🙂</span><h3 data-es="Mejor experiencia">Better experience</h3><p data-es="Permite logins más fluidos sin sacrificar seguridad.">Enables smoother sign-ins without sacrificing security.</p></div>
+        <div class="card teal-top"><span class="ico">➕</span><h3 data-es="Sube el nivel de seguridad">Raises the security bar</h3><p data-es="Eleva la autenticación a verdadero multifactor.">Lifts authentication to true multi-factor.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S31 — Password manager + 2FA -->
+  <section class="slide" data-section="Beyond passwords" data-section-es="Más allá de la contraseña">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La combinación práctica"><span class="dot"></span>The practical combo</span>
+      <h2 data-es="Gestor de contraseñas + verificación en 2 pasos">Password manager + 2-step verification</h2>
+      <div class="split">
+        <div class="card accent-top"><span class="ico">🗝️</span><h3 data-es="Gestor de contraseñas">Password manager</h3><p data-es="Genera y recuerda una contraseña <strong>larga y única</strong> por sitio — tú solo recuerdas una clave maestra.">Generates and remembers a <strong>long, unique</strong> password per site — you only remember one master key.</p></div>
+        <div class="card good-top"><span class="ico">📲</span><h3 data-es="Segundo paso">Second step</h3><p data-es="Una app de autenticación (códigos temporales) o una llave de seguridad añade el factor “tienes”.">An authenticator app (time-based codes) or a security key adds the "have" factor.</p></div>
+      </div>
+      <div class="callout discuss" style="margin-top:1.2rem"><span class="tag" data-es="Debate">Debate</span><p data-es="Un gestor concentra todo en un punto: ¿no es un “único punto de fallo”? ¿Qué lo hace, aun así, más seguro que reutilizar contraseñas?">A manager puts everything in one place: isn't that a "single point of failure"? What still makes it safer than reusing passwords?</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== E. SYSTEMS & NETWORK ===================== -->
+
+  <!-- S32 — Authentication in the OS -->
+  <section class="slide" data-section="Systems & network" data-section-es="Sistemas y red">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Dentro del sistema"><span class="dot"></span>Inside the system</span>
+      <h2 data-es="Autenticación en el sistema operativo">Authentication in the OS</h2>
+      <ul class="clean">
+        <li data-es="El SO (la <strong>TCB</strong>, base de cómputo confiable) necesita saber <em>quién</em> pide un recurso protegido.">The OS (the <strong>TCB</strong>, trusted computing base) needs to know <em>who</em> requests a protected resource.</li>
+        <li data-es="Un proceso hace la solicitud <strong>en nombre de</strong> un usuario, sujeto o <em>principal</em>.">A process makes the request <strong>on behalf of</strong> a user, subject, or <em>principal</em>.</li>
+        <li data-es="La autenticación responde: <strong>¿en nombre de quién corre este proceso?</strong>">Authentication answers: <strong>on whose behalf does this process run?</strong></li>
+      </ul>
+      <div class="callout note"><span class="tag" data-es="Conexión">Connect</span><p data-es="Esto enlaza con la semana pasada: identidad → autenticación → autorización → control de acceso.">This links back to last week: identity → authentication → authorization → access control.</p></div>
+    </div>
+  </section>
+
+  <!-- S33 — Authentication over a network -->
+  <section class="slide" data-section="Systems & network" data-section-es="Sistemas y red">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Por la red"><span class="dot"></span>Over the network</span>
+      <h2 data-es="Autenticarse a distancia es más difícil">Authenticating at a distance is harder</h2>
+      <p class="lead" style="max-width:56ch" data-es="¿Siempre tenemos una “ruta confiable” hacia el sistema? En servicios remotos, no.">Do we always have a "trusted path" to the system? For remote services, no.</p>
+      <div class="flow">
+        <div class="node breach"><span class="n-label accent" data-es="Usuario">User</span></div>
+        <div class="arrow">→</div>
+        <div class="node attack"><span class="n-label danger" data-es="¿Intermediario? (MITM)">Attacker? (MITM)</span><span class="n-sub" data-es="puede escuchar o suplantar">can eavesdrop or impersonate</span></div>
+        <div class="arrow">→</div>
+        <div class="node good-node"><span class="n-label good" data-es="Servicio remoto">Remote service</span></div>
+      </div>
+      <div class="callout note" style="margin-top:1.3rem"><span class="tag" data-es="Por eso">Therefore</span><p data-es="La autenticación en red exige <strong>criptografía</strong> para asegurar la comunicación y defenderse de ataques como el <em>hombre en el medio</em>. Cifrar la contraseña sola no basta: el cifrado <em>es</em>, en efecto, la contraseña, y puede reutilizarse.">Network authentication needs <strong>cryptography</strong> to secure communication and defend against <em>man-in-the-middle</em> attacks. Encrypting the password alone isn't enough: the encrypted value <em>is</em>, in effect, the password and can be replayed.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== F. CLOSE ===================== -->
+
+  <!-- S34 — Summary -->
+  <section class="slide" data-section="Wrap-up" data-section-es="Cierre">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Resumen"><span class="dot"></span>Summary</span>
+      <h2 data-es="La autenticación, en una diapositiva">Authentication, in one slide</h2>
+      <ul class="clean">
+        <li data-es="La autenticación es clave para asegurar el acceso a los recursos.">Authentication is a key requirement for securing access to resources.</li>
+        <li data-es="Cuatro factores — <strong>saber, tener, ser, hacer</strong> — con <strong>compromisos</strong> que hay que equilibrar.">Four factors — <strong>know, have, are, do</strong> — with <strong>trade-offs</strong> to balance.</li>
+        <li data-es="Nunca guardes contraseñas en claro: <strong>hash + sal + endurecimiento</strong>.">Never store passwords in clear: <strong>hash + salt + stretching</strong>.</li>
+        <li data-es="La mentalidad de seguridad exige un <strong>modelado de amenazas</strong> cuidadoso en cada decisión.">The security mindset requires careful <strong>threat modeling</strong> at every decision.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- S35 — Try Hack Me -->
+  <section class="slide section" data-section="Wrap-up" data-section-es="Cierre">
+    <div class="slide-inner">
+      <span class="kicker" style="justify-content:center" data-es="<span class='dot'></span>Practica"><span class="dot"></span>Practice</span>
+      <h1 style="max-width:16ch" data-es="Pruébalo tú mismo: TryHackMe">Try it yourself: TryHackMe</h1>
+      <p class="lead" style="max-width:42ch;margin-inline:auto" data-es="Practica el descifrado de hashes y la autenticación en un entorno seguro y legal.">Practice hash cracking and authentication in a safe, legal sandbox.</p>
+      <div class="placeholder" style="max-width:620px;margin:1.4rem auto 0">
+        <span class="ph-tag">⚑ Enlace / sala de TryHackMe</span>
+        <p style="margin-top:.6rem" data-es="Pega aquí la sala o el reto específico de TryHackMe que quieras asignar.">Drop in the specific TryHackMe room or challenge you want to assign.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <span class="course" data-es="TC2007B · S2 · C1 — Autenticación">TC2007B · W2 · L1 — Authentication</span>
+  <span class="right">
+    <span class="sec-name" id="secName">Orientation</span>
+    <span class="counter"><span id="cur">1</span> / <span id="total">35</span></span>
+  </span>
+</footer>
+
+<div class="frag-hint" id="fragHint"><span id="fragHintText">click to reveal</span><span class="chev">▾</span></div>
+
+<div class="nav-btns">
+  <button id="prevBtn" title="Previous (←)">‹</button>
+  <button id="ovBtn" title="Overview (O)">▦</button>
+  <button id="helpBtn" title="Help (?)">?</button>
+  <button id="fsBtn" title="Fullscreen (F)">⛶</button>
+  <button id="nextBtn" title="Next (→)">›</button>
+</div>
+
+<div class="overview" id="overview">
+  <h2 id="ovTitle">Slide overview</h2>
+  <div class="ov-grid" id="ovGrid"></div>
+</div>
+
+<div class="help" id="help">
+  <div class="panel">
+    <h2 data-es="Navegación">Navigation</h2>
+    <table>
+      <tr><td><kbd>→</kbd> <kbd>Space</kbd> <kbd>PgDn</kbd></td><td data-es="Siguiente / revelar">Next / reveal</td></tr>
+      <tr><td><kbd>←</kbd> <kbd>PgUp</kbd></td><td data-es="Anterior">Previous</td></tr>
+      <tr><td><kbd>Home</kbd> / <kbd>End</kbd></td><td data-es="Primera / última">First / last slide</td></tr>
+      <tr><td><kbd>O</kbd></td><td data-es="Vista general">Slide overview grid</td></tr>
+      <tr><td><kbd>F</kbd></td><td data-es="Pantalla completa">Toggle fullscreen</td></tr>
+      <tr><td><kbd>L</kbd></td><td data-es="Idioma ES / EN">Language ES / EN</td></tr>
+      <tr><td><kbd>T</kbd></td><td data-es="Tema claro / oscuro">Light / dark theme</td></tr>
+      <tr><td><kbd>?</kbd></td><td>Help</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td data-es="Cerrar ventana">Close overlay</td></tr>
+    </table>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
