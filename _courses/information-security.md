@@ -26,7 +26,7 @@ outside the public repository until you are ready to publish them.
 
 ### Week 1 - Security mindset and CIA triad
 - Lecture slides: [Open Week 01 classroom deck](/assets/course-materials/information-security/week-01/lecture/)
-- Source: adapted from instructor PowerPoint `TC2007B-W01-1-CIA.pptx`
+- Source: redesigned from instructor PowerPoint `TC2007B-W01-1-CIA.pptx`
 
 </div>
 

@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Week 1 · Lecture 1 — Introduction to Cybersecurity</title>
+<meta name="description" content="Introduction to Cybersecurity and the CIA triad. Week 1, Lecture 1 of TC2007B.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="topbar"><div class="fill" id="progress"></div></div>
+
+<main class="deck" id="deck">
+
+  <!-- ============================ 1. ORIENTATION ============================ -->
+
+  <!-- S1 — Title -->
+  <section class="slide title-slide active" data-section="Orientation">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>TC2007B · Week 1 · Lecture 1</span>
+      <h1>Introduction to Cybersecurity</h1>
+      <div class="title-rule"></div>
+      <p class="lead">Why security matters, how attacks happen, and what we protect — the <strong>CIA triad</strong>.</p>
+      <div class="title-meta">
+        <span class="pill">Instructor: Mahdi Zareei</span>
+        <span class="pill">Security in applications &amp; networks</span>
+        <span class="pill">≈ 2-hour session</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- S2 — About me (placeholder, instructor-owned) -->
+  <section class="slide" data-section="Orientation">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>Who is teaching you</span>
+      <h2>A little about me</h2>
+      <div class="placeholder">
+        <span class="ph-tag">⚑ Instructor content — fill in before class</span>
+        <p style="margin-top:.8rem">The original slides used personal photos here. Add your factual intro: current role &amp; institution, research areas, background, and one thing students might find surprising or relatable. Keep it to 3–4 spoken points so it stays a warm 2-minute opener, not a CV reading.</p>
+      </div>
+      <div class="callout note" style="margin-top:1.2rem">
+        <span class="tag">Tip</span>
+        <p>Tell students <em>why</em> you teach security — a single story lands better than a list of titles.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S3 — Name FAQ -->
+  <section class="slide" data-section="Orientation">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>FAQ</span>
+      <h2>How do you say my name?</h2>
+      <div class="grid cols-3">
+        <div class="card accent-top"><span class="ico">🗣️</span><h3>Mahdi</h3><p>Ma&nbsp;·&nbsp;h&nbsp;·&nbsp;di</p></div>
+        <div class="card accent-top"><span class="ico">👍</span><h3>“Madi”</h3><p>≈ 80% there — totally fine.</p></div>
+        <div class="card accent-top"><span class="ico">😎</span><h3>“Max”</h3><p>The easy, fully-accepted version.</p></div>
+      </div>
+      <p class="muted" style="margin-top:1.4rem">Whatever you pick, just don’t be a stranger — ask questions.</p>
+    </div>
+  </section>
+
+  <!-- S4 — Icebreaker activity -->
+  <section class="slide activity" data-section="Orientation">
+    <div class="slide-inner">
+      <span class="badge">◆ Activity · Icebreaker</span>
+      <h2 style="margin-top:1rem">Introduce yourself</h2>
+      <p class="lead" style="max-width:40ch">Say your name, then answer two quick questions:</p>
+      <ol class="clean" style="margin-top:1.6rem">
+        <li><strong>What one invention would you un-invent, and why?</strong></li>
+        <li><strong>Have you ever been affected by a cybersecurity incident?</strong> (a hacked account, a scam text, a leaked password…)</li>
+      </ol>
+      <div class="callout discuss" style="margin-top:1.6rem">
+        <span class="tag">Why this</span>
+        <p>Question 2 surfaces real experiences in the room — we’ll call back to them when we discuss threats and attacks later today.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S5 — Classroom rules -->
+  <section class="slide" data-section="Orientation">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>How this class runs</span>
+      <h2>A few ground rules</h2>
+      <div class="grid cols-2">
+        <div class="card warn-top"><span class="ico">📵</span><h3>Devices off, unless we’re using them</h3><p>Phones, tablets, and laptops stay away during lecture — except for the activities where we explicitly use them.</p></div>
+        <div class="card accent-top"><span class="ico">⏸️</span><h3>One ~10-minute break</h3><p>We usually pause once mid-class to reset.</p></div>
+        <div class="card teal-top"><span class="ico">🙋</span><h3>Lost? Ask.</h3><p>Stop me with a question any time — or just yell <strong>“HELP!”</strong></p></div>
+        <div class="card good-top"><span class="ico">🎉</span><h3>Most importantly</h3><p>Have <strong>fun</strong>. Security is a genuinely fascinating field.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S6 — AI policy -->
+  <section class="slide" data-section="Orientation">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>Course policy</span>
+      <h2>Using AI in this course</h2>
+      <div class="split">
+        <div>
+          <ul class="clean">
+            <li><strong>Use it if it helps you.</strong> AI is allowed as a <em>thinking aid</em>.</li>
+            <li>If you use AI to draft or reason through something, <strong>take the time to understand it</strong> — you must be able to explain each step or claim.</li>
+            <li>Use AI as a <strong>thinking aid, not a substitute for understanding.</strong></li>
+          </ul>
+        </div>
+        <div class="callout policy">
+          <span class="tag">Important</span>
+          <p>Your comprehension may be <strong>checked verbally at random</strong>. If what you say contradicts what your written work implies you understood, that assignment is marked <strong class="danger">ZERO</strong>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S7 — Roadmap (the three security-mindset questions as the lecture's spine) -->
+  <section class="slide" data-section="Orientation">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>Where we’re headed today</span>
+      <h2>Three questions frame this whole course</h2>
+      <div class="grid cols-3">
+        <div class="card accent-top"><span class="ico">❓</span><h3>Why?</h3><p>Why is cybersecurity important?</p></div>
+        <div class="card teal-top"><span class="ico">🧠</span><h3>How?</h3><p>How do we <em>understand</em> security — the security mindset?</p></div>
+        <div class="card good-top"><span class="ico">🛠️</span><h3>What?</h3><p>What needs to be done to address it?</p></div>
+      </div>
+      <p class="muted" style="margin-top:1.5rem">Keep these in the back of your mind — every section today answers one of them.</p>
+    </div>
+  </section>
+
+  <!-- S8 — Acknowledgment -->
+  <section class="slide" data-section="Orientation">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>Acknowledgment</span>
+      <h2>Material adapted with credit</h2>
+      <div class="definition">
+        <blockquote>Portions of this lecture are adapted from <strong>Georgia Tech</strong> — Dr.&nbsp;Wenke&nbsp;Lee and Dr.&nbsp;Mustaque&nbsp;Ahamad, course <strong>CS 6035: Introduction to Information Security</strong>.</blockquote>
+      </div>
+      <div class="callout note" style="margin-top:1.2rem">
+        <span class="tag">Q&amp;A</span>
+        <p>Any questions or doubts before we dive in?</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ 2. MOTIVATION ============================ -->
+
+  <!-- S9 — Section divider -->
+  <section class="slide section" data-section="Why security?">
+    <div class="slide-inner">
+      <div class="num">01</div>
+      <h1>Why does security matter?</h1>
+      <p class="lead" style="max-width:34ch">Motivation: value, risk, and who gets hurt.</p>
+    </div>
+  </section>
+
+  <!-- S10 — Definition -->
+  <section class="slide" data-section="Why security?">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>Starting point</span>
+      <h2>What do we mean by “computer security”?</h2>
+      <div class="definition">
+        <blockquote>“The protection afforded to an automated information system in order to attain the applicable objectives of preserving the <span class="accent">integrity</span>, <span class="accent">availability</span>, and <span class="accent">confidentiality</span> of information system resources — hardware, software, firmware, information/data, and telecommunications.”</blockquote>
+        <span class="src">— NIST Computer Security Handbook [NIST95]</span>
+      </div>
+      <div class="callout check" style="margin-top:1.2rem">
+        <span class="tag">Notice</span>
+        <p>The definition itself names three goals — <strong>integrity, availability, confidentiality</strong>. That’s the <strong>CIA triad</strong>, and we’ll return to it at the heart of the lecture.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S11 — Core framing -->
+  <section class="slide" data-section="Why security?">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>The core intuition</span>
+      <h2>We worry about security only when two things are true</h2>
+      <div class="split" style="margin-top:1.8rem">
+        <div class="card accent-top" style="text-align:center"><span class="ico" style="font-size:2.6rem">💎</span><h3>We have something of value</h3><p>Data, money, access, reputation, a service people depend on.</p></div>
+        <div class="card danger-top" style="text-align:center"><span class="ico" style="font-size:2.6rem">⚠️</span><h3>There’s a risk it could be harmed</h3><p>Someone or something could steal, alter, or deny it.</p></div>
+      </div>
+      <p class="lead" style="max-width:46ch;margin-top:1.6rem"><strong>Value + risk = a security problem.</strong> No value, or no risk → nothing to secure.</p>
+    </div>
+  </section>
+
+  <!-- S12 — Who is safe? -->
+  <section class="slide" data-section="Why security?">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>Reality check</span>
+      <h2>So… who is actually safe?</h2>
+      <p class="lead" style="max-width:48ch">Large companies, governments, hospitals, universities — all have suffered major breaches. Being big or well-funded is <strong>not</strong> the same as being secure.</p>
+      <div class="callout discuss" style="margin-top:1.4rem">
+        <span class="tag">Live demo</span>
+        <p>Explore the breaches together: <strong>“World’s Biggest Data Breaches &amp; Hacks”</strong><br>
+        <span class="mono accent">informationisbeautiful.net/visualizations/worlds-biggest-data-breaches-hacks</span></p>
+      </div>
+      <div class="callout check" style="margin-top:1rem">
+        <span class="tag">Ask the room</span>
+        <p>Recognize any of these organizations? Do you have an account with one?</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S13 — Your data has value -->
+  <section class="slide" data-section="Why security?">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>Motivation: profit</span>
+      <h2>Your personal data is a product on a market</h2>
+      <p class="lead" style="max-width:48ch">Individuals store a lot of sensitive data online. If it’s stolen, criminals can <strong>profit</strong> from it — there are real <strong>black markets</strong> with going rates.</p>
+      <div class="placeholder">
+        <span class="ph-tag">⚑ Add verified figures before class</span>
+        <p style="margin-top:.8rem">The source slide showed a “black-market values” chart whose numbers I can’t read and won’t invent. Insert <strong>current, cited</strong> price ranges (e.g., stolen card, full identity, account login) from a source you trust, with the year. Prices move fast — use a recent reference.</p>
+      </div>
+      <div class="callout check" style="margin-top:1rem">
+        <span class="tag">Ask the room</span>
+        <p>Guess: what’s a stolen credit-card number worth? People usually guess far too high.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S14 — Society depends on connected systems -->
+  <section class="slide" data-section="Why security?">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>Motivation: scale</span>
+      <h2>It’s bigger than individuals — societies run on these systems</h2>
+      <div class="grid cols-3">
+        <div class="card danger-top"><span class="ico">🔌</span><h3>Critical infrastructure</h3><p>Smart grids rely on cyber systems. Whoever controls the grid controls community infrastructure.</p></div>
+        <div class="card warn-top"><span class="ico">🏛️</span><h3>Government &amp; business data</h3><p>Proprietary and state information often lives online. Unauthorized access can be economically or politically disastrous.</p></div>
+        <div class="card accent-top"><span class="ico">🌐</span><h3>Everyday dependence</h3><p>Societies rely on the internet. Criminals could profit by controlling it; outages ripple everywhere.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S15 — Concept check -->
+  <section class="slide" data-section="Why security?">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>Quick check</span>
+      <h2>Pause &amp; recall</h2>
+      <div class="callout check">
+        <span class="tag">Turn to a neighbor</span>
+        <p>In one sentence each: <strong>(1)</strong> the two ingredients that create a security problem, and <strong>(2)</strong> one reason an attacker would target an ordinary student’s data.</p>
+      </div>
+      <p class="muted" style="margin-top:1.2rem">Answers: <span class="accent">value + risk</span>; and your accounts/identity can be <span class="accent">sold or reused</span> for profit.</p>
+    </div>
+  </section>
+
+  <!-- ============================ 3. SECURITY MINDSET ============================ -->
+
+  <!-- S16 — Divider -->
+  <section class="slide section" data-section="Security mindset">
+    <div class="slide-inner">
+      <div class="num">02</div>
+      <h1>The security mindset</h1>
+      <p class="lead" style="max-width:40ch">Threats, vulnerabilities, attacks — how security people see the world.</p>
+    </div>
+  </section>
+
+  <!-- S17 — What is the security mindset + key questions -->
+  <section class="slide" data-section="Security mindset">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>How we understand risk</span>
+      <h2>Developing a “security mindset”</h2>
+      <p class="lead" style="max-width:50ch">To understand the risk to our information and systems, we learn to ask a fixed set of questions about <strong>threats, vulnerabilities, and attacks</strong>.</p>
+      <div class="grid cols-2" style="margin-top:1.2rem">
+        <ul class="clean">
+          <li>What is <strong>of value</strong> here?</li>
+          <li>What kind of <strong>risk</strong> are we talking about?</li>
+          <li>Where do the <strong>threats</strong> come from?</li>
+        </ul>
+        <ul class="clean">
+          <li>Who is the <strong>source</strong> of the threat?</li>
+          <li>What <strong>security measures</strong> can we take?</li>
+        </ul>
+      </div>
+      <div class="callout note" style="margin-top:1rem"><span class="tag">Mindset</span><p>A security person instinctively asks “how could this be abused?” — not just “does it work?”</p></div>
+    </div>
+  </section>
+
+  <!-- S18 — The chain (flow diagram) -->
+  <section class="slide" data-section="Security mindset">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>The central model</span>
+      <h2>How harm actually happens: a chain</h2>
+      <div class="flow">
+        <div class="node threat"><span class="n-label danger">Threat actor</span><span class="n-sub">someone who wants to do harm</span></div>
+        <div class="arrow">→</div>
+        <div class="node vuln"><span class="n-label warn">Vulnerability</span><span class="n-sub">a weakness they can use</span></div>
+        <div class="arrow">→</div>
+        <div class="node attack"><span class="n-label" style="color:var(--violet)">Exploit / Attack</span><span class="n-sub">abusing the weakness</span></div>
+        <div class="arrow">→</div>
+        <div class="node breach"><span class="n-label accent">Compromise</span><span class="n-sub">breach / loss</span></div>
+      </div>
+      <p class="lead" style="max-width:54ch;margin-top:1.8rem"><strong>Threat actors exploit vulnerabilities to launch attacks; attacks lead to compromises or security breaches.</strong></p>
+      <p class="muted">Read it left to right — and notice you can break the chain at any link to defend.</p>
+    </div>
+  </section>
+
+  <!-- S19 — Threat actors -->
+  <section class="slide" data-section="Security mindset">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>Who attacks us</span>
+      <h2>Threat actors: who wants to do us harm online</h2>
+      <div class="grid cols-3">
+        <div class="card danger-top"><span class="ico">💰</span><h3>Cybercriminals</h3><p>Want to <strong>profit</strong> from our sensitive data for financial gain.</p></div>
+        <div class="card warn-top"><span class="ico">✊</span><h3>Hacktivists</h3><p>Activists who object to <strong>something you are</strong> or <strong>something you do</strong>.</p></div>
+        <div class="card accent-top"><span class="ico">🌍</span><h3>Nation-states</h3><p>Countries acting for <strong>political advantage</strong> or <strong>espionage</strong>.</p></div>
+      </div>
+      <div class="callout discuss" style="margin-top:1.3rem"><span class="tag">Discuss</span><p>Different motives → different targets and tactics. Which actor would care about a student’s laptop? About a power grid?</p></div>
+    </div>
+  </section>
+
+  <!-- S20 — Vulnerabilities everywhere; humans weakest -->
+  <section class="slide" data-section="Security mindset">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>Where weaknesses live</span>
+      <h2>Vulnerabilities are everywhere — and humans are the weak link</h2>
+      <div class="grid cols-3">
+        <div class="card"><span class="ico">💽</span><h3>Software</h3><p>Bugs and misconfigurations in the code that runs our systems.</p></div>
+        <div class="card"><span class="ico">🛰️</span><h3>Networks</h3><p>Weak protocols, open ports, intercepted traffic.</p></div>
+        <div class="card danger-top"><span class="ico">🧑</span><h3>People</h3><p>Reused passwords, clicked links, helpful answers to the wrong person.</p></div>
+      </div>
+      <div class="callout note" style="margin-top:1.2rem"><span class="tag">Hard truth</span><p>It is very hard to eliminate vulnerabilities completely. The mindset starts with <strong>threats</strong>, then <strong>vulnerabilities</strong>, whose <strong>exploitation</strong> leads to <strong>attacks</strong>, which result in <strong>compromise and breaches</strong>.</p></div>
+    </div>
+  </section>
+
+  <!-- S21 — Activity: spot the vulnerability (replaces unreadable image gag sequence) -->
+  <section class="slide activity" data-section="Security mindset">
+    <div class="slide-inner">
+      <span class="badge">◆ Activity · Spot the weakness</span>
+      <h2 style="margin-top:1rem">Find the vulnerability in everyday scenes</h2>
+      <p class="lead" style="max-width:52ch">For each tiny scenario, name the <span class="warn">vulnerability</span>, a plausible <span class="danger">threat actor</span>, and the likely <span class="accent">attack</span>.</p>
+      <ol class="clean" style="margin-top:1.2rem">
+        <li>A sticky note with a password is stuck to a monitor in an open office.</li>
+        <li>A “bank” email says <em>“verify your account in 24 hours or it will be closed.”</em></li>
+        <li>Free public Wi-Fi named <em>“Airport_Free_WiFi”</em> with no password.</li>
+      </ol>
+      <div class="callout discuss" style="margin-top:1.2rem"><span class="tag">Why this</span><p>The source slides used joke “fail” photos here. Same lesson, but now students <em>practice the chain</em> instead of just laughing at a picture.</p></div>
+    </div>
+  </section>
+
+  <!-- S22 — Concept check -->
+  <section class="slide" data-section="Security mindset">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>Quick check</span>
+      <h2>Say the chain out loud</h2>
+      <div class="callout check"><span class="tag">Everyone</span><p>Fill the blanks: A ____ exploits a ____ to carry out an ____, resulting in a ____.</p></div>
+      <p class="muted" style="margin-top:1rem">→ <span class="danger">threat actor</span> · <span class="warn">vulnerability</span> · <span style="color:var(--violet)">attack</span> · <span class="accent">compromise/breach</span></p>
+    </div>
+  </section>
+
+  <!-- ============================ 4. REAL-WORLD CASE ============================ -->
+
+  <!-- S23 — Divider -->
+  <section class="slide section" data-section="Case study">
+    <div class="slide-inner">
+      <div class="num">03</div>
+      <h1>Case study: a real breach</h1>
+      <p class="lead" style="max-width:38ch">Let’s walk a real incident through the chain we just learned.</p>
+    </div>
+  </section>
+
+  <!-- S24 — Target overview (scaffold) -->
+  <section class="slide" data-section="Case study">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>The organization</span>
+      <h2>A real-world example: Target Corporation</h2>
+      <p class="lead" style="max-width:50ch">Target is one of the largest department-store retailers in the United States — a high-value target with millions of customers’ payment data.</p>
+      <div class="placeholder">
+        <span class="ph-tag">⚑ Add verified case facts before class</span>
+        <p style="margin-top:.8rem">The source slides illustrated this case with images only — specific figures and timeline weren’t in readable text. Before teaching, add <strong>cited, verified facts</strong>: when it happened, how the attackers first got in, what malware/method was used, how many records were affected, and the impact. Keep each claim sourced.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S25 — Walk the chain -->
+  <section class="slide" data-section="Case study">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>Apply the model</span>
+      <h2>Map the breach onto our chain</h2>
+      <table class="compare">
+        <thead><tr><th>Link in the chain</th><th>For this case — fill in with verified facts</th></tr></thead>
+        <tbody>
+          <tr><td class="map-from">Threat actor</td><td class="muted">Who was behind it, and what was their motive?</td></tr>
+          <tr><td class="map-from">Vulnerability</td><td class="muted">What weakness let them in (technical? human? a third party)?</td></tr>
+          <tr><td class="map-from">Attack / exploit</td><td class="muted">What did they actually do once inside?</td></tr>
+          <tr><td class="map-to">Compromise</td><td class="muted">What was lost — and who was harmed?</td></tr>
+        </tbody>
+      </table>
+      <div class="callout note" style="margin-top:1rem"><span class="tag">Use it live</span><p>Reveal each verified fact as you go, asking students to predict the next link first.</p></div>
+    </div>
+  </section>
+
+  <!-- S26 — Discussion -->
+  <section class="slide activity" data-section="Case study">
+    <div class="slide-inner">
+      <span class="badge">◆ Discussion</span>
+      <h2 style="margin-top:1rem">What should have stopped this?</h2>
+      <ol class="clean" style="margin-top:1.2rem">
+        <li>At which link in the chain was the breach <strong>easiest to prevent</strong>?</li>
+        <li>Which CIA goal — <strong>confidentiality, integrity, or availability</strong> — was most affected?</li>
+        <li>If you ran security at a company like this, what is the <strong>first</strong> thing you’d change?</li>
+      </ol>
+      <div class="callout discuss" style="margin-top:1.2rem"><span class="tag">Tie-back</span><p>Connect answers to the experiences students shared in the icebreaker.</p></div>
+    </div>
+  </section>
+
+  <!-- ============================ 5. CONCEPTS + CIA ============================ -->
+
+  <!-- S27 — Divider -->
+  <section class="slide section" data-section="CIA triad">
+    <div class="slide-inner">
+      <div class="num">04</div>
+      <h1>What do we protect?</h1>
+      <p class="lead" style="max-width:36ch">From threats to requirements: the CIA triad.</p>
+    </div>
+  </section>
+
+  <!-- S28 — Relationship of key concepts (concept map, SVG) -->
+  <section class="slide" data-section="CIA triad">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>Putting it together</span>
+      <h2>How the key concepts relate</h2>
+      <svg class="conceptmap" viewBox="0 0 1000 380" role="img" aria-label="Concept map relating owners, assets, threats, vulnerabilities, attacks, risk and countermeasures">
+        <defs>
+          <marker id="ah" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#4ea1ff"/></marker>
+        </defs>
+        <g font-family="Inter, sans-serif" font-size="19" font-weight="700" text-anchor="middle">
+          <!-- nodes -->
+          <g>
+            <rect x="40"  y="160" width="170" height="64" rx="12" fill="#122036" stroke="#5fe08a" stroke-width="2"/>
+            <text x="125" y="188" fill="#eef4ff">Owners</text>
+            <text x="125" y="210" fill="#aebfd6" font-size="13" font-weight="400">value &amp; protect</text>
+          </g>
+          <g>
+            <rect x="300" y="160" width="170" height="64" rx="12" fill="#122036" stroke="#4ea1ff" stroke-width="2"/>
+            <text x="385" y="188" fill="#eef4ff">Assets</text>
+            <text x="385" y="210" fill="#aebfd6" font-size="13" font-weight="400">things of value</text>
+          </g>
+          <g>
+            <rect x="300" y="40" width="170" height="64" rx="12" fill="#122036" stroke="#ffb454" stroke-width="2"/>
+            <text x="385" y="68" fill="#eef4ff">Vulnerabilities</text>
+            <text x="385" y="90" fill="#aebfd6" font-size="13" font-weight="400">weaknesses</text>
+          </g>
+          <g>
+            <rect x="560" y="40" width="170" height="64" rx="12" fill="#122036" stroke="#ff6b6b" stroke-width="2"/>
+            <text x="645" y="68" fill="#eef4ff">Threats</text>
+            <text x="645" y="90" fill="#aebfd6" font-size="13" font-weight="400">actors + actions</text>
+          </g>
+          <g>
+            <rect x="560" y="160" width="170" height="64" rx="12" fill="#122036" stroke="#b18cff" stroke-width="2"/>
+            <text x="645" y="188" fill="#eef4ff">Risk</text>
+            <text x="645" y="210" fill="#aebfd6" font-size="13" font-weight="400">to assets</text>
+          </g>
+          <g>
+            <rect x="560" y="290" width="170" height="64" rx="12" fill="#122036" stroke="#38d6c0" stroke-width="2"/>
+            <text x="645" y="318" fill="#eef4ff">Countermeasures</text>
+            <text x="645" y="340" fill="#aebfd6" font-size="13" font-weight="400">reduce risk</text>
+          </g>
+        </g>
+        <g stroke="#4ea1ff" stroke-width="2" fill="none" marker-end="url(#ah)">
+          <path d="M210,192 H300"/>            <!-- owners -> assets -->
+          <path d="M385,160 V104"/>            <!-- assets -> vulnerabilities -->
+          <path d="M470,72 H560"/>             <!-- vulnerabilities <- threats : draw threats->vuln -->
+          <path d="M645,104 V160"/>            <!-- threats -> risk -->
+          <path d="M560,300 Q470,300 450,224"/><!-- countermeasures -> assets (protect) -->
+        </g>
+        <g font-family="Inter" font-size="12" fill="#aebfd6" text-anchor="middle">
+          <text x="255" y="182">own</text>
+          <text x="345" y="135">have</text>
+          <text x="515" y="60">exploit</text>
+          <text x="690" y="138">create</text>
+          <text x="500" y="270">protect</text>
+        </g>
+      </svg>
+      <p class="muted">Owners value assets; assets have vulnerabilities; threats exploit them to create risk; countermeasures reduce that risk.</p>
+    </div>
+  </section>
+
+  <!-- S29 — What to do + CIA triad -->
+  <section class="slide" data-section="CIA triad">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>From problem to goals</span>
+      <h2>What should we do? Meet the CIA triad</h2>
+      <p class="lead" style="max-width:52ch">Make threats not pay, reduce vulnerabilities, and strive to meet the security requirements of sensitive information:</p>
+      <div class="triad">
+        <div class="leg c"><span class="big accent">C</span><div class="word">Confidentiality</div><p class="desc">Unauthorized users <strong>cannot read</strong> the information.</p></div>
+        <div class="leg i"><span class="big teal">I</span><div class="word">Integrity</div><p class="desc">Unauthorized users <strong>cannot alter</strong> the information.</p></div>
+        <div class="leg a"><span class="big good">A</span><div class="word">Availability</div><p class="desc">Authorized users <strong>can access</strong> the information.</p></div>
+      </div>
+      <p class="muted" style="margin-top:1rem; text-align:center">CIA — <em>not the intelligence agency.</em></p>
+    </div>
+  </section>
+
+  <!-- S30 — CIAAAN -->
+  <section class="slide" data-section="CIA triad">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>Beyond the triad</span>
+      <h2>CIA isn’t everything — meet “CIAAAN”</h2>
+      <p class="lead" style="max-width:50ch">Real systems often add more requirements on top of C, I, and A:</p>
+      <div class="grid cols-3" style="margin-top:1rem">
+        <div class="card accent-top"><span class="ico">🪪</span><h3>Authentication</h3><p>Giving individuals access based on <strong>verifying their identity</strong>.</p></div>
+        <div class="card teal-top"><span class="ico">🔑</span><h3>Authorization</h3><p>Determining <strong>access levels</strong> to files, services, programs, data, and features.</p></div>
+        <div class="card violet-top" style="border-top:4px solid var(--violet)"><span class="ico">✍️</span><h3>Non-repudiation</h3><p>Assurance that someone <strong>cannot deny</strong> the validity of something they did.</p></div>
+      </div>
+      <p class="muted" style="margin-top:1rem">C · I · A · A · A · N — the list keeps growing as systems get more complex.</p>
+    </div>
+  </section>
+
+  <!-- S31 — Threats vs requirements mapping -->
+  <section class="slide" data-section="CIA triad">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>A useful translation</span>
+      <h2>It’s often easier to think in threats than in requirements</h2>
+      <table class="compare">
+        <thead><tr><th>Threat (what goes wrong)</th><th>Security requirement it breaks</th></tr></thead>
+        <tbody>
+          <tr><td class="map-from">Information disclosure</td><td class="map-to">Confidentiality</td></tr>
+          <tr><td class="map-from">Tampering with information</td><td class="map-to">Integrity</td></tr>
+          <tr><td class="map-from">Denial of service (DoS)</td><td class="map-to">Availability</td></tr>
+          <tr><td class="map-from">Phishing</td><td class="map-to">Authentication</td></tr>
+          <tr><td class="map-from">Unauthorized access</td><td class="map-to">Authorization</td></tr>
+        </tbody>
+      </table>
+      <p class="muted" style="margin-top:1rem"><strong>Remember the requirements:</strong> Confidentiality · Integrity · Availability · Authentication · Authorization · Non-repudiation.</p>
+    </div>
+  </section>
+
+  <!-- S32 — Phishing vs spoofing -->
+  <section class="slide" data-section="CIA triad">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>Don’t confuse these</span>
+      <h2>Phishing vs. spoofing</h2>
+      <div class="split">
+        <div class="card accent-top"><span class="ico">🎣</span><h3>Phishing — a method of <em>retrieval</em></h3><p>Tricks <strong>you</strong> into giving up sensitive (often financial) information to a crook.</p></div>
+        <div class="card danger-top"><span class="ico">🎭</span><h3>Spoofing — a means of <em>delivery</em></h3><p>Disguises the source to <strong>deliver malware</strong> to your computer or network.</p></div>
+      </div>
+      <div class="callout check" style="margin-top:1.3rem"><span class="tag">One-liner</span><p><strong>Phishing is a method of retrieval; spoofing is a means of delivery.</strong> They’re often combined in one attack.</p></div>
+    </div>
+  </section>
+
+  <!-- S33 — Concept check -->
+  <section class="slide" data-section="CIA triad">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>Quick check</span>
+      <h2>Match the threat to the requirement</h2>
+      <div class="callout check"><span class="tag">Rapid fire</span><p>Call them out: a <em>DoS attack</em> breaks ____ · an <em>altered bank balance</em> breaks ____ · a <em>leaked password file</em> breaks ____.</p></div>
+      <p class="muted" style="margin-top:1rem">→ <span class="accent">availability</span> · <span class="accent">integrity</span> · <span class="accent">confidentiality</span></p>
+    </div>
+  </section>
+
+  <!-- ============================ 6. DEEP DIVE C/I/A ============================ -->
+
+  <!-- S34 — Confidentiality -->
+  <section class="slide" data-section="C · I · A in depth">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>The “C”</span>
+      <h2>Confidentiality: need-to-know access</h2>
+      <div class="split">
+        <ul class="clean">
+          <li><strong>“Need to know”</strong> basis for data access.</li>
+          <li><em>How do we know who needs what?</em> → <strong>access control</strong> specifies who can access what.</li>
+          <li><em>How do we know a user is who they claim?</em> → <strong>identification &amp; authentication</strong>.</li>
+        </ul>
+        <div class="card accent-top">
+          <h3>Two faces of confidentiality</h3>
+          <p>Difficult to <strong>ensure</strong> in practice…</p>
+          <p style="margin-top:.6rem">…but easiest to <strong>assess</strong>: success is essentially binary — either the secret leaked, or it didn’t (Yes / No).</p>
+        </div>
+      </div>
+      <p class="muted" style="margin-top:1rem">Physical analogy: “need to access/use” a computer room or a specific desktop.</p>
+    </div>
+  </section>
+
+  <!-- S35 — Integrity -->
+  <section class="slide" data-section="C · I · A in depth">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>The “I”</span>
+      <h2>Integrity: guarding against unauthorized change</h2>
+      <table class="compare">
+        <thead><tr><th>Confidentiality</th><th>Integrity</th></tr></thead>
+        <tbody>
+          <tr><td>Concerned with <strong>access</strong> to assets</td><td>Concerned with <strong>unauthorized modification</strong> of assets</td></tr>
+          <tr><td>Easier to measure (binary)</td><td>Harder to measure — <strong>degrees</strong> of integrity, context-dependent</td></tr>
+        </tbody>
+      </table>
+      <div class="grid cols-2" style="margin-top:1.2rem">
+        <div class="card teal-top"><h3>Your bank account</h3><p>Integrity = the balance is <strong>accurate</strong> and changes only through authorized transactions.</p></div>
+        <div class="card teal-top"><h3>Your medical record</h3><p>Integrity = entries are <strong>correct and unaltered</strong> — wrong data can be dangerous.</p></div>
+      </div>
+      <p class="muted" style="margin-top:.8rem">Integrity can mean accuracy, precision, currency, consistency, meaningfulness, usefulness… depending on context.</p>
+    </div>
+  </section>
+
+  <!-- S36 — Availability (merged) -->
+  <section class="slide" data-section="C · I · A in depth">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>The “A”</span>
+      <h2>Availability: usable when you need it</h2>
+      <p class="lead" style="max-width:52ch">Complex and context-dependent. An asset (data or service) is <strong>available</strong> when it offers:</p>
+      <div class="grid cols-2" style="margin-top:1rem">
+        <ul class="clean">
+          <li><strong>Timely</strong> response to requests</li>
+          <li><strong>Fair allocation</strong> of resources (no starvation)</li>
+          <li><strong>Fault tolerance</strong> (no total breakdown)</li>
+        </ul>
+        <ul class="clean">
+          <li><strong>Easy to use</strong> in the intended way</li>
+          <li><strong>Controlled concurrency</strong> (concurrency &amp; deadlock control)</li>
+          <li>Completed in an <strong>acceptable</strong> time</li>
+        </ul>
+      </div>
+      <p class="muted" style="margin-top:.8rem">[Pfleeger &amp; Pfleeger]</p>
+    </div>
+  </section>
+
+  <!-- S37 — Balancing CIA -->
+  <section class="slide" data-section="C · I · A in depth">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>The trade-off</span>
+      <h2>You must balance C, I, and A — they pull against each other</h2>
+      <div class="split">
+        <div class="card accent-top"><h3>Example 1 — boost C, hurt I + A</h3><p>Disconnect a computer from the internet to raise <strong>confidentiality</strong>. But <strong>availability</strong> drops, and <strong>integrity</strong> suffers from lost updates.</p></div>
+        <div class="card teal-top"><h3>Example 2 — boost I, hurt C + A</h3><p>Add extensive checks by many people/systems to raise <strong>integrity</strong>. But <strong>confidentiality</strong> drops (more eyes on the data) and <strong>availability</strong> drops (data locked during verification).</p></div>
+      </div>
+      <div class="callout note" style="margin-top:1.2rem"><span class="tag">Takeaway</span><p>There is no “maximum security” — only the <strong>right balance</strong> for a given system and its risks.</p></div>
+    </div>
+  </section>
+
+  <!-- ============================ 7. DEFENSE ============================ -->
+
+  <!-- S38 — Divider -->
+  <section class="slide section" data-section="Defending systems">
+    <div class="slide-inner">
+      <div class="num">05</div>
+      <h1>What should the good guys do?</h1>
+      <p class="lead" style="max-width:36ch">From goals to action: defense and design.</p>
+    </div>
+  </section>
+
+  <!-- S39 — Defense lifecycle -->
+  <section class="slide" data-section="Defending systems">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>The defender’s playbook</span>
+      <h2>Four jobs of defense — plus one big distinction</h2>
+      <div class="flow">
+        <div class="node breach"><span class="n-label accent">Prevention</span><span class="n-sub">stop it happening</span></div>
+        <div class="arrow">→</div>
+        <div class="node attack"><span class="n-label" style="color:var(--violet)">Detection</span><span class="n-sub">notice it fast</span></div>
+        <div class="arrow">→</div>
+        <div class="node vuln"><span class="n-label warn">Response</span><span class="n-sub">contain it</span></div>
+        <div class="arrow">→</div>
+        <div class="node breach"><span class="n-label good">Recovery</span><span class="n-sub">restore &amp; remediate</span></div>
+      </div>
+      <div class="callout note" style="margin-top:1.6rem"><span class="tag">Key distinction</span><p><strong>Policy (the <em>what</em>)</strong> — the security goals we require — vs. <strong>mechanism (the <em>how</em>)</strong> — the technical means that enforce them.</p></div>
+    </div>
+  </section>
+
+  <!-- S40 — Secure design principles -->
+  <section class="slide" data-section="Defending systems">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>How to reduce vulnerabilities</span>
+      <h2>Classic principles for designing secure systems</h2>
+      <div class="grid cols-3">
+        <div class="card danger-top"><h3>Economy of mechanism</h3><p>Keep it simple — <strong>complexity is the enemy</strong> of security.</p></div>
+        <div class="card accent-top"><h3>Fail-safe defaults</h3><p>Default to <strong>no access</strong>; grant explicitly.</p></div>
+        <div class="card accent-top"><h3>Complete mediation</h3><p>Check <strong>every access</strong>, every time.</p></div>
+        <div class="card teal-top"><h3>Open design</h3><p>Security must not depend on the design being <strong>secret</strong>.</p></div>
+        <div class="card teal-top"><h3>Least privilege</h3><p>Give each part <strong>only the access it needs</strong>.</p></div>
+        <div class="card good-top"><h3>Psychological acceptability</h3><p>If security is <strong>too painful</strong>, people route around it.</p></div>
+      </div>
+      <p class="muted" style="margin-top:.9rem">…and more. These date back decades and still hold up.</p>
+    </div>
+  </section>
+
+  <!-- ============================ 8. CLOSE ============================ -->
+
+  <!-- S41 — Lesson summary -->
+  <section class="slide" data-section="Wrap-up">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>Lesson summary</span>
+      <h2>The security mindset, in one slide</h2>
+      <ul class="clean">
+        <li>Cybersecurity is a <strong>huge problem</strong> for people, governments, and companies alike.</li>
+        <li>Our job is to <strong>raise the level of assurance</strong> of systems.</li>
+        <li>The mindset requires knowing: the <strong class="danger">threats</strong>, the <strong class="warn">actors and their motivations</strong>, and <strong style="color:var(--violet)">how they successfully attack</strong>.</li>
+        <li>We protect <strong class="accent">Confidentiality, Integrity, Availability</strong> — balanced, never maximized.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- S42 — Closing takeaway -->
+  <section class="slide section" data-section="Wrap-up">
+    <div class="slide-inner">
+      <span class="kicker" style="justify-content:center"><span class="dot"></span>One thing to remember</span>
+      <h1 style="max-width:18ch">Think like an attacker to defend like a pro.</h1>
+      <p class="lead" style="max-width:40ch;margin-inline:auto">Next time: we go deeper into how these attacks and defenses actually work.</p>
+      <div class="callout discuss" style="max-width:560px;margin:1.6rem auto 0"><span class="tag">Now</span><p>Questions? Doubts? — or just yell “HELP!”</p></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Footer -->
+<footer class="footer">
+  <span class="course">TC2007B · W1 · L1 — Intro to Cybersecurity</span>
+  <span class="right">
+    <span class="sec-name" id="secName">Orientation</span>
+    <span class="counter"><span id="cur">1</span> / <span id="total">42</span></span>
+  </span>
+</footer>
+
+<div class="nav-btns">
+  <button id="prevBtn" title="Previous (←)">‹</button>
+  <button id="ovBtn" title="Overview (O)">▦</button>
+  <button id="helpBtn" title="Help (?)">?</button>
+  <button id="fsBtn" title="Fullscreen (F)">⛶</button>
+  <button id="nextBtn" title="Next (→)">›</button>
+</div>
+
+<!-- Overview -->
+<div class="overview" id="overview">
+  <h2>Slide overview</h2>
+  <div class="ov-grid" id="ovGrid"></div>
+</div>
+
+<!-- Help -->
+<div class="help" id="help">
+  <div class="panel">
+    <h2>Navigation</h2>
+    <table>
+      <tr><td><kbd>→</kbd> <kbd>Space</kbd> <kbd>PgDn</kbd></td><td>Next slide</td></tr>
+      <tr><td><kbd>←</kbd> <kbd>PgUp</kbd></td><td>Previous slide</td></tr>
+      <tr><td><kbd>Home</kbd> / <kbd>End</kbd></td><td>First / last slide</td></tr>
+      <tr><td><kbd>O</kbd></td><td>Slide overview grid</td></tr>
+      <tr><td><kbd>F</kbd></td><td>Toggle fullscreen</td></tr>
+      <tr><td><kbd>?</kbd></td><td>This help</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td>Close overlay</td></tr>
+    </table>
+    <p class="muted" style="margin-top:1rem;font-size:.9rem">Works with most presenter remotes (they send Page Up / Page Down) and supports swipe on touch screens.</p>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
