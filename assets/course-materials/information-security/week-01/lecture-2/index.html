@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Week 1 · Lecture 2 — Legal &amp; Ethical Aspects</title>
+<meta name="description" content="Legal and ethical aspects of cybersecurity: ethics vs law, the Mexican legal framework, ownership, and privacy. Week 1, Lecture 2 of TC2007B.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="topbar"><div class="fill" id="progress"></div></div>
+
+<div class="controls">
+  <button class="ui-btn" id="langBtn" title="Español / English">ES</button>
+  <button class="ui-btn" id="themeBtn" title="Light / Dark">☀</button>
+</div>
+
+<main class="deck" id="deck">
+
+  <!-- ===================== A. ORIENTATION ===================== -->
+
+  <!-- S1 — Title -->
+  <section class="slide title-slide active" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>TC2007B · Semana 1 · Clase 2"><span class="dot"></span>TC2007B · Week 1 · Lecture 2</span>
+      <h1 data-es="Aspectos legales y éticos de la ciberseguridad">Legal &amp; ethical aspects of cybersecurity</h1>
+      <div class="title-rule"></div>
+      <p class="lead" data-es="Ética frente a ley, el marco legal mexicano, la propiedad y la privacidad.">Ethics vs law, the Mexican legal framework, ownership, and privacy.</p>
+      <div class="title-meta">
+        <span class="pill" data-es="Profesor: Mahdi Zareei">Instructor: Mahdi Zareei</span>
+        <span class="pill" data-es="…y un poco de ética">…and a little bit of ethics</span>
+        <span class="pill" data-es="≈ sesión de 2 horas">≈ 2-hour session</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- S2 — Hook question: health data email -->
+  <section class="slide activity" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Pregunta para abrir">◆ Opening question</span>
+      <h2 style="margin-top:1rem" data-es="Un correo que no era para ti">An email that wasn’t meant for you</h2>
+      <p class="lead" style="max-width:54ch" data-es="Por error, un amigo te envía “datos de salud” sensibles en un correo (adjuntó el archivo equivocado). <strong>No deberías leer</strong> ese documento porque…">By mistake, a friend emails you sensitive “health data” (wrong attachment). You <strong>should not</strong> read that document because…</p>
+      <div class="grid cols-2" style="margin-top:1.2rem">
+        <div class="card accent-top"><span class="ico">⚖️</span><h3 data-es="A) Ética">A) Ethics</h3><p data-es="Un código de ética profesional te exige respetar la privacidad de los demás.">A professional code of ethics requires you to respect others’ privacy.</p></div>
+        <div class="card warn-top"><span class="ico">📜</span><h3 data-es="B) Ley">B) Law</h3><p data-es="Podrías ser responsable bajo la ley de ciberseguridad / protección de datos.">You could be liable under cybersecurity / data-protection law.</p></div>
+      </div>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="La respuesta">The answer</span>
+        <p data-es="<strong>Ambas.</strong> La ética y la ley se refuerzan aquí — y esa relación es justo el tema de hoy."><strong>Both.</strong> Ethics and law reinforce each other here — and that relationship is exactly today’s topic.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S3 — Roadmap -->
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El recorrido de hoy"><span class="dot"></span>Today’s journey</span>
+      <h2 data-es="Cuatro lentes sobre el mismo problema">Four lenses on the same problem</h2>
+      <div class="grid cols-2">
+        <div class="card accent-top"><span class="ico">⚖️</span><h3 data-es="1 · Ética y ley">1 · Ethics &amp; law</h3><p data-es="En qué se diferencian y cómo se relacionan; un caso real.">How they differ and connect; a real court case.</p></div>
+        <div class="card teal-top"><span class="ico">🇲🇽</span><h3 data-es="2 · Marco legal en México">2 · Mexican legal framework</h3><p data-es="Derechos de autor, comercio electrónico y protección de datos.">Copyright, e-commerce, and data protection.</p></div>
+        <div class="card violet-top"><span class="ico">🏷️</span><h3 data-es="3 · Propiedad y “derecho al olvido”">3 · Ownership &amp; the “right to be forgotten”</h3><p data-es="¿Quién decide qué es tuyo?">Who decides what is yours?</p></div>
+        <div class="card good-top"><span class="ico">🔒</span><h3 data-es="4 · Privacidad">4 · Privacy</h3><p data-es="Qué es, qué la amenaza y cómo protegerla.">What it is, what threatens it, and how to protect it.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== B. ETHICS & LAW ===================== -->
+
+  <!-- S4 — Divider -->
+  <section class="slide section" data-section="Ethics & law" data-section-es="Ética y ley">
+    <div class="slide-inner">
+      <div class="num">01</div>
+      <h1 data-es="Ética y ley">Ethics &amp; law</h1>
+      <p class="lead" data-es="Reglas que escribimos vs. reglas que sentimos.">Rules we write down vs. rules we feel.</p>
+    </div>
+  </section>
+
+  <!-- S5 — Ethics vs Law -->
+  <section class="slide" data-section="Ethics & law" data-section-es="Ética y ley">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Una distinción clave"><span class="dot"></span>A key distinction</span>
+      <h2 data-es="¿En qué se diferencian la ética y la ley?">How do ethics and law differ?</h2>
+      <table class="compare">
+        <thead><tr><th data-es="Ética">Ethics</th><th data-es="Ley">Law</th></tr></thead>
+        <tbody>
+          <tr><td data-es="Estándar <strong>individual</strong> de lo correcto">An <strong>individual</strong> standard of right</td><td data-es="Estándar <strong>social</strong>, acordado colectivamente">A <strong>societal</strong> standard, collectively agreed</td></tr>
+          <tr><td data-es="<strong>Sin árbitro externo</strong> ni mecanismo de cumplimiento">No <strong>external arbiter</strong> or enforcement</td><td data-es="Se <strong>aplica</strong> por tribunales y sanciones">Enforced by courts and penalties</td></tr>
+        </tbody>
+      </table>
+      <div class="callout discuss" style="margin-top:1.3rem">
+        <span class="tag" data-es="Ejemplo / discusión">Example / discuss</span>
+        <p data-es="Descubres una vulnerabilidad en un producto comercial. ¿Qué haces? ¿Cuál es la <strong>divulgación ética</strong> (responsible disclosure)?">You discover a vulnerability in a commercial product. What do you do? What counts as <strong>ethical (responsible) disclosure</strong>?</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S6 — Question: scraping = unauthorized access? -->
+  <section class="slide activity" data-section="Ethics & law" data-section-es="Ética y ley">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ ¿Tú qué opinas?">◆ What do you think?</span>
+      <h2 style="margin-top:1rem" data-es="¿Es esto “acceso no autorizado”?">Is this “unauthorized access”?</h2>
+      <p class="lead" style="max-width:56ch" data-es="Una empresa demandó a su competidor porque empleados de éste crearon una suscripción de prueba y descargaron datos disponibles para los suscriptores. ¿Hubo acceso no autorizado?">A company sued its competitor because the competitor’s employees created a trial subscription and downloaded data available to subscribers. Was this unauthorized access?</p>
+      <div class="grid cols-2" style="margin-top:1.2rem">
+        <div class="card good-top"><span class="ico">🟢</span><h3 data-es="No">No</h3><p data-es="Los datos estaban disponibles públicamente (para suscriptores).">The data was publicly available (to subscribers).</p></div>
+        <div class="card danger-top"><span class="ico">🔴</span><h3 data-es="Sí">Yes</h3><p data-es="Potencialmente causa pérdidas financieras a la empresa demandante.">It can potentially cause financial loss to the company that sued.</p></div>
+      </div>
+      <div class="callout check fragment"><span class="tag" data-es="Pista">Hint</span><p data-es="No hay una respuesta “obvia” — los tribunales han batallado con esto. Veamos un caso real en la siguiente diapositiva.">There’s no “obvious” answer — courts have wrestled with this. Let’s look at a real case next.</p></div>
+    </div>
+  </section>
+
+  <!-- S7 — Case: hiQ v LinkedIn (timeline) -->
+  <section class="slide" data-section="Ethics & law" data-section-es="Ética y ley">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Caso real"><span class="dot"></span>Real case</span>
+      <h2 data-es="hiQ Labs v. LinkedIn — ¿es ilegal el scraping?">hiQ Labs v. LinkedIn — is scraping illegal?</h2>
+      <p class="muted" style="max-width:62ch" data-es="hiQ extraía (scraping) perfiles <strong>públicos</strong> de LinkedIn para herramientas de analítica (Keeper, Skill Mapper). LinkedIn respondió con cartas de cese y desista.">hiQ scraped <strong>public</strong> LinkedIn profiles for analytics tools (Keeper, Skill Mapper). LinkedIn responded with cease-and-desist letters.</p>
+      <table class="compare" style="margin-top:1rem">
+        <thead><tr><th data-es="Año">Year</th><th data-es="Qué pasó">What happened</th></tr></thead>
+        <tbody>
+          <tr class="fragment"><td class="map-to">2019</td><td data-es="Acceder a datos públicos ≠ “acceso no autorizado” bajo la CFAA (ley de EE. UU.). Bloquear el acceso se vio como anticompetitivo.">Accessing public data ≠ “unauthorized access” under the U.S. CFAA. Blocking access seen as anti-competitive.</td></tr>
+          <tr class="fragment"><td class="map-to">2021</td><td data-es="El caso se devolvió para reconsideración.">The case was returned for reconsideration.</td></tr>
+          <tr class="fragment"><td class="map-to">2022</td><td data-es="Se reafirma el fallo: el scraping de datos públicos queda fuera de “acceso no autorizado” bajo la CFAA.">Original ruling reaffirmed: public scraping remains outside “unauthorized access” under the CFAA.</td></tr>
+          <tr class="fragment"><td class="map-from" data-es="Fin de 2022">Late 2022</td><td data-es="Pero sí hubo <strong>incumplimiento de contrato</strong> (scraping + cuentas falsas). Acuerdo: hiQ paga $500K y deja de operar con datos de LinkedIn.">But there <strong>was</strong> breach of contract (scraping + fake accounts). Settlement: hiQ pays $500K and ceases operating on LinkedIn data.</td></tr>
+        </tbody>
+      </table>
+      <p class="figure-note" data-es="Resumen de los fallos judiciales del caso; consulta el expediente para los detalles exactos.">Summary of the case’s court rulings; see the court record for exact details.</p>
+    </div>
+  </section>
+
+  <!-- ===================== C. MEXICAN LEGAL FRAMEWORK ===================== -->
+
+  <!-- S8 — Divider -->
+  <section class="slide section" data-section="Mexican law" data-section-es="Marco legal MX">
+    <div class="slide-inner">
+      <div class="num">02</div>
+      <h1 data-es="Marco legal en México">The legal framework in Mexico</h1>
+      <p class="lead" data-es="Tres leyes que todo profesional de ciberseguridad debe conocer.">Three laws every cybersecurity professional should know.</p>
+    </div>
+  </section>
+
+  <!-- S9 — Three pillars overview -->
+  <section class="slide" data-section="Mexican law" data-section-es="Marco legal MX">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Panorama"><span class="dot"></span>Overview</span>
+      <h2 data-es="Tres pilares del marco legal mexicano">Three pillars of the Mexican framework</h2>
+      <div class="grid cols-3">
+        <div class="card accent-top"><span class="ico">©️</span><h3 data-es="Derechos de autor (LFDA)">Copyright (LFDA)</h3><p data-es="Protege la propiedad intelectual, incluidas las obras digitales, contra la reproducción o distribución no autorizada.">Protects intellectual property — including digital works — against unauthorized reproduction or distribution.</p></div>
+        <div class="card teal-top"><span class="ico">🛒</span><h3 data-es="Comercio electrónico">E-commerce law</h3><p data-es="Fija estándares para transacciones en línea seguras y protege los datos del consumidor.">Sets standards for secure online transactions and protects consumers’ data.</p></div>
+        <div class="card good-top"><span class="ico">🛡️</span><h3 data-es="Protección de datos personales (LFPDPPP)">Personal-data protection (LFPDPPP)</h3><p data-es="Obliga a las entidades privadas a proteger los datos personales que poseen.">Requires private entities to protect the personal data they hold.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S10 — LFDA overview -->
+  <section class="slide" data-section="Mexican law" data-section-es="Marco legal MX">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Ley Federal de Derechos de Autor"><span class="dot"></span>Ley Federal de Derechos de Autor</span>
+      <h2 data-es="LFDA: derechos de autor para software">LFDA: copyright, applied to software</h2>
+      <div class="definition">
+        <blockquote data-es="“La Ley Federal de Derechos de Autor protege los derechos de autores y creadores contra la reproducción o distribución no autorizada, incluidas las obras digitales.”">“The Ley Federal de Derechos de Autor protects the rights of authors and creators against unauthorized reproduction or distribution, including digital works.”</blockquote>
+      </div>
+      <p class="muted" style="margin-top:1rem" data-es="En software y ciberseguridad abarca: derechos de autor, autoría, licenciamiento de software, infracción en línea y sus sanciones.">In software &amp; cybersecurity it covers: copyright protection, authorship, software licensing, online infringement, and penalties.</p>
+    </div>
+  </section>
+
+  <!-- S11 — LFDA interesting facts -->
+  <section class="slide" data-section="Mexican law" data-section-es="Marco legal MX">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>LFDA · datos interesantes"><span class="dot"></span>LFDA · interesting facts</span>
+      <h2 data-es="Lo que la LFDA significa para quien hace seguridad">What the LFDA means for security people</h2>
+      <div class="grid cols-3">
+        <div class="card good-top"><span class="ico">🔓</span><h3 data-es="Art. 114 — pruebas de seguridad">Art. 114 — security testing</h3><p data-es="Eludir medidas tecnológicas de protección <strong>no es violación</strong> cuando se hace para ciertos fines, como pruebas de seguridad o accesibilidad para personas con discapacidad.">Circumventing technological protection measures is <strong>not</strong> a violation when done for certain purposes — like security testing, or accessibility for people with disabilities.</p></div>
+        <div class="card accent-top"><span class="ico">🌐</span><h3 data-es="Art. 114 — proveedores de internet">Art. 114 — ISPs</h3><p data-es="Limita la responsabilidad de los proveedores de internet por infracciones en sus redes, si retiran el contenido infractor tras la notificación.">Limits ISP liability for infringement on their networks — if they remove infringing content upon notice.</p></div>
+        <div class="card warn-top"><span class="ico">🏷️</span><h3 data-es="Art. 232 — metadatos de autor">Art. 232 — copyright metadata</h3><p data-es="Prohíbe alterar la información de gestión de derechos (p. ej., metadatos que identifican al autor). Modificarla puede ocultar el origen de contenido pirata.">Prohibits tampering with copyright-management info (e.g., author metadata). Altering it can hide the source of pirated content.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S12 — LFDA penalties -->
+  <section class="slide" data-section="Mexican law" data-section-es="Marco legal MX">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>LFDA · sanciones"><span class="dot"></span>LFDA · penalties</span>
+      <h2 data-es="Las infracciones cuestan — y se miden en múltiplos">Infringement costs — measured in multiples</h2>
+      <table class="compare">
+        <thead><tr><th data-es="Artículo">Article</th><th data-es="Multa (múltiplos del salario mínimo diario)">Fine (multiples of daily minimum wage)</th></tr></thead>
+        <tbody>
+          <tr><td class="map-from">Art. 230</td><td data-es="8,000–22,000 por infracciones graves (reproducción/distribución no autorizada); 1,500–8,000 por infracciones menores.">8,000–22,000 for serious violations (unauthorized reproduction/distribution); 1,500–8,000 for lesser ones.</td></tr>
+          <tr><td class="map-from">Art. 231</td><td data-es="5,000–40,000 por infracciones comerciales (reproducción y distribución con fines de lucro).">5,000–40,000 for commercial infringement (reproduction &amp; distribution for profit).</td></tr>
+          <tr><td class="map-from">Art. 232</td><td data-es="1,000–20,000 por alterar la información de gestión de derechos.">1,000–20,000 for tampering with copyright-management information.</td></tr>
+          <tr><td class="map-from">Art. 233</td><td data-es="Hasta 50% más para infractores a gran escala (p. ej., editoriales y radiodifusoras).">Up to 50% higher for large-scale infringers (e.g., publishers and broadcasters).</td></tr>
+        </tbody>
+      </table>
+      <p class="figure-note" data-es="Nota: en México este tipo de multas hoy se calcula en UMA (Unidad de Medida y Actualización), no en salario mínimo — verifica los valores vigentes.">Note: in Mexico such fines are now calculated in UMA (Unidad de Medida y Actualización), not minimum wage — verify current values.</p>
+    </div>
+  </section>
+
+  <!-- S13 — LFDA no prison + criminal code -->
+  <section class="slide" data-section="Mexican law" data-section-es="Marco legal MX">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>LFDA · ¿sin cárcel?"><span class="dot"></span>LFDA · no prison?</span>
+      <h2 data-es="Multas en la LFDA, pero cárcel en el Código Penal">Fines under the LFDA, but prison under the Criminal Code</h2>
+      <div class="split">
+        <div class="card accent-top"><h3 data-es="La LFDA: solo multas">The LFDA: fines only</h3><p data-es="La LFDA establece únicamente sanciones económicas por infracción de derechos de autor — no penas de prisión.">The LFDA establishes only monetary fines for copyright infringement — not prison sentences.</p></div>
+        <div class="card danger-top"><h3 data-es="El Código Penal: prisión">The Criminal Code: prison</h3><p data-es="Art. 424: reproducción o publicación no autorizada de una obra → 6 meses a 6 años. Fabricar/distribuir/vender aparatos para decodificar señales satelitales cifradas → 3 a 10 años.">Art. 424: unauthorized reproduction/publication of a work → 6 months to 6 years. Making/distributing/selling devices to decode encrypted satellite signals → 3 to 10 years.</p></div>
+      </div>
+      <div class="callout note" style="margin-top:1.2rem"><span class="tag" data-es="En la práctica">In practice</span><p data-es="La prisión ocurre sobre todo en casos graves: piratería a gran escala con fines de lucro.">Prison mainly applies in severe cases: large-scale piracy for profit.</p></div>
+    </div>
+  </section>
+
+  <!-- S14 — E-commerce law -->
+  <section class="slide" data-section="Mexican law" data-section-es="Marco legal MX">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Ley de Comercio Electrónico"><span class="dot"></span>Ley de Comercio Electrónico</span>
+      <h2 data-es="Comercio electrónico: protegiendo al consumidor en línea">E-commerce: protecting the online consumer</h2>
+      <div class="definition">
+        <blockquote data-es="Regula el comercio en línea, asegurando transacciones electrónicas seguras y protegiendo los datos de los consumidores.">Regulates online commerce, ensuring secure electronic transactions and protecting consumers’ data.</blockquote>
+      </div>
+      <ul class="clean" style="margin-top:1.2rem">
+        <li data-es="La regulación arrancó en abril de 1998, impulsada por la <strong>OCDE</strong>.">The regulation began in April 1998, driven by the <strong>OECD</strong>.</li>
+        <li data-es="En México, la <strong>Ley Federal de Protección al Consumidor</strong> promueve y protege los derechos del consumidor, buscando equidad y seguridad jurídica entre proveedores y consumidores.">In Mexico, the <strong>Federal Consumer Protection Law</strong> promotes and protects consumer rights, seeking fairness and legal certainty between suppliers and consumers.</li>
+        <li data-es="El ciberconsumidor mexicano está protegido al comprar en línea — vigilado por la <strong>Profeco</strong> (Procuraduría Federal del Consumidor).">The Mexican cyber-consumer is protected when buying online — overseen by <strong>Profeco</strong> (the Federal Consumer Protection Agency).</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- S15 — LFPDPPP overview -->
+  <section class="slide" data-section="Mexican law" data-section-es="Marco legal MX">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Protección de datos personales"><span class="dot"></span>Personal-data protection</span>
+      <h2 data-es="LFPDPPP: derechos sobre tus datos personales">LFPDPPP: rights over your personal data</h2>
+      <div class="split">
+        <div class="card accent-top"><h3 data-es="Principios y derechos">Principles &amp; rights</h3><p data-es="Establece principios y derechos sobre los datos personales en manos de privados: consentimiento, aviso, acceso, rectificación, cancelación y oposición.">Sets principles and rights for personal data held by private parties: consent, notice, access, rectification, cancellation, and opposition.</p></div>
+        <div class="card teal-top"><h3 data-es="Supervisión: el INAI">Oversight: INAI</h3><p data-es="Crea un organismo independiente (INAI) para vigilar el cumplimiento, atender quejas e imponer sanciones.">Creates an independent body (INAI) to oversee compliance, hear complaints, and impose sanctions.</p></div>
+      </div>
+      <div class="callout note" style="margin-top:1.1rem"><span class="tag" data-es="Verificar">Verify</span><p data-es="Las instituciones reguladoras en México han cambiado en años recientes — confirma cuál es la autoridad de protección de datos vigente antes de clase.">Mexico’s regulatory institutions have changed in recent years — confirm the current data-protection authority before class.</p></div>
+    </div>
+  </section>
+
+  <!-- S16 — Personal vs sensitive data -->
+  <section class="slide" data-section="Mexican law" data-section-es="Marco legal MX">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>LFPDPPP · definiciones"><span class="dot"></span>LFPDPPP · definitions</span>
+      <h2 data-es="Datos personales vs. datos sensibles">Personal data vs. sensitive data</h2>
+      <div class="split">
+        <div class="card accent-top"><h3 data-es="Datos personales">Personal data</h3><p data-es="Cualquier información que concierne a una persona física identificada o identificable.">Any information concerning an identified or identifiable natural person.</p></div>
+        <div class="card danger-top"><h3 data-es="Datos sensibles">Sensitive data</h3><p data-es="Datos que afectan la esfera más íntima de la persona, o cuyo mal uso podría causar discriminación o un riesgo grave.">Data affecting a person’s most intimate sphere, or whose misuse could cause discrimination or grave risk.</p></div>
+      </div>
+      <div class="callout check" style="margin-top:1.2rem"><span class="tag" data-es="Ejemplos">Examples</span><p data-es="Datos sensibles incluyen: salud, datos genéticos, religión, ideas filosóficas, opiniones políticas y orientación sexual.">Sensitive data includes: health, genetic data, religion, philosophical or political views, and sexual orientation.</p></div>
+    </div>
+  </section>
+
+  <!-- S17 — Sensitive data extra protections -->
+  <section class="slide" data-section="Mexican law" data-section-es="Marco legal MX">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>LFPDPPP · datos sensibles"><span class="dot"></span>LFPDPPP · sensitive data</span>
+      <h2 data-es="Los datos sensibles exigen protección extra">Sensitive data demands extra protection</h2>
+      <ul class="clean">
+        <li data-es="Se exigen <strong>protecciones adicionales</strong> para los datos sensibles."><strong>Extra protections</strong> are mandated for sensitive data.</li>
+        <li data-es="Se <strong>prohíbe crear bases de datos</strong> de datos sensibles sin justificar fines explícitos y legítimos ligados a la actividad de la entidad — esto limita la recolección innecesaria.">It is <strong>prohibited to build databases</strong> of sensitive data without justifying explicit, legitimate purposes tied to the entity’s activity — limiting unnecessary collection.</li>
+        <li data-es="Hay <strong>requisitos de seguridad específicos</strong>: salvaguardas administrativas, técnicas y físicas acordes al riesgo y la sensibilidad de los datos.">There are <strong>specific security requirements</strong>: administrative, technical, and physical safeguards appropriate to the risk and sensitivity of the data.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- S18 — Breach notification, ARCO rights, penalties -->
+  <section class="slide" data-section="Mexican law" data-section-es="Marco legal MX">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>LFPDPPP · cumplimiento"><span class="dot"></span>LFPDPPP · compliance</span>
+      <h2 data-es="Notificación de brechas, derechos ARCO y sanciones">Breach notice, ARCO rights, and penalties</h2>
+      <div class="grid cols-3">
+        <div class="card warn-top"><span class="ico">📣</span><h3 data-es="Notificar la brecha">Notify the breach</h3><p data-es="Las brechas que afectan de forma significativa a los titulares deben informárseles para que tomen medidas defensivas.">Breaches that significantly affect data subjects must be reported to them so they can take defensive measures.</p></div>
+        <div class="card accent-top"><span class="ico">🙋</span><h3 data-es="Derechos ARCO">ARCO rights</h3><p data-es="Las personas pueden ejercer Acceso, Rectificación, Cancelación y Oposición sobre sus datos.">Individuals can exercise Access, Rectification, Cancellation, and Opposition over their data.</p></div>
+        <div class="card danger-top"><span class="ico">⚠️</span><h3 data-es="Sanciones">Penalties</h3><p data-es="Multas, prisión en casos de mala fe o fraude, y sanciones <strong>duplicadas</strong> cuando se trata de datos sensibles.">Fines, prison in cases of bad faith or fraud, and <strong>doubled</strong> penalties for violations involving sensitive data.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S19 — Concept check: match law to scenario -->
+  <section class="slide" data-section="Mexican law" data-section-es="Marco legal MX">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Repaso rápido"><span class="dot"></span>Quick check</span>
+      <h2 data-es="¿Qué ley aplica?">Which law applies?</h2>
+      <div class="callout check"><span class="tag" data-es="Empareja">Match</span><p data-es="(1) Una tienda en línea filtra historiales de compra de clientes. (2) Alguien revende software con licencia copiándolo. (3) Un cobro no autorizado en una compra en línea. — ¿Qué ley es la principal en cada caso?">(1) An online store leaks customers’ purchase histories. (2) Someone resells licensed software by copying it. (3) An unauthorized charge on an online purchase. — Which law is primary in each case?</p></div>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Para discutir">For discussion</span>
+        <p data-es="(1) <span class='accent'>Protección de datos (LFPDPPP)</span> · (2) <span class='accent'>Derechos de autor (LFDA)</span> · (3) <span class='accent'>Comercio electrónico / protección al consumidor</span>. Varios pueden solaparse — esa es la idea.">(1) <span class="accent">Data protection (LFPDPPP)</span> · (2) <span class="accent">Copyright (LFDA)</span> · (3) <span class="accent">E-commerce / consumer protection</span>. Several can overlap — that’s the point.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== D. OWNERSHIP & RIGHT TO BE FORGOTTEN ===================== -->
+
+  <!-- S20 — Divider -->
+  <section class="slide section" data-section="Ownership" data-section-es="Propiedad">
+    <div class="slide-inner">
+      <div class="num">03</div>
+      <h1 data-es="Propiedad y el “derecho al olvido”">Ownership &amp; the “right to be forgotten”</h1>
+      <p class="lead" data-es="¿Quién decide qué es tuyo?">Who decides what is yours?</p>
+    </div>
+  </section>
+
+  <!-- S21 — Right to be forgotten question -->
+  <section class="slide activity" data-section="Ownership" data-section-es="Propiedad">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Una última pregunta">◆ One last question</span>
+      <h2 style="margin-top:1rem" data-es="El “derecho al olvido”">The “right to be forgotten”</h2>
+      <p class="lead" style="max-width:60ch" data-es="En 2014, el Tribunal de Justicia de la UE dictaminó que los ciudadanos tienen “derecho al olvido”: Google no debe devolver enlaces a información “inexacta, inadecuada, irrelevante o excesiva”. ¿Cuál de estos NO debería devolver Google?">In 2014 the EU Court of Justice ruled that citizens have a “right to be forgotten”: Google must not return links to information that is “inaccurate, inadequate, irrelevant or excessive.” Which one should Google NOT return?</p>
+      <div class="grid cols-2" style="margin-top:1rem">
+        <div class="card accent-top"><span class="ico">⚖️</span><h3 data-es="A">A</h3><p data-es="Una nota sobre una condena penal que fue <strong>revocada en apelación</strong>.">A story about a criminal conviction that was <strong>revoked on appeal</strong>.</p></div>
+        <div class="card warn-top"><span class="ico">🩺</span><h3 data-es="B">B</h3><p data-es="Un médico pide eliminar enlaces a notas periodísticas sobre <strong>procedimientos mal realizados</strong> por él.">A doctor asks to remove links to news stories about <strong>botched procedures</strong> he performed.</p></div>
+      </div>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Para discutir">For discussion</span>
+        <p data-es="<strong>A.</strong> Una condena revocada es ahora inexacta/irrelevante → no debería devolverse. La información del médico es de <strong>interés público</strong> y suele permanecer. El “olvido” equilibra la privacidad con el derecho del público a saber."><strong>A.</strong> A revoked conviction is now inaccurate/irrelevant → should not be returned. The doctor’s information is of <strong>public interest</strong> and usually stays. “Forgetting” balances privacy against the public’s right to know.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S22 — Who decides what you own -->
+  <section class="slide section" data-section="Ownership" data-section-es="Propiedad">
+    <div class="slide-inner">
+      <span class="kicker" style="justify-content:center" data-es="<span class='dot'></span>Pongámonos filosóficos"><span class="dot"></span>Let’s get philosophical</span>
+      <h1 style="max-width:20ch" data-es="Si dices “es mío”, ¿quién te dio ese derecho?">If you say “it’s mine,” who gave you that right?</h1>
+      <p class="lead" style="max-width:42ch;margin-inline:auto" data-es="¿Lo tuyo es realmente siempre tuyo? ¿Y por qué debería yo creerlo?">Is yours always really yours? And why should I believe it’s yours?</p>
+    </div>
+  </section>
+
+  <!-- S23 — Six ownership stories -->
+  <section class="slide" data-section="Ownership" data-section-es="Propiedad">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Cómo justificamos la propiedad"><span class="dot"></span>How we justify ownership</span>
+      <h2 data-es="Seis “historias” explican casi toda reclamación de propiedad">Six “stories” explain most ownership claims</h2>
+      <div class="grid cols-3">
+        <div class="card accent-top"><h3 data-es="Primero en el tiempo">First-in-time</h3><p data-es="“Yo llegué primero.”">“I was here first.”</p></div>
+        <div class="card accent-top"><h3 data-es="Posesión">Possession</h3><p data-es="“La posesión es nueve décimas de la ley.”">“Possession is nine-tenths of the law.”</p></div>
+        <div class="card teal-top"><h3 data-es="Trabajo">Labor</h3><p data-es="“Lo hiciste, es tuyo.”">“You made it, you own it.”</p></div>
+        <div class="card teal-top"><h3 data-es="Adhesión">Attachment</h3><p data-es="“Si está en mi terreno, es mi propiedad.”">“If it’s on my land, it’s my property.”</p></div>
+        <div class="card good-top"><h3 data-es="Autopropiedad">Self-ownership</h3><p data-es="“Mi cuerpo, mi decisión.”">“My body, my choice.”</p></div>
+        <div class="card good-top"><h3 data-es="Familia">Family</h3><p data-es="“La familia lo hereda.”">“Family passes it down.”</p></div>
+      </div>
+      <div class="callout discuss" style="margin-top:1.1rem"><span class="tag" data-es="Conexión">Connect</span><p data-es="¿Cuál de estas historias justifica que seas dueño de tus <strong>datos</strong>? Es sorprendentemente difícil de responder.">Which of these stories justifies owning your <strong>data</strong>? It’s surprisingly hard to answer.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== E. PRIVACY ===================== -->
+
+  <!-- S24 — Divider -->
+  <section class="slide section" data-section="Privacy" data-section-es="Privacidad">
+    <div class="slide-inner">
+      <div class="num">04</div>
+      <h1 data-es="Privacidad">Privacy</h1>
+      <p class="lead" data-es="Qué es, qué la amenaza y cómo protegerla.">What it is, what threatens it, and how to protect it.</p>
+    </div>
+  </section>
+
+  <!-- S25 — What is privacy -->
+  <section class="slide" data-section="Privacy" data-section-es="Privacidad">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Antes de seguir…"><span class="dot"></span>Before we continue…</span>
+      <h2 data-es="¿Qué es la privacidad?">What is privacy?</h2>
+      <div class="definition">
+        <blockquote data-es="La capacidad de una persona de <strong>controlar</strong> cómo otros recopilan, usan y comparten los datos que le pertenecen.">A person’s ability to <strong>control</strong> how data about them can be collected, used, and shared by someone else.</blockquote>
+      </div>
+      <div class="callout note" style="margin-top:1.1rem"><span class="tag" data-es="Clave">Key</span><p data-es="La palabra central es <strong>control</strong> — no “secreto”. La privacidad es decidir quién sabe qué sobre ti.">The key word is <strong>control</strong> — not “secrecy.” Privacy is deciding who knows what about you.</p></div>
+    </div>
+  </section>
+
+  <!-- S26 — Privacy isn't new, but scale changed -->
+  <section class="slide" data-section="Privacy" data-section-es="Privacidad">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Una vieja preocupación, una nueva escala"><span class="dot"></span>Old worry, new scale</span>
+      <h2 data-es="La privacidad no es un problema nuevo — pero la escala sí">Privacy isn’t a new problem — but the scale is</h2>
+      <p class="lead" style="max-width:54ch" data-es="Siempre nos ha preocupado lo que otros (amigos, enemigos, gobiernos) podrían saber de lo que hacemos.">People have always worried about what others — friends, enemies, governments — might know about what they do.</p>
+      <div class="callout discuss" style="margin-top:1.2rem"><span class="tag" data-es="Lo que cambió">What changed</span><p data-es="La <strong>escala y magnitud</strong> con que se puede recopilar información sobre nosotros, y las formas en que puede <strong>usarse, compartirse o venderse</strong>.">The <strong>scale and magnitude</strong> at which information about us can be collected — and the ways it can be <strong>used, shared, or sold</strong>.</p></div>
+    </div>
+  </section>
+
+  <!-- S27 — What is private / not private -->
+  <section class="slide" data-section="Privacy" data-section-es="Privacidad">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Traza la línea"><span class="dot"></span>Draw the line</span>
+      <h2 data-es="¿Qué es privado… y qué no?">What’s private… and what isn’t?</h2>
+      <div class="split">
+        <div>
+          <h3 class="accent" data-es="Normalmente privado">Usually private</h3>
+          <ul class="clean">
+            <li data-es="Finanzas: estados de cuenta, tarjetas, registros bancarios">Finances: statements, cards, banking records</li>
+            <li data-es="Salud y condiciones médicas; biometría (huellas)">Health/medical conditions; biometrics (fingerprints)</li>
+            <li data-es="Asuntos legales; creencias políticas">Legal matters; political beliefs</li>
+            <li data-es="Hábitos de navegación, comunicaciones (correos, llamadas)">Web-browsing habits; communications (emails, calls)</li>
+            <li data-es="Historial pasado (derecho al olvido)">Past history (right to be forgotten)</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="warn" data-es="¿No privado? (discutir)">Not private? (discuss)</h3>
+          <ul class="clean">
+            <li data-es="¿Dónde vivo? ¿Mi nacionalidad?">Where I live? My citizenship?</li>
+            <li data-es="¿Que estoy registrado para votar?">That I’m registered to vote?</li>
+            <li data-es="¿Mi salario? (… ¿de verdad?)">My salary? (… really?)</li>
+          </ul>
+          <div class="callout check" style="margin-top:1rem"><span class="tag" data-es="Ojo">Note</span><p data-es="La línea depende del contexto y la cultura — por eso hay tantos signos de interrogación.">The line depends on context and culture — hence all the question marks.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S28 — Privacy for organizations too -->
+  <section class="slide" data-section="Privacy" data-section-es="Privacidad">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>No solo individuos"><span class="dot"></span>Not only individuals</span>
+      <h2 data-es="La privacidad también importa para las organizaciones">Privacy matters for organizations too</h2>
+      <p class="lead" style="max-width:54ch" data-es="Universidades, hospitales y organizaciones benéficas necesitan privacidad — deben proteger los datos de las personas a las que sirven o emplean.">Universities, hospitals, and charities require privacy — they must protect the data of the people they serve or employ.</p>
+      <div class="callout discuss" style="margin-top:1.2rem"><span class="tag" data-es="Piensa">Think</span><p data-es="Una fuga en un hospital o una universidad daña a miles de personas que nunca eligieron correr ese riesgo.">A leak at a hospital or university harms thousands of people who never chose to take that risk.</p></div>
+    </div>
+  </section>
+
+  <!-- S29 — Threats to privacy -->
+  <section class="slide" data-section="Privacy" data-section-es="Privacidad">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Amenazas"><span class="dot"></span>Threats</span>
+      <h2 data-es="Cómo se erosiona la privacidad">How privacy gets eroded</h2>
+      <div class="grid cols-2">
+        <div class="card danger-top"><span class="ico">📱</span><h3 data-es="Redes sociales">Social media</h3><p data-es="Conocemos a tus amigos — y mucho más de lo que publicas.">We know your friends — and a lot more from what you post.</p></div>
+        <div class="card warn-top"><span class="ico">🍪</span><h3 data-es="Rastreo de navegación (cookies)">Web tracking (cookies)</h3><p data-es="Tu actividad en la web se sigue entre sitios.">Your activity is followed across sites.</p></div>
+        <div class="card accent-top"><span class="ico">📍</span><h3 data-es="Apps con ubicación">Location-aware apps</h3><p data-es="Saben dónde has estado.">They know where you’ve been.</p></div>
+        <div class="card teal-top"><span class="ico">🎟️</span><h3 data-es="A veces participamos">Sometimes we opt in</h3><p data-es="Tarjetas de lealtad en tiendas: damos datos a cambio de descuentos.">Store loyalty cards: we trade data for discounts.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S30 — Activity: amiunique -->
+  <section class="slide activity" data-section="Privacy" data-section-es="Privacidad">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Actividad · Pruébalo">◆ Activity · Try it</span>
+      <h2 style="margin-top:1rem" data-es="¿Qué tan único es tu navegador?">How unique is your browser?</h2>
+      <p class="lead" style="max-width:54ch" data-es="Incluso sin cookies, los sitios pueden identificarte por la “huella” de tu navegador (fuentes, pantalla, idioma, extensiones…). Compruébalo:">Even without cookies, sites can identify you by your browser’s “fingerprint” (fonts, screen, language, extensions…). See for yourself:</p>
+      <p style="margin-top:1rem"><a href="https://amiunique.org/fingerprint" target="_blank" rel="noopener" class="mono accent" style="font-size:var(--fs-lead)">amiunique.org/fingerprint</a></p>
+      <div class="callout discuss" style="margin-top:1.2rem"><span class="tag" data-es="Discusión">Discuss</span><p data-es="¿Cuántos bits te hacen único? ¿Qué tan fácil sería seguirte sin una sola cookie?">How many bits make you unique? How easy would it be to track you without a single cookie?</p></div>
+    </div>
+  </section>
+
+  <!-- S31 — What to ask about online tracking -->
+  <section class="slide" data-section="Privacy" data-section-es="Privacidad">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Seis preguntas que debes hacer"><span class="dot"></span>Six questions to ask</span>
+      <h2 data-es="Antes de aceptar: interroga el rastreo">Before you accept: interrogate the tracking</h2>
+      <div class="grid cols-3">
+        <div class="card accent-top"><h3 data-es="Recolección">Collection</h3><p data-es="¿Recopilan información sobre ti — con o sin tu consentimiento?">Do they collect info about you — with or without consent?</p></div>
+        <div class="card accent-top"><h3 data-es="Uso">Usage</h3><p data-es="¿Solo para el fin que aceptaste?">Used only for the purpose you agreed to?</p></div>
+        <div class="card teal-top"><h3 data-es="Retención">Retention</h3><p data-es="¿Cuánto tiempo pueden conservarla?">How long can they keep it?</p></div>
+        <div class="card teal-top"><h3 data-es="Divulgación">Disclosure</h3><p data-es="¿Se comparte solo con partes autorizadas/acordadas?">Shared only with authorized/agreed parties?</p></div>
+        <div class="card warn-top"><h3 data-es="Cambios de política">Policy changes</h3><p data-es="¿Pueden volverla más laxa sin tu acuerdo?">Can they switch to a laxer policy without your consent?</p></div>
+        <div class="card good-top"><h3 data-es="Seguridad">Security</h3><p data-es="¿Gestión de identidad y acceso, monitoreo, defensa frente a amenazas?">Identity &amp; access management, monitoring, defense against threats?</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S32 — Activity: ToS;DR -->
+  <section class="slide activity" data-section="Privacy" data-section-es="Privacidad">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Actividad · Lee la letra chica">◆ Activity · Read the fine print</span>
+      <h2 style="margin-top:1rem" data-es="“Acepto los términos…” — ¿de verdad?">“I agree to the Terms…” — do you really?</h2>
+      <p class="lead" style="max-width:54ch" data-es="Casi nadie lee los Términos de Servicio. Este proyecto los califica y resume en lenguaje sencillo:">Almost no one reads the Terms of Service. This project grades and summarizes them in plain language:</p>
+      <p style="margin-top:1rem"><a href="https://tosdr.org/" target="_blank" rel="noopener" class="mono accent" style="font-size:var(--fs-lead)">tosdr.org</a></p>
+      <div class="callout discuss" style="margin-top:1.2rem"><span class="tag" data-es="Reto">Challenge</span><p data-es="Busca un servicio que uses a diario. ¿Qué cláusula te sorprende más?">Look up a service you use daily. Which clause surprises you most?</p></div>
+    </div>
+  </section>
+
+  <!-- S33 — PETs: Tor -->
+  <section class="slide" data-section="Privacy" data-section-es="Privacidad">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Tecnologías que protegen la privacidad"><span class="dot"></span>Privacy-enhancing technologies</span>
+      <h2 data-es="Tor: ocultar de dónde vienes">Tor: hiding where you come from</h2>
+      <p class="lead" style="max-width:56ch" data-es="Alice no quiere que el servicio web sepa que ella lo está usando. Tor enruta su tráfico por varios relevos, de modo que el análisis de red no revela su origen.">Alice doesn’t want the web service to know she is accessing it. Tor routes her traffic through several relays, so traffic analysis can’t reveal her origin.</p>
+      <div class="flow">
+        <div class="node breach"><span class="n-label accent" data-es="Alice">Alice</span><span class="n-sub" data-es="origen real (oculto)">real origin (hidden)</span></div>
+        <div class="arrow">→</div>
+        <div class="node attack"><span class="n-label" style="color:var(--violet)" data-es="Relevos Tor">Tor relays</span><span class="n-sub" data-es="varios saltos cifrados">several encrypted hops</span></div>
+        <div class="arrow">→</div>
+        <div class="node good-node"><span class="n-label good" data-es="Servicio web">Web service</span><span class="n-sub" data-es="solo ve el último relevo">only sees the last relay</span></div>
+      </div>
+      <div class="callout note" style="margin-top:1.4rem"><span class="tag" data-es="Idea">Idea</span><p data-es="Ningún relevo conoce a la vez quién eres y qué pides — esa separación es lo que protege tu identidad.">No single relay knows both who you are and what you’re asking for — that separation is what protects your identity.</p></div>
+    </div>
+  </section>
+
+  <!-- S34 — Closing / references -->
+  <section class="slide" data-section="Wrap-up" data-section-es="Cierre">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Para llevar"><span class="dot"></span>Key takeaways</span>
+      <h2 data-es="Lo legal y lo ético, en una diapositiva">Legal &amp; ethical, in one slide</h2>
+      <ul class="clean">
+        <li data-es="La <strong>ética</strong> es un estándar individual; la <strong>ley</strong> es social y se aplica — a menudo se refuerzan."><strong>Ethics</strong> is an individual standard; <strong>law</strong> is societal and enforced — they often reinforce each other.</li>
+        <li data-es="En México: <strong>LFDA</strong> (derechos de autor), <strong>comercio electrónico / Profeco</strong> y <strong>LFPDPPP</strong> (datos personales) forman el marco central.">In Mexico: <strong>LFDA</strong> (copyright), <strong>e-commerce / Profeco</strong>, and <strong>LFPDPPP</strong> (personal data) form the core framework.</li>
+        <li data-es="La <strong>propiedad</strong> de los datos es filosóficamente resbaladiza — y por eso la regulación importa.">Data <strong>ownership</strong> is philosophically slippery — which is why regulation matters.</li>
+        <li data-es="La <strong>privacidad</strong> es <strong>control</strong>, no secreto: quién recopila, usa y comparte tus datos."><strong>Privacy</strong> is <strong>control</strong>, not secrecy: who collects, uses, and shares your data.</li>
+      </ul>
+      <p class="figure-note" data-es="Fuentes y herramientas mencionadas: hiQ Labs v. LinkedIn (expedientes judiciales); LFDA, LFPDPPP y leyes de comercio/consumidor de México; amiunique.org; tosdr.org; Proyecto Tor.">Sources &amp; tools referenced: hiQ Labs v. LinkedIn (court records); Mexico’s LFDA, LFPDPPP and commerce/consumer laws; amiunique.org; tosdr.org; the Tor Project.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <span class="course" data-es="TC2007B · S1 · C2 — Aspectos legales">TC2007B · W1 · L2 — Legal Aspects</span>
+  <span class="right">
+    <span class="sec-name" id="secName">Orientation</span>
+    <span class="counter"><span id="cur">1</span> / <span id="total">34</span></span>
+  </span>
+</footer>
+
+<div class="frag-hint" id="fragHint"><span id="fragHintText">click to reveal</span><span class="chev">▾</span></div>
+
+<div class="nav-btns">
+  <button id="prevBtn" title="Previous (←)">‹</button>
+  <button id="ovBtn" title="Overview (O)">▦</button>
+  <button id="helpBtn" title="Help (?)">?</button>
+  <button id="fsBtn" title="Fullscreen (F)">⛶</button>
+  <button id="nextBtn" title="Next (→)">›</button>
+</div>
+
+<div class="overview" id="overview">
+  <h2 id="ovTitle">Slide overview</h2>
+  <div class="ov-grid" id="ovGrid"></div>
+</div>
+
+<div class="help" id="help">
+  <div class="panel">
+    <h2 data-es="Navegación">Navigation</h2>
+    <table>
+      <tr><td><kbd>→</kbd> <kbd>Space</kbd> <kbd>PgDn</kbd></td><td data-es="Siguiente / revelar">Next / reveal</td></tr>
+      <tr><td><kbd>←</kbd> <kbd>PgUp</kbd></td><td data-es="Anterior">Previous</td></tr>
+      <tr><td><kbd>Home</kbd> / <kbd>End</kbd></td><td data-es="Primera / última">First / last slide</td></tr>
+      <tr><td><kbd>O</kbd></td><td data-es="Vista general">Slide overview grid</td></tr>
+      <tr><td><kbd>F</kbd></td><td data-es="Pantalla completa">Toggle fullscreen</td></tr>
+      <tr><td><kbd>L</kbd></td><td data-es="Idioma ES / EN">Language ES / EN</td></tr>
+      <tr><td><kbd>T</kbd></td><td data-es="Tema claro / oscuro">Light / dark theme</td></tr>
+      <tr><td><kbd>?</kbd></td><td>Help</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td data-es="Cerrar ventana">Close overlay</td></tr>
+    </table>
+    <p class="muted" style="margin-top:1rem;font-size:.9rem" data-es="Funciona con la mayoría de los controles de presentación (envían Av Pág / Re Pág) y admite deslizar en pantallas táctiles.">Works with most presenter remotes (they send Page Up / Page Down) and supports swipe on touch screens.</p>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

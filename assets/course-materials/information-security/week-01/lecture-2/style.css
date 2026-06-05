@@ -439,8 +439,4 @@ table.compare .map-to { color: var(--good); font-weight: 600; }
 
 /* Print: one slide per page */
 @media print {
-  html, body { overflow: visible; height: auto; }
-  .topbar, .footer, .nav-btns, .overview, .help, .controls, .frag-hint { display: none !important; }
-  .slide { display: flex !important; position: relative; page-break-after: always; min-height: 100vh; }
-  .fragment { opacity: 1 !important; transform: none !important; }
-}
+  html, body { overflow:

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- ===================================================================
+     LECTURE TEMPLATE — copy this whole folder to start a new lecture.
+     See HOW-TO-USE.md (one level up) for the 4-step recipe.
+     Bilingual: add  data-es="..."  to any text element (Spanish HTML).
+     Reveal-on-click: add class  fragment  to anything that should appear
+     on the next click instead of immediately.
+     Do NOT put data-es on an element that also contains a fragment child;
+     keep data-es on the leaf text element. Use single quotes for any
+     inner attributes and typographic quotes (“ ” ¿ ¡) inside data-es.
+     =================================================================== -->
+<title>TC2007B · Week NN · Lecture N — TITLE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="topbar"><div class="fill" id="progress"></div></div>
+
+<div class="controls">
+  <button class="ui-btn" id="langBtn" title="Español / English">ES</button>
+  <button class="ui-btn" id="themeBtn" title="Light / Dark">☀</button>
+</div>
+
+<main class="deck" id="deck">
+
+  <!-- TITLE SLIDE -->
+  <section class="slide title-slide active" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>TC2007B · Semana NN · Clase N"><span class="dot"></span>TC2007B · Week NN · Lecture N</span>
+      <h1 data-es="Título de la clase">Lecture title</h1>
+      <div class="title-rule"></div>
+      <p class="lead" data-es="Una frase que resume de qué trata la clase.">A one-line summary of what this lecture is about.</p>
+      <div class="title-meta">
+        <span class="pill" data-es="Profesor: Mahdi Zareei">Instructor: Mahdi Zareei</span>
+        <span class="pill" data-es="≈ sesión de 2 horas">≈ 2-hour session</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION DIVIDER -->
+  <section class="slide section" data-section="Section A" data-section-es="Sección A">
+    <div class="slide-inner">
+      <div class="num">01</div>
+      <h1 data-es="Título de la sección">Section title</h1>
+      <p class="lead" data-es="Subtítulo opcional.">Optional subtitle.</p>
+    </div>
+  </section>
+
+  <!-- BULLET LIST + DEFINITION -->
+  <section class="slide" data-section="Section A" data-section-es="Sección A">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Etiqueta"><span class="dot"></span>Kicker label</span>
+      <h2 data-es="Un título que enuncia la idea principal">A title that states the main idea</h2>
+      <div class="definition">
+        <blockquote data-es="Cita o definición destacada va aquí.">A highlighted quote or definition goes here.</blockquote>
+        <span class="src" data-es="— Fuente">— Source</span>
+      </div>
+      <ul class="clean" style="margin-top:1.2rem">
+        <li data-es="Primer punto con <strong>énfasis</strong>.">First point with <strong>emphasis</strong>.</li>
+        <li data-es="Segundo punto.">Second point.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- CARD GRID (cols-2 or cols-3; *-top sets the accent stripe) -->
+  <section class="slide" data-section="Section A" data-section-es="Sección A">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>Cards</span>
+      <h2 data-es="Rejilla de tarjetas">Card grid</h2>
+      <div class="grid cols-3">
+        <div class="card accent-top"><span class="ico">🔵</span><h3 data-es="Tarjeta A">Card A</h3><p data-es="Texto de apoyo.">Supporting text.</p></div>
+        <div class="card teal-top"><span class="ico">🟢</span><h3 data-es="Tarjeta B">Card B</h3><p data-es="Texto de apoyo.">Supporting text.</p></div>
+        <div class="card warn-top"><span class="ico">🟠</span><h3 data-es="Tarjeta C">Card C</h3><p data-es="Texto de apoyo.">Supporting text.</p></div>
+      </div>
+      <!-- card variants: accent-top · teal-top · good-top · warn-top · danger-top · violet-top -->
+    </div>
+  </section>
+
+  <!-- FLOW DIAGRAM + CALLOUT -->
+  <section class="slide" data-section="Section A" data-section-es="Sección A">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>Process</span>
+      <h2 data-es="Diagrama de flujo">Flow diagram</h2>
+      <div class="flow">
+        <div class="node breach"><span class="n-label accent" data-es="Paso 1">Step 1</span><span class="n-sub" data-es="detalle">detail</span></div>
+        <div class="arrow">→</div>
+        <div class="node attack"><span class="n-label" style="color:var(--violet)" data-es="Paso 2">Step 2</span><span class="n-sub" data-es="detalle">detail</span></div>
+        <div class="arrow">→</div>
+        <div class="node good-node"><span class="n-label good" data-es="Paso 3">Step 3</span><span class="n-sub" data-es="detalle">detail</span></div>
+      </div>
+      <div class="callout note"><span class="tag" data-es="Nota">Note</span><p data-es="Callout variants: note · check · discuss · policy.">Callout variants: note · check · discuss · policy.</p></div>
+    </div>
+  </section>
+
+  <!-- COMPARISON TABLE + STATS -->
+  <section class="slide" data-section="Section A" data-section-es="Sección A">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>Compare</span>
+      <h2 data-es="Tabla comparativa y cifras">Comparison table &amp; stats</h2>
+      <table class="compare">
+        <thead><tr><th data-es="Columna A">Column A</th><th data-es="Columna B">Column B</th></tr></thead>
+        <tbody>
+          <tr><td class="map-from" data-es="Izquierda">Left</td><td class="map-to" data-es="Derecha">Right</td></tr>
+        </tbody>
+      </table>
+      <div class="stats">
+        <div class="stat people"><span class="big">42</span><span class="lbl" data-es="etiqueta">label</span></div>
+        <div class="stat cost"><span class="big">$1M</span><span class="lbl" data-es="etiqueta">label</span></div>
+        <div class="stat good-stat"><span class="big">99%</span><span class="lbl" data-es="etiqueta">label</span></div>
+      </div>
+      <p class="figure-note" data-es="Nota al pie para fuentes o advertencias de exactitud.">Footnote for sources or accuracy caveats.</p>
+    </div>
+  </section>
+
+  <!-- CLICK-TO-REVEAL: items with class "fragment" appear one click at a time -->
+  <section class="slide" data-section="Section A" data-section-es="Sección A">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>Reveal on click</span>
+      <h2 data-es="Revelar al hacer clic">Reveal on click</h2>
+      <p data-es="Esta línea es visible de inmediato.">This line is visible immediately.</p>
+      <div class="grid cols-3">
+        <div class="card accent-top fragment"><h3 data-es="Aparece 1.º">Appears 1st</h3></div>
+        <div class="card teal-top fragment"><h3 data-es="Aparece 2.º">Appears 2nd</h3></div>
+        <div class="card good-top fragment"><h3 data-es="Aparece 3.º">Appears 3rd</h3></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ACTIVITY + HIDDEN-ANSWER QUIZ (answer stays hidden until you click) -->
+  <section class="slide activity" data-section="Section A" data-section-es="Sección A">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Actividad / Pregunta">◆ Activity / Question</span>
+      <h2 style="margin-top:1rem" data-es="Plantea una pregunta">Pose a question</h2>
+      <p class="lead" data-es="Escribe aquí el enunciado de la pregunta o actividad.">Write the question or activity prompt here.</p>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Respuesta">Answer</span>
+        <p data-es="La respuesta permanece oculta hasta que haces clic para revelarla.">The answer stays hidden until you click to reveal it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CLOSING -->
+  <section class="slide" data-section="Wrap-up" data-section-es="Cierre">
+    <div class="slide-inner">
+      <span class="kicker"><span class="dot"></span>Takeaways</span>
+      <h2 data-es="Resumen en una diapositiva">Summary in one slide</h2>
+      <ul class="clean">
+        <li data-es="Punto clave 1.">Key point 1.</li>
+        <li data-es="Punto clave 2.">Key point 2.</li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <span class="course" data-es="TC2007B · SNN · CN — Título">TC2007B · WNN · LN — Title</span>
+  <span class="right">
+    <span class="sec-name" id="secName">Orientation</span>
+    <span class="counter"><span id="cur">1</span> / <span id="total">9</span></span>
+  </span>
+</footer>
+
+<div class="frag-hint" id="fragHint"><span id="fragHintText">click to reveal</span><span class="chev">▾</span></div>
+
+<div class="nav-btns">
+  <button id="prevBtn" title="Previous (←)">‹</button>
+  <button id="ovBtn" title="Overview (O)">▦</button>
+  <button id="helpBtn" title="Help (?)">?</button>
+  <button id="fsBtn" title="Fullscreen (F)">⛶</button>
+  <button id="nextBtn" title="Next (→)">›</button>
+</div>
+
+<div class="overview" id="overview">
+  <h2 id="ovTitle">Slide overview</h2>
+  <div class="ov-grid" id="ovGrid"></div>
+</div>
+
+<div class="help" id="help">
+  <div class="panel">
+    <h2 data-es="Navegación">Navigation</h2>
+    <table>
+      <tr><td><kbd>→</kbd> <kbd>Space</kbd> <kbd>PgDn</kbd></td><td data-es="Siguiente / revelar">Next / reveal</td></tr>
+      <tr><td><kbd>←</kbd> <kbd>PgUp</kbd></td><td data-es="Anterior">Previous</td></tr>
+      <tr><td><kbd>Home</kbd> / <kbd>End</kbd></td><td data-es="Primera / última">First / last slide</td></tr>
+      <tr><td><kbd>O</kbd></td><td data-es="Vista general">Slide overview grid</td></tr>
+      <tr><td><kbd>F</kbd></td><td data-es="Pantalla completa">Toggle fullscreen</td></tr>
+      <tr><td><kbd>L</kbd></td><td data-es="Idioma ES / EN">Language ES / EN</td></tr>
+      <tr><td><kbd>T</kbd></td><td data-es="Tema claro / oscuro">Light / dark theme</td></tr>
+      <tr><td><kbd>?</kbd></td><td>Help</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td data-es="Cerrar ventana">Close overlay</td></tr>
+    </table>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
