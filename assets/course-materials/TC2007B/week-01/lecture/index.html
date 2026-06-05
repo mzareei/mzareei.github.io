@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark" data-lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,132 +14,155 @@
 
 <div class="topbar"><div class="fill" id="progress"></div></div>
 
+<div class="controls">
+  <button class="ui-btn" id="langBtn" title="Español / English">ES</button>
+  <button class="ui-btn" id="themeBtn" title="Light / Dark">☀</button>
+</div>
+
 <main class="deck" id="deck">
 
   <!-- ============================ 1. ORIENTATION ============================ -->
 
   <!-- S1 — Title -->
-  <section class="slide title-slide active" data-section="Orientation">
+  <section class="slide title-slide active" data-section="Orientation" data-section-es="Orientación">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>TC2007B · Week 1 · Lecture 1</span>
-      <h1>Introduction to Cybersecurity</h1>
+      <span class="kicker" data-es="<span class='dot'></span>TC2007B · Semana 1 · Clase 1"><span class="dot"></span>TC2007B · Week 1 · Lecture 1</span>
+      <h1 data-es="Introducción a la Ciberseguridad">Introduction to Cybersecurity</h1>
       <div class="title-rule"></div>
-      <p class="lead">Why security matters, how attacks happen, and what we protect — the <strong>CIA triad</strong>.</p>
+      <p class="lead" data-es="Por qué importa la seguridad, cómo ocurren los ataques y qué protegemos — la <strong>tríada CIA</strong>.">Why security matters, how attacks happen, and what we protect — the <strong>CIA triad</strong>.</p>
       <div class="title-meta">
-        <span class="pill">Instructor: Mahdi Zareei</span>
-        <span class="pill">Security in applications &amp; networks</span>
-        <span class="pill">≈ 2-hour session</span>
+        <span class="pill" data-es="Profesor: Mahdi Zareei">Instructor: Mahdi Zareei</span>
+        <span class="pill" data-es="Seguridad en aplicaciones y redes">Security in applications &amp; networks</span>
+        <span class="pill" data-es="≈ sesión de 2 horas">≈ 2-hour session</span>
       </div>
     </div>
   </section>
 
-  <!-- S2 — About me (placeholder, instructor-owned) -->
-  <section class="slide" data-section="Orientation">
+  <!-- S2 — About me (filled from factual bio) -->
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>Who is teaching you</span>
-      <h2>A little about me</h2>
-      <div class="placeholder">
-        <span class="ph-tag">⚑ Instructor content — fill in before class</span>
-        <p style="margin-top:.8rem">The original slides used personal photos here. Add your factual intro: current role &amp; institution, research areas, background, and one thing students might find surprising or relatable. Keep it to 3–4 spoken points so it stays a warm 2-minute opener, not a CV reading.</p>
+      <span class="kicker" data-es="<span class='dot'></span>Quién les enseña"><span class="dot"></span>Who is teaching you</span>
+      <h2 data-es="Un poco sobre mí">A little about me</h2>
+      <div class="grid cols-2">
+        <div class="card accent-top">
+          <span class="ico">🎓</span>
+          <h3 data-es="Profesor Investigador">Research Professor</h3>
+          <p data-es="Escuela de Ingeniería y Ciencias, Tecnológico de Monterrey. Miembro Senior del IEEE e integrante del Sistema Nacional de Investigadores (SNI, Nivel I).">School of Engineering &amp; Sciences, Tecnológico de Monterrey. IEEE Senior Member and member of Mexico’s National System of Researchers (SNI, Level I).</p>
+        </div>
+        <div class="card teal-top">
+          <span class="ico">🔬</span>
+          <h3 data-es="En qué investigo">What I research</h3>
+          <p data-es="Seguridad de la información y de redes, aprendizaje automático aplicado y procesamiento de lenguaje natural — con base en redes de sensores inalámbricos y radio cognitiva.">Information &amp; network security, applied machine learning, and natural language processing — built on a foundation in wireless sensor and cognitive radio networks.</p>
+        </div>
+        <div class="card good-top">
+          <span class="ico">🌏</span>
+          <h3 data-es="Mi trayectoria">My path here</h3>
+          <p data-es="Doctorado en la Universiti Teknologi Malaysia (2016); estancia de investigación en la Universidad de Osaka, Japón; en el Tec desde 2017.">Ph.D. from Universiti Teknologi Malaysia (2016); research stay at Osaka University, Japan; at Tec de Monterrey since 2017.</p>
+        </div>
+        <div class="card warn-top">
+          <span class="ico">📝</span>
+          <h3 data-es="Servicio académico">Academic service</h3>
+          <p data-es="Editor Asociado de IEEE Access, PLOS One y Ad Hoc &amp; Sensor Wireless Networks; revisor para ACM Computing Surveys e IEEE IoT Journal.">Associate Editor for IEEE Access, PLOS One, and Ad Hoc &amp; Sensor Wireless Networks; reviewer for ACM Computing Surveys and IEEE IoT Journal.</p>
+        </div>
       </div>
-      <div class="callout note" style="margin-top:1.2rem">
-        <span class="tag">Tip</span>
-        <p>Tell students <em>why</em> you teach security — a single story lands better than a list of titles.</p>
+      <div class="callout note">
+        <span class="tag" data-es="Por qué">Why</span>
+        <p data-es="Estudio seguridad porque casi todo lo que valoramos hoy vive en sistemas conectados — y entender cómo se rompen es el primer paso para protegerlos.">I work in security because almost everything we value now lives on connected systems — and understanding how they break is the first step to protecting them.</p>
       </div>
     </div>
   </section>
 
   <!-- S3 — Name FAQ -->
-  <section class="slide" data-section="Orientation">
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>FAQ</span>
-      <h2>How do you say my name?</h2>
+      <span class="kicker" data-es="<span class='dot'></span>Preguntas frecuentes"><span class="dot"></span>FAQ</span>
+      <h2 data-es="¿Cómo se dice mi nombre?">How do you say my name?</h2>
       <div class="grid cols-3">
-        <div class="card accent-top"><span class="ico">🗣️</span><h3>Mahdi</h3><p>Ma&nbsp;·&nbsp;h&nbsp;·&nbsp;di</p></div>
-        <div class="card accent-top"><span class="ico">👍</span><h3>“Madi”</h3><p>≈ 80% there — totally fine.</p></div>
-        <div class="card accent-top"><span class="ico">😎</span><h3>“Max”</h3><p>The easy, fully-accepted version.</p></div>
+        <div class="card accent-top"><span class="ico">🗣️</span><h3 data-es="Mahdi">Mahdi</h3><p data-es="Ma · h · di">Ma&nbsp;·&nbsp;h&nbsp;·&nbsp;di</p></div>
+        <div class="card accent-top"><span class="ico">👍</span><h3 data-es="“Madi”">“Madi”</h3><p data-es="≈ 80% correcto — perfectamente bien.">≈ 80% there — totally fine.</p></div>
+        <div class="card accent-top"><span class="ico">😎</span><h3 data-es="“Max”">“Max”</h3><p data-es="La versión fácil y totalmente aceptada.">The easy, fully-accepted version.</p></div>
       </div>
-      <p class="muted" style="margin-top:1.4rem">Whatever you pick, just don’t be a stranger — ask questions.</p>
+      <p class="muted" data-es="Elijan la que quieran — solo no se queden con la duda: pregunten.">Whatever you pick, just don’t be a stranger — ask questions.</p>
     </div>
   </section>
 
   <!-- S4 — Icebreaker activity -->
-  <section class="slide activity" data-section="Orientation">
+  <section class="slide activity" data-section="Orientation" data-section-es="Orientación">
     <div class="slide-inner">
-      <span class="badge">◆ Activity · Icebreaker</span>
-      <h2 style="margin-top:1rem">Introduce yourself</h2>
-      <p class="lead" style="max-width:40ch">Say your name, then answer two quick questions:</p>
+      <span class="badge" data-es="◆ Actividad · Rompehielos">◆ Activity · Icebreaker</span>
+      <h2 style="margin-top:1rem" data-es="Preséntate">Introduce yourself</h2>
+      <p class="lead" data-es="Di tu nombre y responde dos preguntas rápidas:">Say your name, then answer two quick questions:</p>
       <ol class="clean" style="margin-top:1.6rem">
-        <li><strong>What one invention would you un-invent, and why?</strong></li>
-        <li><strong>Have you ever been affected by a cybersecurity incident?</strong> (a hacked account, a scam text, a leaked password…)</li>
+        <li data-es="<strong>¿Qué invento eliminarías de la historia, y por qué?</strong>"><strong>What one invention would you un-invent, and why?</strong></li>
+        <li data-es="<strong>¿Alguna vez te ha afectado un incidente de ciberseguridad?</strong> (una cuenta hackeada, un mensaje fraudulento, una contraseña filtrada…)"><strong>Have you ever been affected by a cybersecurity incident?</strong> (a hacked account, a scam text, a leaked password…)</li>
       </ol>
-      <div class="callout discuss" style="margin-top:1.6rem">
-        <span class="tag">Why this</span>
-        <p>Question 2 surfaces real experiences in the room — we’ll call back to them when we discuss threats and attacks later today.</p>
+      <div class="callout discuss">
+        <span class="tag" data-es="Por qué esto">Why this</span>
+        <p data-es="La pregunta 2 saca a la luz experiencias reales en el salón — las retomaremos cuando hablemos de amenazas y ataques.">Question 2 surfaces real experiences in the room — we’ll call back to them when we discuss threats and attacks later today.</p>
       </div>
     </div>
   </section>
 
   <!-- S5 — Classroom rules -->
-  <section class="slide" data-section="Orientation">
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>How this class runs</span>
-      <h2>A few ground rules</h2>
+      <span class="kicker" data-es="<span class='dot'></span>Cómo funciona la clase"><span class="dot"></span>How this class runs</span>
+      <h2 data-es="Algunas reglas básicas">A few ground rules</h2>
       <div class="grid cols-2">
-        <div class="card warn-top"><span class="ico">📵</span><h3>Devices off, unless we’re using them</h3><p>Phones, tablets, and laptops stay away during lecture — except for the activities where we explicitly use them.</p></div>
-        <div class="card accent-top"><span class="ico">⏸️</span><h3>One ~10-minute break</h3><p>We usually pause once mid-class to reset.</p></div>
-        <div class="card teal-top"><span class="ico">🙋</span><h3>Lost? Ask.</h3><p>Stop me with a question any time — or just yell <strong>“HELP!”</strong></p></div>
-        <div class="card good-top"><span class="ico">🎉</span><h3>Most importantly</h3><p>Have <strong>fun</strong>. Security is a genuinely fascinating field.</p></div>
+        <div class="card warn-top"><span class="ico">📵</span><h3 data-es="Dispositivos guardados, salvo que los usemos">Devices off, unless we’re using them</h3><p data-es="Teléfonos, tabletas y laptops se guardan durante la clase — excepto en las actividades donde los usemos explícitamente.">Phones, tablets, and laptops stay away during lecture — except for the activities where we explicitly use them.</p></div>
+        <div class="card accent-top"><span class="ico">⏸️</span><h3 data-es="Un descanso de ~10 minutos">One ~10-minute break</h3><p data-es="Normalmente pausamos una vez a mitad de la clase para retomar fuerzas.">We usually pause once mid-class to reset.</p></div>
+        <div class="card teal-top"><span class="ico">🙋</span><h3 data-es="¿Perdido? Pregunta.">Lost? Ask.</h3><p data-es="Detenme con una pregunta cuando quieras — o simplemente grita <strong>“¡AYUDA!”</strong>">Stop me with a question any time — or just yell <strong>“HELP!”</strong></p></div>
+        <div class="card good-top"><span class="ico">🎉</span><h3 data-es="Lo más importante">Most importantly</h3><p data-es="Diviértanse. La seguridad es un campo realmente fascinante.">Have <strong>fun</strong>. Security is a genuinely fascinating field.</p></div>
       </div>
     </div>
   </section>
 
   <!-- S6 — AI policy -->
-  <section class="slide" data-section="Orientation">
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>Course policy</span>
-      <h2>Using AI in this course</h2>
+      <span class="kicker" data-es="<span class='dot'></span>Política del curso"><span class="dot"></span>Course policy</span>
+      <h2 data-es="Uso de IA en este curso">Using AI in this course</h2>
       <div class="split">
         <div>
           <ul class="clean">
-            <li><strong>Use it if it helps you.</strong> AI is allowed as a <em>thinking aid</em>.</li>
-            <li>If you use AI to draft or reason through something, <strong>take the time to understand it</strong> — you must be able to explain each step or claim.</li>
-            <li>Use AI as a <strong>thinking aid, not a substitute for understanding.</strong></li>
+            <li data-es="<strong>Úsala si te ayuda.</strong> La IA se permite como <em>apoyo para pensar</em>."><strong>Use it if it helps you.</strong> AI is allowed as a <em>thinking aid</em>.</li>
+            <li data-es="Si usas IA para redactar o razonar algo, <strong>tómate el tiempo de entenderlo</strong> — debes poder explicar cada paso o afirmación.">If you use AI to draft or reason through something, <strong>take the time to understand it</strong> — you must be able to explain each step or claim.</li>
+            <li data-es="Usa la IA como <strong>apoyo para pensar, no como sustituto de la comprensión.</strong>">Use AI as a <strong>thinking aid, not a substitute for understanding.</strong></li>
           </ul>
         </div>
         <div class="callout policy">
-          <span class="tag">Important</span>
-          <p>Your comprehension may be <strong>checked verbally at random</strong>. If what you say contradicts what your written work implies you understood, that assignment is marked <strong class="danger">ZERO</strong>.</p>
+          <span class="tag" data-es="Importante">Important</span>
+          <p data-es="Tu comprensión puede ser <strong>verificada verbalmente al azar</strong>. Si lo que dices contradice lo que tu trabajo escrito implica que entendiste, esa tarea se califica con <strong class='danger'>CERO</strong>.">Your comprehension may be <strong>checked verbally at random</strong>. If what you say contradicts what your written work implies you understood, that assignment is marked <strong class="danger">ZERO</strong>.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- S7 — Roadmap (the three security-mindset questions as the lecture's spine) -->
-  <section class="slide" data-section="Orientation">
+  <!-- S7 — Roadmap -->
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>Where we’re headed today</span>
-      <h2>Three questions frame this whole course</h2>
+      <span class="kicker" data-es="<span class='dot'></span>Hacia dónde vamos hoy"><span class="dot"></span>Where we’re headed today</span>
+      <h2 data-es="Tres preguntas enmarcan todo el curso">Three questions frame this whole course</h2>
       <div class="grid cols-3">
-        <div class="card accent-top"><span class="ico">❓</span><h3>Why?</h3><p>Why is cybersecurity important?</p></div>
-        <div class="card teal-top"><span class="ico">🧠</span><h3>How?</h3><p>How do we <em>understand</em> security — the security mindset?</p></div>
-        <div class="card good-top"><span class="ico">🛠️</span><h3>What?</h3><p>What needs to be done to address it?</p></div>
+        <div class="card accent-top"><span class="ico">❓</span><h3 data-es="¿Por qué?">Why?</h3><p data-es="¿Por qué es importante la ciberseguridad?">Why is cybersecurity important?</p></div>
+        <div class="card teal-top"><span class="ico">🧠</span><h3 data-es="¿Cómo?">How?</h3><p data-es="¿Cómo <em>entendemos</em> la seguridad — la mentalidad de seguridad?">How do we <em>understand</em> security — the security mindset?</p></div>
+        <div class="card good-top"><span class="ico">🛠️</span><h3 data-es="¿Qué?">What?</h3><p data-es="¿Qué hay que hacer para atenderla?">What needs to be done to address it?</p></div>
       </div>
-      <p class="muted" style="margin-top:1.5rem">Keep these in the back of your mind — every section today answers one of them.</p>
+      <p class="muted" data-es="Tengan estas preguntas en mente — cada sección de hoy responde una de ellas.">Keep these in the back of your mind — every section today answers one of them.</p>
     </div>
   </section>
 
   <!-- S8 — Acknowledgment -->
-  <section class="slide" data-section="Orientation">
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>Acknowledgment</span>
-      <h2>Material adapted with credit</h2>
+      <span class="kicker" data-es="<span class='dot'></span>Reconocimiento"><span class="dot"></span>Acknowledgment</span>
+      <h2 data-es="Material adaptado con crédito">Material adapted with credit</h2>
       <div class="definition">
-        <blockquote>Portions of this lecture are adapted from <strong>Georgia Tech</strong> — Dr.&nbsp;Wenke&nbsp;Lee and Dr.&nbsp;Mustaque&nbsp;Ahamad, course <strong>CS 6035: Introduction to Information Security</strong>.</blockquote>
+        <blockquote data-es="Partes de esta clase fueron adaptadas de <strong>Georgia Tech</strong> — Dr. Wenke Lee y Dr. Mustaque Ahamad, curso <strong>CS 6035: Introduction to Information Security</strong>.">Portions of this lecture are adapted from <strong>Georgia Tech</strong> — Dr.&nbsp;Wenke&nbsp;Lee and Dr.&nbsp;Mustaque&nbsp;Ahamad, course <strong>CS 6035: Introduction to Information Security</strong>.</blockquote>
       </div>
-      <div class="callout note" style="margin-top:1.2rem">
-        <span class="tag">Q&amp;A</span>
-        <p>Any questions or doubts before we dive in?</p>
+      <div class="callout note">
+        <span class="tag" data-es="Preguntas">Q&amp;A</span>
+        <p data-es="¿Alguna pregunta o duda antes de comenzar?">Any questions or doubts before we dive in?</p>
       </div>
     </div>
   </section>
@@ -147,555 +170,584 @@
   <!-- ============================ 2. MOTIVATION ============================ -->
 
   <!-- S9 — Section divider -->
-  <section class="slide section" data-section="Why security?">
+  <section class="slide section" data-section="Why security?" data-section-es="¿Por qué seguridad?">
     <div class="slide-inner">
       <div class="num">01</div>
-      <h1>Why does security matter?</h1>
-      <p class="lead" style="max-width:34ch">Motivation: value, risk, and who gets hurt.</p>
+      <h1 data-es="¿Por qué importa la seguridad?">Why does security matter?</h1>
+      <p class="lead" data-es="Motivación: valor, riesgo y a quién afecta.">Motivation: value, risk, and who gets hurt.</p>
     </div>
   </section>
 
   <!-- S10 — Definition -->
-  <section class="slide" data-section="Why security?">
+  <section class="slide" data-section="Why security?" data-section-es="¿Por qué seguridad?">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>Starting point</span>
-      <h2>What do we mean by “computer security”?</h2>
+      <span class="kicker" data-es="<span class='dot'></span>Punto de partida"><span class="dot"></span>Starting point</span>
+      <h2 data-es="¿Qué entendemos por “seguridad informática”?">What do we mean by “computer security”?</h2>
       <div class="definition">
-        <blockquote>“The protection afforded to an automated information system in order to attain the applicable objectives of preserving the <span class="accent">integrity</span>, <span class="accent">availability</span>, and <span class="accent">confidentiality</span> of information system resources — hardware, software, firmware, information/data, and telecommunications.”</blockquote>
-        <span class="src">— NIST Computer Security Handbook [NIST95]</span>
+        <blockquote data-es="“La protección otorgada a un sistema de información automatizado con el fin de alcanzar los objetivos aplicables de preservar la <span class='accent'>integridad</span>, la <span class='accent'>disponibilidad</span> y la <span class='accent'>confidencialidad</span> de los recursos del sistema — hardware, software, firmware, información/datos y telecomunicaciones.”">“The protection afforded to an automated information system in order to attain the applicable objectives of preserving the <span class="accent">integrity</span>, <span class="accent">availability</span>, and <span class="accent">confidentiality</span> of information system resources — hardware, software, firmware, information/data, and telecommunications.”</blockquote>
+        <span class="src" data-es="— NIST Computer Security Handbook [NIST95]">— NIST Computer Security Handbook [NIST95]</span>
       </div>
-      <div class="callout check" style="margin-top:1.2rem">
-        <span class="tag">Notice</span>
-        <p>The definition itself names three goals — <strong>integrity, availability, confidentiality</strong>. That’s the <strong>CIA triad</strong>, and we’ll return to it at the heart of the lecture.</p>
+      <div class="callout check">
+        <span class="tag" data-es="Observa">Notice</span>
+        <p data-es="La definición misma nombra tres objetivos — <strong>integridad, disponibilidad, confidencialidad</strong>. Esa es la <strong>tríada CIA</strong>, y volveremos a ella en el corazón de la clase.">The definition itself names three goals — <strong>integrity, availability, confidentiality</strong>. That’s the <strong>CIA triad</strong>, and we’ll return to it at the heart of the lecture.</p>
       </div>
     </div>
   </section>
 
-  <!-- S11 — Core framing -->
-  <section class="slide" data-section="Why security?">
+  <!-- S11 — Core framing (with reveal) -->
+  <section class="slide" data-section="Why security?" data-section-es="¿Por qué seguridad?">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>The core intuition</span>
-      <h2>We worry about security only when two things are true</h2>
+      <span class="kicker" data-es="<span class='dot'></span>La intuición central"><span class="dot"></span>The core intuition</span>
+      <h2 data-es="Solo nos preocupa la seguridad cuando se cumplen dos cosas">We worry about security only when two things are true</h2>
       <div class="split" style="margin-top:1.8rem">
-        <div class="card accent-top" style="text-align:center"><span class="ico" style="font-size:2.6rem">💎</span><h3>We have something of value</h3><p>Data, money, access, reputation, a service people depend on.</p></div>
-        <div class="card danger-top" style="text-align:center"><span class="ico" style="font-size:2.6rem">⚠️</span><h3>There’s a risk it could be harmed</h3><p>Someone or something could steal, alter, or deny it.</p></div>
+        <div class="card accent-top fragment" style="text-align:center"><span class="ico" style="font-size:2.6rem">💎</span><h3 data-es="Tenemos algo de valor">We have something of value</h3><p data-es="Datos, dinero, acceso, reputación, un servicio del que la gente depende.">Data, money, access, reputation, a service people depend on.</p></div>
+        <div class="card danger-top fragment" style="text-align:center"><span class="ico" style="font-size:2.6rem">⚠️</span><h3 data-es="Existe el riesgo de que sufra daño">There’s a risk it could be harmed</h3><p data-es="Alguien o algo podría robarlo, alterarlo o negarlo.">Someone or something could steal, alter, or deny it.</p></div>
       </div>
-      <p class="lead" style="max-width:46ch;margin-top:1.6rem"><strong>Value + risk = a security problem.</strong> No value, or no risk → nothing to secure.</p>
+      <p class="lead fragment" style="max-width:46ch;margin-top:1.6rem" data-es="<strong>Valor + riesgo = un problema de seguridad.</strong> Sin valor, o sin riesgo → no hay nada que proteger."><strong>Value + risk = a security problem.</strong> No value, or no risk → nothing to secure.</p>
     </div>
   </section>
 
   <!-- S12 — Who is safe? -->
-  <section class="slide" data-section="Why security?">
+  <section class="slide" data-section="Why security?" data-section-es="¿Por qué seguridad?">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>Reality check</span>
-      <h2>So… who is actually safe?</h2>
-      <p class="lead" style="max-width:48ch">Large companies, governments, hospitals, universities — all have suffered major breaches. Being big or well-funded is <strong>not</strong> the same as being secure.</p>
-      <div class="callout discuss" style="margin-top:1.4rem">
-        <span class="tag">Live demo</span>
-        <p>Explore the breaches together: <strong>“World’s Biggest Data Breaches &amp; Hacks”</strong><br>
+      <span class="kicker" data-es="<span class='dot'></span>Un baño de realidad"><span class="dot"></span>Reality check</span>
+      <h2 data-es="Entonces… ¿quién está realmente a salvo?">So… who is actually safe?</h2>
+      <p class="lead" style="max-width:48ch" data-es="Grandes empresas, gobiernos, hospitales, universidades — todos han sufrido brechas importantes. Ser grande o tener muchos recursos <strong>no</strong> es lo mismo que ser seguro.">Large companies, governments, hospitals, universities — all have suffered major breaches. Being big or well-funded is <strong>not</strong> the same as being secure.</p>
+      <div class="callout discuss">
+        <span class="tag" data-es="Demostración en vivo">Live demo</span>
+        <p data-es="Exploremos juntos las brechas: <strong>“World’s Biggest Data Breaches &amp; Hacks”</strong><br><span class='mono accent'>informationisbeautiful.net/visualizations/worlds-biggest-data-breaches-hacks</span>">Explore the breaches together: <strong>“World’s Biggest Data Breaches &amp; Hacks”</strong><br>
         <span class="mono accent">informationisbeautiful.net/visualizations/worlds-biggest-data-breaches-hacks</span></p>
       </div>
-      <div class="callout check" style="margin-top:1rem">
-        <span class="tag">Ask the room</span>
-        <p>Recognize any of these organizations? Do you have an account with one?</p>
+      <div class="callout check">
+        <span class="tag" data-es="Pregunta al salón">Ask the room</span>
+        <p data-es="¿Reconoces alguna de estas organizaciones? ¿Tienes una cuenta con alguna?">Recognize any of these organizations? Do you have an account with one?</p>
       </div>
     </div>
   </section>
 
-  <!-- S13 — Your data has value -->
-  <section class="slide" data-section="Why security?">
+  <!-- S13 — Your data has value (FILLED with approximate figures) -->
+  <section class="slide" data-section="Why security?" data-section-es="¿Por qué seguridad?">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>Motivation: profit</span>
-      <h2>Your personal data is a product on a market</h2>
-      <p class="lead" style="max-width:48ch">Individuals store a lot of sensitive data online. If it’s stolen, criminals can <strong>profit</strong> from it — there are real <strong>black markets</strong> with going rates.</p>
-      <div class="placeholder">
-        <span class="ph-tag">⚑ Add verified figures before class</span>
-        <p style="margin-top:.8rem">The source slide showed a “black-market values” chart whose numbers I can’t read and won’t invent. Insert <strong>current, cited</strong> price ranges (e.g., stolen card, full identity, account login) from a source you trust, with the year. Prices move fast — use a recent reference.</p>
-      </div>
-      <div class="callout check" style="margin-top:1rem">
-        <span class="tag">Ask the room</span>
-        <p>Guess: what’s a stolen credit-card number worth? People usually guess far too high.</p>
-      </div>
+      <span class="kicker" data-es="<span class='dot'></span>Motivación: la ganancia"><span class="dot"></span>Motivation: profit</span>
+      <h2 data-es="Tus datos personales son un producto en un mercado">Your personal data is a product on a market</h2>
+      <p class="lead" style="max-width:50ch" data-es="Las personas guardan muchos datos sensibles en línea. Si se roban, los criminales pueden <strong>lucrar</strong> con ellos — existen <strong>mercados negros</strong> reales con precios establecidos.">Individuals store a lot of sensitive data online. If it’s stolen, criminals can <strong>profit</strong> from it — there are real <strong>black markets</strong> with going rates.</p>
+      <table class="compare">
+        <thead><tr><th data-es="Qué se vende">What’s sold</th><th data-es="Precio aproximado (USD)">Approx. price (USD)</th></tr></thead>
+        <tbody>
+          <tr><td data-es="Cuenta de correo o red social hackeada">Hacked email / social account</td><td class="map-to">$1 – $15</td></tr>
+          <tr><td data-es="Número de tarjeta de crédito robado">Stolen credit-card number</td><td class="map-to">$5 – $30</td></tr>
+          <tr><td data-es="Identidad completa (“fullz”: nombre, fecha de nacimiento, ID)">Full identity (“fullz”)</td><td class="map-to">$20 – $30+</td></tr>
+          <tr><td data-es="Acceso a banca en línea (según el saldo)">Online-banking login (by balance)</td><td class="map-to">$30 – $120+</td></tr>
+          <tr><td data-es="Expediente médico">Medical record</td><td class="map-to">$100 – $250+</td></tr>
+        </tbody>
+      </table>
+      <p class="figure-note" data-es="Cifras aproximadas e ilustrativas; varían mucho según la fuente y el año. Lo clave: tus datos tienen un precio — y el expediente médico suele valer más que la tarjeta.">Approximate, illustrative figures; they vary widely by source and year. The point: your data has a price — and a medical record often beats a credit card.</p>
     </div>
   </section>
 
   <!-- S14 — Society depends on connected systems -->
-  <section class="slide" data-section="Why security?">
+  <section class="slide" data-section="Why security?" data-section-es="¿Por qué seguridad?">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>Motivation: scale</span>
-      <h2>It’s bigger than individuals — societies run on these systems</h2>
+      <span class="kicker" data-es="<span class='dot'></span>Motivación: la escala"><span class="dot"></span>Motivation: scale</span>
+      <h2 data-es="Es más grande que los individuos — las sociedades dependen de estos sistemas">It’s bigger than individuals — societies run on these systems</h2>
       <div class="grid cols-3">
-        <div class="card danger-top"><span class="ico">🔌</span><h3>Critical infrastructure</h3><p>Smart grids rely on cyber systems. Whoever controls the grid controls community infrastructure.</p></div>
-        <div class="card warn-top"><span class="ico">🏛️</span><h3>Government &amp; business data</h3><p>Proprietary and state information often lives online. Unauthorized access can be economically or politically disastrous.</p></div>
-        <div class="card accent-top"><span class="ico">🌐</span><h3>Everyday dependence</h3><p>Societies rely on the internet. Criminals could profit by controlling it; outages ripple everywhere.</p></div>
+        <div class="card danger-top"><span class="ico">🔌</span><h3 data-es="Infraestructura crítica">Critical infrastructure</h3><p data-es="Las redes eléctricas inteligentes dependen de sistemas informáticos. Quien controla la red controla la infraestructura de la comunidad.">Smart grids rely on cyber systems. Whoever controls the grid controls community infrastructure.</p></div>
+        <div class="card warn-top"><span class="ico">🏛️</span><h3 data-es="Datos de gobierno y empresas">Government &amp; business data</h3><p data-es="Información propietaria y estatal suele vivir en línea. El acceso no autorizado puede ser económica o políticamente desastroso.">Proprietary and state information often lives online. Unauthorized access can be economically or politically disastrous.</p></div>
+        <div class="card accent-top"><span class="ico">🌐</span><h3 data-es="Dependencia cotidiana">Everyday dependence</h3><p data-es="Las sociedades dependen de internet. Los criminales podrían lucrar al controlarlo; las interrupciones se propagan por todas partes.">Societies rely on the internet. Criminals could profit by controlling it; outages ripple everywhere.</p></div>
       </div>
     </div>
   </section>
 
-  <!-- S15 — Concept check -->
-  <section class="slide" data-section="Why security?">
+  <!-- S15 — Concept check (answer hidden) -->
+  <section class="slide" data-section="Why security?" data-section-es="¿Por qué seguridad?">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>Quick check</span>
-      <h2>Pause &amp; recall</h2>
+      <span class="kicker" data-es="<span class='dot'></span>Repaso rápido"><span class="dot"></span>Quick check</span>
+      <h2 data-es="Pausa y recuerda">Pause &amp; recall</h2>
       <div class="callout check">
-        <span class="tag">Turn to a neighbor</span>
-        <p>In one sentence each: <strong>(1)</strong> the two ingredients that create a security problem, and <strong>(2)</strong> one reason an attacker would target an ordinary student’s data.</p>
+        <span class="tag" data-es="Con tu compañero">Turn to a neighbor</span>
+        <p data-es="En una frase cada uno: <strong>(1)</strong> los dos ingredientes que crean un problema de seguridad, y <strong>(2)</strong> una razón por la que un atacante querría los datos de un estudiante común.">In one sentence each: <strong>(1)</strong> the two ingredients that create a security problem, and <strong>(2)</strong> one reason an attacker would target an ordinary student’s data.</p>
       </div>
-      <p class="muted" style="margin-top:1.2rem">Answers: <span class="accent">value + risk</span>; and your accounts/identity can be <span class="accent">sold or reused</span> for profit.</p>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Lo discutimos juntos">Let’s discuss together</span>
+        <p data-es="Compartan algunas respuestas en voz alta antes de seguir.">Share a few answers out loud before we move on.</p>
+      </div>
     </div>
   </section>
 
   <!-- ============================ 3. SECURITY MINDSET ============================ -->
 
   <!-- S16 — Divider -->
-  <section class="slide section" data-section="Security mindset">
+  <section class="slide section" data-section="Security mindset" data-section-es="Mentalidad de seguridad">
     <div class="slide-inner">
       <div class="num">02</div>
-      <h1>The security mindset</h1>
-      <p class="lead" style="max-width:40ch">Threats, vulnerabilities, attacks — how security people see the world.</p>
+      <h1 data-es="La mentalidad de seguridad">The security mindset</h1>
+      <p class="lead" data-es="Amenazas, vulnerabilidades, ataques — cómo ve el mundo quien hace seguridad.">Threats, vulnerabilities, attacks — how security people see the world.</p>
     </div>
   </section>
 
   <!-- S17 — What is the security mindset + key questions -->
-  <section class="slide" data-section="Security mindset">
+  <section class="slide" data-section="Security mindset" data-section-es="Mentalidad de seguridad">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>How we understand risk</span>
-      <h2>Developing a “security mindset”</h2>
-      <p class="lead" style="max-width:50ch">To understand the risk to our information and systems, we learn to ask a fixed set of questions about <strong>threats, vulnerabilities, and attacks</strong>.</p>
+      <span class="kicker" data-es="<span class='dot'></span>Cómo entendemos el riesgo"><span class="dot"></span>How we understand risk</span>
+      <h2 data-es="Desarrollar una “mentalidad de seguridad”">Developing a “security mindset”</h2>
+      <p class="lead" style="max-width:50ch" data-es="Para entender el riesgo de nuestra información y sistemas, aprendemos a hacer un conjunto fijo de preguntas sobre <strong>amenazas, vulnerabilidades y ataques</strong>.">To understand the risk to our information and systems, we learn to ask a fixed set of questions about <strong>threats, vulnerabilities, and attacks</strong>.</p>
       <div class="grid cols-2" style="margin-top:1.2rem">
         <ul class="clean">
-          <li>What is <strong>of value</strong> here?</li>
-          <li>What kind of <strong>risk</strong> are we talking about?</li>
-          <li>Where do the <strong>threats</strong> come from?</li>
+          <li data-es="¿Qué es <strong>de valor</strong> aquí?">What is <strong>of value</strong> here?</li>
+          <li data-es="¿De qué tipo de <strong>riesgo</strong> hablamos?">What kind of <strong>risk</strong> are we talking about?</li>
+          <li data-es="¿De dónde vienen las <strong>amenazas</strong>?">Where do the <strong>threats</strong> come from?</li>
         </ul>
         <ul class="clean">
-          <li>Who is the <strong>source</strong> of the threat?</li>
-          <li>What <strong>security measures</strong> can we take?</li>
+          <li data-es="¿Quién es la <strong>fuente</strong> de la amenaza?">Who is the <strong>source</strong> of the threat?</li>
+          <li data-es="¿Qué <strong>medidas de seguridad</strong> podemos tomar?">What <strong>security measures</strong> can we take?</li>
         </ul>
       </div>
-      <div class="callout note" style="margin-top:1rem"><span class="tag">Mindset</span><p>A security person instinctively asks “how could this be abused?” — not just “does it work?”</p></div>
+      <div class="callout note"><span class="tag" data-es="Mentalidad">Mindset</span><p data-es="Quien piensa en seguridad pregunta por instinto “¿cómo podría abusarse de esto?” — no solo “¿funciona?”.">A security person instinctively asks “how could this be abused?” — not just “does it work?”</p></div>
     </div>
   </section>
 
-  <!-- S18 — The chain (flow diagram) -->
-  <section class="slide" data-section="Security mindset">
+  <!-- S18 — The chain (flow diagram, revealed step by step) -->
+  <section class="slide" data-section="Security mindset" data-section-es="Mentalidad de seguridad">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>The central model</span>
-      <h2>How harm actually happens: a chain</h2>
+      <span class="kicker" data-es="<span class='dot'></span>El modelo central"><span class="dot"></span>The central model</span>
+      <h2 data-es="Cómo ocurre el daño en realidad: una cadena">How harm actually happens: a chain</h2>
       <div class="flow">
-        <div class="node threat"><span class="n-label danger">Threat actor</span><span class="n-sub">someone who wants to do harm</span></div>
-        <div class="arrow">→</div>
-        <div class="node vuln"><span class="n-label warn">Vulnerability</span><span class="n-sub">a weakness they can use</span></div>
-        <div class="arrow">→</div>
-        <div class="node attack"><span class="n-label" style="color:var(--violet)">Exploit / Attack</span><span class="n-sub">abusing the weakness</span></div>
-        <div class="arrow">→</div>
-        <div class="node breach"><span class="n-label accent">Compromise</span><span class="n-sub">breach / loss</span></div>
+        <div class="node threat"><span class="n-label danger" data-es="Actor de amenaza">Threat actor</span><span class="n-sub" data-es="alguien que quiere hacer daño">someone who wants to do harm</span></div>
+        <div class="arrow fragment">→</div>
+        <div class="node vuln fragment"><span class="n-label warn" data-es="Vulnerabilidad">Vulnerability</span><span class="n-sub" data-es="una debilidad que puede usar">a weakness they can use</span></div>
+        <div class="arrow fragment">→</div>
+        <div class="node attack fragment"><span class="n-label" style="color:var(--violet)" data-es="Explotación / Ataque">Exploit / Attack</span><span class="n-sub" data-es="abusar de la debilidad">abusing the weakness</span></div>
+        <div class="arrow fragment">→</div>
+        <div class="node breach fragment"><span class="n-label accent" data-es="Compromiso">Compromise</span><span class="n-sub" data-es="brecha / pérdida">breach / loss</span></div>
       </div>
-      <p class="lead" style="max-width:54ch;margin-top:1.8rem"><strong>Threat actors exploit vulnerabilities to launch attacks; attacks lead to compromises or security breaches.</strong></p>
-      <p class="muted">Read it left to right — and notice you can break the chain at any link to defend.</p>
+      <p class="lead fragment" style="max-width:54ch;margin-top:1.8rem" data-es="<strong>Los actores de amenaza explotan vulnerabilidades para lanzar ataques; los ataques llevan a compromisos o brechas de seguridad.</strong>"><strong>Threat actors exploit vulnerabilities to launch attacks; attacks lead to compromises or security breaches.</strong></p>
+      <p class="muted fragment" data-es="Léelo de izquierda a derecha — y nota que puedes romper la cadena en cualquier eslabón para defender.">Read it left to right — and notice you can break the chain at any link to defend.</p>
     </div>
   </section>
 
-  <!-- S19 — Threat actors -->
-  <section class="slide" data-section="Security mindset">
+  <!-- S19 — Threat actors (revealed) -->
+  <section class="slide" data-section="Security mindset" data-section-es="Mentalidad de seguridad">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>Who attacks us</span>
-      <h2>Threat actors: who wants to do us harm online</h2>
+      <span class="kicker" data-es="<span class='dot'></span>Quién nos ataca"><span class="dot"></span>Who attacks us</span>
+      <h2 data-es="Actores de amenaza: quién quiere hacernos daño en línea">Threat actors: who wants to do us harm online</h2>
       <div class="grid cols-3">
-        <div class="card danger-top"><span class="ico">💰</span><h3>Cybercriminals</h3><p>Want to <strong>profit</strong> from our sensitive data for financial gain.</p></div>
-        <div class="card warn-top"><span class="ico">✊</span><h3>Hacktivists</h3><p>Activists who object to <strong>something you are</strong> or <strong>something you do</strong>.</p></div>
-        <div class="card accent-top"><span class="ico">🌍</span><h3>Nation-states</h3><p>Countries acting for <strong>political advantage</strong> or <strong>espionage</strong>.</p></div>
+        <div class="card danger-top fragment"><span class="ico">💰</span><h3 data-es="Cibercriminales">Cybercriminals</h3><p data-es="Quieren <strong>lucrar</strong> con nuestros datos sensibles para obtener ganancia financiera.">Want to <strong>profit</strong> from our sensitive data for financial gain.</p></div>
+        <div class="card warn-top fragment"><span class="ico">✊</span><h3 data-es="Hacktivistas">Hacktivists</h3><p data-es="Activistas que se oponen a <strong>algo que eres</strong> o a <strong>algo que haces</strong>.">Activists who object to <strong>something you are</strong> or <strong>something you do</strong>.</p></div>
+        <div class="card accent-top fragment"><span class="ico">🌍</span><h3 data-es="Estados-nación">Nation-states</h3><p data-es="Países que actúan por <strong>ventaja política</strong> o <strong>espionaje</strong>.">Countries acting for <strong>political advantage</strong> or <strong>espionage</strong>.</p></div>
       </div>
-      <div class="callout discuss" style="margin-top:1.3rem"><span class="tag">Discuss</span><p>Different motives → different targets and tactics. Which actor would care about a student’s laptop? About a power grid?</p></div>
+      <div class="callout discuss"><span class="tag" data-es="Discusión">Discuss</span><p data-es="Distintos motivos → distintos objetivos y tácticas. ¿A qué actor le importaría la laptop de un estudiante? ¿Y una red eléctrica?">Different motives → different targets and tactics. Which actor would care about a student’s laptop? About a power grid?</p></div>
     </div>
   </section>
 
   <!-- S20 — Vulnerabilities everywhere; humans weakest -->
-  <section class="slide" data-section="Security mindset">
+  <section class="slide" data-section="Security mindset" data-section-es="Mentalidad de seguridad">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>Where weaknesses live</span>
-      <h2>Vulnerabilities are everywhere — and humans are the weak link</h2>
+      <span class="kicker" data-es="<span class='dot'></span>Dónde viven las debilidades"><span class="dot"></span>Where weaknesses live</span>
+      <h2 data-es="Las vulnerabilidades están en todas partes — y el humano es el eslabón débil">Vulnerabilities are everywhere — and humans are the weak link</h2>
       <div class="grid cols-3">
-        <div class="card"><span class="ico">💽</span><h3>Software</h3><p>Bugs and misconfigurations in the code that runs our systems.</p></div>
-        <div class="card"><span class="ico">🛰️</span><h3>Networks</h3><p>Weak protocols, open ports, intercepted traffic.</p></div>
-        <div class="card danger-top"><span class="ico">🧑</span><h3>People</h3><p>Reused passwords, clicked links, helpful answers to the wrong person.</p></div>
+        <div class="card"><span class="ico">💽</span><h3 data-es="Software">Software</h3><p data-es="Errores y malas configuraciones en el código que ejecuta nuestros sistemas.">Bugs and misconfigurations in the code that runs our systems.</p></div>
+        <div class="card"><span class="ico">🛰️</span><h3 data-es="Redes">Networks</h3><p data-es="Protocolos débiles, puertos abiertos, tráfico interceptado.">Weak protocols, open ports, intercepted traffic.</p></div>
+        <div class="card danger-top"><span class="ico">🧑</span><h3 data-es="Personas">People</h3><p data-es="Contraseñas reutilizadas, enlaces clickeados, respuestas amables a la persona equivocada.">Reused passwords, clicked links, helpful answers to the wrong person.</p></div>
       </div>
-      <div class="callout note" style="margin-top:1.2rem"><span class="tag">Hard truth</span><p>It is very hard to eliminate vulnerabilities completely. The mindset starts with <strong>threats</strong>, then <strong>vulnerabilities</strong>, whose <strong>exploitation</strong> leads to <strong>attacks</strong>, which result in <strong>compromise and breaches</strong>.</p></div>
+      <div class="callout note"><span class="tag" data-es="Verdad incómoda">Hard truth</span><p data-es="Es muy difícil eliminar las vulnerabilidades por completo. La mentalidad empieza por las <strong>amenazas</strong>, luego las <strong>vulnerabilidades</strong>, cuya <strong>explotación</strong> lleva a <strong>ataques</strong>, que resultan en <strong>compromisos y brechas</strong>.">It is very hard to eliminate vulnerabilities completely. The mindset starts with <strong>threats</strong>, then <strong>vulnerabilities</strong>, whose <strong>exploitation</strong> leads to <strong>attacks</strong>, which result in <strong>compromise and breaches</strong>.</p></div>
     </div>
   </section>
 
-  <!-- S21 — Activity: spot the vulnerability (replaces unreadable image gag sequence) -->
-  <section class="slide activity" data-section="Security mindset">
+  <!-- S21 — Activity: spot the vulnerability -->
+  <section class="slide activity" data-section="Security mindset" data-section-es="Mentalidad de seguridad">
     <div class="slide-inner">
-      <span class="badge">◆ Activity · Spot the weakness</span>
-      <h2 style="margin-top:1rem">Find the vulnerability in everyday scenes</h2>
-      <p class="lead" style="max-width:52ch">For each tiny scenario, name the <span class="warn">vulnerability</span>, a plausible <span class="danger">threat actor</span>, and the likely <span class="accent">attack</span>.</p>
+      <span class="badge" data-es="◆ Actividad · Detecta la debilidad">◆ Activity · Spot the weakness</span>
+      <h2 style="margin-top:1rem" data-es="Encuentra la vulnerabilidad en escenas cotidianas">Find the vulnerability in everyday scenes</h2>
+      <p class="lead" style="max-width:52ch" data-es="Para cada mini-escenario, nombra la <span class='warn'>vulnerabilidad</span>, un <span class='danger'>actor de amenaza</span> plausible y el <span class='accent'>ataque</span> probable.">For each tiny scenario, name the <span class="warn">vulnerability</span>, a plausible <span class="danger">threat actor</span>, and the likely <span class="accent">attack</span>.</p>
       <ol class="clean" style="margin-top:1.2rem">
-        <li>A sticky note with a password is stuck to a monitor in an open office.</li>
-        <li>A “bank” email says <em>“verify your account in 24 hours or it will be closed.”</em></li>
-        <li>Free public Wi-Fi named <em>“Airport_Free_WiFi”</em> with no password.</li>
+        <li data-es="Una nota adhesiva con una contraseña pegada a un monitor en una oficina abierta.">A sticky note with a password is stuck to a monitor in an open office.</li>
+        <li data-es="Un correo del “banco” dice <em>“verifica tu cuenta en 24 horas o será cerrada.”</em>">A “bank” email says <em>“verify your account in 24 hours or it will be closed.”</em></li>
+        <li data-es="Wi-Fi público gratis llamado <em>“Airport_Free_WiFi”</em> sin contraseña.">Free public Wi-Fi named <em>“Airport_Free_WiFi”</em> with no password.</li>
       </ol>
-      <div class="callout discuss" style="margin-top:1.2rem"><span class="tag">Why this</span><p>The source slides used joke “fail” photos here. Same lesson, but now students <em>practice the chain</em> instead of just laughing at a picture.</p></div>
+      <div class="callout discuss"><span class="tag" data-es="Por qué esto">Why this</span><p data-es="Aquí practicamos la cadena en vez de solo describir el problema — nombrar vulnerabilidad, actor y ataque entrena la mentalidad.">Here we practice the chain instead of just describing the problem — naming the vulnerability, actor, and attack trains the mindset.</p></div>
     </div>
   </section>
 
-  <!-- S22 — Concept check -->
-  <section class="slide" data-section="Security mindset">
+  <!-- S22 — Concept check (answer hidden, reworded) -->
+  <section class="slide" data-section="Security mindset" data-section-es="Mentalidad de seguridad">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>Quick check</span>
-      <h2>Say the chain out loud</h2>
-      <div class="callout check"><span class="tag">Everyone</span><p>Fill the blanks: A ____ exploits a ____ to carry out an ____, resulting in a ____.</p></div>
-      <p class="muted" style="margin-top:1rem">→ <span class="danger">threat actor</span> · <span class="warn">vulnerability</span> · <span style="color:var(--violet)">attack</span> · <span class="accent">compromise/breach</span></p>
+      <span class="kicker" data-es="<span class='dot'></span>Repaso rápido"><span class="dot"></span>Quick check</span>
+      <h2 data-es="Describe la cadena con tus palabras">Describe the chain in your own words</h2>
+      <div class="callout check"><span class="tag" data-es="Todos">Everyone</span><p data-es="Sin mirar la diapositiva anterior: ¿cuáles son los cuatro eslabones, en orden, desde quien quiere hacer daño hasta el resultado final?">Without looking back: what are the four links, in order, from the person who wants to cause harm to the final result?</p></div>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Compáralo">Check yourself</span>
+        <p data-es="<span class='danger'>actor de amenaza</span> → <span class='warn'>vulnerabilidad</span> → <span style='color:var(--violet)'>ataque</span> → <span class='accent'>compromiso / brecha</span>."><span class="danger">threat actor</span> → <span class="warn">vulnerability</span> → <span style="color:var(--violet)">attack</span> → <span class="accent">compromise / breach</span>.</p>
+      </div>
     </div>
   </section>
 
   <!-- ============================ 4. REAL-WORLD CASE ============================ -->
 
   <!-- S23 — Divider -->
-  <section class="slide section" data-section="Case study">
+  <section class="slide section" data-section="Case study" data-section-es="Caso de estudio">
     <div class="slide-inner">
       <div class="num">03</div>
-      <h1>Case study: a real breach</h1>
-      <p class="lead" style="max-width:38ch">Let’s walk a real incident through the chain we just learned.</p>
+      <h1 data-es="Caso de estudio: una brecha real">Case study: a real breach</h1>
+      <p class="lead" data-es="Recorramos un incidente real a través de la cadena que aprendimos.">Let’s walk a real incident through the chain we just learned.</p>
     </div>
   </section>
 
-  <!-- S24 — Target overview (scaffold) -->
-  <section class="slide" data-section="Case study">
+  <!-- S24 — Target overview (FILLED) -->
+  <section class="slide" data-section="Case study" data-section-es="Caso de estudio">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>The organization</span>
-      <h2>A real-world example: Target Corporation</h2>
-      <p class="lead" style="max-width:50ch">Target is one of the largest department-store retailers in the United States — a high-value target with millions of customers’ payment data.</p>
-      <div class="placeholder">
-        <span class="ph-tag">⚑ Add verified case facts before class</span>
-        <p style="margin-top:.8rem">The source slides illustrated this case with images only — specific figures and timeline weren’t in readable text. Before teaching, add <strong>cited, verified facts</strong>: when it happened, how the attackers first got in, what malware/method was used, how many records were affected, and the impact. Keep each claim sourced.</p>
+      <span class="kicker" data-es="<span class='dot'></span>El incidente"><span class="dot"></span>The incident</span>
+      <h2 data-es="Un ejemplo real: la brecha de Target (2013)">A real-world example: the Target breach (2013)</h2>
+      <p class="lead" style="max-width:52ch" data-es="Target, una de las mayores cadenas minoristas de EE. UU., sufrió una de las brechas más estudiadas de la historia — durante la temporada navideña de 2013.">Target, one of the largest U.S. retailers, suffered one of the most-studied breaches in history — during the 2013 holiday shopping season.</p>
+      <div class="stats">
+        <div class="stat people"><span class="big">~40M</span><span class="lbl" data-es="tarjetas de crédito/débito robadas">credit/debit cards stolen</span></div>
+        <div class="stat people"><span class="big">~70M</span><span class="lbl" data-es="registros con datos personales (nombre, dirección, correo, teléfono)">records of personal info (name, address, email, phone)</span></div>
+        <div class="stat"><span class="big">Nov–Dec</span><span class="lbl" data-es="2013, durante el pico de compras navideñas">2013, during the holiday shopping peak</span></div>
       </div>
+      <p class="figure-note" data-es="Cifras ampliamente reportadas en investigaciones públicas y audiencias del Congreso de EE. UU.">Figures widely reported in public investigations and U.S. Congressional hearings.</p>
     </div>
   </section>
 
-  <!-- S25 — Walk the chain -->
-  <section class="slide" data-section="Case study">
+  <!-- S25 — Walk the chain (FILLED with documented facts, revealed) -->
+  <section class="slide" data-section="Case study" data-section-es="Caso de estudio">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>Apply the model</span>
-      <h2>Map the breach onto our chain</h2>
+      <span class="kicker" data-es="<span class='dot'></span>Aplica el modelo"><span class="dot"></span>Apply the model</span>
+      <h2 data-es="Target mapeado sobre nuestra cadena">Map the Target breach onto our chain</h2>
       <table class="compare">
-        <thead><tr><th>Link in the chain</th><th>For this case — fill in with verified facts</th></tr></thead>
+        <thead><tr><th data-es="Eslabón">Link in the chain</th><th data-es="Qué ocurrió en Target">What happened at Target</th></tr></thead>
         <tbody>
-          <tr><td class="map-from">Threat actor</td><td class="muted">Who was behind it, and what was their motive?</td></tr>
-          <tr><td class="map-from">Vulnerability</td><td class="muted">What weakness let them in (technical? human? a third party)?</td></tr>
-          <tr><td class="map-from">Attack / exploit</td><td class="muted">What did they actually do once inside?</td></tr>
-          <tr><td class="map-to">Compromise</td><td class="muted">What was lost — and who was harmed?</td></tr>
+          <tr class="fragment"><td class="map-from" data-es="Actor de amenaza">Threat actor</td><td data-es="Cibercriminales con motivación financiera, buscando datos de tarjetas para revender.">Financially-motivated cybercriminals, after card data to resell.</td></tr>
+          <tr class="fragment"><td class="map-from" data-es="Vulnerabilidad">Vulnerability</td><td data-es="Credenciales robadas a un <strong>proveedor externo de HVAC</strong> (Fazio Mechanical) + segmentación de red insuficiente.">Stolen credentials from a <strong>third-party HVAC vendor</strong> (Fazio Mechanical) + weak network segmentation.</td></tr>
+          <tr class="fragment"><td class="map-from" data-es="Ataque / explotación">Attack / exploit</td><td data-es="Malware tipo <strong>BlackPOS</strong> instalado en las terminales de punto de venta, que leía los datos de la tarjeta de la memoria."><strong>BlackPOS</strong>-style malware on point-of-sale terminals, scraping card data from memory.</td></tr>
+          <tr class="fragment"><td class="map-to" data-es="Compromiso">Compromise</td><td data-es="Datos de millones de clientes exfiltrados; enorme costo financiero y de reputación (siguiente diapositiva).">Millions of customers’ data exfiltrated; massive financial and reputational cost (next slide).</td></tr>
         </tbody>
       </table>
-      <div class="callout note" style="margin-top:1rem"><span class="tag">Use it live</span><p>Reveal each verified fact as you go, asking students to predict the next link first.</p></div>
+      <div class="callout note"><span class="tag" data-es="Lección clave">Key lesson</span><p data-es="Los atacantes entraron por un <strong>tercero de confianza</strong>, no por la puerta principal. Tu seguridad es tan fuerte como la de tus proveedores.">The attackers came in through a <strong>trusted third party</strong>, not the front door. Your security is only as strong as your vendors’.</p></div>
     </div>
   </section>
 
-  <!-- S26 — Discussion -->
-  <section class="slide activity" data-section="Case study">
+  <!-- S26 — Financial damage (FILLED, the chart the original image showed) -->
+  <section class="slide" data-section="Case study" data-section-es="Caso de estudio">
     <div class="slide-inner">
-      <span class="badge">◆ Discussion</span>
-      <h2 style="margin-top:1rem">What should have stopped this?</h2>
+      <span class="kicker" data-es="<span class='dot'></span>El costo real"><span class="dot"></span>The real cost</span>
+      <h2 data-es="El daño no fue solo de datos — fue financiero, legal y humano">The damage wasn’t just data — it was financial, legal, and human</h2>
+      <div class="stats">
+        <div class="stat cost"><span class="big">~$202M</span><span class="lbl" data-es="costo bruto total estimado de la brecha (parcialmente cubierto por seguros)">est. total gross breach cost (partly offset by insurance)</span></div>
+        <div class="stat legal"><span class="big">$18.5M</span><span class="lbl" data-es="acuerdo de 2017 con 47 estados + D.C. (récord en su momento)">2017 settlement with 47 states + D.C. (a record at the time)</span></div>
+        <div class="stat legal"><span class="big">~$39M</span><span class="lbl" data-es="acuerdo con bancos por costos de reemisión de tarjetas">settlement with banks for card-reissue costs</span></div>
+        <div class="stat"><span class="big">−46%</span><span class="lbl" data-es="caída de la utilidad del 4.º trimestre de 2013 frente al año anterior">drop in Q4 2013 profit vs. the prior year</span></div>
+      </div>
+      <div class="callout discuss" style="margin-top:1.2rem"><span class="tag" data-es="Y además">And also</span><p data-es="Renunciaron tanto el <strong>director ejecutivo (CEO)</strong> como la <strong>directora de informática (CIO)</strong> en 2014; demandas colectivas de clientes; y un golpe duradero a la confianza de la marca.">Both the <strong>CEO</strong> and the <strong>CIO</strong> resigned in 2014; consumer class-action lawsuits followed; and brand trust took a lasting hit.</p></div>
+      <p class="figure-note" data-es="Cifras de informes públicos y documentos regulatorios; los totales varían según qué costos se incluyan.">Figures from public reports and regulatory filings; totals vary by which costs are counted.</p>
+    </div>
+  </section>
+
+  <!-- S27 — Discussion -->
+  <section class="slide activity" data-section="Case study" data-section-es="Caso de estudio">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Discusión">◆ Discussion</span>
+      <h2 style="margin-top:1rem" data-es="¿Qué debió haber detenido esto?">What should have stopped this?</h2>
       <ol class="clean" style="margin-top:1.2rem">
-        <li>At which link in the chain was the breach <strong>easiest to prevent</strong>?</li>
-        <li>Which CIA goal — <strong>confidentiality, integrity, or availability</strong> — was most affected?</li>
-        <li>If you ran security at a company like this, what is the <strong>first</strong> thing you’d change?</li>
+        <li data-es="¿En qué eslabón de la cadena era <strong>más fácil de prevenir</strong> la brecha?">At which link in the chain was the breach <strong>easiest to prevent</strong>?</li>
+        <li data-es="¿Qué objetivo de la CIA — <strong>confidencialidad, integridad o disponibilidad</strong> — se vio más afectado?">Which CIA goal — <strong>confidentiality, integrity, or availability</strong> — was most affected?</li>
+        <li data-es="Si tú dirigieras la seguridad de una empresa así, ¿qué es lo <strong>primero</strong> que cambiarías?">If you ran security at a company like this, what is the <strong>first</strong> thing you’d change?</li>
       </ol>
-      <div class="callout discuss" style="margin-top:1.2rem"><span class="tag">Tie-back</span><p>Connect answers to the experiences students shared in the icebreaker.</p></div>
+      <div class="callout discuss"><span class="tag" data-es="Conexión">Tie-back</span><p data-es="Conecta las respuestas con las experiencias que compartieron en el rompehielos.">Connect answers to the experiences students shared in the icebreaker.</p></div>
     </div>
   </section>
 
   <!-- ============================ 5. CONCEPTS + CIA ============================ -->
 
-  <!-- S27 — Divider -->
-  <section class="slide section" data-section="CIA triad">
+  <!-- S28 — Divider -->
+  <section class="slide section" data-section="CIA triad" data-section-es="Tríada CIA">
     <div class="slide-inner">
       <div class="num">04</div>
-      <h1>What do we protect?</h1>
-      <p class="lead" style="max-width:36ch">From threats to requirements: the CIA triad.</p>
+      <h1 data-es="¿Qué protegemos?">What do we protect?</h1>
+      <p class="lead" data-es="De las amenazas a los requisitos: la tríada CIA.">From threats to requirements: the CIA triad.</p>
     </div>
   </section>
 
-  <!-- S28 — Relationship of key concepts (concept map, SVG) -->
-  <section class="slide" data-section="CIA triad">
+  <!-- S29 — Relationship of key concepts (concept map, SVG) -->
+  <section class="slide" data-section="CIA triad" data-section-es="Tríada CIA">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>Putting it together</span>
-      <h2>How the key concepts relate</h2>
+      <span class="kicker" data-es="<span class='dot'></span>Uniendo las piezas"><span class="dot"></span>Putting it together</span>
+      <h2 data-es="Cómo se relacionan los conceptos clave">How the key concepts relate</h2>
       <svg class="conceptmap" viewBox="0 0 1000 380" role="img" aria-label="Concept map relating owners, assets, threats, vulnerabilities, attacks, risk and countermeasures">
         <defs>
           <marker id="ah" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#4ea1ff"/></marker>
         </defs>
         <g font-family="Inter, sans-serif" font-size="19" font-weight="700" text-anchor="middle">
-          <!-- nodes -->
           <g>
             <rect x="40"  y="160" width="170" height="64" rx="12" fill="#122036" stroke="#5fe08a" stroke-width="2"/>
-            <text x="125" y="188" fill="#eef4ff">Owners</text>
-            <text x="125" y="210" fill="#aebfd6" font-size="13" font-weight="400">value &amp; protect</text>
+            <text x="125" y="188" fill="#eef4ff" class="cm-owners">Owners</text>
+            <text x="125" y="210" fill="#aebfd6" font-size="13" font-weight="400" class="cm-owners-s">value &amp; protect</text>
           </g>
           <g>
             <rect x="300" y="160" width="170" height="64" rx="12" fill="#122036" stroke="#4ea1ff" stroke-width="2"/>
-            <text x="385" y="188" fill="#eef4ff">Assets</text>
-            <text x="385" y="210" fill="#aebfd6" font-size="13" font-weight="400">things of value</text>
+            <text x="385" y="188" fill="#eef4ff" class="cm-assets">Assets</text>
+            <text x="385" y="210" fill="#aebfd6" font-size="13" font-weight="400" class="cm-assets-s">things of value</text>
           </g>
           <g>
             <rect x="300" y="40" width="170" height="64" rx="12" fill="#122036" stroke="#ffb454" stroke-width="2"/>
-            <text x="385" y="68" fill="#eef4ff">Vulnerabilities</text>
-            <text x="385" y="90" fill="#aebfd6" font-size="13" font-weight="400">weaknesses</text>
+            <text x="385" y="68" fill="#eef4ff" class="cm-vuln">Vulnerabilities</text>
+            <text x="385" y="90" fill="#aebfd6" font-size="13" font-weight="400" class="cm-vuln-s">weaknesses</text>
           </g>
           <g>
             <rect x="560" y="40" width="170" height="64" rx="12" fill="#122036" stroke="#ff6b6b" stroke-width="2"/>
-            <text x="645" y="68" fill="#eef4ff">Threats</text>
-            <text x="645" y="90" fill="#aebfd6" font-size="13" font-weight="400">actors + actions</text>
+            <text x="645" y="68" fill="#eef4ff" class="cm-threats">Threats</text>
+            <text x="645" y="90" fill="#aebfd6" font-size="13" font-weight="400" class="cm-threats-s">actors + actions</text>
           </g>
           <g>
             <rect x="560" y="160" width="170" height="64" rx="12" fill="#122036" stroke="#b18cff" stroke-width="2"/>
-            <text x="645" y="188" fill="#eef4ff">Risk</text>
-            <text x="645" y="210" fill="#aebfd6" font-size="13" font-weight="400">to assets</text>
+            <text x="645" y="188" fill="#eef4ff" class="cm-risk">Risk</text>
+            <text x="645" y="210" fill="#aebfd6" font-size="13" font-weight="400" class="cm-risk-s">to assets</text>
           </g>
           <g>
             <rect x="560" y="290" width="170" height="64" rx="12" fill="#122036" stroke="#38d6c0" stroke-width="2"/>
-            <text x="645" y="318" fill="#eef4ff">Countermeasures</text>
-            <text x="645" y="340" fill="#aebfd6" font-size="13" font-weight="400">reduce risk</text>
+            <text x="645" y="318" fill="#eef4ff" class="cm-cm">Countermeasures</text>
+            <text x="645" y="340" fill="#aebfd6" font-size="13" font-weight="400" class="cm-cm-s">reduce risk</text>
           </g>
         </g>
         <g stroke="#4ea1ff" stroke-width="2" fill="none" marker-end="url(#ah)">
-          <path d="M210,192 H300"/>            <!-- owners -> assets -->
-          <path d="M385,160 V104"/>            <!-- assets -> vulnerabilities -->
-          <path d="M470,72 H560"/>             <!-- vulnerabilities <- threats : draw threats->vuln -->
-          <path d="M645,104 V160"/>            <!-- threats -> risk -->
-          <path d="M560,300 Q470,300 450,224"/><!-- countermeasures -> assets (protect) -->
+          <path d="M210,192 H300"/>
+          <path d="M385,160 V104"/>
+          <path d="M470,72 H560"/>
+          <path d="M645,104 V160"/>
+          <path d="M560,300 Q470,300 450,224"/>
         </g>
         <g font-family="Inter" font-size="12" fill="#aebfd6" text-anchor="middle">
-          <text x="255" y="182">own</text>
-          <text x="345" y="135">have</text>
-          <text x="515" y="60">exploit</text>
-          <text x="690" y="138">create</text>
-          <text x="500" y="270">protect</text>
+          <text x="255" y="182" class="cm-l1">own</text>
+          <text x="345" y="135" class="cm-l2">have</text>
+          <text x="515" y="60" class="cm-l3">exploit</text>
+          <text x="690" y="138" class="cm-l4">create</text>
+          <text x="500" y="270" class="cm-l5">protect</text>
         </g>
       </svg>
-      <p class="muted">Owners value assets; assets have vulnerabilities; threats exploit them to create risk; countermeasures reduce that risk.</p>
+      <p class="muted" data-es="Los propietarios valoran activos; los activos tienen vulnerabilidades; las amenazas las explotan y crean riesgo; las contramedidas reducen ese riesgo.">Owners value assets; assets have vulnerabilities; threats exploit them to create risk; countermeasures reduce that risk.</p>
     </div>
   </section>
 
-  <!-- S29 — What to do + CIA triad -->
-  <section class="slide" data-section="CIA triad">
+  <!-- S30 — What to do + CIA triad (revealed leg by leg) -->
+  <section class="slide" data-section="CIA triad" data-section-es="Tríada CIA">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>From problem to goals</span>
-      <h2>What should we do? Meet the CIA triad</h2>
-      <p class="lead" style="max-width:52ch">Make threats not pay, reduce vulnerabilities, and strive to meet the security requirements of sensitive information:</p>
+      <span class="kicker" data-es="<span class='dot'></span>Del problema a los objetivos"><span class="dot"></span>From problem to goals</span>
+      <h2 data-es="¿Qué debemos hacer? Conoce la tríada CIA">What should we do? Meet the CIA triad</h2>
+      <p class="lead" style="max-width:52ch" data-es="Hacer que el crimen no pague, reducir vulnerabilidades y esforzarnos por cumplir los requisitos de seguridad de la información sensible:">Make threats not pay, reduce vulnerabilities, and strive to meet the security requirements of sensitive information:</p>
       <div class="triad">
-        <div class="leg c"><span class="big accent">C</span><div class="word">Confidentiality</div><p class="desc">Unauthorized users <strong>cannot read</strong> the information.</p></div>
-        <div class="leg i"><span class="big teal">I</span><div class="word">Integrity</div><p class="desc">Unauthorized users <strong>cannot alter</strong> the information.</p></div>
-        <div class="leg a"><span class="big good">A</span><div class="word">Availability</div><p class="desc">Authorized users <strong>can access</strong> the information.</p></div>
+        <div class="leg c fragment"><span class="big accent">C</span><div class="word" data-es="Confidencialidad">Confidentiality</div><p class="desc" data-es="Usuarios no autorizados <strong>no pueden leer</strong> la información.">Unauthorized users <strong>cannot read</strong> the information.</p></div>
+        <div class="leg i fragment"><span class="big teal">I</span><div class="word" data-es="Integridad">Integrity</div><p class="desc" data-es="Usuarios no autorizados <strong>no pueden alterar</strong> la información.">Unauthorized users <strong>cannot alter</strong> the information.</p></div>
+        <div class="leg a fragment"><span class="big good">A</span><div class="word" data-es="Disponibilidad">Availability</div><p class="desc" data-es="Usuarios autorizados <strong>sí pueden acceder</strong> a la información.">Authorized users <strong>can access</strong> the information.</p></div>
       </div>
-      <p class="muted" style="margin-top:1rem; text-align:center">CIA — <em>not the intelligence agency.</em></p>
+      <p class="muted" style="margin-top:1rem; text-align:center" data-es="CIA — <em>no la agencia de inteligencia.</em>">CIA — <em>not the intelligence agency.</em></p>
     </div>
   </section>
 
-  <!-- S30 — CIAAAN -->
-  <section class="slide" data-section="CIA triad">
+  <!-- S31 — CIAAAN -->
+  <section class="slide" data-section="CIA triad" data-section-es="Tríada CIA">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>Beyond the triad</span>
-      <h2>CIA isn’t everything — meet “CIAAAN”</h2>
-      <p class="lead" style="max-width:50ch">Real systems often add more requirements on top of C, I, and A:</p>
+      <span class="kicker" data-es="<span class='dot'></span>Más allá de la tríada"><span class="dot"></span>Beyond the triad</span>
+      <h2 data-es="La CIA no es todo — conoce “CIAAAN”">CIA isn’t everything — meet “CIAAAN”</h2>
+      <p class="lead" style="max-width:50ch" data-es="Los sistemas reales suelen añadir más requisitos sobre la C, la I y la A:">Real systems often add more requirements on top of C, I, and A:</p>
       <div class="grid cols-3" style="margin-top:1rem">
-        <div class="card accent-top"><span class="ico">🪪</span><h3>Authentication</h3><p>Giving individuals access based on <strong>verifying their identity</strong>.</p></div>
-        <div class="card teal-top"><span class="ico">🔑</span><h3>Authorization</h3><p>Determining <strong>access levels</strong> to files, services, programs, data, and features.</p></div>
-        <div class="card violet-top" style="border-top:4px solid var(--violet)"><span class="ico">✍️</span><h3>Non-repudiation</h3><p>Assurance that someone <strong>cannot deny</strong> the validity of something they did.</p></div>
+        <div class="card accent-top"><span class="ico">🪪</span><h3 data-es="Autenticación">Authentication</h3><p data-es="Dar acceso a las personas con base en la <strong>verificación de su identidad</strong>.">Giving individuals access based on <strong>verifying their identity</strong>.</p></div>
+        <div class="card teal-top"><span class="ico">🔑</span><h3 data-es="Autorización">Authorization</h3><p data-es="Determinar los <strong>niveles de acceso</strong> a archivos, servicios, programas, datos y funciones.">Determining <strong>access levels</strong> to files, services, programs, data, and features.</p></div>
+        <div class="card" style="border-top:4px solid var(--violet)"><span class="ico">✍️</span><h3 data-es="No repudio">Non-repudiation</h3><p data-es="La garantía de que alguien <strong>no puede negar</strong> la validez de algo que hizo.">Assurance that someone <strong>cannot deny</strong> the validity of something they did.</p></div>
       </div>
-      <p class="muted" style="margin-top:1rem">C · I · A · A · A · N — the list keeps growing as systems get more complex.</p>
+      <p class="muted" style="margin-top:1rem" data-es="C · I · A · A · A · N — la lista crece conforme los sistemas se vuelven más complejos.">C · I · A · A · A · N — the list keeps growing as systems get more complex.</p>
     </div>
   </section>
 
-  <!-- S31 — Threats vs requirements mapping -->
-  <section class="slide" data-section="CIA triad">
+  <!-- S32 — Threats vs requirements mapping -->
+  <section class="slide" data-section="CIA triad" data-section-es="Tríada CIA">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>A useful translation</span>
-      <h2>It’s often easier to think in threats than in requirements</h2>
+      <span class="kicker" data-es="<span class='dot'></span>Una traducción útil"><span class="dot"></span>A useful translation</span>
+      <h2 data-es="A veces es más fácil pensar en amenazas que en requisitos">It’s often easier to think in threats than in requirements</h2>
       <table class="compare">
-        <thead><tr><th>Threat (what goes wrong)</th><th>Security requirement it breaks</th></tr></thead>
+        <thead><tr><th data-es="Amenaza (qué sale mal)">Threat (what goes wrong)</th><th data-es="Requisito de seguridad que rompe">Security requirement it breaks</th></tr></thead>
         <tbody>
-          <tr><td class="map-from">Information disclosure</td><td class="map-to">Confidentiality</td></tr>
-          <tr><td class="map-from">Tampering with information</td><td class="map-to">Integrity</td></tr>
-          <tr><td class="map-from">Denial of service (DoS)</td><td class="map-to">Availability</td></tr>
-          <tr><td class="map-from">Phishing</td><td class="map-to">Authentication</td></tr>
-          <tr><td class="map-from">Unauthorized access</td><td class="map-to">Authorization</td></tr>
+          <tr><td class="map-from" data-es="Divulgación de información">Information disclosure</td><td class="map-to" data-es="Confidencialidad">Confidentiality</td></tr>
+          <tr><td class="map-from" data-es="Manipulación de información">Tampering with information</td><td class="map-to" data-es="Integridad">Integrity</td></tr>
+          <tr><td class="map-from" data-es="Denegación de servicio (DoS)">Denial of service (DoS)</td><td class="map-to" data-es="Disponibilidad">Availability</td></tr>
+          <tr><td class="map-from" data-es="Phishing">Phishing</td><td class="map-to" data-es="Autenticación">Authentication</td></tr>
+          <tr><td class="map-from" data-es="Acceso no autorizado">Unauthorized access</td><td class="map-to" data-es="Autorización">Authorization</td></tr>
         </tbody>
       </table>
-      <p class="muted" style="margin-top:1rem"><strong>Remember the requirements:</strong> Confidentiality · Integrity · Availability · Authentication · Authorization · Non-repudiation.</p>
+      <p class="muted" style="margin-top:1rem" data-es="<strong>Recuerda los requisitos:</strong> Confidencialidad · Integridad · Disponibilidad · Autenticación · Autorización · No repudio."><strong>Remember the requirements:</strong> Confidentiality · Integrity · Availability · Authentication · Authorization · Non-repudiation.</p>
     </div>
   </section>
 
-  <!-- S32 — Phishing vs spoofing -->
-  <section class="slide" data-section="CIA triad">
+  <!-- S33 — Phishing vs spoofing -->
+  <section class="slide" data-section="CIA triad" data-section-es="Tríada CIA">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>Don’t confuse these</span>
-      <h2>Phishing vs. spoofing</h2>
+      <span class="kicker" data-es="<span class='dot'></span>No los confundas"><span class="dot"></span>Don’t confuse these</span>
+      <h2 data-es="Phishing vs. spoofing">Phishing vs. spoofing</h2>
       <div class="split">
-        <div class="card accent-top"><span class="ico">🎣</span><h3>Phishing — a method of <em>retrieval</em></h3><p>Tricks <strong>you</strong> into giving up sensitive (often financial) information to a crook.</p></div>
-        <div class="card danger-top"><span class="ico">🎭</span><h3>Spoofing — a means of <em>delivery</em></h3><p>Disguises the source to <strong>deliver malware</strong> to your computer or network.</p></div>
+        <div class="card accent-top"><span class="ico">🎣</span><h3 data-es="Phishing — un método de <em>obtención</em>">Phishing — a method of <em>retrieval</em></h3><p data-es="Te <strong>engaña a ti</strong> para que entregues información sensible (a menudo financiera) a un estafador.">Tricks <strong>you</strong> into giving up sensitive (often financial) information to a crook.</p></div>
+        <div class="card danger-top"><span class="ico">🎭</span><h3 data-es="Spoofing — un medio de <em>entrega</em>">Spoofing — a means of <em>delivery</em></h3><p data-es="Disfraza el origen para <strong>entregar malware</strong> a tu computadora o red.">Disguises the source to <strong>deliver malware</strong> to your computer or network.</p></div>
       </div>
-      <div class="callout check" style="margin-top:1.3rem"><span class="tag">One-liner</span><p><strong>Phishing is a method of retrieval; spoofing is a means of delivery.</strong> They’re often combined in one attack.</p></div>
+      <div class="callout check"><span class="tag" data-es="En una frase">One-liner</span><p data-es="<strong>El phishing es un método de obtención; el spoofing es un medio de entrega.</strong> A menudo se combinan en un mismo ataque."><strong>Phishing is a method of retrieval; spoofing is a means of delivery.</strong> They’re often combined in one attack.</p></div>
     </div>
   </section>
 
-  <!-- S33 — Concept check -->
-  <section class="slide" data-section="CIA triad">
+  <!-- S34 — Concept check (answer hidden) -->
+  <section class="slide" data-section="CIA triad" data-section-es="Tríada CIA">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>Quick check</span>
-      <h2>Match the threat to the requirement</h2>
-      <div class="callout check"><span class="tag">Rapid fire</span><p>Call them out: a <em>DoS attack</em> breaks ____ · an <em>altered bank balance</em> breaks ____ · a <em>leaked password file</em> breaks ____.</p></div>
-      <p class="muted" style="margin-top:1rem">→ <span class="accent">availability</span> · <span class="accent">integrity</span> · <span class="accent">confidentiality</span></p>
+      <span class="kicker" data-es="<span class='dot'></span>Repaso rápido"><span class="dot"></span>Quick check</span>
+      <h2 data-es="Conecta la amenaza con el requisito">Match the threat to the requirement</h2>
+      <div class="callout check"><span class="tag" data-es="Rápido">Rapid fire</span><p data-es="¿Qué requisito rompe cada uno? — un <em>ataque DoS</em> · un <em>saldo bancario alterado</em> · un <em>archivo de contraseñas filtrado</em>.">Which requirement does each break? — a <em>DoS attack</em> · an <em>altered bank balance</em> · a <em>leaked password file</em>.</p></div>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Respuestas">Answers</span>
+        <p data-es="<span class='accent'>disponibilidad</span> · <span class='accent'>integridad</span> · <span class='accent'>confidencialidad</span>."><span class="accent">availability</span> · <span class="accent">integrity</span> · <span class="accent">confidentiality</span>.</p>
+      </div>
     </div>
   </section>
 
   <!-- ============================ 6. DEEP DIVE C/I/A ============================ -->
 
-  <!-- S34 — Confidentiality -->
-  <section class="slide" data-section="C · I · A in depth">
+  <!-- S35 — Confidentiality -->
+  <section class="slide" data-section="C · I · A in depth" data-section-es="C · I · A a fondo">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>The “C”</span>
-      <h2>Confidentiality: need-to-know access</h2>
+      <span class="kicker" data-es="<span class='dot'></span>La “C”"><span class="dot"></span>The “C”</span>
+      <h2 data-es="Confidencialidad: acceso por necesidad de saber">Confidentiality: need-to-know access</h2>
       <div class="split">
         <ul class="clean">
-          <li><strong>“Need to know”</strong> basis for data access.</li>
-          <li><em>How do we know who needs what?</em> → <strong>access control</strong> specifies who can access what.</li>
-          <li><em>How do we know a user is who they claim?</em> → <strong>identification &amp; authentication</strong>.</li>
+          <li data-es="Acceso a los datos por <strong>“necesidad de saber”</strong>.">Access on a <strong>“need to know”</strong> basis.</li>
+          <li data-es="<em>¿Cómo sabemos quién necesita qué?</em> → el <strong>control de acceso</strong> especifica quién puede acceder a qué."><em>How do we know who needs what?</em> → <strong>access control</strong> specifies who can access what.</li>
+          <li data-es="<em>¿Cómo sabemos que un usuario es quien dice ser?</em> → <strong>identificación y autenticación</strong>."><em>How do we know a user is who they claim?</em> → <strong>identification &amp; authentication</strong>.</li>
         </ul>
         <div class="card accent-top">
-          <h3>Two faces of confidentiality</h3>
-          <p>Difficult to <strong>ensure</strong> in practice…</p>
-          <p style="margin-top:.6rem">…but easiest to <strong>assess</strong>: success is essentially binary — either the secret leaked, or it didn’t (Yes / No).</p>
+          <h3 data-es="Dos caras de la confidencialidad">Two faces of confidentiality</h3>
+          <p data-es="Difícil de <strong>garantizar</strong> en la práctica…">Difficult to <strong>ensure</strong> in practice…</p>
+          <p style="margin-top:.6rem" data-es="…pero fácil de <strong>evaluar</strong>: el éxito es esencialmente binario — o el secreto se filtró, o no (Sí / No).">…but easiest to <strong>assess</strong>: success is essentially binary — either the secret leaked, or it didn’t (Yes / No).</p>
         </div>
       </div>
-      <p class="muted" style="margin-top:1rem">Physical analogy: “need to access/use” a computer room or a specific desktop.</p>
+      <p class="muted" style="margin-top:1rem" data-es="Analogía física: “necesidad de acceder/usar” una sala de cómputo o un escritorio específico.">Physical analogy: “need to access/use” a computer room or a specific desktop.</p>
     </div>
   </section>
 
-  <!-- S35 — Integrity -->
-  <section class="slide" data-section="C · I · A in depth">
+  <!-- S36 — Integrity -->
+  <section class="slide" data-section="C · I · A in depth" data-section-es="C · I · A a fondo">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>The “I”</span>
-      <h2>Integrity: guarding against unauthorized change</h2>
+      <span class="kicker" data-es="<span class='dot'></span>La “I”"><span class="dot"></span>The “I”</span>
+      <h2 data-es="Integridad: protección contra el cambio no autorizado">Integrity: guarding against unauthorized change</h2>
       <table class="compare">
-        <thead><tr><th>Confidentiality</th><th>Integrity</th></tr></thead>
+        <thead><tr><th data-es="Confidencialidad">Confidentiality</th><th data-es="Integridad">Integrity</th></tr></thead>
         <tbody>
-          <tr><td>Concerned with <strong>access</strong> to assets</td><td>Concerned with <strong>unauthorized modification</strong> of assets</td></tr>
-          <tr><td>Easier to measure (binary)</td><td>Harder to measure — <strong>degrees</strong> of integrity, context-dependent</td></tr>
+          <tr><td data-es="Se ocupa del <strong>acceso</strong> a los activos">Concerned with <strong>access</strong> to assets</td><td data-es="Se ocupa de la <strong>modificación no autorizada</strong> de los activos">Concerned with <strong>unauthorized modification</strong> of assets</td></tr>
+          <tr><td data-es="Más fácil de medir (binaria)">Easier to measure (binary)</td><td data-es="Más difícil de medir — <strong>grados</strong> de integridad, depende del contexto">Harder to measure — <strong>degrees</strong> of integrity, context-dependent</td></tr>
         </tbody>
       </table>
       <div class="grid cols-2" style="margin-top:1.2rem">
-        <div class="card teal-top"><h3>Your bank account</h3><p>Integrity = the balance is <strong>accurate</strong> and changes only through authorized transactions.</p></div>
-        <div class="card teal-top"><h3>Your medical record</h3><p>Integrity = entries are <strong>correct and unaltered</strong> — wrong data can be dangerous.</p></div>
+        <div class="card teal-top"><h3 data-es="Tu cuenta bancaria">Your bank account</h3><p data-es="Integridad = el saldo es <strong>exacto</strong> y solo cambia con transacciones autorizadas.">Integrity = the balance is <strong>accurate</strong> and changes only through authorized transactions.</p></div>
+        <div class="card teal-top"><h3 data-es="Tu expediente médico">Your medical record</h3><p data-es="Integridad = las entradas son <strong>correctas e inalteradas</strong> — un dato erróneo puede ser peligroso.">Integrity = entries are <strong>correct and unaltered</strong> — wrong data can be dangerous.</p></div>
       </div>
-      <p class="muted" style="margin-top:.8rem">Integrity can mean accuracy, precision, currency, consistency, meaningfulness, usefulness… depending on context.</p>
+      <p class="muted" style="margin-top:.8rem" data-es="La integridad puede significar exactitud, precisión, vigencia, consistencia, significado, utilidad… según el contexto.">Integrity can mean accuracy, precision, currency, consistency, meaningfulness, usefulness… depending on context.</p>
     </div>
   </section>
 
-  <!-- S36 — Availability (merged) -->
-  <section class="slide" data-section="C · I · A in depth">
+  <!-- S37 — Availability (merged) -->
+  <section class="slide" data-section="C · I · A in depth" data-section-es="C · I · A a fondo">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>The “A”</span>
-      <h2>Availability: usable when you need it</h2>
-      <p class="lead" style="max-width:52ch">Complex and context-dependent. An asset (data or service) is <strong>available</strong> when it offers:</p>
+      <span class="kicker" data-es="<span class='dot'></span>La “A”"><span class="dot"></span>The “A”</span>
+      <h2 data-es="Disponibilidad: utilizable cuando la necesitas">Availability: usable when you need it</h2>
+      <p class="lead" style="max-width:52ch" data-es="Compleja y dependiente del contexto. Un activo (dato o servicio) está <strong>disponible</strong> cuando ofrece:">Complex and context-dependent. An asset (data or service) is <strong>available</strong> when it offers:</p>
       <div class="grid cols-2" style="margin-top:1rem">
         <ul class="clean">
-          <li><strong>Timely</strong> response to requests</li>
-          <li><strong>Fair allocation</strong> of resources (no starvation)</li>
-          <li><strong>Fault tolerance</strong> (no total breakdown)</li>
+          <li data-es="Respuesta <strong>oportuna</strong> a las solicitudes"><strong>Timely</strong> response to requests</li>
+          <li data-es="<strong>Asignación justa</strong> de recursos (sin inanición)"><strong>Fair allocation</strong> of resources (no starvation)</li>
+          <li data-es="<strong>Tolerancia a fallos</strong> (sin caídas totales)"><strong>Fault tolerance</strong> (no total breakdown)</li>
         </ul>
         <ul class="clean">
-          <li><strong>Easy to use</strong> in the intended way</li>
-          <li><strong>Controlled concurrency</strong> (concurrency &amp; deadlock control)</li>
-          <li>Completed in an <strong>acceptable</strong> time</li>
+          <li data-es="<strong>Fácil de usar</strong> de la forma prevista"><strong>Easy to use</strong> in the intended way</li>
+          <li data-es="<strong>Concurrencia controlada</strong> (control de concurrencia y bloqueos)"><strong>Controlled concurrency</strong> (concurrency &amp; deadlock control)</li>
+          <li data-es="Completado en un tiempo <strong>aceptable</strong>">Completed in an <strong>acceptable</strong> time</li>
         </ul>
       </div>
       <p class="muted" style="margin-top:.8rem">[Pfleeger &amp; Pfleeger]</p>
     </div>
   </section>
 
-  <!-- S37 — Balancing CIA -->
-  <section class="slide" data-section="C · I · A in depth">
+  <!-- S38 — Balancing CIA (revealed) -->
+  <section class="slide" data-section="C · I · A in depth" data-section-es="C · I · A a fondo">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>The trade-off</span>
-      <h2>You must balance C, I, and A — they pull against each other</h2>
+      <span class="kicker" data-es="<span class='dot'></span>El equilibrio"><span class="dot"></span>The trade-off</span>
+      <h2 data-es="Hay que equilibrar C, I y A — tiran en direcciones opuestas">You must balance C, I, and A — they pull against each other</h2>
       <div class="split">
-        <div class="card accent-top"><h3>Example 1 — boost C, hurt I + A</h3><p>Disconnect a computer from the internet to raise <strong>confidentiality</strong>. But <strong>availability</strong> drops, and <strong>integrity</strong> suffers from lost updates.</p></div>
-        <div class="card teal-top"><h3>Example 2 — boost I, hurt C + A</h3><p>Add extensive checks by many people/systems to raise <strong>integrity</strong>. But <strong>confidentiality</strong> drops (more eyes on the data) and <strong>availability</strong> drops (data locked during verification).</p></div>
+        <div class="card accent-top fragment"><h3 data-es="Ejemplo 1 — sube C, baja I + A">Example 1 — boost C, hurt I + A</h3><p data-es="Desconecta una computadora de internet para aumentar la <strong>confidencialidad</strong>. Pero la <strong>disponibilidad</strong> baja, y la <strong>integridad</strong> sufre por las actualizaciones perdidas.">Disconnect a computer from the internet to raise <strong>confidentiality</strong>. But <strong>availability</strong> drops, and <strong>integrity</strong> suffers from lost updates.</p></div>
+        <div class="card teal-top fragment"><h3 data-es="Ejemplo 2 — sube I, baja C + A">Example 2 — boost I, hurt C + A</h3><p data-es="Agrega verificaciones extensas por muchas personas/sistemas para subir la <strong>integridad</strong>. Pero la <strong>confidencialidad</strong> baja (más ojos sobre los datos) y la <strong>disponibilidad</strong> baja (datos bloqueados durante la verificación).">Add extensive checks by many people/systems to raise <strong>integrity</strong>. But <strong>confidentiality</strong> drops (more eyes on the data) and <strong>availability</strong> drops (data locked during verification).</p></div>
       </div>
-      <div class="callout note" style="margin-top:1.2rem"><span class="tag">Takeaway</span><p>There is no “maximum security” — only the <strong>right balance</strong> for a given system and its risks.</p></div>
+      <div class="callout note fragment"><span class="tag" data-es="Para llevar">Takeaway</span><p data-es="No existe la “máxima seguridad” — solo el <strong>equilibrio correcto</strong> para un sistema dado y sus riesgos.">There is no “maximum security” — only the <strong>right balance</strong> for a given system and its risks.</p></div>
     </div>
   </section>
 
   <!-- ============================ 7. DEFENSE ============================ -->
 
-  <!-- S38 — Divider -->
-  <section class="slide section" data-section="Defending systems">
+  <!-- S39 — Divider -->
+  <section class="slide section" data-section="Defending systems" data-section-es="Defender sistemas">
     <div class="slide-inner">
       <div class="num">05</div>
-      <h1>What should the good guys do?</h1>
-      <p class="lead" style="max-width:36ch">From goals to action: defense and design.</p>
+      <h1 data-es="¿Qué deben hacer los buenos?">What should the good guys do?</h1>
+      <p class="lead" data-es="De los objetivos a la acción: defensa y diseño.">From goals to action: defense and design.</p>
     </div>
   </section>
 
-  <!-- S39 — Defense lifecycle -->
-  <section class="slide" data-section="Defending systems">
+  <!-- S40 — Defense lifecycle -->
+  <section class="slide" data-section="Defending systems" data-section-es="Defender sistemas">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>The defender’s playbook</span>
-      <h2>Four jobs of defense — plus one big distinction</h2>
+      <span class="kicker" data-es="<span class='dot'></span>El manual del defensor"><span class="dot"></span>The defender’s playbook</span>
+      <h2 data-es="Cuatro tareas de la defensa — más una gran distinción">Four jobs of defense — plus one big distinction</h2>
       <div class="flow">
-        <div class="node breach"><span class="n-label accent">Prevention</span><span class="n-sub">stop it happening</span></div>
+        <div class="node breach"><span class="n-label accent" data-es="Prevención">Prevention</span><span class="n-sub" data-es="evitar que ocurra">stop it happening</span></div>
         <div class="arrow">→</div>
-        <div class="node attack"><span class="n-label" style="color:var(--violet)">Detection</span><span class="n-sub">notice it fast</span></div>
+        <div class="node attack"><span class="n-label" style="color:var(--violet)" data-es="Detección">Detection</span><span class="n-sub" data-es="notarlo rápido">notice it fast</span></div>
         <div class="arrow">→</div>
-        <div class="node vuln"><span class="n-label warn">Response</span><span class="n-sub">contain it</span></div>
+        <div class="node vuln"><span class="n-label warn" data-es="Respuesta">Response</span><span class="n-sub" data-es="contenerlo">contain it</span></div>
         <div class="arrow">→</div>
-        <div class="node breach"><span class="n-label good">Recovery</span><span class="n-sub">restore &amp; remediate</span></div>
+        <div class="node breach"><span class="n-label good" data-es="Recuperación">Recovery</span><span class="n-sub" data-es="restaurar y remediar">restore &amp; remediate</span></div>
       </div>
-      <div class="callout note" style="margin-top:1.6rem"><span class="tag">Key distinction</span><p><strong>Policy (the <em>what</em>)</strong> — the security goals we require — vs. <strong>mechanism (the <em>how</em>)</strong> — the technical means that enforce them.</p></div>
+      <div class="callout note" style="margin-top:1.6rem"><span class="tag" data-es="Distinción clave">Key distinction</span><p data-es="<strong>Política (el <em>qué</em>)</strong> — los objetivos de seguridad que exigimos — vs. <strong>mecanismo (el <em>cómo</em>)</strong> — los medios técnicos que los hacen cumplir."><strong>Policy (the <em>what</em>)</strong> — the security goals we require — vs. <strong>mechanism (the <em>how</em>)</strong> — the technical means that enforce them.</p></div>
     </div>
   </section>
 
-  <!-- S40 — Secure design principles -->
-  <section class="slide" data-section="Defending systems">
+  <!-- S41 — Secure design principles -->
+  <section class="slide" data-section="Defending systems" data-section-es="Defender sistemas">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>How to reduce vulnerabilities</span>
-      <h2>Classic principles for designing secure systems</h2>
+      <span class="kicker" data-es="<span class='dot'></span>Cómo reducir vulnerabilidades"><span class="dot"></span>How to reduce vulnerabilities</span>
+      <h2 data-es="Principios clásicos para diseñar sistemas seguros">Classic principles for designing secure systems</h2>
       <div class="grid cols-3">
-        <div class="card danger-top"><h3>Economy of mechanism</h3><p>Keep it simple — <strong>complexity is the enemy</strong> of security.</p></div>
-        <div class="card accent-top"><h3>Fail-safe defaults</h3><p>Default to <strong>no access</strong>; grant explicitly.</p></div>
-        <div class="card accent-top"><h3>Complete mediation</h3><p>Check <strong>every access</strong>, every time.</p></div>
-        <div class="card teal-top"><h3>Open design</h3><p>Security must not depend on the design being <strong>secret</strong>.</p></div>
-        <div class="card teal-top"><h3>Least privilege</h3><p>Give each part <strong>only the access it needs</strong>.</p></div>
-        <div class="card good-top"><h3>Psychological acceptability</h3><p>If security is <strong>too painful</strong>, people route around it.</p></div>
+        <div class="card danger-top"><h3 data-es="Economía del mecanismo">Economy of mechanism</h3><p data-es="Manténlo simple — la <strong>complejidad es el enemigo</strong> de la seguridad.">Keep it simple — <strong>complexity is the enemy</strong> of security.</p></div>
+        <div class="card accent-top"><h3 data-es="Valores por defecto seguros">Fail-safe defaults</h3><p data-es="Por defecto, <strong>sin acceso</strong>; concédelo de forma explícita.">Default to <strong>no access</strong>; grant explicitly.</p></div>
+        <div class="card accent-top"><h3 data-es="Mediación completa">Complete mediation</h3><p data-es="Verifica <strong>cada acceso</strong>, cada vez.">Check <strong>every access</strong>, every time.</p></div>
+        <div class="card teal-top"><h3 data-es="Diseño abierto">Open design</h3><p data-es="La seguridad no debe depender de que el diseño sea <strong>secreto</strong>.">Security must not depend on the design being <strong>secret</strong>.</p></div>
+        <div class="card teal-top"><h3 data-es="Mínimo privilegio">Least privilege</h3><p data-es="Da a cada parte <strong>solo el acceso que necesita</strong>.">Give each part <strong>only the access it needs</strong>.</p></div>
+        <div class="card good-top"><h3 data-es="Aceptabilidad psicológica">Psychological acceptability</h3><p data-es="Si la seguridad es <strong>demasiado molesta</strong>, la gente la evade.">If security is <strong>too painful</strong>, people route around it.</p></div>
       </div>
-      <p class="muted" style="margin-top:.9rem">…and more. These date back decades and still hold up.</p>
+      <p class="muted" style="margin-top:.9rem" data-es="…y más. Datan de hace décadas y siguen vigentes.">…and more. These date back decades and still hold up.</p>
     </div>
   </section>
 
   <!-- ============================ 8. CLOSE ============================ -->
 
-  <!-- S41 — Lesson summary -->
-  <section class="slide" data-section="Wrap-up">
+  <!-- S42 — Lesson summary -->
+  <section class="slide" data-section="Wrap-up" data-section-es="Cierre">
     <div class="slide-inner">
-      <span class="kicker"><span class="dot"></span>Lesson summary</span>
-      <h2>The security mindset, in one slide</h2>
+      <span class="kicker" data-es="<span class='dot'></span>Resumen de la clase"><span class="dot"></span>Lesson summary</span>
+      <h2 data-es="La mentalidad de seguridad, en una diapositiva">The security mindset, in one slide</h2>
       <ul class="clean">
-        <li>Cybersecurity is a <strong>huge problem</strong> for people, governments, and companies alike.</li>
-        <li>Our job is to <strong>raise the level of assurance</strong> of systems.</li>
-        <li>The mindset requires knowing: the <strong class="danger">threats</strong>, the <strong class="warn">actors and their motivations</strong>, and <strong style="color:var(--violet)">how they successfully attack</strong>.</li>
-        <li>We protect <strong class="accent">Confidentiality, Integrity, Availability</strong> — balanced, never maximized.</li>
+        <li data-es="La ciberseguridad es un <strong>problema enorme</strong> para personas, gobiernos y empresas por igual.">Cybersecurity is a <strong>huge problem</strong> for people, governments, and companies alike.</li>
+        <li data-es="Nuestro trabajo es <strong>elevar el nivel de aseguramiento</strong> de los sistemas.">Our job is to <strong>raise the level of assurance</strong> of systems.</li>
+        <li data-es="La mentalidad exige conocer: las <strong class='danger'>amenazas</strong>, los <strong class='warn'>actores y sus motivaciones</strong>, y <strong style='color:var(--violet)'>cómo atacan con éxito</strong>.">The mindset requires knowing: the <strong class="danger">threats</strong>, the <strong class="warn">actors and their motivations</strong>, and <strong style="color:var(--violet)">how they successfully attack</strong>.</li>
+        <li data-es="Protegemos la <strong class='accent'>Confidencialidad, Integridad y Disponibilidad</strong> — equilibradas, nunca maximizadas.">We protect <strong class="accent">Confidentiality, Integrity, Availability</strong> — balanced, never maximized.</li>
       </ul>
     </div>
   </section>
 
-  <!-- S42 — Closing takeaway -->
-  <section class="slide section" data-section="Wrap-up">
+  <!-- S43 — Closing takeaway -->
+  <section class="slide section" data-section="Wrap-up" data-section-es="Cierre">
     <div class="slide-inner">
-      <span class="kicker" style="justify-content:center"><span class="dot"></span>One thing to remember</span>
-      <h1 style="max-width:18ch">Think like an attacker to defend like a pro.</h1>
-      <p class="lead" style="max-width:40ch;margin-inline:auto">Next time: we go deeper into how these attacks and defenses actually work.</p>
-      <div class="callout discuss" style="max-width:560px;margin:1.6rem auto 0"><span class="tag">Now</span><p>Questions? Doubts? — or just yell “HELP!”</p></div>
+      <span class="kicker" style="justify-content:center" data-es="<span class='dot'></span>Una cosa para recordar"><span class="dot"></span>One thing to remember</span>
+      <h1 style="max-width:18ch" data-es="Piensa como atacante para defender como profesional.">Think like an attacker to defend like a pro.</h1>
+      <p class="lead" style="max-width:40ch;margin-inline:auto" data-es="La próxima vez: profundizaremos en cómo funcionan realmente estos ataques y defensas.">Next time: we go deeper into how these attacks and defenses actually work.</p>
+      <div class="callout discuss" style="max-width:560px;margin:1.6rem auto 0"><span class="tag" data-es="Ahora">Now</span><p data-es="¿Preguntas? ¿Dudas? — o simplemente grita “¡AYUDA!”">Questions? Doubts? — or just yell “HELP!”</p></div>
     </div>
   </section>
 
@@ -703,12 +755,14 @@
 
 <!-- Footer -->
 <footer class="footer">
-  <span class="course">TC2007B · W1 · L1 — Intro to Cybersecurity</span>
+  <span class="course" data-es="TC2007B · S1 · C1 — Intro a la Ciberseguridad">TC2007B · W1 · L1 — Intro to Cybersecurity</span>
   <span class="right">
     <span class="sec-name" id="secName">Orientation</span>
-    <span class="counter"><span id="cur">1</span> / <span id="total">42</span></span>
+    <span class="counter"><span id="cur">1</span> / <span id="total">43</span></span>
   </span>
 </footer>
+
+<div class="frag-hint" id="fragHint"><span id="fragHintText">click to reveal</span><span class="chev">▾</span></div>
 
 <div class="nav-btns">
   <button id="prevBtn" title="Previous (←)">‹</button>
@@ -720,24 +774,26 @@
 
 <!-- Overview -->
 <div class="overview" id="overview">
-  <h2>Slide overview</h2>
+  <h2 id="ovTitle">Slide overview</h2>
   <div class="ov-grid" id="ovGrid"></div>
 </div>
 
 <!-- Help -->
 <div class="help" id="help">
   <div class="panel">
-    <h2>Navigation</h2>
+    <h2 data-es="Navegación">Navigation</h2>
     <table>
-      <tr><td><kbd>→</kbd> <kbd>Space</kbd> <kbd>PgDn</kbd></td><td>Next slide</td></tr>
-      <tr><td><kbd>←</kbd> <kbd>PgUp</kbd></td><td>Previous slide</td></tr>
-      <tr><td><kbd>Home</kbd> / <kbd>End</kbd></td><td>First / last slide</td></tr>
-      <tr><td><kbd>O</kbd></td><td>Slide overview grid</td></tr>
-      <tr><td><kbd>F</kbd></td><td>Toggle fullscreen</td></tr>
-      <tr><td><kbd>?</kbd></td><td>This help</td></tr>
-      <tr><td><kbd>Esc</kbd></td><td>Close overlay</td></tr>
+      <tr><td><kbd>→</kbd> <kbd>Space</kbd> <kbd>PgDn</kbd></td><td data-es="Siguiente / revelar">Next / reveal</td></tr>
+      <tr><td><kbd>←</kbd> <kbd>PgUp</kbd></td><td data-es="Anterior">Previous</td></tr>
+      <tr><td><kbd>Home</kbd> / <kbd>End</kbd></td><td data-es="Primera / última">First / last slide</td></tr>
+      <tr><td><kbd>O</kbd></td><td data-es="Vista general">Slide overview grid</td></tr>
+      <tr><td><kbd>F</kbd></td><td data-es="Pantalla completa">Toggle fullscreen</td></tr>
+      <tr><td><kbd>L</kbd></td><td data-es="Idioma ES / EN">Language ES / EN</td></tr>
+      <tr><td><kbd>T</kbd></td><td data-es="Tema claro / oscuro">Light / dark theme</td></tr>
+      <tr><td><kbd>?</kbd></td><td>Help</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td data-es="Cerrar ventana">Close overlay</td></tr>
     </table>
-    <p class="muted" style="margin-top:1rem;font-size:.9rem">Works with most presenter remotes (they send Page Up / Page Down) and supports swipe on touch screens.</p>
+    <p class="muted" style="margin-top:1rem;font-size:.9rem" data-es="Funciona con la mayoría de los controles de presentación (envían Av Pág / Re Pág) y admite deslizar en pantallas táctiles.">Works with most presenter remotes (they send Page Up / Page Down) and supports swipe on touch screens.</p>
   </div>
 </div>
 

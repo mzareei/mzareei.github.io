@@ -1,33 +1,44 @@
-# TC2007B · Week 1 · Lecture 1 — Web Lecture Transformation Notes
+# TC2007B · Week 1 · Lecture 1 — Web Lecture Notes
 
-Source: `TC2007B-W01-1-CIA.pptx` (45 slides) → redesigned web deck (`index.html`, 42 slides).
+Source: `TC2007B-W01-1-CIA.pptx` (45 slides) → redesigned web deck (`index.html`, 43 slides), bilingual EN/ES.
 
 ## How to use the deck
-Open `index.html` in any browser, press **F** for fullscreen, and present. Arrow keys / Space / Page Up–Down (presenter remotes) navigate. Press **?** for the full key map, **O** for the slide overview grid. Self-contained — no build step, no internet required except the Google Fonts link (degrades gracefully offline).
+Open `index.html` in any browser and press **F** for fullscreen.
 
-## How the PowerPoint was transformed
-The original mixed text slides with many image-only slides (decorative photos, joke "fail" pictures, and charts whose text wasn't machine-readable). Rather than screenshotting the PPTX, the deck was rebuilt as a clean dark-academic web presentation: every slide title now states a *main idea* instead of a topic label, decorative images were replaced with web-native visuals (a threat→vulnerability→attack→compromise flow, a CIA triad block, an SVG concept map, and comparison tables), and teaching scaffolding (analogies, concept checks, discussion prompts) was added. No facts, figures, citations, or biography were invented.
+Controls (top-right buttons or keyboard):
 
-## Section structure of the new lecture
-1. **Orientation** (8 slides) — title, about-me placeholder, name FAQ, icebreaker activity, classroom rules, AI-use policy, roadmap, acknowledgment.
-2. **Why security?** (7) — NIST definition, value+risk framing, "who is safe" breach demo, data-as-product, societal scale, concept check.
-3. **Security mindset** (7) — mindset + key questions, the attack chain, threat actors, vulnerabilities/humans, "spot the weakness" activity, concept check.
-4. **Case study** (4) — Target overview scaffold, mapping the breach onto the chain, discussion.
-5. **CIA triad** (7) — concept map, CIA triad, CIAAAN, threats↔requirements table, phishing vs spoofing, concept check.
-6. **C·I·A in depth** (4) — confidentiality, integrity, availability, balancing trade-offs.
-7. **Defending systems** (3) — prevention/detection/response/recovery + policy vs mechanism, secure-design principles.
-8. **Wrap-up** (2) — lesson summary, closing takeaway.
+- **→ / Space / Page Down** — next, or reveal the next hidden point on a slide
+- **← / Page Up** — previous (steps back through reveals too)
+- **L** — switch language **English ⇄ Español**
+- **T** — switch **light ⇄ dark** theme
+- **O** — slide overview grid · **?** — full key map · **Home/End** — first/last
+- Type a number to jump to that slide. Works with presenter remotes (Page Up/Down) and touch swipe.
 
-## What was merged / expanded / turned into activities
-- **Merged:** the scattered "Vulnerabilities and Attacks" text slides (22 + 24) into one model + one diagram; the two "Availability" slides (40 + 41) into one; the "what is the security mindset" + "important questions" slides (19 + 20) into one.
-- **Expanded:** the NIST definition now explicitly previews the CIA triad; the attack chain is shown as a visual flow; "relationship of key concepts" (slide 33) became a labeled SVG concept map.
-- **Turned into activities:** the introduce-yourself slide (5) is now a framed icebreaker; the unreadable "fail" image sequence (25–29) became a *"spot the weakness"* exercise; the Target case (30–32) became a *walk-the-chain* table plus a discussion slide.
-- **Preserved verbatim in spirit:** classroom rules, the full **AI-use policy**, the name FAQ, and the **Georgia Tech / Dr. Wenke Lee & Dr. Mustaque Ahamad (CS 6035)** acknowledgment.
+Language and theme choices are remembered between sessions (localStorage).
 
-## ⚑ Missing factual information — needs instructor confirmation
-These appear as dashed **placeholder** blocks in the deck (slides 2, 13, 24):
-1. **About me (slide 2)** — add your factual role, institution, research areas, background.
-2. **Black-market data values (slide 13)** — the source chart's numbers weren't readable; insert current, cited price ranges with a year.
-3. **Target breach facts (slides 24–25)** — the source illustrated this with images only; add verified, sourced details (date, initial entry point, method/malware, records affected, impact) before teaching. The walk-the-chain table is ready to be filled in live.
+## What changed in this revision
+- **Bullet rendering fixed.** Lists previously wrapped oddly (a CSS grid issue); markers are now absolutely positioned so text flows normally.
+- **Light/dark toggle** and **EN/ES toggle** added. The full deck is translated to Spanish (213+ strings, including the concept-map diagram).
+- **Click-to-reveal** added on slides with a real teaching reason: the attack chain, the CIA triad, threat actors, value+risk, the trade-off examples, and the Target "walk-the-chain" table. A small "click to reveal" hint appears when a slide has more to show.
+- **Quiz slides reworked.** Answers are now hidden behind a click (no fill-in-the-blank giveaways); the question is posed first, the answer revealed only when you choose.
+- **All placeholders filled** (details below); explanations, analogies, and examples expanded throughout.
 
-Nothing in the deck asserts these as fact until you fill them in.
+## Section structure (43 slides)
+1. **Orientation** — title, about-me, name FAQ, icebreaker, rules, AI policy, roadmap, acknowledgment.
+2. **Why security?** — NIST definition, value+risk, breach demo, data-as-product, societal scale, concept check.
+3. **Security mindset** — mindset + questions, the attack chain, threat actors, vulnerabilities, "spot the weakness" activity, concept check.
+4. **Case study** — Target overview, walk-the-chain, financial damage, discussion.
+5. **CIA triad** — concept map, CIA, CIAAAN, threats↔requirements, phishing vs spoofing, concept check.
+6. **C·I·A in depth** — confidentiality, integrity, availability, balancing trade-offs.
+7. **Defending systems** — prevention/detection/response/recovery + policy vs mechanism, secure-design principles.
+8. **Wrap-up** — lesson summary, closing takeaway.
+
+## Filled content & sourcing (please sanity-check before class)
+These were placeholders in the previous version and are now filled. Figures are from widely-reported public sources; verify any you plan to state as precise.
+
+- **About me (slide 2)** — drawn from your site bio: Research Professor, School of Engineering & Sciences, Tec de Monterrey; IEEE Senior Member; SNI Level I; Ph.D. Universiti Teknologi Malaysia (2016); Osaka University research stay; at Tec since 2017; Associate Editor (IEEE Access, PLOS One, Ad Hoc & Sensor Wireless Networks). Edit freely.
+- **Black-market data values (slide 13)** — *approximate, illustrative* ranges (hacked account, card number, "fullz", banking login, medical record), clearly labelled as varying by source and year. Update with a current cited index if you want exact numbers.
+- **Target breach (slides 24–26)** — documented facts: late-2013 holiday breach; entry via stolen credentials from a third-party HVAC vendor (Fazio Mechanical) + weak segmentation; BlackPOS-style malware on POS terminals; ~40M cards and ~70M personal records. **Financial damage** (the chart the original image showed): ~$202M est. total gross cost; $18.5M 2017 multistate settlement (47 states + DC); ~$39M banks settlement; ~−46% Q4-2013 profit; CEO and CIO both resigned in 2014. Slides note these are widely-reported figures.
+
+## Technical note
+Self-contained: `index.html` + `style.css` + `script.js`. No build step; only external dependency is the Google Fonts link (degrades gracefully offline). Prints one slide per page (all reveals shown). Drop the folder anywhere under `assets/` to publish, or keep it unpublished until you're ready.

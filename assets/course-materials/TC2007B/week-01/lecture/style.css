@@ -116,26 +116,43 @@ strong { color: #fff; font-weight: 700; }
 .title-rule { height: 5px; width: 120px; background: linear-gradient(90deg,var(--accent),var(--accent-2)); border-radius: 999px; margin: 1.6rem 0; }
 
 /* ----------------------------- Lists --------------------------------- */
-ul.clean, ol.clean { list-style: none; display: grid; gap: 1rem; margin-top: 1.4rem; }
-ul.clean li, ol.clean li {
-  display: grid; grid-template-columns: auto 1fr; gap: 1rem; align-items: start;
+ul.clean, ol.clean { list-style: none; display: flex; flex-direction: column; gap: 1.05rem; margin-top: 1.4rem; }
+ul.clean li {
+  position: relative;
+  padding-left: 1.9rem;
   font-size: var(--fs-body);
+  line-height: 1.45;
 }
 ul.clean li::before {
   content: "";
-  width: .9rem; height: .9rem; margin-top: .45em;
+  position: absolute;
+  left: 0;
+  top: .55em;
+  width: .72rem; height: .72rem;
   border-radius: 4px;
   background: var(--accent);
-  flex: none;
 }
 ol.clean { counter-reset: step; }
-ol.clean li { counter-increment: step; }
+ol.clean li {
+  position: relative;
+  counter-increment: step;
+  padding-left: 3.2rem;
+  min-height: 2.1rem;
+  font-size: var(--fs-body);
+  line-height: 1.45;
+  display: flex;
+  align-items: center;
+}
 ol.clean li::before {
   content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
   display: grid; place-items: center;
   width: 2.1rem; height: 2.1rem; border-radius: 50%;
   background: var(--bg-3); border: 2px solid var(--accent);
-  color: var(--accent); font-weight: 800; font-size: 1rem; flex: none;
+  color: var(--accent); font-weight: 800; font-size: 1rem;
 }
 
 /* ----------------------------- Cards / grid -------------------------- */
@@ -329,9 +346,97 @@ table.compare .map-to { color: var(--good); font-weight: 600; }
 .help td { padding: .55rem .4rem; border-bottom: 1px solid var(--line); font-size: 1rem; }
 .help td:first-child { white-space: nowrap; width: 40%; }
 
+/* ----------------------------- Light theme --------------------------- */
+:root[data-theme="light"] {
+  --bg:        #f4f7fc;
+  --bg-2:      #ffffff;
+  --bg-3:      #e9f0fa;
+  --ink:       #0f1b2d;
+  --ink-soft:  #4a5b73;
+  --line:      #cfdcec;
+  --accent:    #1769d6;
+  --accent-2:  #0c8f80;
+  --warn:      #b9700f;
+  --danger:    #d23b3b;
+  --good:      #1d9b53;
+  --violet:    #6f47cf;
+}
+:root[data-theme="light"] body { color: var(--ink); }
+:root[data-theme="light"] strong { color: #0b1422; }
+:root[data-theme="light"] .slide::before {
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(23,105,214,.07), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(12,143,128,.06), transparent 60%);
+}
+:root[data-theme="light"] .footer { background: linear-gradient(0deg, rgba(244,247,252,.95), transparent); }
+:root[data-theme="light"] .slide.section .num { color: #dde7f4; }
+
+/* ----------------------------- Fragments (click reveal) -------------- */
+.fragment {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity .35s ease, transform .35s ease;
+}
+.fragment.revealed { opacity: 1; transform: none; }
+/* table rows as fragments keep layout via visibility-style opacity */
+tr.fragment { }
+
+/* "more to reveal" hint */
+.frag-hint {
+  position: fixed; bottom: 64px; left: 50%; transform: translateX(-50%);
+  z-index: 44; display: none;
+  align-items: center; gap: .5rem;
+  background: var(--bg-3); border: 1px solid var(--line);
+  color: var(--ink-soft); padding: .35rem .9rem; border-radius: 999px;
+  font-size: var(--fs-small);
+}
+.frag-hint.show { display: inline-flex; }
+.frag-hint .chev { color: var(--accent); animation: bob 1.4s ease-in-out infinite; }
+@keyframes bob { 0%,100%{ transform: translateY(0);} 50%{ transform: translateY(3px);} }
+
+/* Reveal box used for hidden quiz answers */
+.reveal-answer {
+  margin-top: 1.2rem;
+  background: var(--bg-2);
+  border: 1px solid var(--accent-2);
+  border-left: 6px solid var(--accent-2);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 1.1rem 1.4rem;
+}
+.reveal-answer .ra-tag {
+  color: var(--accent-2); font-weight: 800; text-transform: uppercase;
+  letter-spacing: .08em; font-size: var(--fs-small); display:block; margin-bottom:.4rem;
+}
+
+/* ----------------------------- Control buttons ----------------------- */
+.controls { position: fixed; top: 16px; right: 16px; z-index: 46; display: flex; gap: .5rem; }
+.controls .ui-btn {
+  background: var(--bg-3); color: var(--ink); border: 1px solid var(--line);
+  height: 40px; min-width: 40px; padding: 0 .7rem; border-radius: 10px;
+  font-size: .95rem; font-weight: 700; cursor: pointer;
+  display: inline-flex; align-items: center; gap: .4rem; transition: .15s;
+}
+.controls .ui-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* small caption under financial figures */
+.figure-note { font-size: var(--fs-small); color: var(--ink-soft); margin-top: .8rem; font-style: italic; }
+
+/* compact stat grid */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 1rem; margin-top: 1.3rem; }
+.stat {
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 1.2rem 1.3rem; border-top: 4px solid var(--danger);
+}
+.stat .big { font-size: clamp(1.8rem,3.4vw,2.6rem); font-weight: 900; line-height: 1; color: var(--ink); }
+.stat .lbl { font-size: var(--fs-small); color: var(--ink-soft); margin-top: .5rem; }
+.stat.cost { border-top-color: var(--warn); }
+.stat.legal { border-top-color: var(--violet); }
+.stat.people { border-top-color: var(--accent); }
+
 /* Print: one slide per page */
 @media print {
   html, body { overflow: visible; height: auto; }
-  .topbar, .footer, .nav-btns, .overview, .help { display: none !important; }
+  .topbar, .footer, .nav-btns, .overview, .help, .controls, .frag-hint { display: none !important; }
   .slide { display: flex !important; position: relative; page-break-after: always; min-height: 100vh; }
+  .fragment { opacity: 1 !important; transform: none !important; }
 }
