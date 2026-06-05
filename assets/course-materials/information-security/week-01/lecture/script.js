@@ -1,310 +1,251 @@
 (function () {
   const slides = window.LECTURE_SLIDES || [];
-  const frame = document.getElementById("slideFrame");
-  const transcript = document.getElementById("transcript");
-  const counter = document.getElementById("counter");
-  const title = document.getElementById("slideTitle");
-  const blockLabel = document.getElementById("blockLabel");
-  const notesBlock = document.getElementById("speakerNotesBlock");
-  const notes = document.getElementById("speakerNotes");
-  const overview = document.getElementById("overview");
-  const overviewGrid = document.getElementById("overviewGrid");
-
+  const slideEl = document.getElementById("slide");
+  const countEl = document.getElementById("slideCount");
+  let lang = localStorage.getItem("week01LectureLang") || "en";
   let slideIndex = 0;
-  let stepIndex = 0;
+  let fragmentIndex = 0;
 
   function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
   }
 
-  function escapeText(value) {
+  function t(value) {
+    if (!value) return "";
+    if (typeof value === "string") return value;
+    return value[lang] || value.en || "";
+  }
+
+  function esc(value) {
     return String(value || "")
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
   }
 
-  function inlineStrong(value) {
-    return escapeText(value).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  function rich(value) {
+    return esc(t(value)).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   }
 
-  function getStepCount(slide) {
-    if (slide.visual === "balance") return Math.max(3, (slide.points || []).length);
-    return Math.max(1, (slide.points || []).length, (slide.visualItems || []).length);
+  function visible(i) {
+    return i <= fragmentIndex ? " visible" : "";
   }
 
-  function isVisible(index) {
-    return index <= stepIndex ? " is-visible" : "";
-  }
-
-  function revealClass(index) {
-    return `reveal${isVisible(index)}`;
+  function fragments(slide) {
+    return Math.max(1, slide.points?.length || 0, slide.items?.length || 0);
   }
 
   function readHash() {
-    const match = window.location.hash.match(/^#\/(\d+)(?:\/(\d+))?/);
+    const match = location.hash.match(/^#\/(\d+)(?:\/(\d+))?/);
     if (!match) return;
     slideIndex = clamp(Number(match[1]) - 1, 0, slides.length - 1);
-    stepIndex = clamp(Number(match[2] || 0), 0, getStepCount(slides[slideIndex]) - 1);
+    fragmentIndex = clamp(Number(match[2] || 0), 0, fragments(slides[slideIndex]) - 1);
   }
 
   function writeHash() {
-    const next = `#/${slideIndex + 1}/${stepIndex}`;
-    if (window.location.hash !== next) history.replaceState(null, "", next);
+    const next = `#/${slideIndex + 1}/${fragmentIndex}`;
+    if (location.hash !== next) history.replaceState(null, "", next);
+  }
+
+  function cardClass(i) {
+    const colors = ["blue", "green", "amber", "violet", "red"];
+    return colors[i % colors.length];
   }
 
   function renderPoints(slide) {
-    const points = slide.points || [];
-    if (!points.length) return "";
-    return `<ul class="content-list">${points.map((point, index) => `
-      <li class="${revealClass(index)}">
-        <span>${index + 1}</span>
-        <div>${inlineStrong(point)}</div>
-      </li>`).join("")}</ul>`;
+    if (slide.layout === "full") return "";
+    return `<ul class="points">
+      ${(slide.points || []).map((point, i) => `
+        <li class="point fragment${visible(i)}">
+          <span>${i + 1}</span>
+          <div>${rich(point)}</div>
+        </li>
+      `).join("")}
+    </ul>`;
   }
 
-  function renderCards(slide) {
-    return `<div class="card-grid">${(slide.visualItems || []).map((item, index) => `
-      <article class="visual-card ${revealClass(index)}">
-        <b>${escapeText(item.title || item)}</b>
-        <p>${escapeText(item.text || "")}</p>
-      </article>`).join("")}</div>`;
-  }
-
-  function renderPromptStack(slide) {
-    return `<div class="prompt-stack">${(slide.visualItems || []).map((item, index) => `
-      <article class="visual-card ${revealClass(index)}">
-        <b>${escapeText(item.title)}</b>
-        <p>${escapeText(item.text)}</p>
-      </article>`).join("")}</div>`;
+  function renderWord(slide) {
+    return `<div class="word-mark">
+      <b class="fragment${visible(0)}">${esc(t(slide.word || slide.title))}</b>
+      <p class="fragment${visible(1)}">${esc(t(slide.wordSub || slide.subtitle))}</p>
+    </div>`;
   }
 
   function renderEquation(slide) {
-    const items = slide.visualItems || [];
     return `<div class="equation">
-      ${items.map((item, index) => `
-        <article class="visual-card ${revealClass(index)}">
-          <b>${escapeText(item.title)}</b>
-          <p>${escapeText(item.text)}</p>
+      ${(slide.items || []).map((item, i) => `
+        <article class="eq-card fragment${visible(i)}">
+          <b>${esc(t(item.title))}</b>
+          <p>${esc(t(item.text))}</p>
         </article>
-        ${index < items.length - 1 ? `<div class="operator ${revealClass(index)}">${index === 1 ? "=" : "+"}</div>` : ""}
+        ${i < (slide.items.length - 1) ? `<div class="operator fragment${visible(i)}">${i === 1 ? "=" : "+"}</div>` : ""}
+      `).join("")}
+    </div>`;
+  }
+
+  function renderCards(slide, className = "cards") {
+    return `<div class="${className}">
+      ${(slide.items || []).map((item, i) => `
+        <article class="big-card ${cardClass(i)} fragment${visible(i)}">
+          <b>${esc(t(item.title))}</b>
+          <p>${esc(t(item.text))}</p>
+        </article>
       `).join("")}
     </div>`;
   }
 
   function renderFlow(slide) {
-    return `<div class="flow-line">${(slide.visualItems || []).map((item, index) => `
-      <div class="flow-node ${revealClass(index)}">
-        <b>${escapeText(item.title)}</b>
-        <small>${escapeText(item.text)}</small>
-      </div>`).join("")}</div>`;
-  }
-
-  function renderMatrix(slide) {
-    return `<div class="matrix">
-      <div class="matrix-row matrix-head"><span>Threat / issue</span><b>Requirement</b></div>
-      ${(slide.visualItems || []).map((item, index) => `
-        <div class="matrix-row ${revealClass(index)}">
-          <span>${escapeText(item.title)}</span>
-          <b>${escapeText(item.text)}</b>
-        </div>`).join("")}
-    </div>`;
-  }
-
-  function renderCia(slide) {
-    return `<div class="cia-triangle">
-      <div class="triangle"></div>
-      ${(slide.visualItems || []).map((item, index) => `
-        <div class="triangle-label triangle-label--${item.position} ${revealClass(index)}">${escapeText(item.title)}</div>
+    return `<div class="flow">
+      ${(slide.items || []).map((item, i) => `
+        <div class="node fragment${visible(i)}">
+          <b>${esc(t(item.title))}</b>
+          <p>${esc(t(item.text))}</p>
+        </div>
       `).join("")}
     </div>`;
   }
 
-  function renderBalance(slide) {
-    const items = slide.visualItems || [];
-    return `<div class="balance">
-      <article class="visual-card ${revealClass(0)}"><b>${escapeText(items[0]?.title || "")}</b><p>${escapeText(items[0]?.text || "")}</p></article>
-      <div class="scale ${revealClass(1)}">⇄</div>
-      <article class="visual-card ${revealClass(2)}"><b>${escapeText(items[1]?.title || "")}</b><p>${escapeText(items[1]?.text || "")}</p></article>
+  function renderTriangle(slide) {
+    const items = slide.items || [];
+    return `<div class="triangle-wrap">
+      <div class="triangle fragment${visible(0)}"></div>
+      ${items.map((item, i) => `
+        <div class="tri-label ${item.pos} fragment${visible(i)}">${esc(t(item.title))}</div>
+      `).join("")}
+    </div>`;
+  }
+
+  function renderMatrix(slide) {
+    return `<div class="matrix">
+      ${(slide.items || []).map((item, i) => `
+        <div class="matrix-row fragment${visible(i)}">
+          <span>${esc(t(item.title))}</span>
+          <b>${esc(t(item.text))}</b>
+        </div>
+      `).join("")}
+    </div>`;
+  }
+
+  function renderCompare(slide) {
+    const items = slide.items || [];
+    return `<div class="compare">
+      <article class="big-card blue fragment${visible(0)}">
+        <b>${esc(t(items[0]?.title))}</b>
+        <p>${esc(t(items[0]?.text))}</p>
+      </article>
+      <div class="versus fragment${visible(1)}">vs</div>
+      <article class="big-card amber fragment${visible(2)}">
+        <b>${esc(t(items[1]?.title))}</b>
+        <p>${esc(t(items[1]?.text))}</p>
+      </article>
     </div>`;
   }
 
   function renderLoop(slide) {
-    return `<div class="loop">${(slide.visualItems || []).map((item, index) => `
-      <div class="loop-step ${revealClass(index)}">${escapeText(item.title || item)}</div>
-    `).join("")}</div>`;
-  }
-
-  function renderPrinciples(slide) {
-    return `<div class="principle-grid">${(slide.visualItems || []).map((item, index) => `
-      <article class="principle ${revealClass(index)}">
-        <b>${escapeText(item.title)}</b>
-        <p>${escapeText(item.text)}</p>
-      </article>`).join("")}</div>`;
-  }
-
-  function renderBigWord(slide) {
-    const label = slide.visualLabel || slide.title;
-    return `<div class="big-word">
-      <div>
-        <strong class="${revealClass(0)}">${escapeText(label)}</strong>
-        <span class="${revealClass(1)}">${escapeText(slide.visualSub || "")}</span>
-      </div>
+    return `<div class="loop">
+      ${(slide.items || []).map((item, i) => `
+        <div class="loop-step fragment${visible(i)}">${esc(t(item.title))}</div>
+      `).join("")}
     </div>`;
   }
 
-  function renderPulse(slide) {
-    return `<div class="big-word">
-      <div>
-        <strong class="${revealClass(0)}">${escapeText(slide.visualLabel || "Risk")}</strong>
-        <span class="${revealClass(1)}">${escapeText(slide.visualSub || "")}</span>
-      </div>
-      <i class="pulse-dot"></i><i class="pulse-dot"></i><i class="pulse-dot"></i>
+  function renderDots() {
+    return `<div class="dots fragment${visible(0)}">
+      <i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i>
     </div>`;
   }
 
   function renderVisual(slide) {
-    const type = slide.visual || "cards";
-    if (type === "prompts") return renderPromptStack(slide);
-    if (type === "equation") return renderEquation(slide);
-    if (type === "flow") return renderFlow(slide);
-    if (type === "matrix") return renderMatrix(slide);
-    if (type === "cia") return renderCia(slide);
-    if (type === "balance") return renderBalance(slide);
-    if (type === "loop") return renderLoop(slide);
-    if (type === "principles") return renderPrinciples(slide);
-    if (type === "big") return renderBigWord(slide);
-    if (type === "pulse") return renderPulse(slide);
-    return renderCards(slide);
+    switch (slide.visual) {
+      case "word": return renderWord(slide);
+      case "equation": return renderEquation(slide);
+      case "cards": return renderCards(slide);
+      case "questions": return renderCards(slide, "questions");
+      case "actors": return renderCards(slide, "actors");
+      case "principles": return renderCards(slide, "principles");
+      case "flow": return renderFlow(slide);
+      case "triangle": return renderTriangle(slide);
+      case "matrix": return renderMatrix(slide);
+      case "compare": return renderCompare(slide);
+      case "loop": return renderLoop(slide);
+      case "dots": return renderDots(slide);
+      default: return renderCards(slide);
+    }
   }
 
-  function renderSlide() {
+  function render() {
     const slide = slides[slideIndex];
-    const wide = slide.layout === "wide" ? " slide-body--wide" : "";
-    frame.innerHTML = `
-      <article class="lecture-slide">
-        <header>
-          <div class="slide-top">
-            <div class="slide-kicker">${escapeText(slide.section || "Lecture")}</div>
-            <div class="slide-source">source slide ${escapeText(slide.source || slide.number)}</div>
-          </div>
-          <h2 class="slide-title">${escapeText(slide.title)}</h2>
-          ${slide.subtitle ? `<p class="slide-subtitle">${escapeText(slide.subtitle)}</p>` : ""}
-        </header>
-        <div class="slide-body${wide}">
-          <section class="visual">${renderVisual(slide)}</section>
-          ${slide.layout === "wide" ? "" : `<section>${renderPoints(slide)}</section>`}
-        </div>
-        <footer class="slide-footer">
-          <span>${escapeText(slide.footer || "Information Security · Week 01")}</span>
-          ${slide.activity ? `<span class="activity">${escapeText(slide.activity)}</span>` : ""}
-        </footer>
-      </article>`;
-
-    title.textContent = slide.title;
-    blockLabel.textContent = slide.section || "Lecture";
-    counter.textContent = `Slide ${slideIndex + 1} / ${slides.length} · Reveal ${stepIndex + 1} / ${getStepCount(slide)}`;
-
-    transcript.innerHTML = "";
-    (slide.focus || slide.points || []).forEach((line, index) => {
-      const li = document.createElement("li");
-      li.textContent = line.replace(/\*\*/g, "");
-      if (index === Math.min(stepIndex, (slide.focus || slide.points || []).length - 1)) li.classList.add("is-focus");
-      transcript.appendChild(li);
+    const bodyClass = slide.layout === "full" ? "slide-body full" : "slide-body";
+    slideEl.innerHTML = `
+      <header class="slide-header">
+        <div class="kicker">${esc(t(slide.section))}</div>
+        <h1 class="title">${esc(t(slide.title))}</h1>
+        ${slide.subtitle ? `<p class="subtitle">${esc(t(slide.subtitle))}</p>` : ""}
+      </header>
+      <div class="${bodyClass}">
+        <div class="visual">${renderVisual(slide)}</div>
+        ${renderPoints(slide)}
+      </div>
+    `;
+    countEl.textContent = `${slideIndex + 1}/${slides.length}`;
+    document.documentElement.lang = lang;
+    document.querySelectorAll(".language-toggle button").forEach((btn) => {
+      btn.classList.toggle("is-active", btn.dataset.lang === lang);
     });
-
-    if (slide.notes && slide.notes.length) {
-      notesBlock.hidden = false;
-      notes.innerHTML = slide.notes.map((line) => `<p>${escapeText(line)}</p>`).join("");
-    } else {
-      notesBlock.hidden = true;
-      notes.innerHTML = "";
-    }
-
     writeHash();
   }
 
-  function goToSlide(index, step) {
-    slideIndex = clamp(index, 0, slides.length - 1);
-    stepIndex = clamp(step || 0, 0, getStepCount(slides[slideIndex]) - 1);
-    renderSlide();
-  }
-
-  function nextStep() {
-    const maxStep = getStepCount(slides[slideIndex]) - 1;
-    if (stepIndex < maxStep) {
-      stepIndex += 1;
-      renderSlide();
+  function next() {
+    if (fragmentIndex < fragments(slides[slideIndex]) - 1) {
+      fragmentIndex += 1;
     } else {
-      goToSlide(slideIndex + 1, 0);
+      slideIndex = clamp(slideIndex + 1, 0, slides.length - 1);
+      fragmentIndex = 0;
     }
+    render();
   }
 
-  function prevStep() {
-    if (stepIndex > 0) {
-      stepIndex -= 1;
-      renderSlide();
+  function previous() {
+    if (fragmentIndex > 0) {
+      fragmentIndex -= 1;
     } else if (slideIndex > 0) {
-      goToSlide(slideIndex - 1, getStepCount(slides[slideIndex - 1]) - 1);
+      slideIndex -= 1;
+      fragmentIndex = fragments(slides[slideIndex]) - 1;
     }
+    render();
   }
 
-  function buildOverview() {
-    overviewGrid.innerHTML = "";
-    slides.forEach((slide, index) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "overview-card";
-      button.innerHTML = `<strong>${String(index + 1).padStart(2, "0")}</strong><span>${escapeText(slide.title)}</span>`;
-      button.addEventListener("click", () => {
-        overview.hidden = true;
-        goToSlide(index, 0);
-      });
-      overviewGrid.appendChild(button);
+  document.getElementById("nextBtn").addEventListener("click", next);
+  document.getElementById("prevBtn").addEventListener("click", previous);
+
+  document.querySelectorAll(".language-toggle button").forEach((button) => {
+    button.addEventListener("click", () => {
+      lang = button.dataset.lang;
+      localStorage.setItem("week01LectureLang", lang);
+      render();
     });
-  }
-
-  document.getElementById("nextStep").addEventListener("click", nextStep);
-  document.getElementById("prevStep").addEventListener("click", prevStep);
-  document.getElementById("nextSlide").addEventListener("click", () => goToSlide(slideIndex + 1, 0));
-  document.getElementById("prevSlide").addEventListener("click", () => goToSlide(slideIndex - 1, 0));
-  document.getElementById("toggleOverview").addEventListener("click", () => { overview.hidden = false; });
-  document.getElementById("closeOverview").addEventListener("click", () => { overview.hidden = true; });
+  });
 
   document.addEventListener("keydown", (event) => {
-    if (event.key === "ArrowRight" || event.key === " ") {
+    const forward = ["ArrowRight", "PageDown", " ", "Enter"];
+    const backward = ["ArrowLeft", "PageUp", "Backspace"];
+    if (forward.includes(event.key)) {
       event.preventDefault();
-      nextStep();
-    } else if (event.key === "ArrowLeft") {
+      next();
+    } else if (backward.includes(event.key)) {
       event.preventDefault();
-      prevStep();
-    } else if (event.key === "ArrowDown") {
-      event.preventDefault();
-      goToSlide(slideIndex + 1, 0);
-    } else if (event.key === "ArrowUp") {
-      event.preventDefault();
-      goToSlide(slideIndex - 1, 0);
-    } else if (event.key.toLowerCase() === "o") {
-      overview.hidden = !overview.hidden;
+      previous();
     } else if (event.key.toLowerCase() === "f") {
       if (!document.fullscreenElement) document.documentElement.requestFullscreen();
       else document.exitFullscreen();
-    } else if (event.key === "Escape") {
-      overview.hidden = true;
     }
   });
 
   window.addEventListener("hashchange", () => {
     readHash();
-    renderSlide();
+    render();
   });
 
-  if (!slides.length) {
-    frame.innerHTML = "<p>No slides were found.</p>";
-    return;
-  }
-
-  buildOverview();
   readHash();
-  renderSlide();
+  render();
 })();

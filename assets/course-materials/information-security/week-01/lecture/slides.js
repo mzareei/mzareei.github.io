@@ -1,815 +1,754 @@
+const tx = (en, es) => ({ en, es });
+const item = (title, text = "", pos = "") => ({ title, text, pos });
+
 window.LECTURE_SLIDES = [
   {
-    source: "01",
-    section: "Opening",
-    title: "Security in applications and networks",
-    subtitle: "Week 01 frames security as the protection of valuable assets under realistic risk.",
-    visual: "big",
-    visualLabel: "SECURITY",
-    visualSub: "value + risk + protection",
+    section: tx("Opening", "Apertura"),
+    title: tx("Security in applications and networks", "Seguridad en aplicaciones y redes"),
+    subtitle: tx("Week 01: learning how to think like a security analyst.", "Semana 01: aprender a pensar como analista de seguridad."),
+    visual: "word",
+    word: tx("SECURITY", "SEGURIDAD"),
+    wordSub: tx("value under risk", "valor bajo riesgo"),
     points: [
-      "Today is about developing a security mindset, not memorizing isolated definitions.",
-      "We will move from everyday risk to formal requirements: confidentiality, integrity, and availability.",
-      "The lecture ends with basic design principles for building more secure systems."
-    ],
-    notes: [
-      "Use this as the clean opening instead of the source title image. Set the expectation that the class is conceptual and practical."
+      tx("Security is not only tools.", "La seguridad no son solo herramientas."),
+      tx("Security is a way to reason about **value, risk, and protection**.", "La seguridad es una forma de razonar sobre **valor, riesgo y protección**."),
+      tx("Today we build the vocabulary for the rest of the course.", "Hoy construimos el vocabulario para el resto del curso.")
     ]
   },
   {
-    source: "02",
-    section: "Opening",
-    title: "Lecture 1 has one central question",
-    subtitle: "When should we worry about security?",
+    section: tx("Opening", "Apertura"),
+    title: tx("The central question", "La pregunta central"),
+    subtitle: tx("When should we worry about security?", "¿Cuándo debemos preocuparnos por la seguridad?"),
     visual: "equation",
-    visualItems: [
-      { title: "Value", text: "Something matters to a person, organization, or society." },
-      { title: "Risk", text: "There is a credible way it could be harmed." },
-      { title: "Security concern", text: "We need protection, detection, or response." }
+    items: [
+      item(tx("Value", "Valor"), tx("Something matters.", "Algo importa.")),
+      item(tx("Risk", "Riesgo"), tx("It can be harmed.", "Puede ser dañado.")),
+      item(tx("Security", "Seguridad"), tx("Protection is needed.", "Se necesita protección."))
     ],
     points: [
-      "Security starts when something has value.",
-      "Value alone is not enough; there must also be risk.",
-      "The course teaches how to reason from value and risk toward controls."
+      tx("Start with what has value.", "Empieza con lo que tiene valor."),
+      tx("Then ask how it could be harmed.", "Luego pregunta cómo podría ser dañado."),
+      tx("Only then choose a security measure.", "Solo después elige una medida de seguridad.")
     ]
   },
   {
-    source: "03",
-    section: "Instructor context",
-    title: "A little bit about me",
-    subtitle: "Instructor background slide. Add your own verified academic and professional details here.",
+    section: tx("Instructor", "Profesor"),
+    title: tx("A little bit about me", "Un poco sobre mí"),
+    subtitle: tx("Keep this factual and personal to your course.", "Mantén esta parte factual y personal para tu curso."),
     visual: "cards",
-    visualItems: [
-      { title: "Research", text: "Information security, applied machine learning, and related areas." },
-      { title: "Teaching", text: "Security concepts connected to systems, networks, and real cases." },
-      { title: "Expectation", text: "Students should ask questions and reason carefully." }
+    items: [
+      item(tx("Research", "Investigación"), tx("Information security and computing systems.", "Seguridad informática y sistemas computacionales.")),
+      item(tx("Teaching", "Docencia"), tx("Concepts, cases, and practice.", "Conceptos, casos y práctica.")),
+      item(tx("Class style", "Estilo de clase"), tx("Ask, reason, discuss.", "Preguntar, razonar, discutir."))
     ],
     points: [
-      "Do not invent biography details on this slide.",
-      "Use this moment to connect your research identity with the course.",
-      "Keep the tone professional and brief before moving to student introductions."
-    ],
-    notes: [
-      "The source slide is visual/personal. Replace these placeholders with facts you want public."
+      tx("Use your verified professional background here.", "Usa aquí tu información profesional verificada."),
+      tx("Do not overload the first lecture with biography.", "No satures la primera clase con biografía."),
+      tx("Connect who you are to how the class will work.", "Conecta quién eres con cómo funcionará la clase.")
     ]
   },
   {
-    source: "04",
-    section: "Instructor context",
-    title: "How this class will feel",
-    subtitle: "Security is technical, but the classroom should be active and question-driven.",
-    visual: "cards",
-    visualItems: [
-      { title: "Concepts", text: "Definitions become useful only when applied to scenarios." },
-      { title: "Discussion", text: "Students should test assumptions and ask for clarification." },
-      { title: "Practice", text: "Examples and short activities turn vocabulary into judgment." }
-    ],
-    points: [
-      "Use this slide to explain the learning style of the course.",
-      "Emphasize that security is about reasoning under uncertainty.",
-      "Invite participation early."
-    ],
-    notes: [
-      "The source slide is another personal/context slide. Keep only factual information you approve."
-    ]
-  },
-  {
-    source: "05",
-    section: "Class opening",
-    title: "Briefly introduce yourself",
-    subtitle: "Start with technology, consequences, and lived experience.",
-    visual: "prompts",
-    visualItems: [
-      { title: "Your name", text: "Begin with who you are." },
-      { title: "Uninvent one invention", text: "What would you remove from history, and why?" },
-      { title: "Cyber incident", text: "Have you been affected by a cybersecurity incident?" }
-    ],
-    points: [
-      "The uninvention question reveals that technologies have tradeoffs.",
-      "The cybersecurity incident question shows that security is not abstract.",
-      "Students can share only what they are comfortable sharing."
-    ],
-    activity: "Student introductions"
-  },
-  {
-    source: "06",
-    section: "Course expectations",
-    title: "Before we continue...",
-    subtitle: "A few norms make the class easier to teach and easier to learn.",
-    visual: "big",
-    visualLabel: "FOCUS",
-    visualSub: "attention is part of the learning environment",
-    points: [
-      "Set expectations before the technical content begins.",
-      "Explain that classroom norms are not arbitrary; they protect attention.",
-      "Connect the norms to the active style of the course."
-    ]
-  },
-  {
-    source: "07",
-    section: "Course framing",
-    title: "Security in applications and networks",
-    subtitle: "Security appears at multiple layers: people, software, networks, data, and infrastructure.",
+    section: tx("Instructor", "Profesor"),
+    title: tx("How this class works", "Cómo funciona esta clase"),
+    subtitle: tx("Security is learned by reasoning through situations.", "La seguridad se aprende razonando situaciones."),
     visual: "flow",
-    visualItems: [
-      { title: "People", text: "Users, admins, attackers, victims." },
-      { title: "Applications", text: "Services and software logic." },
-      { title: "Networks", text: "Communication paths and protocols." },
-      { title: "Data", text: "Information stored or transmitted." },
-      { title: "Infrastructure", text: "Systems society depends on." }
+    items: [
+      item(tx("Concept", "Concepto"), tx("Define the idea.", "Definir la idea.")),
+      item(tx("Example", "Ejemplo"), tx("See it in context.", "Verla en contexto.")),
+      item(tx("Question", "Pregunta"), tx("Test assumptions.", "Probar supuestos.")),
+      item(tx("Discussion", "Discusión"), tx("Compare answers.", "Comparar respuestas.")),
+      item(tx("Judgment", "Juicio"), tx("Decide what matters.", "Decidir qué importa."))
     ],
     points: [
-      "Application security and network security are connected.",
-      "Human behavior is part of the system.",
-      "The same vocabulary will be used across layers."
+      tx("Definitions are useful only when students can apply them.", "Las definiciones sirven solo si los estudiantes pueden aplicarlas."),
+      tx("The classroom should be active.", "La clase debe ser activa."),
+      tx("A wrong first answer is often a good start for discussion.", "Una primera respuesta incorrecta suele ser un buen inicio de discusión.")
     ]
   },
   {
-    source: "08",
-    section: "Course expectations",
-    title: "Rules are here to protect attention",
-    subtitle: "Devices are allowed when they serve the activity, not when they replace attention.",
-    visual: "cards",
-    visualItems: [
-      { title: "Devices", text: "Phones, tablets, and laptops are put away unless required." },
-      { title: "Break", text: "Usually one short break during class." },
-      { title: "Questions", text: "If you are lost, ask. Even a loud HELP is better than silence." }
+    section: tx("Class opening", "Inicio de clase"),
+    title: tx("Introduce yourself", "Preséntate"),
+    subtitle: tx("Start with technology, consequences, and experience.", "Empieza con tecnología, consecuencias y experiencia."),
+    visual: "questions",
+    items: [
+      item(tx("Your name", "Tu nombre"), tx("Who are you?", "¿Quién eres?")),
+      item(tx("Uninvent one invention", "Desinventar algo"), tx("What would you remove, and why?", "¿Qué quitarías y por qué?")),
+      item(tx("Cyber incident", "Incidente cibernético"), tx("Have you been affected?", "¿Te ha afectado alguno?")),
+      item(tx("One sentence", "Una frase"), tx("Keep it brief.", "Sé breve."))
     ],
     points: [
-      "The use of phone, tablet, or laptop is strictly prohibited during lecture unless required for class activities.",
-      "There will usually be one short break during the class.",
-      "If students are lost, they should ask a question."
-    ],
-    activity: "Most importantly: have fun"
+      tx("Technology always has consequences.", "La tecnología siempre tiene consecuencias."),
+      tx("Cybersecurity is not abstract; people experience it.", "La ciberseguridad no es abstracta; las personas la viven."),
+      tx("Students share only what is appropriate.", "Los estudiantes comparten solo lo que sea apropiado.")
+    ]
   },
   {
-    source: "09",
-    section: "Course expectations",
-    title: "AI can help, but it cannot understand for you",
-    subtitle: "Use AI as a thinking aid, not as a substitute for comprehension.",
+    section: tx("Class norms", "Normas de clase"),
+    title: tx("Before we continue", "Antes de continuar"),
+    subtitle: tx("Attention is part of the learning environment.", "La atención es parte del ambiente de aprendizaje."),
+    visual: "word",
+    word: tx("FOCUS", "ENFOQUE"),
+    wordSub: tx("shared attention makes discussion possible", "la atención compartida permite discutir"),
+    points: [
+      tx("We set expectations before technical content.", "Definimos expectativas antes del contenido técnico."),
+      tx("The goal is not control; the goal is learning.", "El objetivo no es controlar; el objetivo es aprender."),
+      tx("Security lectures need participation.", "Las clases de seguridad necesitan participación.")
+    ]
+  },
+  {
+    section: tx("Course frame", "Marco del curso"),
+    title: tx("Security has layers", "La seguridad tiene capas"),
+    subtitle: tx("People, applications, networks, data, and infrastructure interact.", "Personas, aplicaciones, redes, datos e infraestructura interactúan."),
     visual: "flow",
-    visualItems: [
-      { title: "Use", text: "Use AI if it benefits your learning." },
-      { title: "Understand", text: "Check every step and claim." },
-      { title: "Explain", text: "Be ready to explain verbally." },
-      { title: "Mismatch", text: "If explanation contradicts submitted work..." },
-      { title: "Consequence", text: "The assignment may receive zero." }
+    items: [
+      item(tx("People", "Personas"), tx("Users and attackers.", "Usuarios y atacantes.")),
+      item(tx("Apps", "Apps"), tx("Business logic.", "Lógica de negocio.")),
+      item(tx("Networks", "Redes"), tx("Communication paths.", "Rutas de comunicación.")),
+      item(tx("Data", "Datos"), tx("Stored or transmitted.", "Guardados o transmitidos.")),
+      item(tx("Infrastructure", "Infraestructura"), tx("Systems society needs.", "Sistemas que la sociedad necesita."))
     ],
     points: [
-      "AI use is allowed when it benefits students.",
-      "Comprehension may be checked verbally at random.",
-      "If written work implies understanding but the student cannot explain it, the assignment can be marked zero."
+      tx("Application security and network security are connected.", "La seguridad de aplicaciones y de redes están conectadas."),
+      tx("People are part of the system.", "Las personas son parte del sistema."),
+      tx("The same vocabulary works across layers.", "El mismo vocabulario funciona en distintas capas.")
     ]
   },
   {
-    source: "10",
-    section: "Course expectations",
-    title: "FAQ: how to pronounce my name",
-    subtitle: "Small human details reduce distance in the classroom.",
+    section: tx("Class norms", "Normas de clase"),
+    title: tx("Rules protect attention", "Las reglas protegen la atención"),
+    subtitle: tx("Devices are useful when they serve the activity.", "Los dispositivos son útiles cuando sirven a la actividad."),
     visual: "cards",
-    visualItems: [
-      { title: "Mahdi", text: "Ma - h - di" },
-      { title: "Madi", text: "Approximately similar." },
-      { title: "Max", text: "Easy and acceptable version." }
+    items: [
+      item(tx("Devices away", "Dispositivos guardados"), tx("Unless an activity needs them.", "A menos que una actividad los necesite.")),
+      item(tx("One break", "Un descanso"), tx("Usually short.", "Normalmente corto.")),
+      item(tx("Ask", "Pregunta"), tx("If you are lost, say it.", "Si te pierdes, dilo."))
     ],
     points: [
-      "Include a pronunciation note so students feel comfortable addressing you.",
-      "The source slide offers Mahdi, Madi, or Max.",
-      "This is a quick transition before questions and acknowledgments."
+      tx("Phones, tablets, and laptops are not used during lecture unless required.", "Celulares, tabletas y laptops no se usan durante la clase salvo que se requieran."),
+      tx("There is usually one short break.", "Normalmente hay un descanso corto."),
+      tx("If you are lost, ask for help.", "Si te pierdes, pide ayuda.")
     ]
   },
   {
-    source: "11",
-    section: "Acknowledgment",
-    title: "Questions, doubts, and source acknowledgment",
-    subtitle: "The original lecture acknowledges Georgia Tech and CS 6035.",
+    section: tx("AI policy", "Política de IA"),
+    title: tx("AI is a tool, not a substitute", "La IA es herramienta, no sustituto"),
+    subtitle: tx("If you use it, you must understand what it produced.", "Si la usas, debes entender lo que produjo."),
+    visual: "flow",
+    items: [
+      item(tx("Use", "Usar"), tx("Allowed if it helps.", "Permitido si ayuda.")),
+      item(tx("Check", "Revisar"), tx("Verify claims.", "Verifica afirmaciones.")),
+      item(tx("Understand", "Entender"), tx("Own the reasoning.", "Haz tuyo el razonamiento.")),
+      item(tx("Explain", "Explicar"), tx("Be ready verbally.", "Prepárate para explicarlo.")),
+      item(tx("Consequence", "Consecuencia"), tx("Mismatch may be zero.", "La contradicción puede valer cero."))
+    ],
+    points: [
+      tx("AI can support learning.", "La IA puede apoyar el aprendizaje."),
+      tx("Your comprehension may be checked verbally.", "Tu comprensión puede revisarse verbalmente."),
+      tx("Use AI as a thinking aid.", "Usa IA como apoyo para pensar.")
+    ]
+  },
+  {
+    section: tx("Class norms", "Normas de clase"),
+    title: tx("How to say my name", "Cómo decir mi nombre"),
+    subtitle: tx("Small details make class interaction easier.", "Los detalles pequeños facilitan la interacción en clase."),
     visual: "cards",
-    visualItems: [
-      { title: "Questions", text: "Invite doubts before moving into definitions." },
-      { title: "Acknowledgment", text: "Georgia Tech, Dr. Wenke Lee, Dr. Mustaque Ahamad." },
-      { title: "Course source", text: "CS 6035: Introduction to Information Security." }
+    items: [
+      item(tx("Mahdi", "Mahdi"), tx("Ma - h - di", "Ma - h - di")),
+      item(tx("Madi", "Madi"), tx("Close enough.", "Bastante cercano.")),
+      item(tx("Max", "Max"), tx("Easy and acceptable.", "Fácil y aceptable."))
     ],
     points: [
-      "Ask whether students have questions before the technical section begins.",
-      "Preserve the acknowledgment from the source deck.",
-      "Make clear that this web version is adapted for your course."
+      tx("Invite students to address you comfortably.", "Invita a los estudiantes a dirigirse a ti con comodidad."),
+      tx("Keep this quick.", "Mantén esto breve."),
+      tx("Then move into questions and acknowledgments.", "Luego pasa a preguntas y agradecimientos.")
     ]
   },
   {
-    source: "12",
-    section: "Definition",
-    title: "Computer security is protection for system resources",
-    subtitle: "NIST defines computer security around preserving confidentiality, integrity, and availability.",
-    visual: "cia",
-    visualItems: [
-      { title: "Confidentiality", position: "top" },
-      { title: "Integrity", position: "left" },
-      { title: "Availability", position: "right" }
+    section: tx("Acknowledgment", "Agradecimiento"),
+    title: tx("Questions before we start?", "¿Preguntas antes de empezar?"),
+    subtitle: tx("Original material acknowledges Georgia Tech and CS 6035.", "El material original reconoce a Georgia Tech y CS 6035."),
+    visual: "cards",
+    items: [
+      item(tx("Questions", "Preguntas"), tx("Pause before definitions.", "Pausa antes de definir.")),
+      item(tx("Acknowledgment", "Agradecimiento"), tx("Wenke Lee and Mustaque Ahamad.", "Wenke Lee y Mustaque Ahamad.")),
+      item(tx("Course source", "Curso fuente"), tx("CS 6035 Introduction to Information Security.", "CS 6035 Introduction to Information Security."))
     ],
     points: [
-      "NIST describes computer security as protection afforded to an automated information system.",
-      "The protection aims to preserve applicable objectives.",
-      "The protected resources include hardware, software, firmware, data, and telecommunications."
-    ],
-    notes: [
-      "Use the NIST definition as the formal anchor before moving into the mindset slides."
+      tx("Ask for doubts before technical content.", "Pregunta si hay dudas antes del contenido técnico."),
+      tx("Preserve the acknowledgment.", "Conserva el agradecimiento."),
+      tx("Make clear this is adapted for your class.", "Aclara que esto está adaptado a tu clase.")
     ]
   },
   {
-    source: "13",
-    section: "Security mindset",
-    title: "Security mindset begins with better questions",
-    subtitle: "Why is cybersecurity important? How do we understand it? What needs to be done?",
-    visual: "prompts",
-    visualItems: [
-      { title: "Why?", text: "Why is cybersecurity important?" },
-      { title: "How?", text: "How do we understand cybersecurity?" },
-      { title: "What?", text: "What needs to be done to address cybersecurity?" }
+    section: tx("Definition", "Definición"),
+    title: tx("Computer security protects system resources", "La seguridad informática protege recursos"),
+    subtitle: tx("NIST frames security around confidentiality, integrity, and availability.", "NIST define la seguridad alrededor de confidencialidad, integridad y disponibilidad."),
+    visual: "triangle",
+    items: [
+      item(tx("Confidentiality", "Confidencialidad"), "", "top"),
+      item(tx("Integrity", "Integridad"), "", "left"),
+      item(tx("Availability", "Disponibilidad"), "", "right")
     ],
     points: [
-      "The security mindset is a way of questioning systems.",
-      "The first question is importance: what could be harmed?",
-      "The next question is action: what can we do about it?"
+      tx("Protection applies to automated information systems.", "La protección aplica a sistemas automatizados de información."),
+      tx("Resources include hardware, software, data, and telecommunications.", "Los recursos incluyen hardware, software, datos y telecomunicaciones."),
+      tx("CIA becomes the first framework.", "CIA se convierte en el primer marco de análisis.")
     ]
   },
   {
-    source: "14",
-    section: "Security mindset",
-    title: "We worry when value meets risk",
-    subtitle: "Security becomes relevant when something valuable could be harmed.",
+    section: tx("Mindset", "Mentalidad"),
+    title: tx("Security starts with questions", "La seguridad empieza con preguntas"),
+    subtitle: tx("Why is cybersecurity important? How do we understand it? What should we do?", "¿Por qué importa? ¿Cómo la entendemos? ¿Qué debemos hacer?"),
+    visual: "questions",
+    items: [
+      item(tx("Why?", "¿Por qué?"), tx("What could be harmed?", "¿Qué podría dañarse?")),
+      item(tx("How?", "¿Cómo?"), tx("How do attacks succeed?", "¿Cómo tienen éxito los ataques?")),
+      item(tx("What?", "¿Qué?"), tx("What can reduce risk?", "¿Qué reduce el riesgo?")),
+      item(tx("Who?", "¿Quién?"), tx("Who benefits from harm?", "¿Quién se beneficia del daño?"))
+    ],
+    points: [
+      tx("A security mindset is a questioning habit.", "La mentalidad de seguridad es un hábito de preguntar."),
+      tx("Questions reveal assumptions.", "Las preguntas revelan supuestos."),
+      tx("Good questions come before good controls.", "Las buenas preguntas vienen antes que los buenos controles.")
+    ]
+  },
+  {
+    section: tx("Mindset", "Mentalidad"),
+    title: tx("Value + risk = security concern", "Valor + riesgo = preocupación de seguridad"),
+    subtitle: tx("We worry when something valuable could be harmed.", "Nos preocupamos cuando algo valioso puede ser dañado."),
     visual: "equation",
-    visualItems: [
-      { title: "Something of value", text: "Data, money, identity, reputation, infrastructure." },
-      { title: "Risk of harm", text: "A plausible path to loss, misuse, disruption, or damage." },
-      { title: "Cybersecurity concern", text: "A reason to prevent, detect, respond, or recover." }
+    items: [
+      item(tx("Value", "Valor"), tx("Data, money, identity, infrastructure.", "Datos, dinero, identidad, infraestructura.")),
+      item(tx("Risk", "Riesgo"), tx("A plausible path to harm.", "Un camino posible al daño.")),
+      item(tx("Concern", "Preocupación"), tx("A reason to protect.", "Una razón para proteger."))
     ],
     points: [
-      "The source slide says: we worry about security when we have something of value.",
-      "There must also be a risk that the value could be harmed.",
-      "This value/risk frame will organize the rest of the lecture."
+      tx("Security is not automatic; it is motivated by value.", "La seguridad no es automática; la motiva el valor."),
+      tx("Risk makes the value vulnerable.", "El riesgo vuelve vulnerable ese valor."),
+      tx("Protection should match the kind of harm.", "La protección debe corresponder al tipo de daño.")
     ]
   },
   {
-    source: "15",
-    section: "Motivation",
-    title: "Who is safe?",
-    subtitle: "Data breaches show that exposure is widespread and constantly changing.",
-    visual: "pulse",
-    visualLabel: "BREACHES",
-    visualSub: "every dot is a reminder that security failures scale",
+    section: tx("Motivation", "Motivación"),
+    title: tx("Who is safe?", "¿Quién está a salvo?"),
+    subtitle: tx("Breach data shows that exposure is widespread.", "Los datos de brechas muestran que la exposición es amplia."),
+    visual: "dots",
+    layout: "full",
     points: [
-      "The source deck links to Information Is Beautiful's visualization of major data breaches.",
-      "Use this slide to make the problem visible at societal scale.",
-      "Ask students what patterns they notice: targets, data types, frequency, and impact."
-    ],
-    activity: "Prompt: who is actually safe?"
+      tx("Each dot represents a possible large-scale failure.", "Cada punto representa una posible falla a gran escala."),
+      tx("Ask students what patterns they notice.", "Pregunta a los estudiantes qué patrones observan."),
+      tx("Targets, data types, frequency, and impact all matter.", "Importan los objetivos, tipos de datos, frecuencia e impacto.")
+    ]
   },
   {
-    source: "16",
-    section: "Motivation",
-    title: "Individuals store sensitive data online",
-    subtitle: "If stolen, criminals can profit from it.",
+    section: tx("Motivation", "Motivación"),
+    title: tx("People store sensitive data online", "Las personas guardan datos sensibles en línea"),
+    subtitle: tx("If stolen, criminals can profit from it.", "Si se roban, los criminales pueden obtener ganancias."),
     visual: "cards",
-    visualItems: [
-      { title: "Identity", text: "Names, IDs, credentials, contact information." },
-      { title: "Financial data", text: "Cards, bank accounts, transaction history." },
-      { title: "Private life", text: "Messages, photos, health, location, behavior." }
+    items: [
+      item(tx("Identity", "Identidad"), tx("Names, IDs, credentials.", "Nombres, IDs, credenciales.")),
+      item(tx("Money", "Dinero"), tx("Cards and bank data.", "Tarjetas y datos bancarios.")),
+      item(tx("Private life", "Vida privada"), tx("Messages, health, location.", "Mensajes, salud, ubicación."))
     ],
     points: [
-      "Cybersecurity matters because individuals keep sensitive data online.",
-      "Stolen data can be monetized.",
-      "The harm is not only technical; it affects people."
+      tx("Sensitive data is valuable.", "Los datos sensibles tienen valor."),
+      tx("Criminals can convert data into money.", "Los criminales pueden convertir datos en dinero."),
+      tx("The harm affects real people.", "El daño afecta a personas reales.")
     ]
   },
   {
-    source: "17",
-    section: "Motivation",
-    title: "Black market values turn data into incentive",
-    subtitle: "Attackers often act because stolen data has exchange value.",
+    section: tx("Motivation", "Motivación"),
+    title: tx("Black market values create incentive", "El mercado negro crea incentivos"),
+    subtitle: tx("Data has value because it can be reused, sold, or abused.", "Los datos tienen valor porque pueden reutilizarse, venderse o abusarse."),
+    visual: "flow",
+    items: [
+      item(tx("Data", "Datos"), tx("Stolen asset.", "Activo robado.")),
+      item(tx("Access", "Acceso"), tx("Credentials or sessions.", "Credenciales o sesiones.")),
+      item(tx("Fraud", "Fraude"), tx("Abuse at scale.", "Abuso a escala.")),
+      item(tx("Money", "Dinero"), tx("Profit motive.", "Motivo económico.")),
+      item(tx("Repeat", "Repetir"), tx("Attackers try again.", "Los atacantes repiten."))
+    ],
+    points: [
+      tx("Attackers often have economic motivation.", "Los atacantes suelen tener motivación económica."),
+      tx("Stolen data can become access.", "Los datos robados pueden convertirse en acceso."),
+      tx("Access can become fraud or disruption.", "El acceso puede convertirse en fraude o interrupción.")
+    ]
+  },
+  {
+    section: tx("Motivation", "Motivación"),
+    title: tx("Cyber risk reaches infrastructure", "El riesgo cibernético llega a la infraestructura"),
+    subtitle: tx("Organizations and societies depend on connected systems.", "Organizaciones y sociedades dependen de sistemas conectados."),
+    visual: "flow",
+    items: [
+      item(tx("Business", "Empresa"), tx("Proprietary data.", "Datos propietarios.")),
+      item(tx("Government", "Gobierno"), tx("Political impact.", "Impacto político.")),
+      item(tx("Smart grid", "Red eléctrica"), tx("Cyber control.", "Control cibernético.")),
+      item(tx("Community", "Comunidad"), tx("Shared dependence.", "Dependencia compartida.")),
+      item(tx("Society", "Sociedad"), tx("Internet reliance.", "Dependencia de internet."))
+    ],
+    points: [
+      tx("Business and government information can be exposed.", "La información empresarial y gubernamental puede exponerse."),
+      tx("Smart grids rely on cyber systems.", "Las redes inteligentes dependen de sistemas cibernéticos."),
+      tx("Cybersecurity becomes a societal issue.", "La ciberseguridad se vuelve un asunto social.")
+    ]
+  },
+  {
+    section: tx("Risk", "Riesgo"),
+    title: tx("Cyber assets at risk", "Activos cibernéticos en riesgo"),
+    subtitle: tx("Risk analysis needs a security mindset.", "El análisis de riesgo necesita mentalidad de seguridad."),
+    visual: "flow",
+    items: [
+      item(tx("Asset", "Activo"), tx("What matters?", "¿Qué importa?")),
+      item(tx("Risk", "Riesgo"), tx("How can it be harmed?", "¿Cómo puede dañarse?")),
+      item(tx("Mindset", "Mentalidad"), tx("How do we reason?", "¿Cómo razonamos?")),
+      item(tx("Threat", "Amenaza"), tx("Where from?", "¿De dónde viene?")),
+      item(tx("Attack", "Ataque"), tx("How does it happen?", "¿Cómo ocurre?"))
+    ],
+    points: [
+      tx("Online information and systems can be assets.", "La información y los sistemas en línea pueden ser activos."),
+      tx("We need to understand risk before choosing controls.", "Necesitamos entender el riesgo antes de elegir controles."),
+      tx("Threats, vulnerabilities, and attacks are the next concepts.", "Amenazas, vulnerabilidades y ataques son los siguientes conceptos.")
+    ]
+  },
+  {
+    section: tx("Risk", "Riesgo"),
+    title: tx("Important questions", "Preguntas importantes"),
+    subtitle: tx("Good analysis begins before the control.", "Un buen análisis empieza antes del control."),
+    visual: "questions",
+    items: [
+      item(tx("What is valuable?", "¿Qué tiene valor?"), tx("Asset.", "Activo.")),
+      item(tx("Where are threats?", "¿Dónde están las amenazas?"), tx("Source.", "Fuente.")),
+      item(tx("What kind of risk?", "¿Qué tipo de riesgo?"), tx("Harm.", "Daño.")),
+      item(tx("Who is the threat?", "¿Quién amenaza?"), tx("Actor.", "Actor.")),
+      item(tx("What can we do?", "¿Qué podemos hacer?"), tx("Measure.", "Medida."))
+    ],
+    points: [
+      tx("Name the value.", "Nombra el valor."),
+      tx("Name the source of harm.", "Nombra la fuente del daño."),
+      tx("Name the possible measure.", "Nombra la posible medida.")
+    ]
+  },
+  {
+    section: tx("Transition", "Transición"),
+    title: tx("From questions to an attack model", "De preguntas a un modelo de ataque"),
+    subtitle: tx("Connect actor, weakness, action, and consequence.", "Conecta actor, debilidad, acción y consecuencia."),
+    visual: "flow",
+    items: [
+      item(tx("Actor", "Actor"), tx("Who?", "¿Quién?")),
+      item(tx("Weakness", "Debilidad"), tx("What can be used?", "¿Qué puede usarse?")),
+      item(tx("Action", "Acción"), tx("How?", "¿Cómo?")),
+      item(tx("Breach", "Brecha"), tx("What fails?", "¿Qué falla?")),
+      item(tx("Impact", "Impacto"), tx("Who is harmed?", "¿Quién resulta dañado?"))
+    ],
+    points: [
+      tx("This is the bridge into vulnerabilities and attacks.", "Este es el puente hacia vulnerabilidades y ataques."),
+      tx("A breach is not magic; it has a path.", "Una brecha no es magia; tiene un camino."),
+      tx("Students should learn to reconstruct that path.", "Los estudiantes deben aprender a reconstruir ese camino.")
+    ]
+  },
+  {
+    section: tx("Threat model", "Modelo de amenaza"),
+    title: tx("Threat actors exploit vulnerabilities", "Los actores explotan vulnerabilidades"),
+    subtitle: tx("Attacks can lead to compromise or breach.", "Los ataques pueden llevar a compromiso o brecha."),
+    visual: "flow",
+    items: [
+      item(tx("Threat actor", "Actor"), tx("Source of harm.", "Fuente de daño.")),
+      item(tx("Vulnerability", "Vulnerabilidad"), tx("Weakness.", "Debilidad.")),
+      item(tx("Attack", "Ataque"), tx("Exploitation.", "Explotación.")),
+      item(tx("Compromise", "Compromiso"), tx("Loss of assurance.", "Pérdida de confianza.")),
+      item(tx("Breach", "Brecha"), tx("Security failure.", "Falla de seguridad."))
+    ],
+    points: [
+      tx("Actors exploit weaknesses.", "Los actores explotan debilidades."),
+      tx("Attacks produce compromise.", "Los ataques producen compromiso."),
+      tx("Vulnerabilities can exist in software, networks, and humans.", "Las vulnerabilidades pueden existir en software, redes y humanos.")
+    ]
+  },
+  {
+    section: tx("Threat model", "Modelo de amenaza"),
+    title: tx("Threat actors have motives", "Los actores tienen motivos"),
+    subtitle: tx("Different actors want different outcomes.", "Distintos actores buscan distintos resultados."),
+    visual: "actors",
+    items: [
+      item(tx("Cybercriminals", "Cibercriminales"), tx("Financial gain.", "Ganancia económica.")),
+      item(tx("Hacktivists", "Hacktivistas"), tx("Cause or protest.", "Causa o protesta.")),
+      item(tx("Nation-states", "Estados nación"), tx("Espionage or advantage.", "Espionaje o ventaja."))
+    ],
+    points: [
+      tx("Cybercriminals often want profit.", "Los cibercriminales suelen buscar ganancia."),
+      tx("Hacktivists act from political or social motives.", "Los hacktivistas actúan por motivos políticos o sociales."),
+      tx("Nation-states may seek espionage or strategic advantage.", "Los estados nación pueden buscar espionaje o ventaja estratégica.")
+    ]
+  },
+  {
+    section: tx("Threat model", "Modelo de amenaza"),
+    title: tx("Vulnerabilities never disappear completely", "Las vulnerabilidades nunca desaparecen por completo"),
+    subtitle: tx("Software, networks, and humans all create weaknesses.", "Software, redes y humanos crean debilidades."),
+    visual: "flow",
+    items: [
+      item(tx("Threat", "Amenaza"), tx("Potential harm.", "Daño potencial.")),
+      item(tx("Vulnerability", "Vulnerabilidad"), tx("Weak point.", "Punto débil.")),
+      item(tx("Exploit", "Explotar"), tx("Use the weakness.", "Usar la debilidad.")),
+      item(tx("Attack", "Ataque"), tx("Action occurs.", "Ocurre la acción.")),
+      item(tx("Breach", "Brecha"), tx("Damage appears.", "Aparece el daño."))
+    ],
+    points: [
+      tx("It is hard to remove all vulnerabilities.", "Es difícil eliminar todas las vulnerabilidades."),
+      tx("Humans can be the weak link.", "Los humanos pueden ser el eslabón débil."),
+      tx("Security reduces risk; it rarely removes all risk.", "La seguridad reduce el riesgo; rara vez elimina todo el riesgo.")
+    ]
+  },
+  {
+    section: tx("Threat model", "Modelo de amenaza"),
+    title: tx("A vulnerability is not yet an attack", "Una vulnerabilidad aún no es un ataque"),
+    subtitle: tx("It is a condition that makes an attack possible.", "Es una condición que hace posible un ataque."),
     visual: "cards",
-    visualItems: [
-      { title: "Credentials", text: "Access can be sold or reused." },
-      { title: "Payment data", text: "Financial information can be abused directly." },
-      { title: "Profiles", text: "Personal details support fraud and targeting." }
+    items: [
+      item(tx("Unpatched code", "Código sin parche"), tx("Technical weakness.", "Debilidad técnica.")),
+      item(tx("Weak password", "Contraseña débil"), tx("Human or policy weakness.", "Debilidad humana o de política.")),
+      item(tx("Misconfiguration", "Mala configuración"), tx("Operational weakness.", "Debilidad operativa."))
     ],
     points: [
-      "The source slide introduces black market values.",
-      "This is where economic motivation enters the threat model.",
-      "Students should see that attackers are often rational profit seekers."
-    ],
-    notes: [
-      "No prices are invented here. Add current examples only from a source you trust."
+      tx("Do not confuse weakness with exploitation.", "No confundas debilidad con explotación."),
+      tx("The attacker still needs a path.", "El atacante aún necesita un camino."),
+      tx("Defenders can interrupt the path.", "Los defensores pueden interrumpir el camino.")
     ]
   },
   {
-    source: "18",
-    section: "Motivation",
-    title: "Cyber risk reaches organizations and infrastructure",
-    subtitle: "Business, government, smart grids, and society all depend on connected systems.",
+    section: tx("Threat model", "Modelo de amenaza"),
+    title: tx("A few hours later...", "Unas horas después..."),
+    subtitle: tx("Weakness becomes risk when someone can use it.", "La debilidad se vuelve riesgo cuando alguien puede usarla."),
     visual: "flow",
-    visualItems: [
-      { title: "Business", text: "Proprietary information can be stored online." },
-      { title: "Government", text: "Unauthorized access can be economically or politically damaging." },
-      { title: "Smart grids", text: "Control of cyber systems can affect infrastructure." },
-      { title: "Community", text: "Whoever controls the grid can affect the community." },
-      { title: "Society", text: "Modern societies rely on the internet." }
+    items: [
+      item(tx("Discover", "Descubrir"), tx("Find weakness.", "Encontrar debilidad.")),
+      item(tx("Prepare", "Preparar"), tx("Choose method.", "Elegir método.")),
+      item(tx("Execute", "Ejecutar"), tx("Try exploit.", "Intentar explotación.")),
+      item(tx("Move", "Moverse"), tx("Expand access.", "Expandir acceso.")),
+      item(tx("Impact", "Impacto"), tx("Cause harm.", "Causar daño."))
     ],
     points: [
-      "Business and government proprietary information is often stored on the internet.",
-      "Smart grids rely on cyber systems.",
-      "Societies rely on the internet, so cybersecurity becomes a public concern."
+      tx("Attackers iterate over time.", "Los atacantes iteran con el tiempo."),
+      tx("Small weaknesses can become serious.", "Debilidades pequeñas pueden volverse graves."),
+      tx("Monitoring matters before failure is obvious.", "Monitorear importa antes de que la falla sea obvia.")
     ]
   },
   {
-    source: "19",
-    section: "Risk model",
-    title: "Cyber assets at risk require a security mindset",
-    subtitle: "To understand risk, we need threats, vulnerabilities, and attacks.",
+    section: tx("Threat model", "Modelo de amenaza"),
+    title: tx("FAIL is late", "FAIL llega tarde"),
+    subtitle: tx("The visible failure is usually not the first event.", "La falla visible normalmente no es el primer evento."),
+    visual: "word",
+    word: tx("FAIL", "FALLA"),
+    wordSub: tx("a symptom, not the root cause", "un síntoma, no la causa raíz"),
+    points: [
+      tx("Work backward from failure.", "Trabaja hacia atrás desde la falla."),
+      tx("Find the earlier weakness.", "Encuentra la debilidad anterior."),
+      tx("Ask why the system allowed the path.", "Pregunta por qué el sistema permitió el camino.")
+    ]
+  },
+  {
+    section: tx("Threat model", "Modelo de amenaza"),
+    title: tx("An attack is a chain", "Un ataque es una cadena"),
+    subtitle: tx("Each link is a chance to defend.", "Cada eslabón es una oportunidad para defender."),
     visual: "flow",
-    visualItems: [
-      { title: "Online assets", text: "Information and systems we care about." },
-      { title: "Risk question", text: "How could they be harmed?" },
-      { title: "Security mindset", text: "A structured way to reason." },
-      { title: "Threats", text: "Possible sources of harm." },
-      { title: "Vulnerabilities + attacks", text: "Weaknesses and exploitation." }
+    items: [
+      item(tx("Entry", "Entrada"), tx("How in?", "¿Cómo entra?")),
+      item(tx("Privilege", "Privilegio"), tx("What access?", "¿Qué acceso?")),
+      item(tx("Movement", "Movimiento"), tx("Where next?", "¿A dónde sigue?")),
+      item(tx("Objective", "Objetivo"), tx("What for?", "¿Para qué?")),
+      item(tx("Evidence", "Evidencia"), tx("What reveals it?", "¿Qué lo revela?"))
     ],
     points: [
-      "The source asks how we understand the risk to online information and systems.",
-      "The answer begins with developing a security mindset.",
-      "The next vocabulary is threats, vulnerabilities, and attacks."
+      tx("Do not analyze attacks as isolated moments.", "No analices ataques como momentos aislados."),
+      tx("Find the chain.", "Encuentra la cadena."),
+      tx("Break the chain where possible.", "Rompe la cadena donde sea posible.")
     ]
   },
   {
-    source: "20",
-    section: "Risk model",
-    title: "Important questions define the analysis",
-    subtitle: "Before choosing controls, identify value, threat, risk, source, and measures.",
-    visual: "prompts",
-    visualItems: [
-      { title: "Value", text: "What is valuable in this context?" },
-      { title: "Threat source", text: "Where do threats come from?" },
-      { title: "Risk", text: "What kind of harm are we talking about?" },
-      { title: "Actor", text: "Who is the source of the threat?" },
-      { title: "Measures", text: "What security measures can we take?" }
-    ],
-    points: [
-      "What is of value in the context of cybersecurity?",
-      "Where do the threats come from, and who is the source?",
-      "What kind of risk is present, and what security measures can we take?"
-    ]
-  },
-  {
-    source: "21",
-    section: "Transition",
-    title: "From risk questions to an attack model",
-    subtitle: "The next step is to connect actors, weaknesses, exploitation, and consequences.",
-    visual: "flow",
-    visualItems: [
-      { title: "Actor", text: "Who wants to cause harm?" },
-      { title: "Weakness", text: "What can be exploited?" },
-      { title: "Action", text: "How is the weakness used?" },
-      { title: "Breach", text: "What compromise occurs?" },
-      { title: "Impact", text: "Who is harmed, and how?" }
-    ],
-    points: [
-      "The source slide is visual-only, so this redesigned slide makes its transition explicit.",
-      "It bridges the motivation section and the vulnerability/attack section.",
-      "Use it to slow down before introducing the formal chain."
-    ]
-  },
-  {
-    source: "22",
-    section: "Threat model",
-    title: "Threat actors exploit vulnerabilities to launch attacks",
-    subtitle: "Attacks can lead to compromise or security breaches.",
-    visual: "flow",
-    visualItems: [
-      { title: "Threat actor", text: "Source of possible harm." },
-      { title: "Vulnerability", text: "Weakness in software, networks, or humans." },
-      { title: "Attack", text: "Attempt to exploit the weakness." },
-      { title: "Compromise", text: "Loss of security properties." },
-      { title: "Breach", text: "Observable security failure." }
-    ],
-    points: [
-      "Threat actors exploit vulnerabilities.",
-      "Attacks lead to compromises or security breaches.",
-      "Vulnerabilities can be found in software, networks, and humans."
-    ]
-  },
-  {
-    source: "23",
-    section: "Threat model",
-    title: "Threat actors have different motivations",
-    subtitle: "The threat source is who wants to do harm in online life.",
+    section: tx("Threat model", "Modelo de amenaza"),
+    title: tx("Consequences map to CIA", "Las consecuencias se mapean a CIA"),
+    subtitle: tx("What failed: secrecy, correctness, or access?", "¿Qué falló: secreto, corrección o acceso?"),
     visual: "cards",
-    visualItems: [
-      { title: "Cybercriminals", text: "Want to profit from sensitive data for financial gain." },
-      { title: "Hacktivists", text: "Act against something you are or something you do." },
-      { title: "Nation-states", text: "Seek political advantage or espionage." }
+    items: [
+      item(tx("Data exposure", "Exposición de datos"), tx("Confidentiality.", "Confidencialidad.")),
+      item(tx("Data change", "Cambio de datos"), tx("Integrity.", "Integridad.")),
+      item(tx("Service disruption", "Interrupción"), tx("Availability.", "Disponibilidad."))
     ],
     points: [
-      "Cybercriminals are often financially motivated.",
-      "Hacktivists are often politically or socially motivated.",
-      "Nation-states may act for advantage, intelligence, or espionage."
+      tx("Consequences make the technical failure meaningful.", "Las consecuencias dan sentido a la falla técnica."),
+      tx("CIA gives language to classify harm.", "CIA da lenguaje para clasificar el daño."),
+      tx("This prepares the case discussion.", "Esto prepara el caso de discusión.")
     ]
   },
   {
-    source: "24",
-    section: "Threat model",
-    title: "Vulnerabilities are difficult to eliminate completely",
-    subtitle: "Software, networks, and users all create possible weaknesses.",
-    visual: "flow",
-    visualItems: [
-      { title: "Threats", text: "Start with who or what could harm us." },
-      { title: "Vulnerabilities", text: "Weaknesses make harm possible." },
-      { title: "Exploitation", text: "Attackers use the weakness." },
-      { title: "Attack", text: "The exploitation attempt occurs." },
-      { title: "Breach", text: "Compromise becomes visible." }
-    ],
-    points: [
-      "It is very hard to get rid of vulnerabilities completely.",
-      "Vulnerabilities can exist in software, computer systems, networks, and users.",
-      "The source slide emphasizes that humans are often the weak link."
-    ]
-  },
-  {
-    source: "25",
-    section: "Threat model",
-    title: "Vulnerabilities and attacks: before exploitation",
-    subtitle: "A vulnerability is a condition that makes an attack possible.",
+    section: tx("Case", "Caso"),
+    title: tx("Real-world example: Target", "Ejemplo real: Target"),
+    subtitle: tx("Use the case to practice the vocabulary, not just to tell a story.", "Usa el caso para practicar vocabulario, no solo para contar una historia."),
     visual: "cards",
-    visualItems: [
-      { title: "Unpatched code", text: "A technical weakness." },
-      { title: "Weak password", text: "A human or policy weakness." },
-      { title: "Misconfiguration", text: "A system administration weakness." }
+    items: [
+      item(tx("Organization", "Organización"), tx("Large retailer.", "Gran minorista.")),
+      item(tx("Assets", "Activos"), tx("Customer data and operations.", "Datos de clientes y operaciones.")),
+      item(tx("Question", "Pregunta"), tx("What could be vulnerable?", "¿Qué podría ser vulnerable?"))
     ],
     points: [
-      "This source slide begins a sequence on vulnerabilities and attacks.",
-      "A vulnerability is not yet an attack.",
-      "The attacker still needs a path to exploit it."
+      tx("The source slide introduces Target Corporation.", "La diapositiva fuente introduce Target Corporation."),
+      tx("Start by identifying assets.", "Empieza identificando activos."),
+      tx("Then ask what could go wrong.", "Después pregunta qué podría salir mal.")
     ]
   },
   {
-    source: "26",
-    section: "Threat model",
-    title: "A few hours later...",
-    subtitle: "Small weaknesses can become serious when attackers have time and opportunity.",
+    section: tx("Case", "Caso"),
+    title: tx("Analyze the case", "Analiza el caso"),
+    subtitle: tx("Use the same chain every time.", "Usa siempre la misma cadena."),
     visual: "flow",
-    visualItems: [
-      { title: "Discovery", text: "The weakness is found." },
-      { title: "Preparation", text: "The attacker chooses a method." },
-      { title: "Execution", text: "The exploit is attempted." },
-      { title: "Movement", text: "Access may expand." },
-      { title: "Impact", text: "The system owner notices harm." }
+    items: [
+      item(tx("Asset", "Activo"), tx("What matters?", "¿Qué importa?")),
+      item(tx("Actor", "Actor"), tx("Who benefits?", "¿Quién se beneficia?")),
+      item(tx("Weakness", "Debilidad"), tx("What fails?", "¿Qué falla?")),
+      item(tx("Attack", "Ataque"), tx("How?", "¿Cómo?")),
+      item(tx("Breach", "Brecha"), tx("What property is lost?", "¿Qué propiedad se pierde?"))
     ],
     points: [
-      "The source phrase 'a few hours later' marks movement from vulnerability to consequence.",
-      "Time matters because attackers can iterate.",
-      "This is a good place to ask students what defenders should monitor."
+      tx("A real incident should be mapped to concepts.", "Un incidente real debe mapearse a conceptos."),
+      tx("Do not jump straight to conclusions.", "No saltes directo a conclusiones."),
+      tx("Make students name each part.", "Haz que los estudiantes nombren cada parte.")
     ]
   },
   {
-    source: "27",
-    section: "Threat model",
-    title: "FAIL is not the beginning of the story",
-    subtitle: "A visible failure usually follows earlier missed signals.",
-    visual: "big",
-    visualLabel: "FAIL",
-    visualSub: "late symptom, not first cause",
-    points: [
-      "The source slide uses FAIL as the visible outcome.",
-      "Teach students to work backward from failure to vulnerability and threat actor.",
-      "A security mindset asks what conditions made the failure possible."
-    ]
-  },
-  {
-    source: "28",
-    section: "Threat model",
-    title: "An attack path is a chain, not a single moment",
-    subtitle: "Security analysis should identify each link in the chain.",
-    visual: "flow",
-    visualItems: [
-      { title: "Entry", text: "How did the attacker get in?" },
-      { title: "Privilege", text: "What could they access?" },
-      { title: "Movement", text: "Where could they go next?" },
-      { title: "Objective", text: "What did they want?" },
-      { title: "Evidence", text: "What would reveal the path?" }
-    ],
-    points: [
-      "The source slide continues the vulnerability/attack visual sequence.",
-      "A code-based chain makes the idea explicit.",
-      "Students should practice naming each stage."
-    ]
-  },
-  {
-    source: "29",
-    section: "Threat model",
-    title: "Consequences connect the technical and the human",
-    subtitle: "Compromise matters because it creates harm.",
-    visual: "cards",
-    visualItems: [
-      { title: "Data exposure", text: "Confidential information may be disclosed." },
-      { title: "Data change", text: "Integrity of records may be damaged." },
-      { title: "Service disruption", text: "Availability may be lost." }
-    ],
-    points: [
-      "The source sequence ends by reinforcing that attacks produce consequences.",
-      "These consequences map naturally to CIA.",
-      "This prepares the transition to the real-world example."
-    ]
-  },
-  {
-    source: "30",
-    section: "Case discussion",
-    title: "A real-world example: Target Corporation",
-    subtitle: "Target is introduced as a large United States department store retailer.",
-    visual: "cards",
-    visualItems: [
-      { title: "Organization", text: "A large retailer with many systems and relationships." },
-      { title: "Assets", text: "Customer data, payment processes, operations, reputation." },
-      { title: "Question", text: "What could make those assets vulnerable?" }
-    ],
-    points: [
-      "The source slide states that Target Corporation is the eighth-largest department store retailer in the United States.",
-      "Use the case as a discussion scaffold rather than a memorized story.",
-      "Ask students to identify assets before talking about attacks."
-    ],
-    notes: [
-      "Add verified case facts later if you want a historically detailed version."
-    ]
-  },
-  {
-    source: "31",
-    section: "Case discussion",
-    title: "Analyze the case through the vocabulary",
-    subtitle: "Do not jump from company name directly to conclusion.",
-    visual: "flow",
-    visualItems: [
-      { title: "Asset", text: "What matters?" },
-      { title: "Threat actor", text: "Who might benefit?" },
-      { title: "Vulnerability", text: "What weakness exists?" },
-      { title: "Attack", text: "How is it exploited?" },
-      { title: "Breach", text: "What security property is lost?" }
-    ],
-    points: [
-      "The source slide is visual, so this version turns it into an analysis procedure.",
-      "The same five-part chain from earlier now becomes a case method.",
-      "Students should practice mapping real incidents to concepts."
-    ]
-  },
-  {
-    source: "32",
-    section: "Case discussion",
-    title: "A case should end with security requirements",
-    subtitle: "After the attack story, ask which requirement failed.",
+    section: tx("Case", "Caso"),
+    title: tx("Which requirement failed?", "¿Qué requisito falló?"),
+    subtitle: tx("Cases become clearer when mapped to security requirements.", "Los casos son más claros cuando se mapean a requisitos."),
     visual: "matrix",
-    visualItems: [
-      { title: "Sensitive data exposed", text: "Confidentiality" },
-      { title: "Records changed", text: "Integrity" },
-      { title: "Systems unavailable", text: "Availability" },
-      { title: "Wrong person gets access", text: "Authorization" }
+    items: [
+      item(tx("Sensitive data exposed", "Datos sensibles expuestos"), tx("Confidentiality", "Confidencialidad")),
+      item(tx("Records changed", "Registros cambiados"), tx("Integrity", "Integridad")),
+      item(tx("Systems unavailable", "Sistemas no disponibles"), tx("Availability", "Disponibilidad")),
+      item(tx("Wrong access granted", "Acceso incorrecto"), tx("Authorization", "Autorización"))
     ],
     points: [
-      "The source slide continues the real-world example.",
-      "This redesigned slide connects the case to requirements.",
-      "Students should not stop at 'there was a breach'; they should name what property failed."
+      tx("A breach is not the final explanation.", "Una brecha no es la explicación final."),
+      tx("Ask what property failed.", "Pregunta qué propiedad falló."),
+      tx("This builds precision.", "Esto construye precisión.")
     ]
   },
   {
-    source: "33",
-    section: "Concept map",
-    title: "Revisiting threats, vulnerabilities, attacks, and risk",
-    subtitle: "The relationship of key concepts becomes the central map of the lecture.",
+    section: tx("Concept map", "Mapa conceptual"),
+    title: tx("The key relationships", "Las relaciones clave"),
+    subtitle: tx("Value, threat, vulnerability, attack, and risk belong together.", "Valor, amenaza, vulnerabilidad, ataque y riesgo van juntos."),
     visual: "flow",
-    visualItems: [
-      { title: "Value", text: "Assets that matter." },
-      { title: "Threat", text: "Possible source of harm." },
-      { title: "Vulnerability", text: "Weakness that can be used." },
-      { title: "Attack", text: "Action against the system." },
-      { title: "Risk", text: "Potential harm to the asset." }
+    items: [
+      item(tx("Value", "Valor"), tx("What matters.", "Lo que importa.")),
+      item(tx("Threat", "Amenaza"), tx("Possible harm.", "Daño posible.")),
+      item(tx("Vulnerability", "Vulnerabilidad"), tx("Weakness.", "Debilidad.")),
+      item(tx("Attack", "Ataque"), tx("Action.", "Acción.")),
+      item(tx("Risk", "Riesgo"), tx("Potential loss.", "Pérdida potencial."))
     ],
     points: [
-      "The source slide explicitly revisits the relationship of key cybersecurity concepts.",
-      "This slide should feel like the summary map of the first half.",
-      "Use it to check whether students can define each term."
+      tx("This is the summary map of the first half.", "Este es el mapa resumen de la primera mitad."),
+      tx("Each word has a role.", "Cada palabra tiene un papel."),
+      tx("Students should be able to explain the arrows.", "Los estudiantes deben poder explicar las flechas.")
     ]
   },
   {
-    source: "34",
-    section: "Security requirements",
-    title: "What should we do in cybersecurity?",
-    subtitle: "Make threats less profitable, reduce vulnerabilities, and meet CIA requirements.",
-    visual: "cia",
-    visualItems: [
-      { title: "Confidentiality", position: "top" },
-      { title: "Integrity", position: "left" },
-      { title: "Availability", position: "right" }
+    section: tx("Requirements", "Requisitos"),
+    title: tx("What should we do?", "¿Qué debemos hacer?"),
+    subtitle: tx("Reduce vulnerabilities and meet core security requirements.", "Reducir vulnerabilidades y cumplir requisitos básicos."),
+    visual: "triangle",
+    items: [
+      item(tx("Confidentiality", "Confidencialidad"), "", "top"),
+      item(tx("Integrity", "Integridad"), "", "left"),
+      item(tx("Availability", "Disponibilidad"), "", "right")
     ],
     points: [
-      "Make threats go away when possible, because crime should not pay.",
-      "Reduce vulnerabilities.",
-      "Strive to meet confidentiality, integrity, and availability."
-    ],
-    activity: "CIA is not the intelligence agency"
+      tx("Make threats less profitable.", "Hacer que las amenazas sean menos rentables."),
+      tx("Reduce vulnerabilities.", "Reducir vulnerabilidades."),
+      tx("Protect confidentiality, integrity, and availability.", "Proteger confidencialidad, integridad y disponibilidad.")
+    ]
   },
   {
-    source: "35",
-    section: "Security requirements",
-    title: "CIA is essential, but it is not everything",
-    subtitle: "Authentication, authorization, and non-repudiation extend the basic triad.",
+    section: tx("Requirements", "Requisitos"),
+    title: tx("CIA is not everything", "CIA no lo es todo"),
+    subtitle: tx("Authentication, authorization, and non-repudiation also matter.", "Autenticación, autorización y no repudio también importan."),
     visual: "cards",
-    visualItems: [
-      { title: "Authentication", text: "Verifying identity." },
-      { title: "Authorization", text: "Determining access levels." },
-      { title: "Non-repudiation", text: "Assurance that someone cannot deny validity." }
+    items: [
+      item(tx("Authentication", "Autenticación"), tx("Who are you?", "¿Quién eres?")),
+      item(tx("Authorization", "Autorización"), tx("What can you access?", "¿A qué puedes acceder?")),
+      item(tx("Non-repudiation", "No repudio"), tx("You cannot deny validity.", "No puedes negar validez."))
     ],
     points: [
-      "The source slide jokes about CIAAAN as additional components added to CIA.",
-      "Authentication gives individuals access based on identity.",
-      "Authorization determines access levels for files, services, programs, data, and features."
+      tx("Authentication verifies identity.", "La autenticación verifica identidad."),
+      tx("Authorization determines access levels.", "La autorización determina niveles de acceso."),
+      tx("Non-repudiation prevents denial of valid actions.", "El no repudio evita negar acciones válidas.")
     ]
   },
   {
-    source: "36",
-    section: "Security requirements",
-    title: "Sometimes threats are easier to think about than requirements",
-    subtitle: "Translate common threats into the requirement they violate.",
+    section: tx("Requirements", "Requisitos"),
+    title: tx("Threats map to requirements", "Las amenazas se mapean a requisitos"),
+    subtitle: tx("Sometimes threat language is easier than requirement language.", "A veces el lenguaje de amenazas es más fácil que el de requisitos."),
     visual: "matrix",
-    visualItems: [
-      { title: "Information disclosure", text: "Confidentiality" },
-      { title: "Denial-of-service", text: "Availability" },
-      { title: "Tampering with information", text: "Integrity" },
-      { title: "Unauthorized access", text: "Authorization" },
-      { title: "Phishing", text: "Authentication" }
+    items: [
+      item(tx("Information disclosure", "Divulgación de información"), tx("Confidentiality", "Confidencialidad")),
+      item(tx("Denial of service", "Denegación de servicio"), tx("Availability", "Disponibilidad")),
+      item(tx("Tampering", "Manipulación"), tx("Integrity", "Integridad")),
+      item(tx("Unauthorized access", "Acceso no autorizado"), tx("Authorization", "Autorización")),
+      item(tx("Phishing", "Phishing"), tx("Authentication", "Autenticación"))
     ],
     points: [
-      "It can be easier to start in terms of threats.",
-      "Information disclosure maps to confidentiality.",
-      "Denial-of-service maps to availability; tampering maps to integrity."
+      tx("Start with the threat if that is clearer.", "Empieza con la amenaza si eso es más claro."),
+      tx("Then translate it into the security requirement.", "Luego tradúcela al requisito de seguridad."),
+      tx("This is a useful exam and case-analysis skill.", "Esto sirve para exámenes y análisis de casos.")
     ]
   },
   {
-    source: "37",
-    section: "Security requirements",
-    title: "Phishing and spoofing are related, but not the same",
-    subtitle: "Phishing retrieves sensitive information; spoofing helps deliver deception.",
-    visual: "balance",
-    visualItems: [
-      { title: "Phishing", text: "Tricks you into giving sensitive financial information to a cyber crook." },
-      { title: "Spoofing", text: "Impersonates or falsifies a source and may deliver malware." }
+    section: tx("Requirements", "Requisitos"),
+    title: tx("Phishing vs spoofing", "Phishing vs spoofing"),
+    subtitle: tx("One retrieves information; the other helps deliver deception.", "Uno obtiene información; el otro ayuda a entregar el engaño."),
+    visual: "compare",
+    items: [
+      item(tx("Phishing", "Phishing"), tx("Tricks you into giving sensitive information.", "Te engaña para entregar información sensible.")),
+      item(tx("Spoofing", "Spoofing"), tx("Pretends to be a trusted source.", "Finge ser una fuente confiable."))
     ],
     points: [
-      "Spoofing can download malware to your computer or network.",
-      "Phishing tricks users into giving up sensitive financial information.",
-      "The source summary: phishing is a method of retrieval, while spoofing is a means of delivery."
+      tx("Phishing is a retrieval method.", "Phishing es un método de obtención."),
+      tx("Spoofing is a delivery mechanism.", "Spoofing es un mecanismo de entrega."),
+      tx("They often work together.", "A menudo trabajan juntos.")
     ]
   },
   {
-    source: "38",
-    section: "CIA deep dive",
-    title: "Confidentiality means access on a need-to-know basis",
-    subtitle: "Access control specifies who can access what.",
+    section: tx("CIA", "CIA"),
+    title: tx("Confidentiality", "Confidencialidad"),
+    subtitle: tx("Access is based on need to know.", "El acceso se basa en necesidad de saber."),
     visual: "flow",
-    visualItems: [
-      { title: "Identity", text: "Who is the user?" },
-      { title: "Authentication", text: "Can we verify the identity?" },
-      { title: "Access control", text: "Who can access what?" },
-      { title: "Need to know", text: "Access is limited by purpose." },
-      { title: "Confidentiality", text: "Unauthorized users cannot read information." }
+    items: [
+      item(tx("Identity", "Identidad"), tx("Who claims access?", "¿Quién pide acceso?")),
+      item(tx("Authentication", "Autenticación"), tx("Verify identity.", "Verificar identidad.")),
+      item(tx("Access control", "Control de acceso"), tx("Who can access what?", "¿Quién accede a qué?")),
+      item(tx("Need to know", "Necesidad de saber"), tx("Limit access.", "Limitar acceso.")),
+      item(tx("Confidentiality", "Confidencialidad"), tx("No unauthorized reading.", "Sin lectura no autorizada."))
     ],
     points: [
-      "Confidentiality is about unauthorized users not reading information.",
-      "We need identity and authentication to know who is requesting access.",
-      "Confidentiality can be difficult to ensure but easiest to assess in a binary success/fail sense."
+      tx("Confidentiality prevents unauthorized reading.", "La confidencialidad evita lectura no autorizada."),
+      tx("Access control specifies who can access what.", "El control de acceso especifica quién accede a qué."),
+      tx("It is often assessed as yes/no.", "A menudo se evalúa como sí/no.")
     ]
   },
   {
-    source: "39",
-    section: "CIA deep dive",
-    title: "Integrity is about unauthorized modification",
-    subtitle: "Integrity is harder to measure because it is contextual and often non-binary.",
+    section: tx("CIA", "CIA"),
+    title: tx("Integrity", "Integridad"),
+    subtitle: tx("Integrity is about unauthorized modification.", "La integridad trata de modificaciones no autorizadas."),
     visual: "cards",
-    visualItems: [
-      { title: "Confidentiality", text: "Concerned with access to assets." },
-      { title: "Integrity", text: "Concerned with unauthorized modification of assets." },
-      { title: "Context", text: "Means different things for a bank account or a medical record." }
+    items: [
+      item(tx("Access", "Acceso"), tx("Confidentiality asks who can see.", "Confidencialidad pregunta quién puede ver.")),
+      item(tx("Modification", "Modificación"), tx("Integrity asks who can change.", "Integridad pregunta quién puede cambiar.")),
+      item(tx("Context", "Contexto"), tx("Bank account and medical record differ.", "Cuenta bancaria y expediente médico difieren."))
     ],
     points: [
-      "Integrity is concerned with unauthorized modification of assets.",
-      "It is more difficult to measure than confidentiality.",
-      "Integrity has degrees and depends on context."
+      tx("Integrity is not simply binary.", "La integridad no es simplemente binaria."),
+      tx("It has degrees.", "Tiene grados."),
+      tx("It depends on context.", "Depende del contexto.")
     ]
   },
   {
-    source: "40",
-    section: "CIA deep dive",
-    title: "Availability is complex and context-dependent",
-    subtitle: "Availability can refer to usefulness, capacity, pace, completion time, and more.",
+    section: tx("CIA", "CIA"),
+    title: tx("Availability is contextual", "La disponibilidad es contextual"),
+    subtitle: tx("Available for what, for whom, and within what time?", "¿Disponible para qué, para quién y en qué tiempo?"),
     visual: "cards",
-    visualItems: [
-      { title: "Useful", text: "The asset provides intended value." },
-      { title: "Capacity", text: "There are enough resources." },
-      { title: "Pace", text: "Progress occurs at an acceptable rate." },
-      { title: "Completion", text: "Work finishes within an acceptable period." }
+    items: [
+      item(tx("Useful", "Útil"), tx("The asset serves its purpose.", "El activo cumple su propósito.")),
+      item(tx("Capacity", "Capacidad"), tx("Enough resources exist.", "Hay recursos suficientes.")),
+      item(tx("Pace", "Ritmo"), tx("Progress is acceptable.", "El progreso es aceptable.")),
+      item(tx("Completion", "Finalización"), tx("Finished in time.", "Termina a tiempo."))
     ],
     points: [
-      "The source slide cites Pfleeger and Pfleeger.",
-      "Availability is complex and context-dependent.",
-      "It could mean any subset of usefulness, sufficient capacity, proper pace, and acceptable completion time."
+      tx("Availability is more than uptime.", "La disponibilidad es más que tiempo activo."),
+      tx("It may involve capacity, pace, and usefulness.", "Puede involucrar capacidad, ritmo y utilidad."),
+      tx("It depends on the service context.", "Depende del contexto del servicio.")
     ]
   },
   {
-    source: "41",
-    section: "CIA deep dive",
-    title: "Availability has operational properties",
-    subtitle: "A resource is available when authorized users can use it as intended.",
+    section: tx("CIA", "CIA"),
+    title: tx("Availability has operational properties", "La disponibilidad tiene propiedades operativas"),
+    subtitle: tx("The resource must be usable in the intended way.", "El recurso debe poder usarse de la forma prevista."),
     visual: "cards",
-    visualItems: [
-      { title: "Timely response", text: "Requests receive responses in time." },
-      { title: "Fair allocation", text: "No starvation of resources." },
-      { title: "Fault tolerance", text: "No total breakdown." },
-      { title: "Usability", text: "Easy to use in the intended way." },
-      { title: "Concurrency", text: "Controls deadlock and shared access." }
+    items: [
+      item(tx("Timely response", "Respuesta oportuna"), tx("Requests do not wait forever.", "Las solicitudes no esperan para siempre.")),
+      item(tx("Fair allocation", "Asignación justa"), tx("No starvation.", "Sin inanición de recursos.")),
+      item(tx("Fault tolerance", "Tolerancia a fallas"), tx("No total breakdown.", "Sin colapso total.")),
+      item(tx("Usability", "Usabilidad"), tx("Intended use remains possible.", "El uso previsto sigue siendo posible.")),
+      item(tx("Concurrency", "Concurrencia"), tx("Shared use is controlled.", "El uso compartido se controla."))
     ],
     points: [
-      "Availability includes timely request response.",
-      "It includes fair allocation of resources and fault tolerance.",
-      "It also includes usability and controlled concurrency."
+      tx("Availability includes timely response.", "La disponibilidad incluye respuesta oportuna."),
+      tx("It includes fair resource allocation.", "Incluye asignación justa de recursos."),
+      tx("It includes fault tolerance and controlled concurrency.", "Incluye tolerancia a fallas y concurrencia controlada.")
     ]
   },
   {
-    source: "42",
-    section: "CIA tradeoffs",
-    title: "Security requirements must be balanced",
-    subtitle: "Improving one security property can weaken another.",
-    visual: "balance",
-    visualItems: [
-      { title: "More confidentiality", text: "Disconnecting from the internet may reduce exposure but harms availability and updates." },
-      { title: "More integrity checking", text: "More reviews can improve integrity but reduce confidentiality and availability." }
+    section: tx("Tradeoffs", "Compensaciones"),
+    title: tx("CIA must be balanced", "CIA debe balancearse"),
+    subtitle: tx("Improving one property can weaken another.", "Mejorar una propiedad puede debilitar otra."),
+    visual: "compare",
+    items: [
+      item(tx("More confidentiality", "Más confidencialidad"), tx("Disconnecting can reduce exposure but hurt availability.", "Desconectar reduce exposición pero daña disponibilidad.")),
+      item(tx("More integrity checks", "Más revisiones de integridad"), tx("Verification can slow access and expose data.", "Verificar puede frenar acceso y exponer datos."))
     ],
     points: [
-      "Example 1: disconnecting a computer from the internet can increase confidentiality.",
-      "Availability suffers, and integrity may suffer due to lost updates.",
-      "Example 2: extensive data checks can increase integrity but may reduce confidentiality and availability."
+      tx("Disconnecting from the internet can increase confidentiality.", "Desconectar de internet puede aumentar confidencialidad."),
+      tx("But availability and updates may suffer.", "Pero la disponibilidad y las actualizaciones pueden sufrir."),
+      tx("Extensive checks can improve integrity but reduce speed and privacy.", "Revisiones extensas mejoran integridad pero reducen velocidad y privacidad.")
     ]
   },
   {
-    source: "43",
-    section: "Defense strategy",
-    title: "What should the good guys do?",
-    subtitle: "Security work is a cycle: prevention, detection, response, recovery.",
+    section: tx("Defense", "Defensa"),
+    title: tx("What should the good guys do?", "¿Qué deben hacer los buenos?"),
+    subtitle: tx("Security is a cycle, not a single control.", "La seguridad es un ciclo, no un solo control."),
     visual: "loop",
-    visualItems: [
-      { title: "Prevention" },
-      { title: "Detection" },
-      { title: "Response" },
-      { title: "Recovery and remediation" }
+    items: [
+      item(tx("Prevention", "Prevención")),
+      item(tx("Detection", "Detección")),
+      item(tx("Response", "Respuesta")),
+      item(tx("Recovery", "Recuperación"))
     ],
     points: [
-      "Prevention attempts to stop harm before it happens.",
-      "Detection finds evidence that something is wrong.",
-      "Response, recovery, and remediation reduce damage and restore confidence."
-    ],
-    activity: "Policy is what; mechanism is how"
-  },
-  {
-    source: "44",
-    section: "Secure design",
-    title: "Reduce vulnerabilities with basic secure design principles",
-    subtitle: "Complexity is the enemy: economy of mechanism.",
-    visual: "principles",
-    visualItems: [
-      { title: "Economy of mechanism", text: "Keep design simple." },
-      { title: "Fail-safe defaults", text: "Default situation is lack of access." },
-      { title: "Complete mediation", text: "Check access consistently." },
-      { title: "Open design", text: "Security should not depend on secrecy of design." },
-      { title: "Least privilege", text: "Give only the access needed." },
-      { title: "Psychological acceptability", text: "Security must be usable." }
-    ],
-    points: [
-      "Complexity is the enemy.",
-      "Fail-safe defaults and least privilege reduce accidental exposure.",
-      "Psychological acceptability reminds us that users are part of the system."
+      tx("Prevention tries to stop harm.", "La prevención intenta detener el daño."),
+      tx("Detection finds evidence of harm.", "La detección encuentra evidencia de daño."),
+      tx("Response and recovery reduce impact.", "Respuesta y recuperación reducen impacto.")
     ]
   },
   {
-    source: "45",
-    section: "Summary",
-    title: "Security mindset: what students should take away",
-    subtitle: "Cybersecurity is a large problem for people, governments, companies, and society.",
-    visual: "flow",
-    visualItems: [
-      { title: "Assets", text: "What has value?" },
-      { title: "Threats", text: "Who or what could harm it?" },
-      { title: "Vulnerabilities", text: "What weaknesses exist?" },
-      { title: "Attacks", text: "How can weaknesses be exploited?" },
-      { title: "Assurance", text: "How do controls improve confidence?" }
+    section: tx("Secure design", "Diseño seguro"),
+    title: tx("Design principles reduce vulnerabilities", "Los principios de diseño reducen vulnerabilidades"),
+    subtitle: tx("Complexity is the enemy.", "La complejidad es el enemigo."),
+    visual: "principles",
+    items: [
+      item(tx("Economy", "Economía"), tx("Keep mechanisms simple.", "Mantén mecanismos simples.")),
+      item(tx("Fail-safe", "Falla segura"), tx("Default is no access.", "Por defecto no hay acceso.")),
+      item(tx("Mediation", "Mediación"), tx("Check every access.", "Revisa cada acceso.")),
+      item(tx("Open design", "Diseño abierto"), tx("Do not rely on secrecy.", "No dependas del secreto.")),
+      item(tx("Least privilege", "Menor privilegio"), tx("Give only what is needed.", "Da solo lo necesario.")),
+      item(tx("Acceptability", "Aceptabilidad"), tx("Security must be usable.", "La seguridad debe ser usable."))
     ],
     points: [
-      "Cybersecurity is a huge problem for people, governments, companies, and more.",
-      "The goal is to enhance the level of assurance of systems.",
-      "A security mindset requires knowing threats, actors, motivations, and how attacks succeed."
+      tx("Economy of mechanism means simpler designs are safer to reason about.", "Economía de mecanismo significa que diseños simples son más fáciles de razonar."),
+      tx("Fail-safe defaults reduce accidental exposure.", "Valores por defecto seguros reducen exposición accidental."),
+      tx("Least privilege and usability matter together.", "Menor privilegio y usabilidad importan juntos.")
+    ]
+  },
+  {
+    section: tx("Summary", "Resumen"),
+    title: tx("Security mindset", "Mentalidad de seguridad"),
+    subtitle: tx("Know the assets, threats, vulnerabilities, attacks, and tradeoffs.", "Conoce activos, amenazas, vulnerabilidades, ataques y compensaciones."),
+    visual: "flow",
+    items: [
+      item(tx("Assets", "Activos"), tx("What matters?", "¿Qué importa?")),
+      item(tx("Threats", "Amenazas"), tx("Who can harm it?", "¿Quién puede dañarlo?")),
+      item(tx("Weaknesses", "Debilidades"), tx("How can they succeed?", "¿Cómo pueden lograrlo?")),
+      item(tx("Requirements", "Requisitos"), tx("What must hold?", "¿Qué debe mantenerse?")),
+      item(tx("Assurance", "Confianza"), tx("How confident are we?", "¿Qué tanta confianza tenemos?"))
     ],
-    activity: "Exit prompt: explain one CIA tradeoff"
+    points: [
+      tx("Cybersecurity is a huge problem for people, companies, governments, and society.", "La ciberseguridad es un gran problema para personas, empresas, gobiernos y sociedad."),
+      tx("Security improves assurance.", "La seguridad mejora el nivel de confianza."),
+      tx("Next classes build on this vocabulary.", "Las siguientes clases construyen sobre este vocabulario.")
+    ]
   }
 ];
