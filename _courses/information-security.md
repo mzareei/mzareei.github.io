@@ -8,6 +8,7 @@ description: >-
   authentication and access control, network and system threats, and secure
   protocol design. [TODO: refine to match your syllabus.]
 topics:
+  - "Security mindset"
   - "Cryptography fundamentals"
   - "Authentication & access control"
   - "Network security"
@@ -16,13 +17,17 @@ readings: []
 links: []
 ---
 
-Course materials are organized by week. Place files under
-`assets/slides/information-security/` and link them below.
+Course materials are organized by week. Interactive lessons and supporting files
+can live in self-contained folders under
+`assets/course-materials/information-security/`. Keep unreleased week folders
+outside the public repository until you are ready to publish them.
 
 <div class="course-week" markdown="1">
 
-### Week 1 — Introduction & security principles
-- Slides: <span class="todo">TODO: link slides</span>
+### Week 1 - Security mindset and CIA triad
+- Study version: [Open interactive Week 01 lesson](/assets/course-materials/information-security/week-01/)
+- Lecture version: [Open slide-by-slide lecture mode](/assets/course-materials/information-security/week-01/lecture/)
+- Source: adapted from instructor PowerPoint `TC2007B-W01-1-CIA.pptx`
 
 </div>
 

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lecture Mode - Security Mindset and CIA Triad</title>
+  <meta name="description" content="Slide-by-slide lecture mode for Week 01 of Information Security.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">TC2007B - Week 01</p>
+      <h1>Security Mindset and CIA Triad</h1>
+    </div>
+    <nav class="topbar__links" aria-label="Related material">
+      <a href="../">Study version</a>
+      <a href="/teaching/information-security/">Course page</a>
+    </nav>
+  </header>
+
+  <main class="deck" id="deckApp" aria-live="polite">
+    <section class="stage" aria-label="Lecture slide">
+      <div class="slide-frame" id="slideFrame"></div>
+      <div class="deck-controls" aria-label="Slide controls">
+        <button type="button" id="prevSlide">Previous</button>
+        <button type="button" id="prevStep">Back</button>
+        <span id="counter">Slide 1 / 45</span>
+        <button type="button" id="nextStep">Next</button>
+        <button type="button" id="nextSlide">Next slide</button>
+      </div>
+    </section>
+
+    <aside class="speaker-panel" aria-label="Lecture notes">
+      <div class="speaker-panel__head">
+        <div>
+          <p class="eyebrow" id="blockLabel">Opening</p>
+          <h2 id="slideTitle">Slide title</h2>
+        </div>
+        <button type="button" id="toggleOverview">Overview</button>
+      </div>
+
+      <section>
+        <h3>Transcript</h3>
+        <ol class="transcript" id="transcript"></ol>
+      </section>
+
+      <section id="speakerNotesBlock">
+        <h3>Speaker notes</h3>
+        <div class="notes" id="speakerNotes"></div>
+      </section>
+
+      <section>
+        <h3>Lecture controls</h3>
+        <ul class="shortcut-list">
+          <li><kbd>Right</kbd> or <kbd>Space</kbd>: next focus step</li>
+          <li><kbd>Left</kbd>: previous focus step</li>
+          <li><kbd>Up</kbd>/<kbd>Down</kbd>: previous/next slide</li>
+          <li><kbd>O</kbd>: overview</li>
+          <li><kbd>F</kbd>: fullscreen</li>
+        </ul>
+      </section>
+    </aside>
+  </main>
+
+  <div class="overview" id="overview" hidden>
+    <div class="overview__bar">
+      <h2>Lecture overview</h2>
+      <button type="button" id="closeOverview">Close</button>
+    </div>
+    <div class="overview__grid" id="overviewGrid"></div>
+  </div>
+
+  <script src="slides.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
