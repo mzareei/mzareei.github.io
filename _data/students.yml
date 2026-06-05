@@ -1,12 +1,19 @@
 # ============================================================
-#  SUPERVISED STUDENTS  (from CV "Advisory Activities")
+#  SUPERVISED STUDENTS
 #  Groups: phd | msc | graduated | undergrad
-#  NOTE: the CV lists theses without student names. Names are left as
-#  placeholders — add them only with each student's consent.
+#  Currently 4 active doctoral students (one approaching graduation).
+#  NOTE: theses without names come from the CV — add names only with consent.
 #  Also: committee member for 8 PhD students (2017–2023); see CV.
 # ============================================================
 
 phd:
+  - name: "[Add student name — with consent]"
+    program: "PhD — Main advisor"
+    title: "Leveraging shared semantic knowledge for multiple-language support applied to sentiment analysis in micro-blogging platforms"
+    status: "In progress — approaching graduation (since 2019)"
+    topic: "Multilingual NLP / sentiment analysis"
+    outcomes: "Related publications with León-Sandoval et al."
+
   - name: "[Add student name — with consent]"
     program: "PhD — Main advisor"
     title: "Text Emotion Detection"
@@ -16,10 +23,17 @@ phd:
 
   - name: "[Add student name — with consent]"
     program: "PhD — Main advisor"
-    title: "Leveraging shared semantic knowledge for multiple-language support applied to sentiment analysis in micro-blogging platforms"
-    status: "In progress (since 2019)"
-    topic: "Multilingual NLP / sentiment analysis"
-    outcomes: "Related publications with León-Sandoval et al."
+    title: "[Thesis title — to add]"
+    status: "In progress"
+    topic: "[Add topic]"
+    outcomes: ""
+
+  - name: "[Add student name — with consent]"
+    program: "PhD — Main advisor"
+    title: "[Thesis title — to add]"
+    status: "In progress"
+    topic: "[Add topic]"
+    outcomes: ""
 
 msc:
   - name: "[Add student name — with consent]"
@@ -44,4 +58,17 @@ graduated:
     topic: "Reconfigurable wireless networks"
     outcomes: ""
 
-# undergrad: []   # TODO: add undergraduate research students if any
+undergrad:
+  - name: "Programa Delfín — research interns"
+    program: "Undergraduate research"
+    title: "Mentoring undergraduate students in research projects"
+    status: "2 students currently"
+    topic: "Applied AI / security"
+    outcomes: ""
+
+  - name: "Next Gen Scientists & Research Stays"
+    program: "Undergraduate research"
+    title: "Undergraduate research stays and the Next Gen Scientists program"
+    status: "Recent cycle: 1 research stay, 1 Next Gen Scientist"
+    topic: ""
+    outcomes: ""

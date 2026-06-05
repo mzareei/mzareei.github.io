@@ -44,6 +44,7 @@ https://mzareei.github.io/assets/course-materials/information-security/week-01/l
 | 1 | 1 | Introduction to Cybersecurity (CIA triad) | `information-security/week-01/lecture/` |
 | 1 | 2 | Legal & Ethical Aspects | `information-security/week-01/lecture-2/` |
 | 2 | 1 | Authentication | `information-security/week-02/lecture/` |
+| 2 | 2 | Access Control | `information-security/week-02/lecture-2/` |
 
 ## Making a new one
 

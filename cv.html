@@ -61,8 +61,16 @@ description: Curriculum vitae of Mahdi Zareei — positions, education, awards, 
 
 <section class="cv-section">
   <h2>Grants and funded projects</h2>
-  <div class="cv-entry"><div class="cv-entry__line"><span><strong>Energy-Harvesting Sensor Networks for Environmental Monitoring: Bridging the Research-Implementation Gap</strong> — The Royal Society (IES\R3\170342). Partners: Tecnológico de Monterrey &amp; University of Essex.</span><span class="cv-entry__when">2018 – 2020</span></div></div>
-  <p class="todo">TODO: add any additional grants here (internal funding, CONAHCYT, industry, etc.).</p>
+  <p>Selected funded projects (full details on the
+     <a href="{{ '/projects/' | relative_url }}">Projects</a> page):</p>
+  {% assign funded = site.data.projects | where_exp: "p", "p.status != 'review'" %}
+  {% for p in funded %}
+    <div class="cv-entry"><div class="cv-entry__line">
+      <span><strong>{{ p.title }}</strong> — {{ p.funding_source }}{% if p.role %}; {{ p.role }}{% endif %}{% if p.amount and p.amount != "" %} ({{ p.amount }}){% endif %}.</span>
+      <span class="cv-entry__when">{{ p.duration }}</span>
+    </div></div>
+  {% endfor %}
+  <p class="card__meta">Funds raised 2025–2026: ≈ 1,152,000 MXN total (≈ 623,000 MXN attributed to my participation).</p>
 </section>
 
 <section class="cv-section">
@@ -98,8 +106,10 @@ description: Curriculum vitae of Mahdi Zareei — positions, education, awards, 
 
 <section class="cv-section">
   <h2>Student supervision</h2>
-  <p>Main and co-advisor for PhD and Master's students, and committee member for
-     8 PhD students (2017 – 2023). See the
+  <p>Currently advising 4 active doctoral students (one approaching graduation)
+     and Master's students, and committee member for 8 PhD students (2017 – 2023).
+     I also involve undergraduates in research through the Programa Delfín, Next Gen
+     Scientists, and research-stay programs. See the
      <a href="{{ '/students/' | relative_url }}">Students</a> page.</p>
 </section>
 
@@ -109,6 +119,19 @@ description: Curriculum vitae of Mahdi Zareei — positions, education, awards, 
     <li>Member, Mexican National System of Researchers (SNI), Level I</li>
     <li>Senior Member, IEEE; member of the IEEE Communications Society (since 2010)</li>
     <li>Google Certified Educator — Level 2 (2019 – present)</li>
+  </ul>
+</section>
+
+<section class="cv-section">
+  <h2>Research standing</h2>
+  <p>Within the Computer Science subject area at Tecnológico de Monterrey
+     (Scopus / SciVal):</p>
+  <ul>
+    <li>5-year field-weighted citation impact (FWCI) of 1.29 — above the world average (1.00) and the institutional average (1.17)</li>
+    <li>4th most-published author (journal articles) over 5 years; 5th over 3 years and in the last year (18 articles in the last 3 years)</li>
+    <li>3rd most-prolific author in Q1 computer-science journals over 5 years</li>
+    <li>Among the top-6 most-cited researchers at the institution over 5 years</li>
+    <li>Since 2025: 5 Q1 journal articles and 4 Scopus-indexed conference papers</li>
   </ul>
 </section>
 

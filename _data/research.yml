@@ -5,15 +5,17 @@
 #  TODO: refine the descriptions and fill in related students/projects.
 # ============================================================
 
-- name: "Information & Network Security"
+- name: "Cybersecurity & AI-based Threat Detection"
   description: >-
-    Security and privacy for wireless and distributed systems, including
-    authentication and signcryption schemes, attribute-based access control and
-    keyword search, trust models for VANETs and fog computing, and intrusion
-    detection for reconfigurable wireless networks.
+    Security and privacy for wireless and distributed systems and AI-driven
+    defense: authentication, signcryption and attribute-based access control;
+    trust and intrusion detection for VANETs and fog computing; and machine-learning
+    detection of cyber attacks, including DDoS mitigation in software-defined
+    networks (P4), ransomware detection, and uncertainty quantification of security
+    models.
   related_publications: "See Publications (security, signcryption, access control)"
+  related_projects: "DDoS mitigation in SDN (FRIDA); DDoS stacking-ensemble detection (FRIDA); uncertainty quantification of AI security models (FRIDA-7463)"
   related_students: "[TODO]"
-  related_projects: "[TODO]"
   collaborators: "C. Vargas-Rosales (Tecnológico de Monterrey); A. Waheed; S. A. Soleymani; [TODO]"
 
 - name: "Applied Machine Learning"
@@ -35,6 +37,16 @@
   related_students: "[TODO: text emotion detection PhD]"
   related_projects: "[TODO]"
   collaborators: "L. I. Barbosa-Santillán; L. E. Falcón Morales; [TODO]"
+
+- name: "AI for Mental Health & Social Good"
+  description: >-
+    Applied AI for health and societal benefit, including detecting signals of
+    depression and suicide risk and assessing adolescent mental health through
+    sentiment and emotion analysis of social-media content.
+  related_publications: "Burgueño Paz, Zareei et al. (depression detection); see Publications"
+  related_projects: "AI model for suicide-risk behavioral patterns (Fundación Gonzalo Río Arronte)"
+  related_students: "[TODO]"
+  collaborators: "[TODO]"
 
 - name: "Wireless Sensor & Cognitive Radio Networks"
   description: >-

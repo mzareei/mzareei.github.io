@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Week 2 · Lecture 2 — Access Control</title>
+<meta name="description" content="Access control: subjects, objects, the access control matrix, ACLs and capabilities, and the DAC/MAC/RBAC/ABAC models. Week 2, Lecture 2 of TC2007B.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="topbar"><div class="fill" id="progress"></div></div>
+
+<div class="controls">
+  <button class="ui-btn" id="langBtn" title="Español / English">ES</button>
+  <button class="ui-btn" id="themeBtn" title="Light / Dark">☀</button>
+</div>
+
+<main class="deck" id="deck">
+
+  <!-- ===================== A. ORIENTATION ===================== -->
+
+  <!-- S1 — Title -->
+  <section class="slide title-slide active" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>TC2007B · Semana 2 · Clase 2"><span class="dot"></span>TC2007B · Week 2 · Lecture 2</span>
+      <h1 data-es="Control de acceso">Access control</h1>
+      <div class="title-rule"></div>
+      <p class="lead" data-es="Una vez que sabemos quién eres, ¿qué tienes permitido hacer?">Once we know who you are — what are you allowed to do?</p>
+      <div class="title-meta">
+        <span class="pill" data-es="Profesor: Mahdi Zareei">Instructor: Mahdi Zareei</span>
+        <span class="pill" data-es="Matriz · ACL · DAC/MAC/RBAC/ABAC">Matrix · ACLs · DAC/MAC/RBAC/ABAC</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- S2 — Objectives -->
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Qué veremos hoy"><span class="dot"></span>What we'll cover</span>
+      <h2 data-es="Objetivos de la clase">Lecture objectives</h2>
+      <div class="grid cols-3">
+        <div class="card accent-top"><span class="ico">🎯</span><h3 data-es="Por qué importa">Why it matters</h3><p data-es="Entender el papel del control de acceso en la seguridad.">Understand the role of access control in security.</p></div>
+        <div class="card teal-top"><span class="ico">🧰</span><h3 data-es="Cómo se modela">How it's modeled</h3><p data-es="La matriz de control de acceso, ACL y capacidades.">The access-control matrix, ACLs, and capabilities.</p></div>
+        <div class="card good-top"><span class="ico">🏛️</span><h3 data-es="Cómo se gobierna">How it's governed</h3><p data-es="Los modelos de política: DAC, MAC, RBAC y ABAC.">The policy models: DAC, MAC, RBAC, and ABAC.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S3 — Definition -->
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Definición"><span class="dot"></span>Definition</span>
+      <h2 data-es="¿Qué es el control de acceso?">What is access control?</h2>
+      <div class="definition">
+        <blockquote data-es="“El proceso de conceder o denegar solicitudes específicas para: (1) obtener y usar información y servicios de procesamiento de información, y (2) entrar a instalaciones físicas específicas.”">“The process of granting or denying specific requests to: (1) obtain and use information and related information-processing services; and (2) enter specific physical facilities.”</blockquote>
+        <span class="src" data-es="— NISTIR 7298">— NISTIR 7298</span>
+      </div>
+      <div class="callout note"><span class="tag" data-es="Nota">Note</span><p data-es="No es solo digital: una cerradura, un torniquete y un guardia también son control de acceso.">It's not only digital: a lock, a turnstile, and a security guard are access control too.</p></div>
+    </div>
+  </section>
+
+  <!-- S4 — Access control IS security -->
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Una idea grande"><span class="dot"></span>A big idea</span>
+      <h2 data-es="En el fondo, casi toda la seguridad es control de acceso">At its core, almost all security is access control</h2>
+      <div class="definition">
+        <blockquote data-es="Seguridad informática: “medidas que implementan y aseguran servicios de seguridad en un sistema, particularmente las que aseguran el <strong>servicio de control de acceso</strong>.”">Computer security: “measures that implement and assure security services in a computer system, particularly those that assure the <strong>access-control service</strong>.”</blockquote>
+        <span class="src" data-es="— RFC 4949">— RFC 4949</span>
+      </div>
+      <div class="callout discuss"><span class="tag" data-es="Discusión">Discuss</span><p data-es="¿Estás de acuerdo en que “toda la seguridad es control de acceso”? ¿Dónde encajan el cifrado o la disponibilidad en esa idea?">Do you agree that "all security is access control"? Where do encryption or availability fit into that claim?</p></div>
+    </div>
+  </section>
+
+  <!-- S5 — Authn -> Authz recap -->
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Conexión con la clase anterior"><span class="dot"></span>Link to last lecture</span>
+      <h2 data-es="De la autenticación al control de acceso">From authentication to access control</h2>
+      <div class="flow">
+        <div class="node breach"><span class="n-label accent" data-es="Autenticación">Authentication</span><span class="n-sub" data-es="¿quién hace la solicitud? (UID de John)">who is requesting? (John's UID)</span></div>
+        <div class="arrow">→</div>
+        <div class="node attack"><span class="n-label" style="color:var(--violet)" data-es="Monitor de referencia (TCB)">Reference monitor (TCB)</span><span class="n-sub" data-es="ve cada solicitud">sees every request</span></div>
+        <div class="arrow">→</div>
+        <div class="node good-node"><span class="n-label good" data-es="Control de acceso">Access control</span><span class="n-sub" data-es="¿se permite leer el archivo?">may it read the file?</span></div>
+      </div>
+      <div class="callout check" style="margin-top:1.4rem"><span class="tag" data-es="Ejemplo">Example</span><p data-es="El proceso de John pide leer un archivo. La autenticación ya estableció que es John; el control de acceso decide si <em>John</em> puede leer <em>ese</em> archivo.">John's process asks to read a file. Authentication already established it's John; access control decides whether <em>John</em> may read <em>that</em> file.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== B. THE MODEL ===================== -->
+
+  <!-- S6 — Divider -->
+  <section class="slide section" data-section="The model" data-section-es="El modelo">
+    <div class="slide-inner">
+      <div class="num">01</div>
+      <h1 data-es="Quién puede acceder a qué">Who can access what</h1>
+      <p class="lead" data-es="El modelo: sujetos, objetos y la matriz.">The model: subjects, objects, and the matrix.</p>
+    </div>
+  </section>
+
+  <!-- S7 — Policy + enforcement -->
+  <section class="slide" data-section="The model" data-section-es="El modelo">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Dos partes"><span class="dot"></span>Two parts</span>
+      <h2 data-es="El control de acceso = política + aplicación">Access control = policy + enforcement</h2>
+      <div class="split">
+        <div class="card accent-top"><span class="ico">📜</span><h3 data-es="Parte I — Política">Part I — Policy</h3><p data-es="Decidir <strong>quién</strong> debe tener acceso a <strong>qué</strong> recursos.">Decide <strong>who</strong> should have access to <strong>which</strong> resources.</p></div>
+        <div class="card good-top"><span class="ico">🛂</span><h3 data-es="Parte II — Aplicación">Part II — Enforcement</h3><p data-es="Garantizar que <strong>solo</strong> los accesos definidos por la política se concedan.">Ensure that <strong>only</strong> the accesses defined by the policy are granted.</p></div>
+      </div>
+      <div class="callout note" style="margin-top:1.2rem"><span class="tag" data-es="Esencial">Essential</span><p data-es="La <strong>mediación completa</strong> es clave: <em>cada</em> acceso debe verificarse, sin atajos. Una sola puerta sin vigilar anula toda la política."><strong>Complete mediation</strong> is key: <em>every</em> access must be checked, no shortcuts. One unguarded door defeats the whole policy.</p></div>
+    </div>
+  </section>
+
+  <!-- S8 — Subjects, objects, rights -->
+  <section class="slide" data-section="The model" data-section-es="El modelo">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El vocabulario"><span class="dot"></span>The vocabulary</span>
+      <h2 data-es="Sujetos, objetos y derechos de acceso">Subjects, objects, and access rights</h2>
+      <div class="grid cols-3">
+        <div class="card accent-top"><span class="ico">👤</span><h3 data-es="Sujeto">Subject</h3><p data-es="Una entidad capaz de acceder a objetos. Clases: <strong>propietario, grupo, mundo</strong>.">An entity capable of accessing objects. Classes: <strong>owner, group, world</strong>.</p></div>
+        <div class="card teal-top"><span class="ico">📄</span><h3 data-es="Objeto">Object</h3><p data-es="Un recurso cuyo acceso se controla (archivo, base de datos, dispositivo, sala).">A resource whose access is controlled (file, database, device, room).</p></div>
+        <div class="card good-top"><span class="ico">🔑</span><h3 data-es="Derecho de acceso">Access right</h3><p data-es="La forma en que un sujeto puede usar un objeto: <strong>leer, escribir, ejecutar, borrar, crear, buscar</strong>.">How a subject may use an object: <strong>read, write, execute, delete, create, search</strong>.</p></div>
+      </div>
+      <div class="callout check" style="margin-top:1.1rem"><span class="tag" data-es="Lectura">Read it</span><p data-es="Se lee como una frase: <em>sujeto</em> tiene <em>derecho</em> sobre <em>objeto</em> — “Ana puede <strong>leer</strong> nómina.xlsx”.">Read it as a sentence: <em>subject</em> has <em>right</em> on <em>object</em> — "Ana may <strong>read</strong> payroll.xlsx".</p></div>
+    </div>
+  </section>
+
+  <!-- S9 — Access Control Matrix concept -->
+  <section class="slide" data-section="The model" data-section-es="El modelo">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La abstracción central"><span class="dot"></span>The central abstraction</span>
+      <h2 data-es="La matriz de control de acceso (ACM)">The access control matrix (ACM)</h2>
+      <ul class="clean">
+        <li data-es="Las <strong>filas</strong> son sujetos/usuarios/grupos.">The <strong>rows</strong> are subjects/users/groups.</li>
+        <li data-es="Las <strong>columnas</strong> son los recursos a proteger.">The <strong>columns</strong> are the resources to protect.</li>
+        <li data-es="La celda <strong>ACM[U, O]</strong> dice qué derechos tiene el usuario U sobre el objeto O.">Cell <strong>ACM[U, O]</strong> says what rights user U has on object O.</li>
+      </ul>
+      <div class="callout check"><span class="tag" data-es="Analogía">Analogy</span><p data-es="Imagina una hoja de cálculo gigante: una fila por persona, una columna por puerta, y en cada celda “puede entrar / no puede”.">Picture a giant spreadsheet: one row per person, one column per door, each cell saying "may enter / may not".</p></div>
+    </div>
+  </section>
+
+  <!-- S10 — ACM example (rooms) -->
+  <section class="slide" data-section="The model" data-section-es="El modelo">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Ejemplo"><span class="dot"></span>Example</span>
+      <h2 data-es="Una matriz concreta: quién entra a qué sala">A concrete matrix: who enters which room</h2>
+      <table class="compare">
+        <thead><tr><th data-es="Usuario \\ Recurso">User \ Resource</th><th>Room 1</th><th>Room 2</th><th>Room 3</th><th>Room 4</th></tr></thead>
+        <tbody>
+          <tr><td>Daniel</td><td class="map-to">✔</td><td class="map-from">✘</td><td class="map-from">✘</td><td class="map-from">✘</td></tr>
+          <tr><td>Jessica</td><td class="map-from">✘</td><td class="map-to">✔</td><td class="map-to">✔</td><td class="map-from">✘</td></tr>
+          <tr><td>Jose</td><td class="map-to">✔</td><td class="map-to">✔</td><td class="map-from">✘</td><td class="map-from">✘</td></tr>
+          <tr><td>Max</td><td class="map-to">✔</td><td class="map-from">✘</td><td class="map-to">✔</td><td class="map-to">✔</td></tr>
+          <tr><td>Roberto</td><td class="map-from">✘</td><td class="map-to">✔</td><td class="map-from">✘</td><td class="map-to">✔</td></tr>
+        </tbody>
+      </table>
+      <div class="callout discuss" style="margin-top:1rem"><span class="tag" data-es="Discusión">Discuss</span><p data-es="Con 5 usuarios y 4 salas ya hay 20 celdas. ¿Cuántas tendría una universidad con 10,000 cuentas y 50,000 archivos? Ese tamaño es el problema que resolveremos a continuación.">5 users × 4 rooms is already 20 cells. How many for a university with 10,000 accounts and 50,000 files? That size is the problem we solve next.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== C. IMPLEMENTING THE MATRIX ===================== -->
+
+  <!-- S11 — Divider -->
+  <section class="slide section" data-section="ACL & capabilities" data-section-es="ACL y capacidades">
+    <div class="slide-inner">
+      <div class="num">02</div>
+      <h1 data-es="Cómo guardar la matriz">How to store the matrix</h1>
+      <p class="lead" data-es="Por columnas (ACL) o por filas (capacidades).">By column (ACL) or by row (capabilities).</p>
+    </div>
+  </section>
+
+  <!-- S12 — ACL vs C-list concept -->
+  <section class="slide" data-section="ACL & capabilities" data-section-es="ACL y capacidades">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Dos formas de cortar la matriz"><span class="dot"></span>Two ways to slice the matrix</span>
+      <h2 data-es="Lista de control de acceso (ACL) vs. lista de capacidades (C-list)">Access control list (ACL) vs. capability list (C-list)</h2>
+      <div class="split">
+        <div class="card accent-top"><span class="ico">📋</span><h3 data-es="ACL — por <em>objeto</em> (columna)">ACL — per <em>object</em> (column)</h3><p data-es="Cada recurso lleva la lista de quién puede acceder y cómo. Vive con el objeto (p. ej., en los metadatos del archivo).">Each resource carries the list of who may access it and how. It lives with the object (e.g., in the file's metadata).</p></div>
+        <div class="card teal-top"><span class="ico">🎟️</span><h3 data-es="C-list — por <em>sujeto</em> (fila)">C-list — per <em>subject</em> (row)</h3><p data-es="Cada usuario lleva un catálogo de <strong>capacidades</strong>: referencias <em>infalsificables</em> a los recursos que puede usar.">Each user carries a catalogue of <strong>capabilities</strong>: <em>unforgeable</em> handles to the resources they may use.</p></div>
+      </div>
+      <div class="callout check" style="margin-top:1.1rem"><span class="tag" data-es="Analogía">Analogy</span><p data-es="ACL = la <strong>lista de invitados</strong> en la puerta (el objeto sabe quién entra). C-list = la <strong>llave o el boleto</strong> en tu bolsillo (tú llevas la prueba).">ACL = the <strong>guest list</strong> at the door (the object knows who's allowed). C-list = the <strong>key or ticket</strong> in your pocket (you carry the proof).</p></div>
+    </div>
+  </section>
+
+  <!-- S13 — ACE quiz (movie ticket) -->
+  <section class="slide activity" data-section="ACL & capabilities" data-section-es="ACL y capacidades">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Pregunta rápida">◆ Quick question</span>
+      <h2 style="margin-top:1rem" data-es="¿ACE o capacidad?">ACE or capability?</h2>
+      <p class="lead" style="max-width:58ch" data-es="Ana va al cine y compra un boleto para su película favorita. La dejan entrar porque <strong>tiene el boleto</strong>. El boleto se parece más a un…">Ana goes to a movie theater and buys a ticket for her favorite film. She's let in because she <strong>holds the ticket</strong>. The ticket is more like a…</p>
+      <div class="grid cols-2" style="margin-top:1rem">
+        <div class="card accent-top"><h3 data-es="1 — Entrada de control de acceso (ACE)">1 — Access control entry (ACE)</h3></div>
+        <div class="card teal-top"><h3 data-es="2 — Capacidad">2 — Capability</h3></div>
+      </div>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Respuesta">Answer</span>
+        <p data-es="<strong>2 — Capacidad.</strong> El boleto lo lleva el <em>sujeto</em> y demuestra su derecho (C-list). Una <em>ACE</em> estaría en la puerta, atada al <em>objeto</em> (la sala), diciendo quién puede entrar."><strong>2 — Capability.</strong> The ticket is carried by the <em>subject</em> and proves their right (C-list). An <em>ACE</em> would sit at the door, tied to the <em>object</em> (the room), listing who may enter.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S14 — ACL vs C-list tradeoffs -->
+  <section class="slide" data-section="ACL & capabilities" data-section-es="ACL y capacidades">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Compromisos"><span class="dot"></span>Trade-offs</span>
+      <h2 data-es="Cada enfoque gana en algo">Each approach wins at something</h2>
+      <table class="compare">
+        <thead><tr><th data-es="Criterio">Criterion</th><th>ACL <span class="muted" data-es="(por objeto)">(per object)</span></th><th>C-list <span class="muted" data-es="(por sujeto)">(per subject)</span></th></tr></thead>
+        <tbody>
+          <tr><td data-es="Eficiencia (“¿qué puede usar este usuario?”)">Efficiency ("what can this user use?")</td><td class="map-from">✘</td><td class="map-to">✔</td></tr>
+          <tr><td data-es="Rendición de cuentas (“¿quién puede tocar este objeto?”)">Accountability ("who can touch this object?")</td><td class="map-to">✔</td><td class="map-from">✘</td></tr>
+          <tr><td data-es="Revocación (quitar un acceso)">Revocation (removing an access)</td><td class="map-to">✔</td><td class="map-from">✘</td></tr>
+        </tbody>
+      </table>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Por qué">Why</span><p data-es="El ACL responde al instante “¿quién puede acceder a este archivo?” y revocar es borrar una línea. La C-list responde al instante “¿qué puede usar este usuario?”, pero recoger todas las llaves repartidas es difícil.">An ACL instantly answers "who can access this file?" and revoking is deleting one line. A C-list instantly answers "what can this user use?", but collecting every key already handed out is hard.</p></div>
+    </div>
+  </section>
+
+  <!-- S15 — Where stored -->
+  <section class="slide" data-section="ACL & capabilities" data-section-es="ACL y capacidades">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Implementación"><span class="dot"></span>Implementation</span>
+      <h2 data-es="¿Dónde se guardan?">Where do they live?</h2>
+      <div class="split">
+        <div class="card accent-top"><h3 data-es="El ACL">The ACL</h3><p data-es="En la <strong>parte confiable</strong> del sistema, junto a los metadatos del objeto. Se compone de <em>entradas de control de acceso</em> (ACEs). En un archivo, sus metadatos ya guardan mucho de esto.">In the <strong>trusted part</strong> of the system, alongside the object's metadata. Made of <em>access control entries</em> (ACEs). A file's metadata already holds much of this.</p></div>
+        <div class="card teal-top"><h3 data-es="La capacidad">The capability</h3><p data-es="Una referencia <strong>infalsificable</strong> a un recurso. El catálogo del usuario define lo que puede acceder; puede guardarse incluso en los propios objetos.">An <strong>unforgeable</strong> reference to a resource. The user's catalogue defines what they can access; it can even be stored with the objects themselves.</p></div>
+      </div>
+      <div class="callout discuss" style="margin-top:1.1rem"><span class="tag" data-es="Piensa">Think</span><p data-es="“Infalsificable” es la palabra clave: si pudieras fabricar una capacidad, tendrías acceso a lo que quisieras. ¿Cómo lo hacen los sistemas reales? (criptografía, tablas protegidas por el kernel…)">"Unforgeable" is the key word: if you could fabricate a capability, you'd have access to anything. How do real systems achieve it? (cryptography, kernel-protected tables…)</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== D. POLICIES ===================== -->
+
+  <!-- S16 — Divider -->
+  <section class="slide section" data-section="Policy models" data-section-es="Modelos de política">
+    <div class="slide-inner">
+      <div class="num">03</div>
+      <h1 data-es="¿Quién decide la política?">Who decides the policy?</h1>
+      <p class="lead" data-es="DAC · MAC · RBAC · ABAC">DAC · MAC · RBAC · ABAC</p>
+    </div>
+  </section>
+
+  <!-- S17 — Four models overview -->
+  <section class="slide" data-section="Policy models" data-section-es="Modelos de política">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Cuatro modelos"><span class="dot"></span>Four models</span>
+      <h2 data-es="Cuatro formas de gobernar el acceso">Four ways to govern access</h2>
+      <div class="grid cols-2">
+        <div class="card accent-top"><h3 data-es="DAC — Discrecional">DAC — Discretionary</h3><p data-es="Según la <strong>identidad</strong> del solicitante y reglas; el dueño decide.">By the requestor's <strong>identity</strong> and rules; the owner decides.</p></div>
+        <div class="card danger-top"><h3 data-es="MAC — Obligatorio">MAC — Mandatory</h3><p data-es="Compara <strong>etiquetas de seguridad</strong> con <strong>autorizaciones (clearances)</strong>; la organización decide.">Compares <strong>security labels</strong> with <strong>clearances</strong>; the organization decides.</p></div>
+        <div class="card teal-top"><h3 data-es="RBAC — Por roles">RBAC — Role-based</h3><p data-es="Según los <strong>roles</strong> del usuario y las reglas por rol.">By the user's <strong>roles</strong> and the rules for each role.</p></div>
+        <div class="card good-top"><h3 data-es="ABAC — Por atributos">ABAC — Attribute-based</h3><p data-es="Según <strong>atributos</strong> del usuario, del recurso y del <strong>entorno</strong>.">By <strong>attributes</strong> of the user, the resource, and the <strong>environment</strong>.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S18 — DAC -->
+  <section class="slide" data-section="Policy models" data-section-es="Modelos de política">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>DAC"><span class="dot"></span>DAC</span>
+      <h2 data-es="Control de acceso discrecional: el dueño decide">Discretionary access control: the owner decides</h2>
+      <ul class="clean">
+        <li data-es="El <strong>dueño</strong> de un recurso decide cómo se comparte (lectura/escritura a otros).">The <strong>owner</strong> of a resource decides how it's shared (read/write to others).</li>
+        <li data-es="<strong>Descentralizado</strong> y <strong>basado en identidad</strong>; se aplica con ACL."><strong>Decentralized</strong> and <strong>identity-based</strong>; enforced with ACLs.</li>
+      </ul>
+      <div class="callout check"><span class="tag" data-es="Ejemplo">Example</span><p data-es="Tú eres dueño de un Google Doc y eliges con quién compartirlo: eso es DAC.">You own a Google Doc and choose who to share it with: that's DAC.</p></div>
+    </div>
+  </section>
+
+  <!-- S19 — DAC problems -->
+  <section class="slide" data-section="Policy models" data-section-es="Modelos de política">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Los límites del DAC"><span class="dot"></span>The limits of DAC</span>
+      <h2 data-es="Dos problemas serios del DAC">Two serious problems with DAC</h2>
+      <div class="split">
+        <div class="card danger-top"><span class="ico">🔁</span><h3 data-es="No controla el flujo de información">No control of information flow</h3><p data-es="No puedes evitar que quien recibe el archivo lo <strong>vuelva a compartir</strong>. Una vez fuera, está fuera.">You can't stop the person you shared with from <strong>re-sharing</strong> it. Once it's out, it's out.</p></div>
+        <div class="card warn-top"><span class="ico">🏢</span><h3 data-es="El usuario no siempre debería decidir">The user shouldn't always decide</h3><p data-es="En muchas organizaciones, el <strong>empleador</strong> dicta cómo compartir datos sensibles — no el individuo.">In many organizations the <strong>employer</strong> mandates how sensitive data is shared — not the individual.</p></div>
+      </div>
+      <div class="callout discuss" style="margin-top:1.1rem"><span class="tag" data-es="Discusión">Discuss</span><p data-es="Piensa en reenviar un correo confidencial: el remitente perdió el control. ¿Cómo intentan resolver esto el MAC o el DRM? Eso nos lleva al siguiente modelo.">Think of forwarding a confidential email: the sender lost control. How do MAC or DRM try to fix this? That leads us to the next model.</p></div>
+    </div>
+  </section>
+
+  <!-- S20 — MAC -->
+  <section class="slide" data-section="Policy models" data-section-es="Modelos de política">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>MAC"><span class="dot"></span>MAC</span>
+      <h2 data-es="Control de acceso obligatorio: la organización decide">Mandatory access control: the organization decides</h2>
+      <div class="flow">
+        <div class="node breach"><span class="n-label accent" data-es="Sujeto">Subject</span><span class="n-sub" data-es="con autorización (clearance)">with a clearance</span></div>
+        <div class="arrow">⟷</div>
+        <div class="node good-node"><span class="n-label good" data-es="Objeto">Object</span><span class="n-sub" data-es="con clasificación">with a classification</span></div>
+      </div>
+      <p class="muted" style="margin-top:1.2rem" data-es="El sistema compara la <strong>autorización</strong> del sujeto con la <strong>clasificación</strong> del objeto. El individuo no puede anularlo.">The system compares the subject's <strong>clearance</strong> with the object's <strong>classification</strong>. The individual can't override it.</p>
+      <div class="callout check"><span class="tag" data-es="Ejemplo">Example</span><p data-es="Un hospital es dueño de los expedientes y limita cómo se comparten — a veces por ley: <strong>HIPAA</strong> (EE. UU.) o <strong>NOM-024-SSA3-2012</strong> (México).">A hospital owns patient records and limits sharing — sometimes by law: <strong>HIPAA</strong> (US) or <strong>NOM-024-SSA3-2012</strong> (Mexico).</p></div>
+    </div>
+  </section>
+
+  <!-- S21 — RBAC -->
+  <section class="slide" data-section="Policy models" data-section-es="Modelos de política">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>RBAC"><span class="dot"></span>RBAC</span>
+      <h2 data-es="Control de acceso basado en roles">Role-based access control</h2>
+      <div class="flow">
+        <div class="node breach"><span class="n-label accent" data-es="Usuarios">Users</span><span class="n-sub" data-es="se autentican">authenticate</span></div>
+        <div class="arrow">→</div>
+        <div class="node attack"><span class="n-label" style="color:var(--violet)" data-es="Roles">Roles</span><span class="n-sub" data-es="activan uno o más">activate one or more</span></div>
+        <div class="arrow">→</div>
+        <div class="node good-node"><span class="n-label good" data-es="Permisos">Permissions</span><span class="n-sub" data-es="asociados al rol">attached to the role</span></div>
+      </div>
+      <p class="muted" style="margin-top:1.2rem" data-es="El acceso se basa en la <strong>función laboral</strong>: gerente de nómina, integrante de proyecto… Los derechos se asocian a <strong>roles</strong>, no a personas.">Access is based on <strong>job function</strong>: payroll manager, project member… Rights attach to <strong>roles</strong>, not people.</p>
+      <div class="callout check"><span class="tag" data-es="Analogía">Analogy</span><p data-es="Como los <strong>gafetes</strong> de trabajo: el rol “enfermera” abre ciertas puertas. La persona solo se asigna o se quita del rol.">Like job <strong>badges</strong>: the "nurse" role opens certain doors. People are simply added to or removed from the role.</p></div>
+    </div>
+  </section>
+
+  <!-- S22 — RBAC benefits + real world -->
+  <section class="slide" data-section="Policy models" data-section-es="Modelos de política">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Por qué gusta el RBAC"><span class="dot"></span>Why RBAC is popular</span>
+      <h2 data-es="Beneficios del RBAC">RBAC benefits</h2>
+      <ul class="clean">
+        <li data-es="La política <strong>no cambia</strong> cuando alguien con un rol deja la empresa — solo se le quita del rol.">The policy <strong>doesn't change</strong> when a person with a role leaves — you just remove them from the role.</li>
+        <li data-es="Un nuevo empleado simplemente <strong>activa</strong> el rol que necesita.">A new employee simply <strong>activates</strong> the role they need.</li>
+        <li data-es="Encarna el <strong>mínimo privilegio</strong>: cada rol ve solo un subconjunto; cambiar de rol da acceso a otros recursos.">It embodies <strong>least privilege</strong>: each role sees only a subset; switching roles grants other resources.</li>
+        <li data-es="<strong>SELinux</strong> soporta RBAC."><strong>SELinux</strong> supports RBAC.</li>
+      </ul>
+      <div class="callout note"><span class="tag" data-es="En la industria">In industry</span><p data-es="Microsoft retiró los roles de administrador “clásicos” de Azure y pide migrar a <strong>Azure RBAC</strong> — el RBAC no es teoría, es el estándar en la nube. (Verifica las fechas exactas.)">Microsoft retired Azure "classic" administrator roles and asks customers to move to <strong>Azure RBAC</strong> — RBAC isn't theory, it's the cloud standard. (Verify exact dates.)</p></div>
+    </div>
+  </section>
+
+  <!-- S23 — RBAC quiz -->
+  <section class="slide activity" data-section="Policy models" data-section-es="Modelos de política">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Pregunta rápida">◆ Quick question</span>
+      <h2 style="margin-top:1rem" data-es="RBAC… ¿un tipo de MAC?">RBAC… a kind of MAC?</h2>
+      <p class="lead" style="max-width:58ch" data-es="El RBAC suele usarse en entornos comerciales. Se considera un ejemplo de MAC porque…">RBAC is often used in commercial settings. It's considered an example of MAC because…</p>
+      <div class="grid cols-2" style="margin-top:1rem">
+        <div class="card accent-top"><h3 data-es="1">1</h3><p data-es="Los permisos se asocian solo a roles, no a usuarios.">Permissions are associated only with roles, not users.</p></div>
+        <div class="card teal-top"><h3 data-es="2">2</h3><p data-es="Solo la empresa puede decidir los roles de sus empleados.">Only the company can decide the roles of its employees.</p></div>
+      </div>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Respuesta">Answer</span>
+        <p data-es="<strong>2.</strong> Lo que hace al RBAC “obligatorio” es que la <em>organización</em> —no el usuario— decide los roles y sus permisos. Esa falta de discreción del usuario es la marca del MAC."><strong>2.</strong> What makes RBAC "mandatory" is that the <em>organization</em> — not the user — decides the roles and their permissions. That lack of user discretion is the hallmark of MAC.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S24 — ABAC -->
+  <section class="slide" data-section="Policy models" data-section-es="Modelos de política">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>ABAC"><span class="dot"></span>ABAC</span>
+      <h2 data-es="Control de acceso basado en atributos">Attribute-based access control</h2>
+      <div class="grid cols-3">
+        <div class="card accent-top"><span class="ico">👤</span><h3 data-es="Atributos del sujeto">Subject attributes</h3><p data-es="Departamento, puesto, antigüedad…">Department, job, seniority…</p></div>
+        <div class="card teal-top"><span class="ico">📄</span><h3 data-es="Atributos del objeto">Object attributes</h3><p data-es="Clasificación, dueño, tipo…">Classification, owner, type…</p></div>
+        <div class="card warn-top"><span class="ico">🌐</span><h3 data-es="Condiciones del entorno">Environment conditions</h3><p data-es="Hora, ubicación, dispositivo, red…">Time, location, device, network…</p></div>
+      </div>
+      <div class="callout check" style="margin-top:1rem"><span class="tag" data-es="Cómo funciona">How it works</span><p data-es="<strong>Centralizado</strong>: una política compara atributos de sujeto + objeto + entorno. Se escribe en un lenguaje legible: <strong>XACML</strong>. Ej.: “solo desde tu oficina, en horario laboral, desde tu equipo asignado”."><strong>Centralized</strong>: a policy compares subject + object + environment attributes. Written in a readable language: <strong>XACML</strong>. E.g., "only from your office, during work hours, on your assigned device."</p></div>
+    </div>
+  </section>
+
+  <!-- S25 — ABAC pros/cons -->
+  <section class="slide" data-section="Policy models" data-section-es="Modelos de política">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>ABAC · pros y contras"><span class="dot"></span>ABAC · pros &amp; cons</span>
+      <h2 data-es="ABAC: poderoso, pero exigente">ABAC: powerful, but demanding</h2>
+      <div class="split">
+        <div class="card good-top"><h3 data-es="Pros">Pros</h3><p data-es="• Escalable.<br>• Consciente del contexto en tiempo real.<br>• Segregación de funciones: distintas personas gestionan atributos y política.">• Scalable.<br>• Real-time, context-aware.<br>• Segregation of duty: different people manage attributes and policy.</p></div>
+        <div class="card danger-top"><h3 data-es="Contras">Cons</h3><p data-es="• Es relativamente nuevo.<br>• Requiere convencer y adoptar culturalmente.<br>• Exige cambios organizativos para gestionar atributos y políticas.">• Relatively new.<br>• Requires socialization and buy-in.<br>• Needs organizational change to manage attributes and policy.</p></div>
+      </div>
+      <p class="figure-note" data-es="El material citaba una predicción de Gartner (“para 2020, 70% de las empresas usarían ABAC”). Esa fecha ya pasó — trátala como dato histórico y verifica cifras actuales.">The source cited a Gartner prediction ("by 2020, 70% of businesses would use ABAC"). That date has passed — treat it as historical and verify current figures.</p>
+    </div>
+  </section>
+
+  <!-- S26 — Comparison -->
+  <section class="slide" data-section="Policy models" data-section-es="Modelos de política">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Lado a lado"><span class="dot"></span>Side by side</span>
+      <h2 data-es="Comparación de los modelos">Comparing the models</h2>
+      <table class="compare">
+        <thead><tr><th data-es="Modelo">Model</th><th data-es="Pros">Pros</th><th data-es="Contras">Cons</th></tr></thead>
+        <tbody>
+          <tr><td class="map-to">DAC</td><td data-es="Fácil de implementar; muy flexible">Easy to implement; highly flexible</td><td data-es="No escala bien; propenso a errores">Doesn't scale well; prone to mistakes</td></tr>
+          <tr><td class="map-to">MAC</td><td data-es="Muy seguro; fácil de escalar">Most secure; easy to scale</td><td data-es="Poco flexible; funcionalidad limitada; alto costo de administración">Not flexible; limited functionality; high admin overhead</td></tr>
+          <tr><td class="map-to">RBAC</td><td data-es="Escalable; usuario y permisos poco acoplados; menos administración">Scalable; user &amp; permissions loosely coupled; less admin</td><td data-es="Roles requieren mantenimiento; “explosión de roles”; sin contexto en tiempo real">Roles need upkeep; "role explosion"; no real-time context</td></tr>
+          <tr><td class="map-to">ABAC</td><td data-es="Escalable; consciente del contexto; segregación de funciones">Scalable; context-aware; segregation of duty</td><td data-es="Nuevo; requiere adopción y cambio organizativo">New; needs buy-in and organizational change</td></tr>
+        </tbody>
+      </table>
+      <div class="callout discuss" style="margin-top:.9rem"><span class="tag" data-es="Discusión">Discuss</span><p data-es="No hay un ganador único. ¿Cuál elegirías para una escuela pequeña? ¿Para un hospital? ¿Para una empresa global en la nube?">There's no single winner. Which would you pick for a small school? A hospital? A global cloud company?</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== E. CLOSE ===================== -->
+
+  <!-- S27 — Least privilege synthesis -->
+  <section class="slide" data-section="Wrap-up" data-section-es="Cierre">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El hilo conductor"><span class="dot"></span>The common thread</span>
+      <h2 data-es="Todo vuelve al mínimo privilegio">It all comes back to least privilege</h2>
+      <p class="lead" style="max-width:56ch" data-es="Sea cual sea el modelo, la meta es la misma: dar a cada sujeto <strong>solo</strong> el acceso que necesita — ni más, ni menos.">Whatever the model, the goal is the same: give each subject <strong>only</strong> the access they need — no more, no less.</p>
+      <div class="callout discuss"><span class="tag" data-es="Reflexiona">Reflect</span><p data-es="Recuerda los principios de diseño de la semana 1: economía de mecanismo, valores por defecto seguros, mediación completa. El control de acceso es donde cobran vida.">Recall the design principles from week 1: economy of mechanism, fail-safe defaults, complete mediation. Access control is where they come to life.</p></div>
+    </div>
+  </section>
+
+  <!-- S28 — Summary -->
+  <section class="slide" data-section="Wrap-up" data-section-es="Cierre">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Resumen"><span class="dot"></span>Summary</span>
+      <h2 data-es="El control de acceso, en una diapositiva">Access control, in one slide</h2>
+      <ul class="clean">
+        <li data-es="Requisito fundamental cuando hay recursos que proteger.">A fundamental requirement whenever resources need protecting.</li>
+        <li data-es="La <strong>matriz de control de acceso</strong> captura quién accede a qué y cómo.">The <strong>access control matrix</strong> captures who can access what, and how.</li>
+        <li data-es="<strong>ACL</strong> y <strong>capacidades</strong> son dos formas de implementarla (con compromisos distintos)."><strong>ACLs</strong> and <strong>capabilities</strong> are two ways to implement it (with different trade-offs).</li>
+        <li data-es="<strong>DAC, MAC, RBAC, ABAC</strong> gobiernan la política — acertar es difícil."><strong>DAC, MAC, RBAC, ABAC</strong> govern the policy — getting it right is hard.</li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <span class="course" data-es="TC2007B · S2 · C2 — Control de acceso">TC2007B · W2 · L2 — Access Control</span>
+  <span class="right">
+    <span class="sec-name" id="secName">Orientation</span>
+    <span class="counter"><span id="cur">1</span> / <span id="total">28</span></span>
+  </span>
+</footer>
+
+<div class="frag-hint" id="fragHint"><span id="fragHintText">click to reveal</span><span class="chev">▾</span></div>
+
+<div class="nav-btns">
+  <button id="prevBtn" title="Previous (←)">‹</button>
+  <button id="ovBtn" title="Overview (O)">▦</button>
+  <button id="helpBtn" title="Help (?)">?</button>
+  <button id="fsBtn" title="Fullscreen (F)">⛶</button>
+  <button id="nextBtn" title="Next (→)">›</button>
+</div>
+
+<div class="overview" id="overview">
+  <h2 id="ovTitle">Slide overview</h2>
+  <div class="ov-grid" id="ovGrid"></div>
+</div>
+
+<div class="help" id="help">
+  <div class="panel">
+    <h2 data-es="Navegación">Navigation</h2>
+    <table>
+      <tr><td><kbd>→</kbd> <kbd>Space</kbd> <kbd>PgDn</kbd></td><td data-es="Siguiente / revelar">Next / reveal</td></tr>
+      <tr><td><kbd>←</kbd> <kbd>PgUp</kbd></td><td data-es="Anterior">Previous</td></tr>
+      <tr><td><kbd>Home</kbd> / <kbd>End</kbd></td><td data-es="Primera / última">First / last slide</td></tr>
+      <tr><td><kbd>O</kbd></td><td data-es="Vista general">Slide overview grid</td></tr>
+      <tr><td><kbd>F</kbd></td><td data-es="Pantalla completa">Toggle fullscreen</td></tr>
+      <tr><td><kbd>L</kbd></td><td data-es="Idioma ES / EN">Language ES / EN</td></tr>
+      <tr><td><kbd>T</kbd></td><td data-es="Tema claro / oscuro">Light / dark theme</td></tr>
+      <tr><td><kbd>?</kbd></td><td>Help</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td data-es="Cerrar ventana">Close overlay</td></tr>
+    </table>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

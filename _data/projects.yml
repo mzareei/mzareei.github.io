@@ -1,9 +1,78 @@
 # ============================================================
-#  RESEARCH PROJECTS
+#  RESEARCH PROJECTS  (FUNDED only — rejected/under-review proposals excluded)
 #  status: active | completed | review
-#  TODO: add current/internal projects (CONAHCYT, industry, Tec funding, etc.).
-#        Do not invent funding amounts; leave blank if not public.
+#  Amounts shown with participation share where applicable.
+#  TODO: keep statuses current; add new awarded projects here.
 # ============================================================
+
+- title: "AI model to identify behavioral patterns in people at risk of suicide"
+  status: active
+  description: >-
+    Development of an artificial-intelligence model to identify behavioral
+    patterns associated with suicide risk, supporting early detection and
+    prevention.
+  role: "Co-Investigator (30% participation)"
+  funding_source: "Fundación Gonzalo Río Arronte"
+  amount: "≈ 652,000 MXN"
+  duration: "2025 – 2026"
+  collaborators: "Tecnológico de Monterrey"
+  related_publications: ""
+  related_students: ""
+
+- title: "Uncertainty quantification of AI models in the detection of cyber threats and attacks"
+  status: active
+  description: >-
+    Methods to quantify the uncertainty of artificial-intelligence models used
+    for detecting cyber threats and attacks, improving the reliability of
+    AI-based security systems.
+  role: "Co-Investigator (15% participation)"
+  funding_source: "FRIDA / LACNIC (FRIDA-7463)"
+  amount: "≈ 500,000 MXN"
+  duration: "2025"
+  collaborators: ""
+  related_publications: ""
+  related_students: ""
+
+- title: "Microsoft AI for Good — cloud computing infrastructure for research"
+  status: active
+  description: >-
+    In-kind award of Microsoft Azure cloud-computing resources to strengthen
+    research infrastructure for publications and student training.
+  role: "Principal Investigator (recipient)"
+  funding_source: "Microsoft AI for Good / Microsoft Azure (in-kind)"
+  amount: "USD 52,380 (≈ 905,651 MXN), in-kind"
+  duration: "2023 – 2026"
+  collaborators: ""
+  related_publications: ""
+  related_students: ""
+
+- title: "DDoS attack detection using a stacking ensemble of machine-learning models"
+  status: completed
+  description: >-
+    Detection of distributed denial-of-service (DDoS) attacks in computer
+    networks based on a stacking-ensemble architecture combining multiple
+    machine-learning models.
+  role: "Co-Investigator (25% participation)"
+  funding_source: "FRIDA / LACNIC"
+  amount: "≈ 600,000 MXN"
+  duration: "2024 – 2025"
+  collaborators: ""
+  related_publications: ""
+  related_students: ""
+
+- title: "Framework for mitigating DDoS attacks in the data plane of software-defined networks using AI and P4"
+  status: completed
+  description: >-
+    Design and implementation of a framework to mitigate DDoS attacks in the
+    data plane of software-defined networks (SDN), combining artificial
+    intelligence with P4 programmable data planes.
+  role: "Co-Investigator (30% participation)"
+  funding_source: "FRIDA / LACNIC"
+  amount: "≈ 550,000 MXN"
+  duration: "2023 – 2024"
+  collaborators: ""
+  related_publications: ""
+  related_students: ""
 
 - title: "Energy-Harvesting Sensor Networks for Environmental Monitoring: Bridging the Research-Implementation Gap"
   status: completed
@@ -18,15 +87,3 @@
   collaborators: "Tecnológico de Monterrey & University of Essex"
   related_publications: "Zareei et al., Energies (2019); Computer Networks (2018)"
   related_students: ""
-
-# TODO: Add more projects below. Example template:
-# - title: "[Project title]"
-#   status: active
-#   description: "[Short description.]"
-#   role: "Principal Investigator"
-#   funding_source: ""
-#   amount: ""
-#   duration: "2024 – 2026"
-#   collaborators: ""
-#   related_publications: ""
-#   related_students: ""
