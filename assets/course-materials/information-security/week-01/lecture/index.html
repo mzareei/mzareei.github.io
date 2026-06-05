@@ -3,28 +3,25 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Week 01 Lecture - Security Mindset and CIA</title>
-  <meta name="description" content="Classroom slide deck for Week 01 of Information Security.">
+  <title>Security Mindset and CIA Triad</title>
+  <meta name="description" content="Week 01 classroom lecture for Information Security.">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main id="deck" class="deck" aria-live="polite">
-    <section id="slide" class="slide" aria-label="Current lecture slide"></section>
-  </main>
+  <main class="deck" id="deck" aria-live="polite"></main>
 
-  <div class="language-toggle" aria-label="Language">
-    <button type="button" data-lang="en" class="is-active">EN</button>
+  <div class="lang-switch" aria-label="Language">
+    <button type="button" data-lang="en" class="active">EN</button>
     <button type="button" data-lang="es">ES</button>
   </div>
 
-  <div class="nav-controls" aria-label="Slide controls">
-    <button type="button" id="prevBtn" aria-label="Previous slide">&lt;</button>
-    <button type="button" id="nextBtn" aria-label="Next slide">&gt;</button>
+  <div class="nav" aria-label="Navigation">
+    <button type="button" id="prev" aria-label="Previous slide">&lt;</button>
+    <button type="button" id="next" aria-label="Next slide">&gt;</button>
   </div>
 
-  <div class="slide-count" id="slideCount" aria-hidden="true"></div>
+  <div class="footer" id="footer"></div>
 
-  <script src="slides.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
