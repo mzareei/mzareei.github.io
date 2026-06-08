@@ -24,9 +24,23 @@ outside the public repository until you are ready to publish them.
 
 <div class="course-week" markdown="1">
 
-### Week 1 - Security mindset and CIA triad
-- Lecture slides: [Open Week 01 classroom deck](/assets/course-materials/information-security/week-01/lecture/)
-- Source: redesigned from instructor PowerPoint `TC2007B-W01-1-CIA.pptx`
+### Week 1 — Security mindset, CIA triad & legal framework
+
+| # | Topic | Deck |
+|---|-------|------|
+| L1 | Introduction to Cybersecurity | [Open deck →](/assets/course-materials/information-security/week-01/lecture/) |
+| L2 | Legal & Ethical Aspects | [Open deck →](/assets/course-materials/information-security/week-01/lecture-2/) |
+
+</div>
+
+<div class="course-week" markdown="1">
+
+### Week 2 — Authentication & Access Control
+
+| # | Topic | Deck |
+|---|-------|------|
+| L1 | Authentication (passwords, biometrics, MFA) | [Open deck →](/assets/course-materials/information-security/week-02/lecture/) |
+| L2 | Access Control (ACLs, DAC/MAC/RBAC/ABAC) | [Open deck →](/assets/course-materials/information-security/week-02/lecture-2/) |
 
 </div>
 

@@ -16,6 +16,9 @@ Thumbs.db
 .idea/
 .vscode/
 
+# Claude Code local settings (personal automation — not for the repo)
+.claude/settings.local.json
+
 # Local-only extracted PowerPoint media. The public lecture version uses
 # code-based visuals instead of publishing source-deck images.
 assets/course-materials/information-security/week-01/lecture/assets/media/
