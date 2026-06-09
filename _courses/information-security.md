@@ -44,4 +44,14 @@ outside the public repository until you are ready to publish them.
 
 </div>
 
+<div class="course-week" markdown="1">
+
+### Week 3 — Database and Application Security
+
+| # | Topic | Deck |
+|---|-------|------|
+| L1 | Database & App Security (SQLi, XSS, OWASP) | [Open deck →](/assets/course-materials/information-security/week-03/lecture/) |
+
+</div>
+
 <p class="todo">TODO: add the remaining weeks, slides, labs, and assignments.</p>
