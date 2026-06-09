@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # Project Context — Mahdi Zareei's Academic Website
 
 This file travels with the repository so that, on any machine, the assistant starts
@@ -15,6 +19,76 @@ Prioritize academic credibility, clarity, consistent structure, and long-term
 maintainability over decoration. Professional tone; no marketing language. Never
 fabricate publications, students, grants, metrics, or affiliations — use clear
 placeholders or ask when information is missing.
+
+## Build, preview & deploy
+
+There is **no build step you run** — GitHub Pages builds and deploys the site
+automatically on every push to `main` (no Actions workflow; the classic
+"Deploy from a branch" Pages pipeline). Editing content = edit files, commit, push.
+
+Local preview is optional and needs Ruby + Bundler:
+
+```bash
+bundle install                              # first time only
+bundle exec jekyll serve --livereload       # http://localhost:4000
+```
+
+- The `github-pages` gem pins the local build to match GitHub's exactly — do not
+  add plugins outside GitHub Pages' whitelist (current plugins: `jekyll-feed`,
+  `jekyll-seo-tag`, `jekyll-sitemap`).
+- Changes to `_config.yml` are **not** live-reloaded — restart `jekyll serve`.
+- No test suite, linter, or formatter. "Correct" means: the page renders, links
+  resolve, and the dark-mode toggle / pub filters / deck navigation still work.
+- Always `git pull` before editing and `git push` before stopping — this repo is
+  edited from two machines and GitHub is the single source of truth (see `WORKFLOW.md`).
+
+## Architecture
+
+Two **independent** front-end systems live in one repo; they share visual style but
+no code:
+
+**1. The Jekyll site** (everything outside `assets/course-materials/`). Content is
+data-driven and decoupled from design:
+- `_data/*.yml` holds the actual content (publications, projects, students, news,
+  research themes). Page templates (`*.html`, `_layouts/`, `_includes/`) iterate over
+  this data — to add a publication you edit YAML, never HTML. Enum-like fields are
+  load-bearing: publication `type` ∈ {journal, conference, book_chapter, preprint};
+  project `status` ∈ {active, completed, review}; students grouped under
+  {phd, msc, graduated, undergrad}. The page filtering JS keys off these values.
+- `_courses/*.md` is a Jekyll **collection** (`output: true`), one file per course,
+  each rendered at `/teaching/<filename>/` via `_layouts/course.html`.
+- `_config.yml` `defaults:` auto-assign layouts by type (pages→page, courses→course,
+  posts→post) so content files rarely declare `layout:`.
+- `assets/js/main.js` is the entire site's JS: ~50 lines, no dependencies, doing
+  three things — theme toggle (persists `theme` in localStorage), mobile nav, and
+  publication filtering by year/type (show/hide `.pub-item` elements + their group
+  headings). The nav menu is hard-coded in `_includes/header.html`.
+- `assets/css/style.scss` is the single stylesheet; the al-folio-inspired look
+  (Roboto/Roboto Slab, blue accent, dark mode) is defined here.
+
+**2. The lecture-deck engine** (`assets/course-materials/`). Self-contained HTML
+slide decks served as static files (NOT Jekyll pages), one folder per lecture at
+`assets/course-materials/<course>/week-NN/lecture[-N]/`. Each deck is a copy of the
+template trio:
+- `index.html` — the **only** file you edit per lecture; each
+  `<section class="slide">` is one slide.
+- `script.js` + `style.css` — the **shared engine, copied verbatim, never edited**.
+  The engine (`script.js`) provides: keyboard/remote/touch/click navigation,
+  click-to-reveal `.fragment` elements (forward shows them one at a time; jumping
+  back reveals all), slide overview (`o`), help (`?`), fullscreen (`f`), a slide
+  count computed automatically, and deep-linking via `#<slide-number>`.
+- **Bilingual mechanism:** text carries a `data-es="…"` attribute; on first load the
+  engine snapshots the English into `data-en`, then `applyLang` swaps `innerHTML`
+  between them. Inside `data-es` use single quotes for nested tag attributes and
+  typographic quotes `" " ¿ ¡` — a straight `"` closes the attribute and breaks the
+  slide. SVG diagram text can't take `data-es`, so it's translated by CSS class via
+  the hard-coded `svgMap` table in `script.js` (extend it when adding labeled SVGs).
+- Lang (`tc-lang`) and theme (`tc-theme`) persist in localStorage under deck-specific
+  keys, separate from the main site's `theme` key.
+- `assets/course-materials/_template/` is the source of truth; its leading `_` makes
+  Jekyll ignore it so it ships in the repo but is never published. Start every new
+  deck by copying `_template/lecture/` and read its `HOW-TO-USE.md`. See the
+  lecture-deck preferences section below for the content/pedagogy rules.
 
 ## Site owner
 
