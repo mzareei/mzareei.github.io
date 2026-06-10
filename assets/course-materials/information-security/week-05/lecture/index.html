@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Week 5 · Lecture 1 — Asymmetric Encryption &amp; Public-Key Algorithms</title>
+<meta name="description" content="Asymmetric (public-key) cryptography: modular arithmetic, additive and multiplicative inverses, Euclid's algorithm, Euler's totient, Diffie-Hellman key exchange, RSA, ECC, padding, digital signatures, and post-quantum cryptography. Week 5, Lecture 1 of TC2007B.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+/* ---- Lecture-local additions ---- */
+/* Math / formula blocks */
+.math-block {
+  background: var(--bg-3); border: 1px solid var(--line);
+  border-radius: 14px; padding: 1.1rem 1.5rem;
+  font-family: var(--mono); font-size: clamp(.95rem, 1.8vw, 1.4rem);
+  margin-top: 1.2rem; line-height: 1.9; text-align: center;
+}
+.math-block.left { text-align: left; }
+.mb-kw   { color: var(--accent); font-weight: 700; }
+.mb-var  { color: var(--accent-2); font-weight: 700; }
+.mb-res  { color: var(--good); font-weight: 700; }
+.mb-bad  { color: var(--danger); font-weight: 700; }
+.mb-mut  { color: var(--ink-soft); font-style: italic; font-size: .82em; }
+sup, sub { font-size: .68em; }
+
+/* Step-by-step worked example list */
+.steps { display:flex; flex-direction:column; gap:.7rem; margin-top:1.2rem; counter-reset: stp; }
+.steps .step {
+  display:flex; gap:.9rem; align-items:flex-start;
+  background: var(--bg-2); border:1px solid var(--line);
+  border-left:4px solid var(--accent); border-radius:10px;
+  padding:.7rem 1rem; font-size: clamp(.82rem,1.5vw,1.1rem);
+}
+.steps .step .sn {
+  flex:none; width:1.9rem; height:1.9rem; border-radius:50%;
+  background: var(--accent); color:#fff; font-weight:900;
+  display:grid; place-items:center; font-size:.9rem;
+}
+.steps .step .sb { flex:1; }
+.steps .step .sb code, .steps .step .sb .mono { font-family:var(--mono); color:var(--accent-2); }
+.steps .step .sb .res { font-family:var(--mono); color:var(--good); font-weight:700; }
+.steps .step.is-final { border-left-color: var(--good); }
+.steps .step.is-final .sn { background: var(--good); }
+
+/* Diffie-Hellman three-column exchange diagram */
+.dh-grid { display:grid; grid-template-columns: 1fr 1fr; gap:1.1rem; margin-top:1.2rem; }
+.dh-pub {
+  grid-column: 1 / -1; text-align:center;
+  background: rgba(78,161,255,.08); border:1px solid var(--accent);
+  border-radius:12px; padding:.7rem 1rem; font-family:var(--mono);
+  font-size: clamp(.8rem,1.4vw,1.05rem); color:var(--ink);
+}
+.dh-party { background: var(--bg-2); border:2px solid var(--line); border-radius:14px; padding:1rem 1.1rem; }
+.dh-party.a { border-color: var(--accent); }
+.dh-party.b { border-color: var(--accent-2); }
+.dh-party h3 { font-size: var(--fs-lead); margin-bottom:.5rem; }
+.dh-party.a h3 { color: var(--accent); }
+.dh-party.b h3 { color: var(--accent-2); }
+.dh-party .ln { font-family:var(--mono); font-size: clamp(.74rem,1.35vw,1rem); line-height:1.85; color:var(--ink-soft); }
+.dh-party .ln .hl { color:var(--good); font-weight:700; }
+.dh-party .ln .sec { color:var(--warn); font-weight:700; }
+.dh-eve {
+  grid-column: 1 / -1; text-align:center;
+  background: rgba(255,107,107,.08); border:1px dashed var(--danger);
+  border-radius:12px; padding:.7rem 1rem; font-size: clamp(.78rem,1.4vw,1.02rem); color:var(--ink-soft);
+}
+.dh-eve strong { color: var(--danger); }
+@media (max-width:900px){ .dh-grid { grid-template-columns:1fr; } }
+
+/* Public-key analogy mailbox */
+.pk-tbl { width:100%; border-collapse:collapse; margin-top:1.2rem; font-size: clamp(.78rem,1.35vw,1.05rem); }
+.pk-tbl th, .pk-tbl td { border:1px solid var(--line); padding:.6rem .9rem; vertical-align:top; }
+.pk-tbl thead th { background: var(--bg-3); color: var(--accent); font-size: var(--fs-small); text-transform:uppercase; letter-spacing:.06em; }
+.pk-tbl tbody td:first-child { font-weight:800; color:var(--ink); background:var(--bg-2); white-space:nowrap; }
+
+/* small key-size table tint */
+.legacy { color: var(--danger); font-weight:700; }
+.okrow  { color: var(--good); font-weight:700; }
+
+/* ECC curve figure */
+.curve-wrap { display:flex; gap:1.4rem; align-items:center; margin-top:1.2rem; flex-wrap:wrap; }
+.curve-wrap svg { background: var(--bg-2); border:1px solid var(--line); border-radius:14px; flex:none; }
+.curve-wrap .cw-txt { flex:1; min-width:240px; }
+:root[data-theme="light"] .curve-line { stroke:#2a6fd6; }
+:root[data-theme="light"] .curve-axis { stroke:#9fb3cc; }
+
+.inv-pill { display:inline-block; font-family:var(--mono); background:var(--bg-3); border:1px solid var(--line); border-radius:8px; padding:.15rem .55rem; margin:.15rem; font-size:.9em; }
+.inv-pill.no { color:var(--danger); border-color:var(--danger); }
+.inv-pill.yes { color:var(--good); border-color:var(--good); }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="fill" id="progress"></div></div>
+
+<div class="controls">
+  <a href="/teaching/information-security/" class="ui-btn" title="Back to course / Volver al curso" style="text-decoration:none">⌂</a>
+  <button class="ui-btn" id="langBtn" title="Español / English">ES</button>
+  <button class="ui-btn" id="themeBtn" title="Light / Dark">☀</button>
+</div>
+
+<main class="deck" id="deck">
+
+  <!-- ===================== A. ORIENTATION ===================== -->
+
+  <!-- S1 — Title -->
+  <section class="slide title-slide active" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>TC2007B · Semana 5 · Clase 1"><span class="dot"></span>TC2007B · Week 5 · Lecture 1</span>
+      <h1 data-es="Cifrado Asimétrico y Algoritmos de Clave Pública">Asymmetric Encryption &amp; Public-Key Algorithms</h1>
+      <div class="title-rule"></div>
+      <p class="lead" data-es="¿Cómo acuerdan dos extraños un secreto compartido… a la vista de todos?">How do two strangers agree on a shared secret… in plain sight of everyone?</p>
+      <div class="title-meta">
+        <span class="pill" data-es="Profesor: Mahdi Zareei">Instructor: Mahdi Zareei</span>
+        <span class="pill" data-es="Aritmética modular · Diffie-Hellman · RSA · ECC">Modular arithmetic · Diffie-Hellman · RSA · ECC</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- S2 — Objectives -->
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Qué veremos hoy"><span class="dot"></span>What we'll cover</span>
+      <h2 data-es="Objetivos de la clase">Lecture objectives</h2>
+      <div class="grid cols-2">
+        <div class="card accent-top"><span class="ico">🧮</span><h3 data-es="Aritmética modular">Modular arithmetic</h3><p data-es="La base matemática: suma, multiplicación y exponenciación modulares; inversos; algoritmo de Euclides y la función totiente φ(n).">The mathematical foundation: modular addition, multiplication and exponentiation; inverses; Euclid's algorithm and the totient φ(n).</p></div>
+        <div class="card teal-top"><span class="ico">🔑</span><h3 data-es="Idea de clave pública">Public-key idea</h3><p data-es="Un par de claves: una pública para cifrar, una privada para descifrar. Por qué cambia las reglas del juego.">A key pair: a public one to encrypt, a private one to decrypt. Why it changes the game.</p></div>
+        <div class="card good-top"><span class="ico">🤝</span><h3 data-es="Diffie-Hellman">Diffie-Hellman</h3><p data-es="Intercambio de claves sobre un canal abierto; ejemplo trabajado; seguridad, límites y el ataque de intermediario.">Key exchange over an open channel; worked example; security, limits, and the man-in-the-middle attack.</p></div>
+        <div class="card warn-top"><span class="ico">🔐</span><h3 data-es="RSA, ECC y más allá">RSA, ECC &amp; beyond</h3><p data-es="Cómo funciona RSA, generación de claves, por qué es seguro, sus debilidades, firmas, ECC y el futuro post-cuántico.">How RSA works, key generation, why it's secure, its weaknesses, signatures, ECC, and the post-quantum future.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S3 — Symmetric problem -->
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El problema que resuelve"><span class="dot"></span>The problem it solves</span>
+      <h2 data-es="El problema de distribución de claves">The key-distribution problem</h2>
+      <ul class="clean">
+        <li data-es="El cifrado <strong>simétrico</strong> (AES, etc.) es rápido — pero ambas partes deben compartir <em>la misma</em> clave secreta de antemano.">Symmetric encryption (AES, etc.) is fast — but both parties must share <em>the same</em> secret key beforehand.</li>
+        <li data-es="¿Cómo le envías esa clave a alguien que nunca has conocido, por una red que podría estar espiada?">How do you send that key to someone you've never met, over a network that might be wiretapped?</li>
+        <li data-es="Con <em>n</em> usuarios que quieren hablar por pares, hacen falta <strong>n(n−1)/2</strong> claves. Para 1000 usuarios: casi medio millón.">With <em>n</em> users wanting pairwise conversations, you need <strong>n(n−1)/2</strong> keys. For 1000 users: nearly half a million.</li>
+      </ul>
+      <div class="callout discuss"><span class="tag" data-es="Provocación">Provocation</span><p data-es="Quieres enviarle un secreto a alguien al otro lado del mundo a quien nunca has visto. No pueden reunirse. Cualquier mensaje puede ser leído por un espía. ¿Es esto siquiera posible? En 1976, la respuesta pasó de «no» a «sí».">You want to send a secret to someone across the world whom you've never met. You can't meet. Any message can be read by an eavesdropper. Is this even possible? In 1976, the answer went from "no" to "yes."</p></div>
+    </div>
+  </section>
+
+  <!-- S4 — Public-key idea + mailbox analogy -->
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La gran idea"><span class="dot"></span>The big idea</span>
+      <h2 data-es="Dos claves en vez de una">Two keys instead of one</h2>
+      <div class="definition">
+        <blockquote data-es="En la criptografía de clave pública (asimétrica), cada persona tiene un <strong>par</strong> de claves: una <strong>clave pública</strong> que comparte con todo el mundo, y una <strong>clave privada</strong> que nunca revela. Lo que una cierra, solo la otra abre.">In public-key (asymmetric) cryptography, each person has a <strong>pair</strong> of keys: a <strong>public key</strong> they share with everyone, and a <strong>private key</strong> they never reveal. What one locks, only the other unlocks.</blockquote>
+      </div>
+      <table class="pk-tbl">
+        <thead><tr><th data-es="Analogía del buzón con candado">Padlocked-mailbox analogy</th><th data-es="Criptografía de clave pública">Public-key cryptography</th></tr></thead>
+        <tbody>
+          <tr><td data-es="Buzón abierto en la calle">Open mailbox on the street</td><td data-es="Clave pública: cualquiera puede usarla para «depositar» un mensaje cifrado.">Public key: anyone can use it to "drop in" an encrypted message.</td></tr>
+          <tr><td data-es="La ranura: cualquiera mete una carta, nadie la saca">The slot: anyone inserts a letter, no one removes it</td><td data-es="Cifrar es fácil y público; deshacerlo no.">Encrypting is easy and public; undoing it is not.</td></tr>
+          <tr><td data-es="La llave del buzón (solo tú la tienes)">The mailbox key (only you have it)</td><td data-es="Clave privada: solo el dueño puede abrir y leer.">Private key: only the owner can open and read.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===================== B. MODULAR ARITHMETIC ===================== -->
+
+  <!-- S5 — Section divider -->
+  <section class="slide section" data-section="Modular Arithmetic" data-section-es="Aritmética Modular">
+    <div class="slide-inner">
+      <div class="num">01</div>
+      <h1 data-es="Aritmética modular">Modular arithmetic</h1>
+      <p class="lead" data-es="La maquinaria matemática que hace posible toda la criptografía de clave pública.">The mathematical machinery that makes all public-key cryptography possible.</p>
+    </div>
+  </section>
+
+  <!-- S6 — Clock analogy / what is mod -->
+  <section class="slide" data-section="Modular Arithmetic" data-section-es="Aritmética Modular">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Aritmética del reloj"><span class="dot"></span>Clock arithmetic</span>
+      <h2 data-es="¿Qué significa «módulo»?">What does "modulo" mean?</h2>
+      <ul class="clean">
+        <li data-es="<strong>a mod M</strong> es el <em>resto</em> de dividir a entre M. Los números «dan la vuelta» al llegar a M."><strong>a mod M</strong> is the <em>remainder</em> when a is divided by M. Numbers "wrap around" when they reach M.</li>
+        <li data-es="Ya usas esto: un reloj de 12 horas es aritmética mod 12. Son las 10 + 5 horas = las 3 (porque 15 mod 12 = 3).">You already use this: a 12-hour clock is arithmetic mod 12. 10 o'clock + 5 hours = 3 o'clock (because 15 mod 12 = 3).</li>
+        <li data-es="Los algoritmos de clave pública se construyen sobre tres operaciones modulares:">Public-key algorithms are built on three modular operations:</li>
+      </ul>
+      <div class="grid cols-3" style="margin-top:1rem">
+        <div class="card accent-top"><h3 data-es="Suma">Addition</h3><p data-es="(a + b) mod M">(a + b) mod M</p></div>
+        <div class="card teal-top"><h3 data-es="Multiplicación">Multiplication</h3><p data-es="(a × b) mod M">(a × b) mod M</p></div>
+        <div class="card good-top"><h3 data-es="Exponenciación">Exponentiation</h3><p data-es="(a<sup>b</sup>) mod M">(a<sup>b</sup>) mod M</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S7 — Modular addition + additive inverse -->
+  <section class="slide" data-section="Modular Arithmetic" data-section-es="Aritmética Modular">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Suma e inverso aditivo"><span class="dot"></span>Addition &amp; additive inverse</span>
+      <h2 data-es="Suma modular: cifrar y deshacer">Modular addition: encrypt and undo</h2>
+      <ul class="clean">
+        <li data-es="<strong>Inverso aditivo</strong> de k: el número que, sumado a k (mod M), da 0."><strong>Additive inverse</strong> of k: the number that, added to k (mod M), gives 0.</li>
+        <li data-es="Ejemplo con M = 10: el inverso de k = 2 es k⁻¹ = 8, porque 2 + 8 = 10 ≡ 0 (mod 10).">Example with M = 10: the inverse of k = 2 is k⁻¹ = 8, because 2 + 8 = 10 ≡ 0 (mod 10).</li>
+        <li data-es="Es <strong>reversible</strong> sumando el inverso — perfecto para descifrar.">It is <strong>reversible</strong> by adding the inverse — perfect for decryption.</li>
+      </ul>
+      <div class="math-block left">
+        <span class="mb-mut" data-es="// cifrar: texto plano p=3, clave k=2">// encrypt: plaintext p=3, key k=2</span><br>
+        c = p + k = 3 + 2 = <span class="mb-res">5</span> &nbsp; (mod 10)<br>
+        <span class="mb-mut" data-es="// descifrar: sumar el inverso k⁻¹=8">// decrypt: add the inverse k⁻¹=8</span><br>
+        c + k<sup>-1</sup> = 5 + 8 = 13 = <span class="mb-res">3</span> = p &nbsp; (mod 10)
+      </div>
+    </div>
+  </section>
+
+  <!-- S8 — Additive inverse quiz -->
+  <section class="slide activity" data-section="Modular Arithmetic" data-section-es="Aritmética Modular">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Actividad · Inverso aditivo">◆ Activity · Additive inverse</span>
+      <h2 style="margin-top:1rem" data-es="¿Cuál es el inverso aditivo de 8 mod 20?">What is the additive inverse of 8 mod 20?</h2>
+      <p class="lead" data-es="Busca el número que sumado a 8 da 0 (mod 20).">Find the number that added to 8 gives 0 (mod 20).</p>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Respuesta">Answer</span>
+        <p data-es="<strong>12</strong>, porque 8 + 12 = 20 ≡ 0 (mod 20). En general, el inverso aditivo de k es simplemente M − k."><strong>12</strong>, because 8 + 12 = 20 ≡ 0 (mod 20). In general, the additive inverse of k is simply M − k.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S9 — Modular multiplication + multiplicative inverse -->
+  <section class="slide" data-section="Modular Arithmetic" data-section-es="Aritmética Modular">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Multiplicación e inverso multiplicativo"><span class="dot"></span>Multiplication &amp; multiplicative inverse</span>
+      <h2 data-es="Multiplicación modular: el inverso es más esquivo">Modular multiplication: the inverse is trickier</h2>
+      <ul class="clean">
+        <li data-es="<strong>Inverso multiplicativo</strong> de x: el número y tal que x × y ≡ 1 (mod M)."><strong>Multiplicative inverse</strong> of x: the number y such that x × y ≡ 1 (mod M).</li>
+        <li data-es="Con M = 10: 3 y 7 son inversos entre sí, porque 3 × 7 = 21 ≡ 1 (mod 10).">With M = 10: 3 and 7 are inverses of each other, because 3 × 7 = 21 ≡ 1 (mod 10).</li>
+        <li data-es="<strong>Solo algunos números tienen inverso.</strong> Con M = 10, los números 2, 4, 5, 6 y 8 <em>no</em> lo tienen."><strong>Only some numbers have an inverse.</strong> With M = 10, the numbers 2, 4, 5, 6, and 8 do <em>not</em>.</li>
+      </ul>
+      <div style="margin-top:1rem">
+        <span class="inv-pill yes" data-es="1 ✓">1 ✓</span><span class="inv-pill yes">3 ✓</span><span class="inv-pill yes">7 ✓</span><span class="inv-pill yes">9 ✓</span>
+        <span class="inv-pill no">2 ✗</span><span class="inv-pill no">4 ✗</span><span class="inv-pill no">5 ✗</span><span class="inv-pill no">6 ✗</span><span class="inv-pill no">8 ✗</span>
+      </div>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Regla clave">Key rule</span><p data-es="Un número x tiene inverso multiplicativo mod n <strong>si y solo si</strong> x es <em>relativamente primo</em> a n (no comparten ningún factor salvo 1).">A number x has a multiplicative inverse mod n <strong>if and only if</strong> x is <em>relatively prime</em> to n (they share no factor other than 1).</p></div>
+    </div>
+  </section>
+
+  <!-- S10 — Euclid's algorithm -->
+  <section class="slide" data-section="Modular Arithmetic" data-section-es="Aritmética Modular">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Cómo encontrar el inverso"><span class="dot"></span>How to find the inverse</span>
+      <h2 data-es="El algoritmo (extendido) de Euclides">Euclid's (extended) algorithm</h2>
+      <ul class="clean">
+        <li data-es="Dados x y n, el algoritmo extendido de Euclides encuentra y tal que x × y ≡ 1 (mod n) — el inverso multiplicativo.">Given x and n, the extended Euclidean algorithm finds y such that x × y ≡ 1 (mod n) — the multiplicative inverse.</li>
+        <li data-es="Primero calcula el <strong>máximo común divisor</strong> (mcd). Si mcd(x, n) = 1, el inverso existe; si no, no existe.">It first computes the <strong>greatest common divisor</strong> (gcd). If gcd(x, n) = 1, the inverse exists; otherwise it doesn't.</li>
+        <li data-es="Es <em>eficiente</em>: funciona incluso con números enormes de cientos de dígitos — por eso es práctico en criptografía real.">It is <em>efficient</em>: it works even for huge numbers hundreds of digits long — which is why it's practical in real cryptography.</li>
+      </ul>
+      <div class="math-block">
+        gcd(x, n) = 1 &nbsp; ⟹ &nbsp; <span class="mb-res" data-es="el inverso existe">the inverse exists</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- S11 — Multiplicative inverse quiz -->
+  <section class="slide activity" data-section="Modular Arithmetic" data-section-es="Aritmética Modular">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Actividad · Inverso multiplicativo">◆ Activity · Multiplicative inverse</span>
+      <h2 style="margin-top:1rem" data-es="¿Cuál es el inverso multiplicativo de 3 mod 17?">What is the multiplicative inverse of 3 mod 17?</h2>
+      <p class="lead" data-es="Busca y tal que 3 × y ≡ 1 (mod 17).">Find y such that 3 × y ≡ 1 (mod 17).</p>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Respuesta">Answer</span>
+        <p data-es="<strong>6</strong>, porque 3 × 6 = 18 ≡ 1 (mod 17). Como mcd(3, 17) = 1, el inverso existe (17 es primo, así que todo número de 1 a 16 tiene inverso)."><strong>6</strong>, because 3 × 6 = 18 ≡ 1 (mod 17). Since gcd(3, 17) = 1, the inverse exists (17 is prime, so every number from 1 to 16 has an inverse).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S12 — Totient function -->
+  <section class="slide" data-section="Modular Arithmetic" data-section-es="Aritmética Modular">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La función totiente de Euler"><span class="dot"></span>Euler's totient function</span>
+      <h2 data-es="Función totiente φ(n)">Totient function φ(n)</h2>
+      <div class="definition">
+        <blockquote data-es="φ(n) cuenta cuántos enteros menores que n son <strong>relativamente primos</strong> a n (no comparten factor salvo 1).">φ(n) counts how many integers smaller than n are <strong>relatively prime</strong> to n (sharing no factor other than 1).</blockquote>
+      </div>
+      <div class="grid cols-3" style="margin-top:1.1rem">
+        <div class="card accent-top"><h3 data-es="n es primo">n is prime</h3><p data-es="φ(n) = n − 1 (todos los números menores son coprimos).">φ(n) = n − 1 (every smaller number is coprime).</p></div>
+        <div class="card teal-top"><h3 data-es="n = p × q, ambos primos">n = p × q, both prime</h3><p data-es="φ(n) = (p − 1)(q − 1) — ¡el corazón de RSA!">φ(n) = (p − 1)(q − 1) — the heart of RSA!</p></div>
+        <div class="card good-top"><h3 data-es="p, q coprimos">p, q coprime</h3><p data-es="φ(p × q) = φ(p) × φ(q) (multiplicativa).">φ(p × q) = φ(p) × φ(q) (multiplicative).</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S13 — Totient quiz -->
+  <section class="slide activity" data-section="Modular Arithmetic" data-section-es="Aritmética Modular">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Actividad · Totiente">◆ Activity · Totient</span>
+      <h2 style="margin-top:1rem" data-es="Calcula φ(21) y φ(30)">Compute φ(21) and φ(30)</h2>
+      <p class="lead" data-es="Pista: factoriza primero cada número en primos.">Hint: factor each number into primes first.</p>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Respuesta">Answer</span>
+        <p data-es="<strong>φ(21)</strong>: 21 = 3 × 7 (ambos primos) ⟹ (3−1)(7−1) = 2 × 6 = <strong>12</strong>.<br><strong>φ(30)</strong>: 30 = 2 × 3 × 5 ⟹ (2−1)(3−1)(5−1) = 1 × 2 × 4 = <strong>8</strong>."><strong>φ(21)</strong>: 21 = 3 × 7 (both prime) ⟹ (3−1)(7−1) = 2 × 6 = <strong>12</strong>.<br><strong>φ(30)</strong>: 30 = 2 × 3 × 5 ⟹ (2−1)(3−1)(5−1) = 1 × 2 × 4 = <strong>8</strong>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S14 — Modular exponentiation + totient trick -->
+  <section class="slide" data-section="Modular Arithmetic" data-section-es="Aritmética Modular">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Exponenciación modular"><span class="dot"></span>Modular exponentiation</span>
+      <h2 data-es="El truco del totiente para exponentes grandes">The totient trick for large exponents</h2>
+      <div class="math-block">
+        x<sup>y</sup> mod n = x<sup>(y mod φ(n))</sup> mod n
+      </div>
+      <ul class="clean">
+        <li data-es="Reducir el exponente <em>módulo φ(n)</em> hace manejables potencias gigantescas — la clave para calcular RSA rápido.">Reducing the exponent <em>modulo φ(n)</em> makes gigantic powers tractable — the key to computing RSA quickly.</li>
+        <li data-es="Caso especial: si y mod φ(n) = 1, entonces x<sup>y</sup> mod n = x mod n.">Special case: if y mod φ(n) = 1, then x<sup>y</sup> mod n = x mod n.</li>
+      </ul>
+      <div class="callout note" style="margin-top:.8rem"><span class="tag" data-es="Por qué importa">Why it matters</span><p data-es="Las computadoras nunca calculan x<sup>y</sup> entero (tendría millones de dígitos). Usan «exponenciación rápida» (cuadrado y multiplica) reduciendo mod n en cada paso.">Computers never compute the full x<sup>y</sup> (it would have millions of digits). They use "fast exponentiation" (square-and-multiply), reducing mod n at every step.</p></div>
+    </div>
+  </section>
+
+  <!-- S15 — Worked: 7^21 mod 10 -->
+  <section class="slide" data-section="Modular Arithmetic" data-section-es="Aritmética Modular">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Ejemplo trabajado 1"><span class="dot"></span>Worked example 1</span>
+      <h2 data-es="Calcula c = 7²¹ mod 10">Compute c = 7²¹ mod 10</h2>
+      <p data-es="Usa la técnica del totiente, paso a paso.">Use the totient technique, step by step.</p>
+      <div class="steps">
+        <div class="step fragment"><span class="sn">1</span><span class="sb" data-es="10 = 2 × 5, ambos primos ⟹ <span class='res'>φ(10) = (2−1)(5−1) = 4</span>.">10 = 2 × 5, both prime ⟹ <span class="res">φ(10) = (2−1)(5−1) = 4</span>.</span></div>
+        <div class="step fragment"><span class="sn">2</span><span class="sb" data-es="Reduce el exponente: <span class='res'>21 mod 4 = 1</span>.">Reduce the exponent: <span class="res">21 mod 4 = 1</span>.</span></div>
+        <div class="step fragment is-final"><span class="sn">3</span><span class="sb" data-es="Entonces c = 7<sup>1</sup> mod 10 = <span class='res'>7</span>.">So c = 7<sup>1</sup> mod 10 = <span class="res">7</span>.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S16 — Worked: 7^27 mod 30 -->
+  <section class="slide" data-section="Modular Arithmetic" data-section-es="Aritmética Modular">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Ejemplo trabajado 2"><span class="dot"></span>Worked example 2</span>
+      <h2 data-es="Calcula c = 7²⁷ mod 30">Compute c = 7²⁷ mod 30</h2>
+      <div class="steps">
+        <div class="step fragment"><span class="sn">1</span><span class="sb" data-es="30 = 3 × 10, y 3 y 10 son coprimos, así que φ(30) = φ(3) × φ(10).">30 = 3 × 10, and 3 and 10 are coprime, so φ(30) = φ(3) × φ(10).</span></div>
+        <div class="step fragment"><span class="sn">2</span><span class="sb" data-es="φ(3) = 2; φ(10) = 4 (porque 10 = 2 × 5) ⟹ <span class='res'>φ(30) = 2 × 4 = 8</span>.">φ(3) = 2; φ(10) = 4 (since 10 = 2 × 5) ⟹ <span class="res">φ(30) = 2 × 4 = 8</span>.</span></div>
+        <div class="step fragment"><span class="sn">3</span><span class="sb" data-es="Reduce el exponente: <span class='res'>27 mod 8 = 3</span>.">Reduce the exponent: <span class="res">27 mod 8 = 3</span>.</span></div>
+        <div class="step fragment is-final"><span class="sn">4</span><span class="sb" data-es="Entonces c = 7<sup>3</sup> mod 30 = 343 mod 30 = <span class='res'>13</span>.">So c = 7<sup>3</sup> mod 30 = 343 mod 30 = <span class="res">13</span>.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== C. DIFFIE-HELLMAN ===================== -->
+
+  <!-- S17 — Section divider -->
+  <section class="slide section" data-section="Diffie-Hellman" data-section-es="Diffie-Hellman">
+    <div class="slide-inner">
+      <div class="num">02</div>
+      <h1 data-es="Intercambio de claves Diffie-Hellman">Diffie-Hellman key exchange</h1>
+      <p class="lead" data-es="El primer algoritmo de clave pública publicado (1976).">The first published public-key algorithm (1976).</p>
+    </div>
+  </section>
+
+  <!-- S18 — DH intro -->
+  <section class="slide" data-section="Diffie-Hellman" data-section-es="Diffie-Hellman">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Un avance histórico"><span class="dot"></span>A historic breakthrough</span>
+      <h2 data-es="Diffie y Hellman, 1976">Diffie and Hellman, 1976</h2>
+      <ul class="clean">
+        <li data-es="El <strong>primer algoritmo de clave pública publicado</strong>, junto con la exposición misma del concepto de clave pública."><strong>The first published public-key algorithm</strong>, together with the very exposition of the public-key concept.</li>
+        <li data-es="Un método práctico para <strong>acordar una clave secreta de forma segura</strong> sobre un canal abierto — esa clave luego cifra los mensajes con un cifrado simétrico rápido.">A practical method to <strong>agree on a secret key securely</strong> over an open channel — that key then encrypts messages with a fast symmetric cipher.</li>
+        <li data-es="Se usa en innumerables productos comerciales; su seguridad descansa en la dificultad del <strong>logaritmo discreto</strong>.">Used in countless commercial products; its security rests on the difficulty of the <strong>discrete logarithm</strong>.</li>
+      </ul>
+      <div class="callout note"><span class="tag" data-es="Analogía">Analogy</span><p data-es="Imagina mezclar pinturas. Tú y yo acordamos públicamente un color base (amarillo). Cada uno añade en secreto su propio color y mezclamos. Intercambiamos las mezclas públicamente. Cada uno añade de nuevo su color secreto — y ambos llegamos a la <em>misma</em> mezcla final. Un espía vio las mezclas, pero «separar» pintura mezclada es prohibitivamente difícil.">Picture mixing paints. You and I publicly agree on a base color (yellow). Each of us secretly adds our own color and mixes. We publicly swap the mixtures. Each of us adds our secret color again — and we both reach the <em>same</em> final mix. An eavesdropper saw the mixtures, but "un-mixing" paint is prohibitively hard.</p></div>
+    </div>
+  </section>
+
+  <!-- S19 — DH protocol diagram -->
+  <section class="slide" data-section="Diffie-Hellman" data-section-es="Diffie-Hellman">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El protocolo"><span class="dot"></span>The protocol</span>
+      <h2 data-es="Cómo funciona el intercambio">How the exchange works</h2>
+      <div class="dh-grid">
+        <div class="dh-pub" data-es="Números públicos: primo q (≥ 300 dígitos) · raíz primitiva α (suele ser pequeña)">Public numbers: prime q (≥ 300 digits) · primitive root α (often small)</div>
+        <div class="dh-party a">
+          <h3 data-es="Usuario A (Alice)">User A (Alice)</h3>
+          <div class="ln" data-es="elige secreto X<sub>A</sub> &lt; q<br>calcula Y<sub>A</sub> = α<sup>X<sub>A</sub></sup> mod q<br><span class='hl'>→ envía Y<sub>A</sub> a B</span><br>secreto = Y<sub>B</sub><sup>X<sub>A</sub></sup> mod q">elige secreto X<sub>A</sub> &lt; q<br>calcula Y<sub>A</sub> = α<sup>X<sub>A</sub></sup> mod q<br><span class="hl">→ envía Y<sub>A</sub> a B</span><br>secreto = Y<sub>B</sub><sup>X<sub>A</sub></sup> mod q</div>
+        </div>
+        <div class="dh-party b">
+          <h3 data-es="Usuario B (Bob)">User B (Bob)</h3>
+          <div class="ln" data-es="elige secreto X<sub>B</sub> &lt; q<br>calcula Y<sub>B</sub> = α<sup>X<sub>B</sub></sup> mod q<br><span class='hl'>← envía Y<sub>B</sub> a A</span><br>secreto = Y<sub>A</sub><sup>X<sub>B</sub></sup> mod q">chooses secret X<sub>B</sub> &lt; q<br>computes Y<sub>B</sub> = α<sup>X<sub>B</sub></sup> mod q<br><span class="hl">← sends Y<sub>B</sub> to A</span><br>secret = Y<sub>A</sub><sup>X<sub>B</sub></sup> mod q</div>
+        </div>
+        <div class="dh-eve" data-es="<strong>Usuario C (espía):</strong> ve q, α, Y<sub>A</sub>, Y<sub>B</sub> — pero para hallar el secreto tendría que calcular X<sub>A</sub> = dlog<sub>α,q</sub>(Y<sub>A</sub>): el logaritmo discreto, computacionalmente inviable."><strong>User C (eavesdropper):</strong> sees q, α, Y<sub>A</sub>, Y<sub>B</sub> — but to find the secret would have to compute X<sub>A</sub> = dlog<sub>α,q</sub>(Y<sub>A</sub>): the discrete logarithm, computationally infeasible.</div>
+      </div>
+      <p class="figure-note" data-es="Ambos lados llegan al mismo valor porque (α<sup>X<sub>A</sub></sup>)<sup>X<sub>B</sub></sup> = (α<sup>X<sub>B</sub></sup>)<sup>X<sub>A</sub></sup> = α<sup>X<sub>A</sub>X<sub>B</sub></sup> mod q.">Both sides reach the same value because (α<sup>X<sub>A</sub></sup>)<sup>X<sub>B</sub></sup> = (α<sup>X<sub>B</sub></sup>)<sup>X<sub>A</sub></sup> = α<sup>X<sub>A</sub>X<sub>B</sub></sup> mod q.</p>
+    </div>
+  </section>
+
+  <!-- S20 — DH worked example -->
+  <section class="slide" data-section="Diffie-Hellman" data-section-es="Diffie-Hellman">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Ejemplo trabajado"><span class="dot"></span>Worked example</span>
+      <h2 data-es="DH con q = 23, α = 5">DH with q = 23, α = 5</h2>
+      <p data-es="Alice elige a = 6; Bob elige b = 15. Sigue los pasos.">Alice picks a = 6; Bob picks b = 15. Follow the steps.</p>
+      <div class="steps">
+        <div class="step fragment"><span class="sn">1</span><span class="sb" data-es="Alice envía A = 5<sup>6</sup> mod 23 = 15625 mod 23 = <span class='res'>8</span>.">Alice sends A = 5<sup>6</sup> mod 23 = 15625 mod 23 = <span class="res">8</span>.</span></div>
+        <div class="step fragment"><span class="sn">2</span><span class="sb" data-es="Bob envía B = 5<sup>15</sup> mod 23 = <span class='res'>19</span>.">Bob sends B = 5<sup>15</sup> mod 23 = <span class="res">19</span>.</span></div>
+        <div class="step fragment"><span class="sn">3</span><span class="sb" data-es="Alice calcula B<sup>a</sup> = 19<sup>6</sup> mod 23 = <span class='res'>2</span>.">Alice computes B<sup>a</sup> = 19<sup>6</sup> mod 23 = <span class="res">2</span>.</span></div>
+        <div class="step fragment"><span class="sn">4</span><span class="sb" data-es="Bob calcula A<sup>b</sup> = 8<sup>15</sup> mod 23 = <span class='res'>2</span>.">Bob computes A<sup>b</sup> = 8<sup>15</sup> mod 23 = <span class="res">2</span>.</span></div>
+        <div class="step fragment is-final"><span class="sn">✓</span><span class="sb" data-es="Ambos comparten ahora la clave secreta <span class='res'>2</span> — que nunca viajó por la red.">Both now share the secret key <span class="res">2</span> — which never traveled across the network.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S21 — DH security -->
+  <section class="slide" data-section="Diffie-Hellman" data-section-es="Diffie-Hellman">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>¿Por qué es seguro?"><span class="dot"></span>Why is it secure?</span>
+      <h2 data-es="Seguridad de Diffie-Hellman">Diffie-Hellman security</h2>
+      <ul class="clean">
+        <li data-es="La clave compartida (el secreto) <strong>nunca se transmite</strong> — cada lado la calcula localmente.">The shared key (the secret) is <strong>never transmitted</strong> — each side computes it locally.</li>
+        <li data-es="Para Y = α<sup>X</sup> mod q, dado Y, α y q, hallar X es el <strong>problema del logaritmo discreto</strong>.">For Y = α<sup>X</sup> mod q, given Y, α and q, finding X is the <strong>discrete logarithm problem</strong>.</li>
+        <li data-es="<strong>Conjetura:</strong> cuando q es un primo enorme, calcular X es prácticamente imposible con la computación clásica."><strong>Conjecture:</strong> when q is a huge prime, computing X is practically impossible with classical computing.</li>
+      </ul>
+      <div class="math-block">
+        Y = α<sup>X</sup> mod q &nbsp;&nbsp; <span class="mb-mut" data-es="// fácil →">// easy →</span> &nbsp; <span class="mb-bad" data-es="// ← invertir es muy difícil">// ← reversing is very hard</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- S22 — DH limitations + MITM -->
+  <section class="slide" data-section="Diffie-Hellman" data-section-es="Diffie-Hellman">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Lo que DH NO hace"><span class="dot"></span>What DH does NOT do</span>
+      <h2 data-es="Límites y el ataque de intermediario">Limitations and the man-in-the-middle attack</h2>
+      <div class="grid cols-3">
+        <div class="card warn-top"><span class="ico">🐌</span><h3 data-es="Costoso">Expensive</h3><p data-es="La exponenciación es costosa: posibles ataques de DoS y sobrecarga de comunicación.">Exponentiation is costly: possible DoS attacks and extra communication overhead.</p></div>
+        <div class="card teal-top"><span class="ico">🔁</span><h3 data-es="Solo intercambio de claves">Key exchange only</h3><p data-es="No cifra nada por sí mismo — solo establece una clave secreta compartida.">It does not encrypt anything by itself — it only establishes a shared secret key.</p></div>
+        <div class="card danger-top"><span class="ico">🎭</span><h3 data-es="Sin autenticación">No authentication</h3><p data-es="No verifica con quién hablas, así que no puedes firmar nada — y es vulnerable al intermediario.">It doesn't verify who you're talking to, so you can't sign anything — and it's open to a man-in-the-middle.</p></div>
+      </div>
+      <div class="callout discuss" style="margin-top:.9rem"><span class="tag" data-es="Ataque de intermediario">MITM attack</span><p data-es="Mallory se sitúa entre Alice y Bob: hace DH por separado con cada uno. Alice cree compartir una clave con Bob, pero la comparte con Mallory; igual Bob. Mallory descifra, lee y vuelve a cifrar todo. <strong>La solución: autenticar las claves públicas</strong> (firmas, certificados).">Mallory sits between Alice and Bob: she runs DH separately with each. Alice thinks she shares a key with Bob, but shares it with Mallory; same for Bob. Mallory decrypts, reads, and re-encrypts everything. <strong>The fix: authenticate the public values</strong> (signatures, certificates).</p></div>
+    </div>
+  </section>
+
+  <!-- S23 — DH in practice (modernize) -->
+  <section class="slide" data-section="Diffie-Hellman" data-section-es="Diffie-Hellman">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>DH en el mundo real"><span class="dot"></span>DH in the real world</span>
+      <h2 data-es="Diffie-Hellman hoy: ECDHE y secreto hacia adelante">Diffie-Hellman today: ECDHE and forward secrecy</h2>
+      <ul class="clean">
+        <li data-es="En la práctica se usa <strong>DH efímero</strong> sobre curvas elípticas: <strong>ECDHE</strong>, con una clave nueva por sesión.">In practice we use <strong>ephemeral</strong> DH over elliptic curves: <strong>ECDHE</strong>, with a fresh key per session.</li>
+        <li data-es="Esto da <strong>secreto hacia adelante</strong> (forward secrecy): si roban la clave de largo plazo del servidor mañana, las sesiones grabadas ayer siguen protegidas.">This provides <strong>forward secrecy</strong>: if the server's long-term key is stolen tomorrow, yesterday's recorded sessions stay protected.</li>
+        <li data-es="<strong>TLS 1.3</strong> (2018) usa (EC)DHE en <em>todas</em> las sesiones — es lo que protege cada conexión HTTPS que abres."><strong>TLS 1.3</strong> (2018) uses (EC)DHE for <em>every</em> session — it's what protects every HTTPS connection you open.</li>
+      </ul>
+      <div class="callout check" style="margin-top:.8rem"><span class="tag" data-es="Conexión">Connection</span><p data-es="El pequeño ejemplo q=23 de hoy y la conexión TLS de tu banco usan exactamente la misma matemática — solo que con números de cientos de dígitos.">Today's tiny q=23 example and your bank's TLS connection use exactly the same math — just with numbers hundreds of digits long.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== D. RSA ===================== -->
+
+  <!-- S24 — Section divider -->
+  <section class="slide section" data-section="RSA" data-section-es="RSA">
+    <div class="slide-inner">
+      <div class="num">03</div>
+      <h1 data-es="RSA (Rivest, Shamir, Adleman)">RSA (Rivest, Shamir, Adleman)</h1>
+      <p class="lead" data-es="Cifrado y firma con un par de claves — 1977.">Encryption and signatures with a key pair — 1977.</p>
+    </div>
+  </section>
+
+  <!-- S25 — RSA intro + characteristics -->
+  <section class="slide" data-section="RSA" data-section-es="RSA">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Qué es RSA"><span class="dot"></span>What RSA is</span>
+      <h2 data-es="RSA: características generales">RSA: general characteristics</h2>
+      <ul class="clean">
+        <li data-es="Ampliamente usado y uno de los primeros (1977); soporta <strong>tanto cifrado de clave pública como firma digital</strong>.">Widely used and one of the first (1977); supports <strong>both public-key encryption and digital signatures</strong>.</li>
+        <li data-es="Base teórica / suposición de seguridad: <strong>factorizar un entero muy grande es difícil</strong>.">Theoretical basis / security assumption: <strong>factoring a very large integer is hard</strong>.</li>
+        <li data-es="El texto plano se trata como un <strong>entero</strong> que debe ser <em>menor</em> que el módulo n; el bloque de cifrado tiene el mismo tamaño que la clave.">Plaintext is treated as an <strong>integer</strong> that must be <em>smaller</em> than the modulus n; the ciphertext block is the same size as the key.</li>
+      </ul>
+      <div class="callout note" style="margin-top:.6rem"><span class="tag" data-es="Tamaños de clave">Key sizes</span><p data-es="Longitud de clave variable: <span class='legacy'>512, 1024</span> (heredados / rotos) y <span class='okrow'>2048, 4096</span> (en uso). Más sobre tamaños seguros en un momento.">Variable key length: <span class="legacy">512, 1024</span> (legacy / broken) and <span class="okrow">2048, 4096</span> (in use). More on safe sizes shortly.</p></div>
+    </div>
+  </section>
+
+  <!-- S26 — How RSA works (4 formulas) -->
+  <section class="slide" data-section="RSA" data-section-es="RSA">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Las cuatro operaciones"><span class="dot"></span>The four operations</span>
+      <h2 data-es="¿Cómo funciona RSA?">How does RSA work?</h2>
+      <p data-es="Clave pública KU = ⟨e, n⟩ · clave privada KR = ⟨d, n⟩.">Public key KU = ⟨e, n⟩ · private key KR = ⟨d, n⟩.</p>
+      <div class="grid cols-2" style="margin-top:1rem">
+        <div class="card accent-top"><h3 data-es="Cifrado">Encryption</h3><div class="math-block left" style="margin-top:.4rem;font-size:1.05rem">c = m<sup>e</sup> mod n &nbsp; <span class="mb-mut">(m &lt; n)</span></div></div>
+        <div class="card teal-top"><h3 data-es="Descifrado">Decryption</h3><div class="math-block left" style="margin-top:.4rem;font-size:1.05rem">m = c<sup>d</sup> mod n</div></div>
+        <div class="card good-top"><h3 data-es="Firma">Signature</h3><div class="math-block left" style="margin-top:.4rem;font-size:1.05rem">s = m<sup>d</sup> mod n &nbsp; <span class="mb-mut">(m &lt; n)</span></div></div>
+        <div class="card warn-top"><h3 data-es="Verificación">Verification</h3><div class="math-block left" style="margin-top:.4rem;font-size:1.05rem">m = s<sup>e</sup> mod n</div></div>
+      </div>
+      <p class="figure-note" data-es="Fíjate en la simetría: cifrar usa la clave pública e; firmar usa la privada d. La firma es «cifrado al revés».">Note the symmetry: encryption uses the public key e; signing uses the private key d. A signature is "encryption in reverse."</p>
+    </div>
+  </section>
+
+  <!-- S27 — RSA key generation worked example -->
+  <section class="slide" data-section="RSA" data-section-es="RSA">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Generación de claves paso a paso"><span class="dot"></span>Key generation, step by step</span>
+      <h2 data-es="¿Por qué funciona RSA? Generar las claves">Why does RSA work? Generating the keys</h2>
+      <div class="steps">
+        <div class="step fragment"><span class="sn">1</span><span class="sb" data-es="Elige dos primos: <span class='res'>p = 17, q = 11</span>.">Pick two primes: <span class="res">p = 17, q = 11</span>.</span></div>
+        <div class="step fragment"><span class="sn">2</span><span class="sb" data-es="Calcula n = p × q = 17 × 11 = <span class='res'>187</span>.">Compute n = p × q = 17 × 11 = <span class="res">187</span>.</span></div>
+        <div class="step fragment"><span class="sn">3</span><span class="sb" data-es="Calcula φ(n) = (p−1)(q−1) = 16 × 10 = <span class='res'>160</span>.">Compute φ(n) = (p−1)(q−1) = 16 × 10 = <span class="res">160</span>.</span></div>
+        <div class="step fragment"><span class="sn">4</span><span class="sb" data-es="Elige e coprimo con φ(n)=160 y menor que él: <span class='res'>e = 7</span>.">Choose e coprime with φ(n)=160 and smaller than it: <span class="res">e = 7</span>.</span></div>
+        <div class="step fragment is-final"><span class="sn">5</span><span class="sb" data-es="Halla d con d × e ≡ 1 (mod 160): <span class='res'>d = 23</span>, porque 23 × 7 = 161 = (1 × 160) + 1.">Find d with d × e ≡ 1 (mod 160): <span class="res">d = 23</span>, because 23 × 7 = 161 = (1 × 160) + 1.</span></div>
+      </div>
+      <p class="figure-note" data-es="Resultado: clave pública (7, 187), clave privada (23, 187).">Result: public key (7, 187), private key (23, 187).</p>
+    </div>
+  </section>
+
+  <!-- S28 — Practice: encrypt your student id -->
+  <section class="slide activity" data-section="RSA" data-section-es="RSA">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Actividad · Cifra con mi clave pública">◆ Activity · Encrypt with my public key</span>
+      <h2 style="margin-top:1rem" data-es="Mi clave pública es (e, n) = (7, 187)">My public key is (e, n) = (7, 187)</h2>
+      <p class="lead" style="max-width:60ch" data-es="¡Toma los últimos 2 dígitos de tu matrícula como mensaje m y cífralos con mi clave pública!">Take the last 2 digits of your student ID as the message m and encrypt them with my public key!</p>
+      <div class="math-block" data-es="c = m<sup>7</sup> mod 187">c = m<sup>7</sup> mod 187</div>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Método">Method</span>
+        <p data-es="Usa exponenciación rápida reduciendo mod 187 en cada paso. Ejemplo con m = 2: 2<sup>7</sup> = 128, y 128 &lt; 187, así que c = <strong>128</strong>. Solo yo, con d = 23, puedo recuperar m mediante m = c<sup>23</sup> mod 187.">Use fast exponentiation, reducing mod 187 at each step. Example with m = 2: 2<sup>7</sup> = 128, and 128 &lt; 187, so c = <strong>128</strong>. Only I, holding d = 23, can recover m via m = c<sup>23</sup> mod 187.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S29 — Practice: verify a signature -->
+  <section class="slide activity" data-section="RSA" data-section-es="RSA">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Actividad · Verifica mi firma">◆ Activity · Verify my signature</span>
+      <h2 style="margin-top:1rem" data-es="Recibes m = 100 con mi firma s = 145">You receive m = 100 with my signature s = 145</h2>
+      <p class="lead" style="max-width:60ch" data-es="Con mi clave pública (7, 187), ¿proviene realmente de mí?">Using my public key (7, 187), did it really come from me?</p>
+      <div class="math-block" data-es="verifica: m =? s<sup>e</sup> mod n = 145<sup>7</sup> mod 187">verify: m =? s<sup>e</sup> mod n = 145<sup>7</sup> mod 187</div>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Respuesta">Answer</span>
+        <p data-es="Calcula 145<sup>7</sup> mod 187 = <strong>100</strong>. Como coincide con el mensaje recibido, la firma <strong>es válida</strong>: solo el dueño de la clave privada d pudo producir un s que «se descifra» a 100 con la clave pública.">Compute 145<sup>7</sup> mod 187 = <strong>100</strong>. Since it matches the received message, the signature <strong>is valid</strong>: only the holder of the private key d could produce an s that "decrypts" to 100 under the public key.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S30 — Practice: full RSA with p=3, q=11 -->
+  <section class="slide activity" data-section="RSA" data-section-es="RSA">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Actividad · RSA completo">◆ Activity · Full RSA</span>
+      <h2 style="margin-top:1rem" data-es="Dado p = 3 y q = 11, con e = 7">Given p = 3 and q = 11, with e = 7</h2>
+      <p class="lead" style="max-width:60ch" data-es="Calcula n, φ(n), d, y escribe la clave pública y la privada.">Compute n, φ(n), d, and write the public and private keys.</p>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Respuesta">Answer</span>
+        <p data-es="1) n = 3 × 11 = <strong>33</strong>. 2) φ(n) = (3−1)(11−1) = 2 × 10 = <strong>20</strong>. 3) d × 7 ≡ 1 (mod 20) ⟹ d = <strong>3</strong> (porque 3 × 7 = 21 = 20 + 1). 4) Clave pública (e, n) = <strong>(7, 33)</strong>. 5) Clave privada (d, n) = <strong>(3, 33)</strong>.">1) n = 3 × 11 = <strong>33</strong>. 2) φ(n) = (3−1)(11−1) = 2 × 10 = <strong>20</strong>. 3) d × 7 ≡ 1 (mod 20) ⟹ d = <strong>3</strong> (because 3 × 7 = 21 = 20 + 1). 4) Public key (e, n) = <strong>(7, 33)</strong>. 5) Private key (d, n) = <strong>(3, 33)</strong>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S31 — Practice: encrypt/decrypt m=2 -->
+  <section class="slide activity" data-section="RSA" data-section-es="RSA">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Actividad · Cifrar y descifrar">◆ Activity · Encrypt &amp; decrypt</span>
+      <h2 style="margin-top:1rem" data-es="Clave pública (7, 33), privada (3, 33), mensaje m = 2">Public key (7, 33), private (3, 33), message m = 2</h2>
+      <p class="lead" style="max-width:60ch" data-es="¿Cuál es el cifrado de m? ¿Qué fórmula descifra m?">What is the encryption of m? What formula decrypts m?</p>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Respuesta">Answer</span>
+        <p data-es="Cifrado: c = 2<sup>7</sup> mod 33 = 128 mod 33 = <strong>29</strong>. Descifrado: m = c<sup>d</sup> mod n = 29<sup>3</sup> mod 33 = 24389 mod 33 = <strong>2</strong> ✓ — recuperamos el mensaje original.">Encryption: c = 2<sup>7</sup> mod 33 = 128 mod 33 = <strong>29</strong>. Decryption: m = c<sup>d</sup> mod n = 29<sup>3</sup> mod 33 = 24389 mod 33 = <strong>2</strong> ✓ — we recover the original message.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S32 — Practice: harder, find d then decrypt -->
+  <section class="slide activity" data-section="RSA" data-section-es="RSA">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Actividad · Reto">◆ Activity · Challenge</span>
+      <h2 style="margin-top:1rem" data-es="p=17, q=11, e=59, c=96 — recupera el mensaje">p=17, q=11, e=59, c=96 — recover the message</h2>
+      <p class="lead" style="max-width:62ch" data-es="n = 187, φ(n) = 160. Halla la clave privada d, luego descifra c = 96 para hallar el texto plano m.">n = 187, φ(n) = 160. Find the private key d, then decrypt c = 96 to recover the plaintext m.</p>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Pista de método">Method hint</span>
+        <p data-es="Halla d resolviendo 59 × d ≡ 1 (mod 160) con el algoritmo extendido de Euclides (d = 19, pues 59 × 19 = 1121 = 7 × 160 + 1). Luego m = c<sup>d</sup> mod n = 96<sup>19</sup> mod 187, usando exponenciación rápida. La estructura es lo que importa: <em>conocer p y q ⟹ φ(n) ⟹ d</em> rompe el sistema.">Find d by solving 59 × d ≡ 1 (mod 160) with the extended Euclidean algorithm (d = 19, since 59 × 19 = 1121 = 7 × 160 + 1). Then m = c<sup>d</sup> mod n = 96<sup>19</sup> mod 187, using fast exponentiation. The structure is the point: <em>knowing p and q ⟹ φ(n) ⟹ d</em> breaks the system.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S33 — Why RSA is secure -->
+  <section class="slide" data-section="RSA" data-section-es="RSA">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El núcleo de seguridad"><span class="dot"></span>The security core</span>
+      <h2 data-es="¿Por qué es seguro RSA?">Why is RSA secure?</h2>
+      <ul class="clean">
+        <li data-es="Factorizar un entero grande es <strong>extremadamente difícil</strong> para una computadora clásica.">Factoring a large integer is <strong>extremely hard</strong> for a classical computer.</li>
+        <li data-es="Si <em>pudieras</em> factorizar n en p y q, romperías RSA con la clave pública ⟨e, n⟩:">If you <em>could</em> factor n into p and q, you'd break RSA from the public key ⟨e, n⟩:</li>
+      </ul>
+      <div class="steps">
+        <div class="step"><span class="sn">1</span><span class="sb" data-es="Conoce los factores p, q tales que n = p × q.">Know the factors p, q such that n = p × q.</span></div>
+        <div class="step"><span class="sn">2</span><span class="sb" data-es="Calcula φ(n) = (p−1)(q−1).">Compute φ(n) = (p−1)(q−1).</span></div>
+        <div class="step is-final"><span class="sn">3</span><span class="sb" data-es="Halla d con e × d ≡ 1 (mod φ(n)) — <span class='res'>¡ya tienes la clave privada!</span>">Find d with e × d ≡ 1 (mod φ(n)) — <span class="res">you now have the private key!</span></span></div>
+      </div>
+      <div class="callout discuss" style="margin-top:.8rem"><span class="tag" data-es="Debate">Debate</span><p data-es="Toda la seguridad de RSA descansa en una <em>suposición no probada</em>: que factorizar es difícil. Nadie ha demostrado que lo sea. ¿Te sentirías cómodo apostando la economía mundial a una conjetura matemática? (Lo hacemos a diario.)">RSA's entire security rests on an <em>unproven assumption</em>: that factoring is hard. No one has proven it is. Would you bet the world economy on a mathematical conjecture? (We do, every day.)</p></div>
+    </div>
+  </section>
+
+  <!-- S34 — RSA key sizes (modernize) -->
+  <section class="slide" data-section="RSA" data-section-es="RSA">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Actualización 2025"><span class="dot"></span>2025 update</span>
+      <h2 data-es="Tamaños de clave RSA: qué es seguro hoy">RSA key sizes: what's safe today</h2>
+      <table class="pk-tbl">
+        <thead><tr><th data-es="Tamaño de clave">Key size</th><th data-es="Estado">Status</th></tr></thead>
+        <tbody>
+          <tr><td>512-bit</td><td data-es="<span class='legacy'>Roto.</span> Factorizable en horas con hardware de consumo."><span class="legacy">Broken.</span> Factorable in hours on consumer hardware.</td></tr>
+          <tr><td>1024-bit</td><td data-es="<span class='legacy'>Obsoleto / inseguro.</span> Al alcance de adversarios con recursos estatales."><span class="legacy">Deprecated / insecure.</span> Within reach of state-resourced adversaries.</td></tr>
+          <tr><td>2048-bit</td><td data-es="<span class='okrow'>Mínimo recomendado</span> por NIST SP 800-57 para uso general."><span class="okrow">Recommended minimum</span> per NIST SP 800-57 for general use.</td></tr>
+          <tr><td>3072-bit+</td><td data-es="<span class='okrow'>Preferido</span> para seguridad más allá de 2030."><span class="okrow">Preferred</span> for security beyond 2030.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout note" style="margin-top:.8rem"><span class="tag" data-es="Conclusión">Takeaway</span><p data-es="Las listas de cursos antiguos incluyen 512 y 1024 como opciones válidas. Hoy <strong>no lo son</strong>: usa ≥ 2048 bits, o mejor ECC con claves mucho más pequeñas.">Old course lists include 512 and 1024 as valid options. Today they are <strong>not</strong>: use ≥ 2048-bit, or better still ECC with much smaller keys.</p></div>
+    </div>
+  </section>
+
+  <!-- S35 — Schoolbook RSA weaknesses -->
+  <section class="slide" data-section="RSA" data-section-es="RSA">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>RSA «de libro» es peligroso"><span class="dot"></span>"Schoolbook" RSA is dangerous</span>
+      <h2 data-es="Por qué nunca uses RSA puro en producción">Why you never use raw RSA in production</h2>
+      <div class="split">
+        <div class="card danger-top">
+          <h3 data-es="Determinista">Deterministic</h3>
+          <p data-es="Con la misma clave, un mismo texto plano produce <em>siempre</em> el mismo cifrado — un atacante puede reconocer mensajes repetidos o probar suposiciones.">With the same key, a given plaintext <em>always</em> maps to the same ciphertext — an attacker can recognize repeated messages or test guesses.</p>
+          <p style="margin-top:.5rem;color:var(--ink-soft);font-size:var(--fs-small)" data-es="Peor aún: los mensajes 0, 1 y −1 se cifran a 0, 1 y −1 sin importar la clave.">Worse: messages 0, 1, and −1 encrypt to 0, 1, and −1 regardless of the key.</p>
+        </div>
+        <div class="card warn-top">
+          <h3 data-es="Maleable">Malleable</h3>
+          <p data-es="Transformar el cifrado transforma el texto plano de forma predecible. Para c = m<sup>e</sup> mod n, el atacante cambia c por s<sup>e</sup> × c…">Transforming the ciphertext transforms the plaintext predictably. For c = m<sup>e</sup> mod n, the attacker changes c to s<sup>e</sup> × c…</p>
+          <p style="margin-top:.5rem;color:var(--ink-soft);font-size:var(--fs-small)" data-es="…y el receptor obtiene s × m en lugar de m, sin descifrar nunca el mensaje.">…and the receiver gets s × m instead of m, without ever decrypting the message.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S36 — Padding: OAEP / PKCS -->
+  <section class="slide" data-section="RSA" data-section-es="RSA">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La solución: relleno"><span class="dot"></span>The fix: padding</span>
+      <h2 data-es="PKCS y OAEP: añadir aleatoriedad">PKCS and OAEP: adding randomness</h2>
+      <ul class="clean">
+        <li data-es="Los <strong>Estándares de Criptografía de Clave Pública (PKCS)</strong> definen cómo rellenar el mensaje antes de cifrarlo.">The <strong>Public-Key Cryptography Standards (PKCS)</strong> define how to pad the message before encrypting.</li>
+        <li data-es="<strong>OAEP</strong> (Optimal Asymmetric Encryption Padding) añade un relleno <em>sembrado con bytes aleatorios</em> como prefijo del mensaje m."><strong>OAEP</strong> (Optimal Asymmetric Encryption Padding) prepends padding <em>seeded from random bytes</em> to the message m.</li>
+        <li data-es="El resultado: cifrar el mismo mensaje dos veces da cifrados <strong>distintos</strong> — adiós determinismo y maleabilidad.">The result: encrypting the same message twice yields <strong>different</strong> ciphertexts — goodbye determinism and malleability.</li>
+      </ul>
+      <div class="flow" style="margin-top:1.2rem">
+        <div class="node breach"><span class="n-label accent" data-es="Mensaje m">Message m</span><span class="n-sub" data-es="texto plano">plaintext</span></div>
+        <div class="arrow">→</div>
+        <div class="node attack"><span class="n-label" style="color:var(--violet)" data-es="+ relleno aleatorio (OAEP)">+ random padding (OAEP)</span><span class="n-sub" data-es="cada vez distinto">different every time</span></div>
+        <div class="arrow">→</div>
+        <div class="node good-node"><span class="n-label good" data-es="RSA cifra el bloque relleno">RSA encrypts padded block</span><span class="n-sub" data-es="cifrado seguro">secure ciphertext</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== E. OTHER ALGORITHMS ===================== -->
+
+  <!-- S37 — Section divider -->
+  <section class="slide section" data-section="Beyond RSA" data-section-es="Más allá de RSA">
+    <div class="slide-inner">
+      <div class="num">04</div>
+      <h1 data-es="Más allá de RSA">Beyond RSA</h1>
+      <p class="lead" data-es="Firmas digitales, curvas elípticas y el futuro post-cuántico.">Digital signatures, elliptic curves, and the post-quantum future.</p>
+    </div>
+  </section>
+
+  <!-- S38 — DSS / DSA -->
+  <section class="slide" data-section="Beyond RSA" data-section-es="Más allá de RSA">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Firmas, no cifrado"><span class="dot"></span>Signatures, not encryption</span>
+      <h2 data-es="Estándar de Firma Digital (DSS / DSA)">Digital Signature Standard (DSS / DSA)</h2>
+      <ul class="clean">
+        <li data-es="El DSS usa SHA junto con el <strong>Algoritmo de Firma Digital (DSA)</strong>.">DSS uses SHA together with the <strong>Digital Signature Algorithm (DSA)</strong>.</li>
+        <li data-es="Propuesto en 1991, revisado en 1993 por preocupaciones de seguridad y de nuevo en 1996.">Proposed in 1991, revised in 1993 over security concerns, and again in 1996.</li>
+        <li data-es="<strong>No</strong> sirve para cifrar ni para intercambio de claves: está diseñado <em>solo</em> para la función de firma digital."><strong>Cannot</strong> be used for encryption or key exchange: it is designed <em>only</em> for the digital-signature function.</li>
+      </ul>
+      <div class="callout note" style="margin-top:.6rem"><span class="tag" data-es="Hoy">Today</span><p data-es="El DSA clásico está <strong>obsoleto</strong>. Las firmas modernas usan <strong>ECDSA</strong> o <strong>EdDSA</strong> (Ed25519): más rápidas, más pequeñas y más seguras.">Classic DSA is <strong>deprecated</strong>. Modern signatures use <strong>ECDSA</strong> or <strong>EdDSA</strong> (Ed25519): faster, smaller, and more secure.</p></div>
+    </div>
+  </section>
+
+  <!-- S39 — ECC + curve figure -->
+  <section class="slide" data-section="Beyond RSA" data-section-es="Más allá de RSA">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Misma seguridad, claves diminutas"><span class="dot"></span>Same security, tiny keys</span>
+      <h2 data-es="Criptografía de Curva Elíptica (ECC)">Elliptic-Curve Cryptography (ECC)</h2>
+      <div class="curve-wrap">
+        <svg width="210" height="200" viewBox="0 0 210 200" aria-hidden="true">
+          <line class="curve-axis" x1="20" y1="100" x2="200" y2="100" stroke="#4ea1ff" stroke-width="1.2" opacity="0.5"/>
+          <line class="curve-axis" x1="55" y1="15" x2="55" y2="195" stroke="#4ea1ff" stroke-width="1.2" opacity="0.5"/>
+          <path class="curve-line" d="M 60 100 Q 50 30 80 28 Q 120 26 130 100 Q 138 174 175 196" fill="none" stroke="#4ea1ff" stroke-width="2.6"/>
+          <path class="curve-line" d="M 60 100 Q 50 170 80 172 Q 120 174 130 100" fill="none" stroke="#4ea1ff" stroke-width="2.6"/>
+          <circle cx="95" cy="40" r="3.5" fill="#38d6c0"/>
+          <circle cx="150" cy="55" r="3.5" fill="#38d6c0"/>
+          <circle cx="118" cy="160" r="3.5" fill="#ffb454"/>
+          <line x1="95" y1="40" x2="150" y2="55" stroke="#b18cff" stroke-width="1.4" stroke-dasharray="4 3"/>
+        </svg>
+        <div class="cw-txt">
+          <ul class="clean" style="margin-top:0">
+            <li data-es="Basada en la estructura matemática de una <strong>curva elíptica</strong>: y² = x³ + ax + b.">Based on the mathematical structure of an <strong>elliptic curve</strong>: y² = x³ + ax + b.</li>
+            <li data-es="Ofrece <strong>la misma seguridad que RSA con muchos menos bits</strong> — una clave ECC de 256 bits ≈ RSA de 3072 bits.">Offers <strong>the same security as RSA with far fewer bits</strong> — a 256-bit ECC key ≈ 3072-bit RSA.</li>
+            <li data-es="Aparece en estándares como IEEE P1363; el material original advertía que la confianza en ECC «aún no era tan alta» como en RSA.">Appears in standards such as IEEE P1363; the original material warned that confidence in ECC was "not yet as high" as RSA.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="callout check" style="margin-top:.6rem"><span class="tag" data-es="Actualización">Update</span><p data-es="Esa advertencia ya está desfasada: ECC es hoy el estándar por defecto. <strong>Curve25519 / Ed25519</strong> protegen SSH, Signal, TLS y más — claves pequeñas, rápidas y muy estudiadas.">That caveat is now outdated: ECC is today's default. <strong>Curve25519 / Ed25519</strong> secure SSH, Signal, TLS and more — small, fast, and heavily vetted keys.</p></div>
+    </div>
+  </section>
+
+  <!-- S40 — Post-quantum (new) -->
+  <section class="slide" data-section="Beyond RSA" data-section-es="Más allá de RSA">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La amenaza en el horizonte"><span class="dot"></span>The threat on the horizon</span>
+      <h2 data-es="Criptografía post-cuántica">Post-quantum cryptography</h2>
+      <ul class="clean">
+        <li data-es="El <strong>algoritmo de Shor</strong> en una computadora cuántica grande rompería RSA, Diffie-Hellman <em>y</em> ECC — los tres a la vez.">A large quantum computer running <strong>Shor's algorithm</strong> would break RSA, Diffie-Hellman <em>and</em> ECC — all three at once.</li>
+        <li data-es="En agosto de 2024, NIST finalizó los primeros estándares post-cuánticos:">In August 2024, NIST finalized the first post-quantum standards:</li>
+      </ul>
+      <div class="grid cols-3" style="margin-top:.8rem">
+        <div class="card accent-top"><h3>ML-KEM</h3><p data-es="Kyber · FIPS 203 — encapsulado de claves (reemplaza al intercambio tipo DH).">Kyber · FIPS 203 — key encapsulation (replaces DH-style exchange).</p></div>
+        <div class="card teal-top"><h3>ML-DSA</h3><p data-es="Dilithium · FIPS 204 — firmas digitales basadas en retículos.">Dilithium · FIPS 204 — lattice-based digital signatures.</p></div>
+        <div class="card good-top"><h3>SLH-DSA</h3><p data-es="SPHINCS+ · FIPS 205 — firmas basadas en funciones hash.">SPHINCS+ · FIPS 205 — hash-based signatures.</p></div>
+      </div>
+      <div class="callout discuss" style="margin-top:.8rem"><span class="tag" data-es="«Cosecha ahora, descifra después»">"Harvest now, decrypt later"</span><p data-es="Un adversario puede <strong>grabar hoy</strong> tu tráfico cifrado y descifrarlo dentro de años, cuando exista una computadora cuántica. Por eso la migración a post-cuántico empieza <em>ahora</em>, no cuando llegue la máquina.">An adversary can <strong>record your encrypted traffic today</strong> and decrypt it years from now, once a quantum computer exists. That's why post-quantum migration starts <em>now</em>, not when the machine arrives.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== F. WRAP-UP ===================== -->
+
+  <!-- S41 — Section divider -->
+  <section class="slide section" data-section="Wrap-up" data-section-es="Cierre">
+    <div class="slide-inner">
+      <div class="num">05</div>
+      <h1 data-es="Síntesis">Pulling it together</h1>
+      <p class="lead" data-es="Lo esencial — y una corrección importante.">The essentials — and one important correction.</p>
+    </div>
+  </section>
+
+  <!-- S42 — Correction (teachable) -->
+  <section class="slide" data-section="Wrap-up" data-section-es="Cierre">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Corrección importante"><span class="dot"></span>Important correction</span>
+      <h2 data-es="«RSA y Diffie-Hellman son los únicos algoritmos de clave pública»">"RSA and Diffie-Hellman are the only public-key algorithms"</h2>
+      <div class="definition">
+        <blockquote data-es="Esta afirmación, común en materiales antiguos, es <strong>falsa</strong>.">This claim, common in older materials, is <strong>false</strong>.</blockquote>
+        <span class="src" data-es="— corrección a las diapositivas originales">— correction to the original slides</span>
+      </div>
+      <ul class="clean">
+        <li data-es="<strong>ECC</strong> (criptografía de curva elíptica) es de clave pública — y hoy domina."><strong>ECC</strong> (elliptic-curve cryptography) is public-key — and dominates today.</li>
+        <li data-es="<strong>ElGamal</strong> (cifrado y firmas) también es de clave pública."><strong>ElGamal</strong> (encryption and signatures) is public-key too.</li>
+        <li data-es="Los esquemas <strong>post-cuánticos basados en retículos</strong> (ML-KEM, ML-DSA) son de clave pública y representan el futuro."><strong>Lattice-based post-quantum</strong> schemes (ML-KEM, ML-DSA) are public-key and represent the future.</li>
+      </ul>
+      <div class="callout check" style="margin-top:.6rem"><span class="tag" data-es="Lección">Lesson</span><p data-es="RSA y DH son <em>históricamente</em> importantes y siguen en uso, pero están lejos de ser los únicos. Cuestiona siempre las afirmaciones absolutas en seguridad.">RSA and DH are <em>historically</em> important and still in use, but far from the only ones. Always question absolute claims in security.</p></div>
+    </div>
+  </section>
+
+  <!-- S43 — Summary -->
+  <section class="slide" data-section="Wrap-up" data-section-es="Cierre">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Para llevar"><span class="dot"></span>Takeaways</span>
+      <h2 data-es="Resumen en una diapositiva">Summary in one slide</h2>
+      <ul class="clean">
+        <li data-es="La <strong>aritmética modular</strong> (inversos, algoritmo de Euclides, totiente φ(n), exponenciación) es el cimiento de toda la criptografía de clave pública.">Modular arithmetic (inverses, Euclid's algorithm, totient φ(n), exponentiation) is the foundation of all public-key cryptography.</li>
+        <li data-es="<strong>RSA</strong> cifra <em>y</em> firma; su seguridad supone que factorizar un entero grande en dos primos es difícil. RSA puro es determinista y maleable — usa siempre relleno OAEP y claves ≥ 2048 bits."><strong>RSA</strong> encrypts <em>and</em> signs; its security assumes factoring a large integer into two primes is hard. Raw RSA is deterministic and malleable — always use OAEP padding and keys ≥ 2048-bit.</li>
+        <li data-es="<strong>Diffie-Hellman</strong> sirve para intercambio de claves; su seguridad supone que el logaritmo discreto es difícil. Sin autenticación, es vulnerable al intermediario — por eso en la práctica se usa ECDHE autenticado."><strong>Diffie-Hellman</strong> is for key exchange; its security assumes the discrete logarithm is hard. Without authentication it's open to a man-in-the-middle — so in practice we use authenticated ECDHE.</li>
+        <li data-es="<strong>ECC</strong> da la misma seguridad con claves diminutas; la <strong>criptografía post-cuántica</strong> (ML-KEM, ML-DSA, SLH-DSA) se prepara para el día en que las computadoras cuánticas rompan RSA, DH y ECC."><strong>ECC</strong> gives the same security with tiny keys; <strong>post-quantum cryptography</strong> (ML-KEM, ML-DSA, SLH-DSA) prepares for the day quantum computers break RSA, DH, and ECC.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- S44 — Closing debate -->
+  <section class="slide activity" data-section="Wrap-up" data-section-es="Cierre">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Debate final">◆ Closing debate</span>
+      <h2 style="margin-top:1rem" data-es="¿Confiar la civilización a una conjetura?">Trusting civilization to a conjecture?</h2>
+      <p class="lead" style="max-width:58ch" data-es="Toda la banca, mensajería y comercio en línea descansa en la <em>suposición</em> de que factorizar y el logaritmo discreto son difíciles — algo nunca demostrado. ¿Es esto prudente? ¿Qué pasaría el día en que alguien lo refute?">All online banking, messaging, and commerce rest on the <em>assumption</em> that factoring and the discrete logarithm are hard — something never proven. Is this wise? What happens the day someone disproves it?</p>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Puntos para discutir">Discussion points</span>
+        <p data-es="• La seguridad práctica siempre es <strong>computacional</strong>, no absoluta: «difícil con la tecnología conocida». • La <strong>agilidad criptográfica</strong> (poder cambiar de algoritmo) importa tanto como el algoritmo mismo. • Las computadoras cuánticas convierten esto en algo concreto: por eso NIST ya estandarizó alternativas post-cuánticas. • Defensa en profundidad: nunca dependas de un único supuesto matemático.">• Practical security is always <strong>computational</strong>, not absolute: "hard with known technology." • <strong>Crypto-agility</strong> (being able to swap algorithms) matters as much as the algorithm itself. • Quantum computers make this concrete: that's why NIST already standardized post-quantum alternatives. • Defense in depth: never rely on a single mathematical assumption.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <span class="course" data-es="TC2007B · S5 · C1 — Cifrado Asimétrico">TC2007B · W5 · L1 — Asymmetric Encryption</span>
+  <span class="right">
+    <span class="sec-name" id="secName">Orientation</span>
+    <span class="counter"><span id="cur">1</span> / <span id="total">44</span></span>
+  </span>
+</footer>
+
+<div class="frag-hint" id="fragHint"><span id="fragHintText">click to reveal</span><span class="chev">▾</span></div>
+
+<div class="nav-btns">
+  <button id="prevBtn" title="Previous (←)">‹</button>
+  <button id="ovBtn" title="Overview (O)">▦</button>
+  <button id="helpBtn" title="Help (?)">?</button>
+  <button id="fsBtn" title="Fullscreen (F)">⛶</button>
+  <button id="nextBtn" title="Next (→)">›</button>
+</div>
+
+<div class="overview" id="overview">
+  <h2 id="ovTitle">Slide overview</h2>
+  <div class="ov-grid" id="ovGrid"></div>
+</div>
+
+<div class="help" id="help">
+  <div class="panel">
+    <h2 data-es="Navegación">Navigation</h2>
+    <table>
+      <tr><td><kbd>→</kbd> <kbd>Space</kbd> <kbd>PgDn</kbd></td><td data-es="Siguiente / revelar">Next / reveal</td></tr>
+      <tr><td><kbd>←</kbd> <kbd>PgUp</kbd></td><td data-es="Anterior">Previous</td></tr>
+      <tr><td><kbd>Home</kbd> / <kbd>End</kbd></td><td data-es="Primera / última">First / last slide</td></tr>
+      <tr><td><kbd>O</kbd></td><td data-es="Vista general">Slide overview grid</td></tr>
+      <tr><td><kbd>F</kbd></td><td data-es="Pantalla completa">Toggle fullscreen</td></tr>
+      <tr><td><kbd>L</kbd></td><td data-es="Idioma ES / EN">Language ES / EN</td></tr>
+      <tr><td><kbd>T</kbd></td><td data-es="Tema claro / oscuro">Light / dark theme</td></tr>
+      <tr><td><kbd>?</kbd></td><td>Help</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td data-es="Cerrar ventana">Close overlay</td></tr>
+    </table>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
