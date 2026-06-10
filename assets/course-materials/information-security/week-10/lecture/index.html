@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Week 10 · Lecture 1 — Firewalls</title>
+<meta name="description" content="Firewalls and network defense-in-depth: design goals and access policy, packet filtering and rule tables, stateful inspection, application-level gateways and bastion hosts, host/personal firewalls, distributed deployment and the DMZ — plus next-generation firewalls, WAFs, cloud/host firewalls and zero trust. Week 10, Lecture 1 of TC2007B.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+/* ---- Lecture-local additions ---- */
+.fw-table { width: 100%; border-collapse: collapse; margin-top: 1.1rem; font-size: clamp(.72rem, 1.25vw, 1rem); }
+.fw-table th, .fw-table td { border: 1px solid var(--line); padding: .5rem .7rem; text-align: center; vertical-align: middle; }
+.fw-table thead th { background: var(--bg-3); color: var(--accent); font-size: var(--fs-small); text-transform: uppercase; letter-spacing: .05em; }
+.fw-table tbody td:first-child { font-weight: 800; color: var(--ink); background: var(--bg-2); }
+.fw-table .permit { color: var(--good); font-weight: 700; }
+.fw-table .deny { color: var(--danger); font-weight: 700; }
+.fw-table tbody tr:hover { background: rgba(78,161,255,.05); }
+.fw-table tbody tr.lit { background: rgba(95,224,138,.12); }
+.fw-table .ext { color: var(--warn); }
+.fw-table .int { color: var(--accent-2); }
+
+.state-table { width: 100%; border-collapse: collapse; margin-top: 1.1rem; font-family: var(--mono); font-size: clamp(.68rem, 1.15vw, .95rem); }
+.state-table th, .state-table td { border: 1px solid var(--line); padding: .42rem .7rem; text-align: left; }
+.state-table thead th { background: var(--bg-3); color: var(--accent); font-family: "Inter", sans-serif; font-size: var(--fs-small); text-transform: uppercase; letter-spacing: .04em; }
+.state-table .est { color: var(--good); font-weight: 700; }
+
+.layer-stack { display: flex; flex-direction: column; gap: 0; border: 2px solid var(--line); border-radius: 12px; overflow: hidden; min-width: 150px; }
+.layer-stack .lyr { padding: .5rem .8rem; text-align: center; font-weight: 700; font-size: var(--fs-small); border-bottom: 1px solid var(--line); background: var(--bg-2); color: var(--ink-soft); }
+.layer-stack .lyr:last-child { border-bottom: 0; }
+.layer-stack .lyr.hot { background: rgba(78,161,255,.18); color: var(--accent); }
+.stack-row { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 1.2rem; flex-wrap: wrap; }
+.stack-side { font-size: var(--fs-small); color: var(--ink-soft); max-width: 12ch; text-align: center; }
+.stack-arrow { font-size: 1.6rem; color: var(--accent); }
+
+.iptables { background: var(--bg-3); border: 1px solid var(--line); border-radius: 14px; padding: 1.1rem 1.4rem; font-family: var(--mono); font-size: clamp(.78rem, 1.45vw, 1.1rem); margin-top: 1rem; line-height: 1.8; }
+.ipt-cmt { color: var(--ink-soft); font-style: italic; }
+.ipt-kw  { color: var(--accent); font-weight: 700; }
+.ipt-tbl { color: var(--good); }
+.ipt-val { color: var(--warn); }
+.ipt-drop { color: var(--danger); font-weight: 700; }
+
+.dmz-zone { border: 2px dashed var(--line); border-radius: 12px; padding: .8rem 1rem; margin-top: .9rem; }
+.dmz-zone .z-name { display: inline-block; font-size: var(--fs-small); font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: .12rem .55rem; border-radius: 6px; margin-bottom: .55rem; }
+.dmz-zone.internet { border-color: var(--danger); }
+.dmz-zone.internet .z-name { background: rgba(255,107,107,.15); color: var(--danger); }
+.dmz-zone.dmz { border-color: var(--warn); }
+.dmz-zone.dmz .z-name { background: rgba(255,180,84,.15); color: var(--warn); }
+.dmz-zone.internal { border-color: var(--good); }
+.dmz-zone.internal .z-name { background: rgba(95,224,138,.15); color: var(--good); }
+.dmz-hosts { display: flex; gap: .55rem; flex-wrap: wrap; }
+.dmz-host { flex: 1 1 0; min-width: 9ch; background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px; padding: .45rem .6rem; text-align: center; font-size: var(--fs-small); }
+.dmz-fw { display: flex; align-items: center; justify-content: center; gap: .5rem; margin: .35rem 0; font-size: var(--fs-small); color: var(--accent); font-weight: 700; }
+.dmz-fw::before, .dmz-fw::after { content: "🔥"; }
+
+.legend { display: flex; gap: 1.2rem; flex-wrap: wrap; margin-top: .9rem; font-size: var(--fs-small); color: var(--ink-soft); }
+.legend span b { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="fill" id="progress"></div></div>
+
+<div class="controls">
+  <a href="/teaching/information-security/" class="ui-btn" title="Back to course / Volver al curso" style="text-decoration:none">⌂</a>
+  <button class="ui-btn" id="langBtn" title="Español / English">ES</button>
+  <button class="ui-btn" id="themeBtn" title="Light / Dark">☀</button>
+</div>
+
+<main class="deck" id="deck">
+
+  <!-- ===================== A. ORIENTATION ===================== -->
+
+  <!-- S1 — Title -->
+  <section class="slide title-slide active" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>TC2007B · Semana 10 · Clase 1"><span class="dot"></span>TC2007B · Week 10 · Lecture 1</span>
+      <h1 data-es="Firewalls (Cortafuegos)">Firewalls</h1>
+      <div class="title-rule"></div>
+      <p class="lead" data-es="El punto de control que decide qué tráfico cruza la frontera de la red — y por qué un solo muro nunca es suficiente.">The checkpoint that decides which traffic crosses the network boundary — and why a single wall is never enough.</p>
+      <div class="title-meta">
+        <span class="pill" data-es="Profesor: Mahdi Zareei">Instructor: Mahdi Zareei</span>
+        <span class="pill" data-es="Filtrado · Inspección con estado · DMZ · Zero Trust">Filtering · Stateful · DMZ · Zero Trust</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- S2 — Introduction / roadmap -->
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Qué veremos hoy"><span class="dot"></span>What we'll cover</span>
+      <h2 data-es="Introducción">Introduction</h2>
+      <div class="grid cols-3">
+        <div class="card accent-top"><span class="ico">🧱</span><h3 data-es="Parte de la defensa en profundidad">Part of defense-in-depth</h3><p data-es="Dónde encaja el firewall dentro de una estrategia de seguridad por capas: prevenir, detectar, sobrevivir.">Where the firewall fits inside a layered security strategy: prevent, detect, survive.</p></div>
+        <div class="card teal-top"><span class="ico">🔎</span><h3 data-es="Tipos de filtrado">Types of filtering</h3><p data-es="Filtrado de paquetes, inspección con estado y pasarelas de aplicación.">Packet filtering, stateful inspection, and application-level gateways.</p></div>
+        <div class="card warn-top"><span class="ico">🗺️</span><h3 data-es="Estrategias de despliegue">Deployment strategies</h3><p data-es="Bastion hosts, firewalls personales, despliegue distribuido y la DMZ.">Bastion hosts, personal firewalls, distributed deployment, and the DMZ.</p></div>
+      </div>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Y además">And also</span><p data-es="Cerraremos modernizando el modelo clásico: firewalls de nueva generación (NGFW), WAF, firewalls en la nube y el host, y el modelo Zero Trust.">We'll close by modernizing the classic model: next-generation firewalls (NGFW), WAFs, cloud and host firewalls, and the Zero Trust model.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== B. DEFENSE IN DEPTH ===================== -->
+
+  <!-- S3 — Section divider -->
+  <section class="slide section" data-section="Defense-in-Depth" data-section-es="Defensa en Profundidad">
+    <div class="slide-inner">
+      <div class="num">01</div>
+      <h1 data-es="Defensa en profundidad">Defense-in-depth</h1>
+      <p class="lead" data-es="El firewall es una capa — no la única.">The firewall is one layer — not the only one.</p>
+    </div>
+  </section>
+
+  <!-- S4 — Defense in depth: prevent/detect/survive -->
+  <section class="slide" data-section="Defense-in-Depth" data-section-es="Defensa en Profundidad">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Prevenir · Detectar · Sobrevivir"><span class="dot"></span>Prevent · Detect · Survive</span>
+      <h2 data-es="Defensa en profundidad: tres metas en capas">Defense-in-depth: three layered goals</h2>
+      <div class="flow">
+        <div class="node good-node"><span class="n-label good" data-es="Prevenir">Prevent</span><span class="n-sub" data-es="Firewalls, control de acceso, parches, cifrado — bloquear el ataque antes de que ocurra.">Firewalls, access control, patching, encryption — block the attack before it happens.</span></div>
+        <div class="arrow">→</div>
+        <div class="node attack"><span class="n-label" style="color:var(--violet)" data-es="Detectar">Detect</span><span class="n-sub" data-es="IDS/IPS, registros, monitoreo de seguridad — ver el ataque que logró pasar.">IDS/IPS, logging, security monitoring — see the attack that gets through.</span></div>
+        <div class="arrow">→</div>
+        <div class="node breach"><span class="n-label accent" data-es="Sobrevivir">Survive</span><span class="n-sub" data-es="Respaldos, redundancia, respuesta a incidentes — seguir operando y recuperarse.">Backups, redundancy, incident response — keep operating and recover.</span></div>
+      </div>
+      <div class="callout discuss" style="margin-top:1.2rem"><span class="tag" data-es="Analogía">Analogy</span><p data-es="Piensa en la seguridad de un edificio: la verja y el guardia (prevenir), las cámaras y la alarma (detectar), los extintores y el seguro (sobrevivir). Ninguna capa por sí sola basta. El firewall es la verja — importante, pero no impide que alguien entre por una ventana abierta.">Think of building security: the fence and the guard (prevent), the cameras and alarm (detect), the extinguishers and insurance (survive). No single layer is enough. The firewall is the fence — important, but it won't stop someone climbing through an open window.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== C. WHAT IS A FIREWALL ===================== -->
+
+  <!-- S5 — Section divider -->
+  <section class="slide section" data-section="What is a Firewall" data-section-es="Qué es un Firewall">
+    <div class="slide-inner">
+      <div class="num">02</div>
+      <h1 data-es="¿Qué es un firewall?">What is a firewall?</h1>
+      <p class="lead" data-es="Metas de diseño, política de acceso, capacidades y límites.">Design goals, access policy, capabilities and limits.</p>
+    </div>
+  </section>
+
+  <!-- S6 — Firewall design goals -->
+  <section class="slide" data-section="What is a Firewall" data-section-es="Qué es un Firewall">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Metas de diseño"><span class="dot"></span>Design goals</span>
+      <h2 data-es="Metas de diseño de un firewall">Firewall design goals</h2>
+      <div class="grid cols-2">
+        <div class="card accent-top">
+          <h3 data-es="Aplicar las políticas de seguridad">Enforce security policy</h3>
+          <ul class="clean" style="margin-top:.7rem">
+            <li data-es="<strong>Todo</strong> el tráfico entre la red interna e Internet (en ambos sentidos) <strong>debe pasar por el firewall</strong>.">All traffic between the internal network and the Internet — in both directions — <strong>must pass through the firewall</strong>.</li>
+            <li data-es="<strong>Solo</strong> el tráfico autorizado por la política puede pasar.">Only traffic authorized by policy is allowed to pass.</li>
+          </ul>
+        </div>
+        <div class="card good-top">
+          <h3 data-es="Ser confiable">Be dependable</h3>
+          <ul class="clean" style="margin-top:.7rem">
+            <li data-es="El firewall en sí mismo es <strong>inmune a la subversión</strong>.">The firewall itself is <strong>immune to subversion</strong>.</li>
+            <li data-es="Si el guardia puede ser sobornado o burlado, todas las demás reglas dejan de importar.">If the guard can be bribed or bypassed, every other rule stops mattering.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Definición">Definition</span><p data-es="Un firewall es un <strong>único punto de estrangulamiento</strong> (choke point) que inspecciona y controla el tráfico que cruza la frontera de la red, aplicando una política de seguridad definida.">A firewall is a <strong>single choke point</strong> that inspects and controls traffic crossing the network boundary, enforcing a defined security policy.</p></div>
+    </div>
+  </section>
+
+  <!-- S7 — Firewall access policy -->
+  <section class="slide" data-section="What is a Firewall" data-section-es="Qué es un Firewall">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La política primero, las reglas después"><span class="dot"></span>Policy first, rules second</span>
+      <h2 data-es="Política de acceso del firewall">Firewall access policy</h2>
+      <ul class="clean">
+        <li data-es="Un componente crítico al planificar e implementar un firewall es especificar una <strong>política de acceso adecuada</strong>.">A critical component when planning and implementing a firewall is specifying a suitable <strong>access policy</strong>.</li>
+        <li data-es="Lista los tipos de tráfico autorizados a cruzar: <strong>rangos de direcciones, protocolos, aplicaciones y tipos de contenido</strong>.">It lists the types of traffic authorized to pass: <strong>address ranges, protocols, applications, and content types</strong>.</li>
+        <li data-es="Debe derivarse de la <strong>evaluación de riesgos</strong> y la política de seguridad de la información de la organización.">It should be developed from the organization's <strong>information security risk assessment</strong> and policy.</li>
+        <li data-es="Se parte de una especificación amplia de qué tráfico necesita la organización, y luego se <strong>refina</strong> en elementos de filtro implementables en una topología de firewall adecuada.">Start from a broad specification of which traffic the organization needs, then <strong>refine</strong> it into filter elements implementable within an appropriate firewall topology.</li>
+      </ul>
+      <div class="callout policy" style="margin-top:1rem"><span class="tag" data-es="Regla">Rule</span><p data-es="La política de negocio viene primero; las reglas técnicas son su traducción. Reglas sin política son solo conjeturas configuradas a mano.">Business policy comes first; technical rules are its translation. Rules without policy are just guesses configured by hand.</p></div>
+    </div>
+  </section>
+
+  <!-- S8 — Capabilities and limits -->
+  <section class="slide" data-section="What is a Firewall" data-section-es="Qué es un Firewall">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Lo que puede y lo que no puede hacer"><span class="dot"></span>What it can and can't do</span>
+      <h2 data-es="Capacidades y límites del firewall">Firewall capabilities and limits</h2>
+      <div class="split">
+        <div class="card good-top">
+          <h3 data-es="Capacidades">Capabilities</h3>
+          <ul class="clean" style="margin-top:.7rem">
+            <li data-es="Define un <strong>único punto de control</strong> (choke point).">Defines a single <strong>choke point</strong>.</li>
+            <li data-es="Ofrece un <strong>lugar para monitorear</strong> eventos de seguridad.">Provides a <strong>location for monitoring</strong> security events.</li>
+            <li data-es="Plataforma conveniente para varias funciones de Internet no relacionadas con la seguridad (p. ej., NAT, registro de tráfico).">Convenient platform for several non-security Internet functions (e.g., NAT, traffic logging).</li>
+          </ul>
+        </div>
+        <div class="card danger-top">
+          <h3 data-es="Limitaciones">Limitations</h3>
+          <ul class="clean" style="margin-top:.7rem">
+            <li data-es="No protege contra ataques que <strong>evitan</strong> el firewall.">Cannot protect against attacks that <strong>bypass</strong> it.</li>
+            <li data-es="Puede no proteger plenamente contra <strong>amenazas internas</strong>.">May not fully protect against <strong>internal threats</strong>.</li>
+            <li data-es="Una WLAN mal protegida se accede desde fuera de la organización.">An improperly secured wireless LAN can be reached from outside.</li>
+            <li data-es="Portátiles, tablets, móviles o memorias USB infectados <strong>fuera</strong> de la red pueden usarse <strong>dentro</strong>.">Laptops, tablets, phones, or USB storage infected <strong>outside</strong> can be used <strong>inside</strong>.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== D. FILTERING BASICS ===================== -->
+
+  <!-- S9 — Section divider -->
+  <section class="slide section" data-section="Filtering" data-section-es="Filtrado">
+    <div class="slide-inner">
+      <div class="num">03</div>
+      <h1 data-es="Firewalls y filtrado">Firewalls &amp; filtering</h1>
+      <p class="lead" data-es="El mecanismo central de todo firewall es filtrar el tráfico.">The core mechanism of every firewall is traffic filtering.</p>
+    </div>
+  </section>
+
+  <!-- S10 — Filtering basics inbound/outbound -->
+  <section class="slide" data-section="Filtering" data-section-es="Filtrado">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Lo básico del filtrado"><span class="dot"></span>Filtering basics</span>
+      <h2 data-es="Los paquetes se inspeccionan y luego se dejan pasar">Packets are checked, then passed</h2>
+      <ul class="clean">
+        <li data-es="El mecanismo principal de un firewall es el <strong>filtrado de tráfico</strong>.">The main mechanism in firewalls is <strong>traffic filtering</strong>.</li>
+        <li data-es="Los paquetes se <strong>inspeccionan</strong> y luego se dejan pasar o se descartan.">Packets are <strong>checked</strong> and then passed or discarded.</li>
+        <li data-es="<strong>Entrante</strong> (inbound) y <strong>saliente</strong> (outbound) afectan <em>cuándo</em> se aplica la política."><strong>Inbound</strong> and <strong>outbound</strong> affect <em>when</em> the policy is checked.</li>
+      </ul>
+      <div class="callout discuss" style="margin-top:1rem"><span class="tag" data-es="Piénsalo">Think</span><p data-es="¿Por qué filtrar el tráfico <em>saliente</em> y no solo el entrante? Pista: malware que «llama a casa», exfiltración de datos y equipos comprometidos dentro de tu propia red.">Why filter <em>outbound</em> traffic and not just inbound? Hint: malware that "phones home," data exfiltration, and compromised machines inside your own network.</p></div>
+    </div>
+  </section>
+
+  <!-- S11 — Filter characteristics -->
+  <section class="slide" data-section="Filtering" data-section-es="Filtrado">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>¿Sobre qué se decide?"><span class="dot"></span>What can it decide on?</span>
+      <h2 data-es="Características que un firewall puede filtrar">Filter characteristics a firewall can use</h2>
+      <div class="grid cols-2">
+        <div class="card accent-top"><h3 data-es="Dirección IP y protocolo">IP address &amp; protocol</h3><p data-es="Usado por firewalls de filtrado de paquetes y de inspección con estado. Normalmente para limitar el acceso a servicios específicos.">Used by packet-filter and stateful-inspection firewalls. Typically to limit access to specific services.</p></div>
+        <div class="card teal-top"><h3 data-es="Protocolo de aplicación">Application protocol</h3><p data-es="Usado por una pasarela de nivel de aplicación que retransmite y monitorea el intercambio para protocolos de aplicación específicos.">Used by an application-level gateway that relays and monitors the exchange for specific application protocols.</p></div>
+        <div class="card violet-top"><h3 data-es="Identidad del usuario">User identity</h3><p data-es="Normalmente para usuarios internos que se identifican mediante alguna forma de autenticación segura.">Typically for inside users who identify themselves using some form of secure authentication.</p></div>
+        <div class="card warn-top"><h3 data-es="Actividad de red">Network activity</h3><p data-es="Controla el acceso según consideraciones como la hora de la solicitud, la tasa de peticiones u otros patrones de actividad.">Controls access based on considerations such as time of request, rate of requests, or other activity patterns.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S12 — Filtering types -->
+  <section class="slide" data-section="Filtering" data-section-es="Filtrado">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Familias de filtrado"><span class="dot"></span>Families of filtering</span>
+      <h2 data-es="Tipos de filtrado">Filtering types</h2>
+      <div class="split">
+        <div class="card accent-top">
+          <h3 data-es="Filtrado de paquetes">Packet filtering</h3>
+          <ul class="clean" style="margin-top:.7rem">
+            <li data-es="Listas de control de acceso (<strong>ACL</strong>).">Access Control Lists (<strong>ACLs</strong>).</li>
+            <li data-es="Decisión por paquete, sin recordar nada.">Per-packet decision, remembers nothing.</li>
+          </ul>
+        </div>
+        <div class="card teal-top">
+          <h3 data-es="Filtrado de sesión">Session filtering</h3>
+          <ul class="clean" style="margin-top:.7rem">
+            <li data-es="Filtrado dinámico de paquetes (<strong>dynamic packet filtering</strong>).">Dynamic packet filtering.</li>
+            <li data-es="Inspección con estado (<strong>stateful inspection</strong>).">Stateful inspection.</li>
+            <li data-es="Control de acceso basado en contexto (<strong>CBAC</strong>).">Context-based access control (<strong>CBAC</strong>).</li>
+          </ul>
+        </div>
+      </div>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Idea clave">Key idea</span><p data-es="La diferencia esencial: el filtrado de paquetes mira cada paquete en aislamiento; el filtrado de sesión recuerda el contexto de la conexión a la que pertenece el paquete.">The essential difference: packet filtering looks at each packet in isolation; session filtering remembers the context of the connection a packet belongs to.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== E. PACKET FILTERING ===================== -->
+
+  <!-- S13 — Section divider -->
+  <section class="slide section" data-section="Packet Filtering" data-section-es="Filtrado de Paquetes">
+    <div class="slide-inner">
+      <div class="num">04</div>
+      <h1 data-es="Filtrado de paquetes">Packet filtering</h1>
+      <p class="lead" data-es="Decisiones por paquete, sin guardar estado.">Per-packet decisions, no state saved.</p>
+    </div>
+  </section>
+
+  <!-- S14 — Packet filtering: per-packet, no state, stack diagram -->
+  <section class="slide" data-section="Packet Filtering" data-section-es="Filtrado de Paquetes">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Sin memoria"><span class="dot"></span>No memory</span>
+      <h2 data-es="Filtrado de paquetes: por paquete, sin estado">Packet filtering: per-packet, stateless</h2>
+      <div class="stack-row">
+        <div class="stack-side" data-es="Conexión de transporte extremo a extremo">End-to-end transport connection</div>
+        <div class="stack-arrow">⟷</div>
+        <div class="layer-stack">
+          <div class="lyr" data-es="Aplicación">Application</div>
+          <div class="lyr hot" data-es="Transporte">Transport</div>
+          <div class="lyr hot" data-es="Internet (IP)">Internet (IP)</div>
+          <div class="lyr" data-es="Acceso a red">Network access</div>
+          <div class="lyr" data-es="Física">Physical</div>
+        </div>
+        <div class="stack-arrow">⟷</div>
+        <div class="stack-side" data-es="Conexión de transporte extremo a extremo">End-to-end transport connection</div>
+      </div>
+      <ul class="clean" style="margin-top:1.1rem">
+        <li data-es="Las decisiones se toman <strong>por paquete</strong>.">Decisions are made on a <strong>per-packet basis</strong>.</li>
+        <li data-es="<strong>No se guarda información de estado</strong> — cada paquete se juzga solo, mirando las cabeceras IP y de transporte resaltadas arriba."><strong>No state information is saved</strong> — each packet is judged alone, by the highlighted IP and transport headers above.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- S15 — Packet-filtering firewall: rules and defaults -->
+  <section class="slide" data-section="Packet Filtering" data-section-es="Filtrado de Paquetes">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Reglas y políticas por defecto"><span class="dot"></span>Rules &amp; default policies</span>
+      <h2 data-es="El firewall de filtrado de paquetes">The packet-filtering firewall</h2>
+      <div class="split">
+        <div class="card accent-top">
+          <h3 data-es="Cómo funciona">How it works</h3>
+          <ul class="clean" style="margin-top:.6rem">
+            <li data-es="Aplica reglas a cada paquete IP entrante y saliente.">Applies rules to each incoming and outgoing IP packet.</li>
+            <li data-es="Una lista de reglas basada en coincidencias en la cabecera IP o TCP.">A list of rules based on matches in the IP or TCP header.</li>
+            <li data-es="<strong>Reenvía</strong> o <strong>descarta</strong> el paquete según la regla que coincida."><strong>Forwards</strong> or <strong>discards</strong> the packet based on the matching rule.</li>
+          </ul>
+          <p style="margin-top:.5rem;color:var(--ink-soft);font-size:var(--fs-small)" data-es="Campos de filtrado: IP origen, IP destino, dirección de transporte origen/destino (puertos), campo de protocolo IP e interfaz.">Filter fields: source IP, destination IP, source/destination transport address (ports), IP protocol field, and interface.</p>
+        </div>
+        <div class="card warn-top">
+          <h3 data-es="Dos políticas por defecto">Two default policies</h3>
+          <ul class="clean" style="margin-top:.6rem">
+            <li data-es="<strong>Descartar</strong> (default deny): prohibido salvo lo expresamente permitido. Más conservador, controlado y visible para los usuarios."><strong>Discard</strong> (default-deny): prohibit unless expressly permitted. More conservative, controlled, visible to users.</li>
+            <li data-es="<strong>Reenviar</strong> (default forward): permitido salvo lo expresamente prohibido. Más fácil de gestionar pero menos seguro."><strong>Forward</strong> (default-allow): permit unless expressly prohibited. Easier to manage but less secure.</li>
+          </ul>
+          <p style="margin-top:.5rem;color:var(--good);font-size:var(--fs-small)" data-es="Buena práctica moderna: siempre <strong>default-deny</strong>.">Modern best practice: always <strong>default-deny</strong>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S16 — Packet filtering example rule table -->
+  <section class="slide" data-section="Packet Filtering" data-section-es="Filtrado de Paquetes">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Ejemplo: permitir SMTP (correo)"><span class="dot"></span>Example: allow SMTP (email)</span>
+      <h2 data-es="Tabla de reglas de filtrado de paquetes">Packet-filtering rule table</h2>
+      <table class="fw-table">
+        <thead><tr>
+          <th data-es="Regla">Rule</th><th data-es="Dirección">Direction</th><th data-es="Dir. origen">Src address</th><th data-es="Dir. destino">Dest address</th><th data-es="Protocolo">Protocol</th><th data-es="Puerto destino">Dest port</th><th data-es="Acción">Action</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>1</td><td data-es="Entra">In</td><td class="ext" data-es="Externa">External</td><td class="int" data-es="Interna">Internal</td><td>TCP</td><td>25</td><td class="permit" data-es="Permitir">Permit</td></tr>
+          <tr><td>2</td><td data-es="Sale">Out</td><td class="int" data-es="Interna">Internal</td><td class="ext" data-es="Externa">External</td><td>TCP</td><td>&gt;1023</td><td class="permit" data-es="Permitir">Permit</td></tr>
+          <tr><td>3</td><td data-es="Sale">Out</td><td class="int" data-es="Interna">Internal</td><td class="ext" data-es="Externa">External</td><td>TCP</td><td>25</td><td class="permit" data-es="Permitir">Permit</td></tr>
+          <tr><td>4</td><td data-es="Entra">In</td><td class="ext" data-es="Externa">External</td><td class="int" data-es="Interna">Internal</td><td>TCP</td><td>&gt;1023</td><td class="permit" data-es="Permitir">Permit</td></tr>
+          <tr><td>5</td><td data-es="Cualquiera">Either</td><td data-es="Cualquiera">Any</td><td data-es="Cualquiera">Any</td><td data-es="Cualquiera">Any</td><td data-es="Cualquiera">Any</td><td class="deny" data-es="Denegar">Deny</td></tr>
+        </tbody>
+      </table>
+      <div class="callout note" style="margin-top:.9rem"><span class="tag" data-es="Cómo leerla">How to read it</span><p data-es="Reglas 1–4 permiten enviar y recibir correo SMTP (puerto 25) y sus respuestas a puertos altos (&gt;1023). La regla 5 es el <strong>default-deny</strong>: si nada coincidió antes, se descarta. Las reglas se evalúan de arriba abajo; gana la primera coincidencia.">Rules 1–4 permit sending and receiving SMTP mail (port 25) and its replies to high ports (&gt;1023). Rule 5 is the <strong>default-deny</strong>: if nothing matched above, discard. Rules are evaluated top-down; first match wins.</p></div>
+    </div>
+  </section>
+
+  <!-- S17 — Walk a packet through the rules (fragments) -->
+  <section class="slide activity" data-section="Packet Filtering" data-section-es="Filtrado de Paquetes">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Sigue el paquete">◆ Trace the packet</span>
+      <h2 style="margin-top:1rem" data-es="¿Qué regla coincide?">Which rule matches?</h2>
+      <p class="lead" style="max-width:60ch" data-es="Llega un paquete: origen externo, destino interno, TCP, puerto destino 25. ¿Qué le pasa?">A packet arrives: external source, internal destination, TCP, destination port 25. What happens to it?</p>
+      <table class="fw-table" style="margin-top:.6rem">
+        <thead><tr><th data-es="Regla">Rule</th><th data-es="Dirección">Direction</th><th data-es="Origen">Src</th><th data-es="Destino">Dest</th><th>Proto</th><th data-es="Puerto">Port</th><th data-es="Acción">Action</th></tr></thead>
+        <tbody>
+          <tr class="fragment lit"><td>1</td><td data-es="Entra">In</td><td class="ext" data-es="Externa">External</td><td class="int" data-es="Interna">Internal</td><td>TCP</td><td>25</td><td class="permit" data-es="Permitir">Permit</td></tr>
+        </tbody>
+      </table>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Respuesta">Answer</span>
+        <p data-es="Coincide con la <strong>Regla 1</strong> en la primera pasada → <strong>Permit</strong>. Es correo entrante hacia tu servidor SMTP. Como la primera coincidencia gana, nunca llega a la regla 5 (deny). Cambia el puerto a 23 (Telnet) y, en cambio, caería al default-deny.">Matches <strong>Rule 1</strong> on the first pass → <strong>Permit</strong>. It's inbound mail to your SMTP server. Because first-match wins, it never reaches rule 5 (deny). Change the port to 23 (Telnet) and it would instead fall through to the default-deny.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S18 — Modifying rules on source ports -->
+  <section class="slide" data-section="Packet Filtering" data-section-es="Filtrado de Paquetes">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Afinando con puerto origen y ACK"><span class="dot"></span>Tightening with source port &amp; ACK</span>
+      <h2 data-es="Modificando las reglas por puerto de origen">Modifying the rules on source ports</h2>
+      <table class="fw-table">
+        <thead><tr>
+          <th data-es="Regla">Rule</th><th data-es="Dirección">Direction</th><th data-es="Origen">Src</th><th data-es="Destino">Dest</th><th>Proto</th><th data-es="Pto destino">Dest port</th><th data-es="Acción">Action</th><th data-es="Pto origen">Src port</th><th>ACK</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>1</td><td data-es="Entra">In</td><td class="ext" data-es="Externa">External</td><td class="int" data-es="Interna">Internal</td><td>TCP</td><td>25</td><td class="permit" data-es="Permitir">Permit</td><td>&gt;1023</td><td>—</td></tr>
+          <tr><td>2</td><td data-es="Sale">Out</td><td class="int" data-es="Interna">Internal</td><td class="ext" data-es="Externa">External</td><td>TCP</td><td>&gt;1023</td><td class="permit" data-es="Permitir">Permit</td><td>25</td><td>—</td></tr>
+          <tr><td>3</td><td data-es="Sale">Out</td><td class="int" data-es="Interna">Internal</td><td class="ext" data-es="Externa">External</td><td>TCP</td><td>25</td><td class="permit" data-es="Permitir">Permit</td><td>&gt;1023</td><td>—</td></tr>
+          <tr><td>4</td><td data-es="Entra">In</td><td class="ext" data-es="Externa">External</td><td class="int" data-es="Interna">Internal</td><td>TCP</td><td>&gt;1023</td><td class="permit" data-es="Permitir">Permit</td><td>25</td><td>SET</td></tr>
+          <tr><td>5</td><td data-es="Cualquiera">Either</td><td data-es="Cualquiera">Any</td><td data-es="Cualquiera">Any</td><td data-es="Cualquiera">Any</td><td data-es="Cualquiera">Any</td><td class="deny" data-es="Denegar">Deny</td><td data-es="Cualquiera">Any</td><td>—</td></tr>
+        </tbody>
+      </table>
+      <div class="callout check" style="margin-top:.9rem"><span class="tag" data-es="Por qué">Why</span><p data-es="Añadir el <strong>puerto de origen</strong> y exigir el bit <strong>ACK</strong> (regla 4) impide que un atacante externo abra una conexión nueva a un puerto alto: el ACK solo está activo en paquetes que <em>responden</em> a una conexión ya iniciada desde dentro. Es un primer paso hacia el comportamiento «con estado».">Adding the <strong>source port</strong> and requiring the <strong>ACK</strong> bit (rule 4) stops an outside attacker from opening a fresh connection to a high port: ACK is only set on packets that <em>reply</em> to a connection already started from inside. It's a first step toward "stateful" behavior.</p></div>
+    </div>
+  </section>
+
+  <!-- S19 — Packet filter advantages and weaknesses -->
+  <section class="slide" data-section="Packet Filtering" data-section-es="Filtrado de Paquetes">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Compensaciones"><span class="dot"></span>Trade-offs</span>
+      <h2 data-es="Ventajas y debilidades del filtro de paquetes">Packet filter: advantages &amp; weaknesses</h2>
+      <div class="split">
+        <div class="card good-top">
+          <h3 data-es="Ventajas">Advantages</h3>
+          <ul class="clean" style="margin-top:.7rem">
+            <li data-es="<strong>Simplicidad</strong>."><strong>Simplicity</strong>.</li>
+            <li data-es="Normalmente <strong>transparente</strong> a los usuarios y muy <strong>rápido</strong>.">Typically <strong>transparent</strong> to users and very <strong>fast</strong>.</li>
+          </ul>
+        </div>
+        <div class="card danger-top">
+          <h3 data-es="Debilidades">Weaknesses</h3>
+          <ul class="clean" style="margin-top:.7rem">
+            <li data-es="No detiene ataques que explotan vulnerabilidades o funciones específicas de la aplicación.">Can't stop attacks exploiting application-specific vulnerabilities or functions.</li>
+            <li data-es="Capacidad de registro (<em>logging</em>) limitada.">Limited logging functionality.</li>
+            <li data-es="No admite autenticación avanzada de usuarios.">No advanced user authentication.</li>
+            <li data-es="Vulnerable a fallos del propio TCP/IP (p. ej., suplantación de direcciones de capa de red).">Vulnerable to TCP/IP protocol bugs (e.g., network-layer address spoofing).</li>
+            <li data-es="Una configuración incorrecta puede abrir brechas.">Improper configuration can lead to breaches.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S20 — Packet filter countermeasures -->
+  <section class="slide" data-section="Packet Filtering" data-section-es="Filtrado de Paquetes">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Ataque → contramedida"><span class="dot"></span>Attack → countermeasure</span>
+      <h2 data-es="Contramedidas del filtro de paquetes">Packet-filter countermeasures</h2>
+      <table class="compare">
+        <thead><tr><th data-es="Ataque">Attack</th><th data-es="Contramedida">Countermeasure</th></tr></thead>
+        <tbody>
+          <tr><td class="map-from" data-es="Suplantación de IP (IP spoofing)">IP address spoofing</td><td class="map-to" data-es="Descartar paquetes con dirección de origen interna si llegan por una interfaz externa.">Discard packets with an inside source address if they arrive on an external interface.</td></tr>
+          <tr><td class="map-from" data-es="Ataques de enrutamiento de origen (source routing)">Source routing attacks</td><td class="map-to" data-es="Descartar todos los paquetes en los que el origen especifica la ruta a seguir.">Discard all packets in which the source specifies the route to take.</td></tr>
+          <tr><td class="map-from" data-es="Ataque de fragmento diminuto (tiny fragment)">Tiny fragment attack</td><td class="map-to" data-es="Exigir que el primer fragmento de un paquete contenga una cantidad mínima predefinida de la cabecera de transporte.">Enforce a rule that the first fragment of a packet must contain a predefined minimum amount of the transport header.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout discuss" style="margin-top:1rem"><span class="tag" data-es="Debate">Debate</span><p data-es="¿Por qué un atacante fragmentaría un paquete en trozos diminutos? Pista: si la información del puerto TCP cae en el segundo fragmento, una regla que solo mira el primero podría dejarlo pasar.">Why would an attacker split a packet into tiny fragments? Hint: if the TCP port information lands in the second fragment, a rule that only inspects the first one might let it through.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== F. STATEFUL INSPECTION ===================== -->
+
+  <!-- S21 — Section divider -->
+  <section class="slide section" data-section="Stateful Inspection" data-section-es="Inspección con Estado">
+    <div class="slide-inner">
+      <div class="num">05</div>
+      <h1 data-es="Inspección con estado">Stateful inspection</h1>
+      <p class="lead" data-es="El firewall que recuerda quién está dentro.">The firewall that remembers who's inside.</p>
+    </div>
+  </section>
+
+  <!-- S22 — Packet filter vs stateful -->
+  <section class="slide" data-section="Stateful Inspection" data-section-es="Inspección con Estado">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Sin memoria vs. con memoria"><span class="dot"></span>Memoryless vs. remembering</span>
+      <h2 data-es="Filtro de paquetes vs. inspección con estado">Packet filter vs. stateful inspection</h2>
+      <table class="compare">
+        <thead><tr><th data-es="Filtro de paquetes">Packet filter</th><th data-es="Inspección con estado">Stateful inspection</th></tr></thead>
+        <tbody>
+          <tr><td class="map-from" data-es="Juzga cada paquete en aislamiento.">Judges each packet in isolation.</td><td class="map-to" data-es="Recuerda las conexiones activas.">Remembers active connections.</td></tr>
+          <tr><td class="map-from" data-es="Sin estado — no sabe si un paquete pertenece a una sesión legítima.">Stateless — doesn't know if a packet belongs to a legitimate session.</td><td class="map-to" data-es="Con estado — solo deja entrar respuestas a conexiones que ya iniciaste.">Stateful — only admits replies to connections you already started.</td></tr>
+          <tr><td class="map-from" data-es="Rápido y simple, pero más fácil de engañar.">Fast and simple, but easier to fool.</td><td class="map-to" data-es="Algo más de coste, mucha más seguridad.">Slightly more cost, much more security.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Analogía">Analogy</span><p data-es="El filtro de paquetes es un guardia que revisa cada credencial sin memoria. La inspección con estado es un portero (<em>bouncer</em>) que recuerda a quién dejó entrar y solo permite salir o responder a quienes ya están dentro.">A packet filter is a guard who checks each ID with no memory. Stateful inspection is a bouncer who remembers who he let in and only lets those already inside leave or be answered.</p></div>
+    </div>
+  </section>
+
+  <!-- S23 — Stateful inspection firewall details -->
+  <section class="slide" data-section="Stateful Inspection" data-section-es="Inspección con Estado">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Cómo refuerza el TCP"><span class="dot"></span>How it tightens TCP</span>
+      <h2 data-es="El firewall de inspección con estado">The stateful inspection firewall</h2>
+      <div class="split">
+        <div class="card accent-top">
+          <h3 data-es="Directorio de conexiones TCP">TCP connection directory</h3>
+          <ul class="clean" style="margin-top:.6rem">
+            <li data-es="Refuerza las reglas del tráfico TCP creando un <strong>directorio de conexiones TCP</strong>.">Tightens TCP rules by creating a <strong>directory of TCP connections</strong>.</li>
+            <li data-es="Hay una entrada por cada conexión actualmente establecida.">There is an entry for each currently established connection.</li>
+            <li data-es="El filtro solo permite tráfico entrante a puertos altos si encaja en el perfil de una entrada del directorio.">Incoming traffic to high-numbered ports is allowed only if it fits the profile of a directory entry.</li>
+          </ul>
+        </div>
+        <div class="card teal-top">
+          <h3 data-es="Seguimiento del estado">State tracking</h3>
+          <ul class="clean" style="margin-top:.6rem">
+            <li data-es="Revisa la información del paquete <em>y también</em> registra información sobre las conexiones TCP.">Reviews packet info <em>and also</em> records information about TCP connections.</li>
+            <li data-es="Lleva el control de los <strong>números de secuencia TCP</strong> para prevenir ataques que dependen del número de secuencia.">Keeps track of <strong>TCP sequence numbers</strong> to prevent attacks that depend on the sequence number.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S24 — Connection state table -->
+  <section class="slide" data-section="Stateful Inspection" data-section-es="Inspección con Estado">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El directorio en acción"><span class="dot"></span>The directory in action</span>
+      <h2 data-es="Tabla de estado de conexiones">Connection state table</h2>
+      <table class="state-table">
+        <thead><tr>
+          <th data-es="Dirección origen">Source address</th><th data-es="Puerto origen">Source port</th><th data-es="Dirección destino">Destination address</th><th data-es="Puerto destino">Destination port</th><th data-es="Estado de conexión">Connection state</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>192.168.1.100</td><td>1030</td><td>210.9.88.29</td><td>80</td><td class="est" data-es="Establecida">Established</td></tr>
+          <tr><td>192.168.1.102</td><td>1031</td><td>216.32.42.123</td><td>80</td><td class="est" data-es="Establecida">Established</td></tr>
+          <tr><td>192.168.1.101</td><td>1033</td><td>173.66.32.122</td><td>25</td><td class="est" data-es="Establecida">Established</td></tr>
+          <tr><td>192.168.1.106</td><td>1035</td><td>177.231.32.12</td><td>79</td><td class="est" data-es="Establecida">Established</td></tr>
+          <tr><td>223.43.21.231</td><td>1990</td><td>192.168.1.6</td><td>80</td><td class="est" data-es="Establecida">Established</td></tr>
+          <tr><td>219.22.123.32</td><td>2112</td><td>192.168.1.6</td><td>80</td><td class="est" data-es="Establecida">Established</td></tr>
+          <tr><td>210.99.212.18</td><td>3321</td><td>192.168.1.6</td><td>80</td><td class="est" data-es="Establecida">Established</td></tr>
+        </tbody>
+      </table>
+      <p class="figure-note" data-es="Cada fila es una conexión que el firewall vigila. Un paquete entrante hacia un puerto alto solo pasa si coincide con una de estas entradas; de lo contrario, se descarta.">Each row is a connection the firewall is tracking. An inbound packet to a high port only passes if it matches one of these entries; otherwise it is dropped.</p>
+    </div>
+  </section>
+
+  <!-- ===================== G. APPLICATION GATEWAY & HOSTS ===================== -->
+
+  <!-- S25 — Section divider -->
+  <section class="slide section" data-section="Gateways &amp; Hosts" data-section-es="Pasarelas y Hosts">
+    <div class="slide-inner">
+      <div class="num">06</div>
+      <h1 data-es="Pasarelas de aplicación y firewalls de host">Application gateways &amp; host firewalls</h1>
+      <p class="lead" data-es="Del proxy y el bastion host al firewall personal.">From the proxy and bastion host to the personal firewall.</p>
+    </div>
+  </section>
+
+  <!-- S26 — Application-level gateway -->
+  <section class="slide" data-section="Gateways &amp; Hosts" data-section-es="Pasarelas y Hosts">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El proxy de aplicación"><span class="dot"></span>The application proxy</span>
+      <h2 data-es="Pasarela de nivel de aplicación">Application-level gateway</h2>
+      <div class="stack-row">
+        <div class="stack-side" data-es="Conexión de transporte interna">Internal transport connection</div>
+        <div class="stack-arrow">⟷</div>
+        <div class="layer-stack">
+          <div class="lyr hot" data-es="Aplicación">Application</div>
+          <div class="lyr" data-es="Transporte">Transport</div>
+          <div class="lyr" data-es="Internet">Internet</div>
+          <div class="lyr" data-es="Acceso a red">Network access</div>
+        </div>
+        <div class="stack-arrow">⟷<br><span style="font-size:.6em" data-es="proxy">proxy</span></div>
+        <div class="layer-stack">
+          <div class="lyr hot" data-es="Aplicación">Application</div>
+          <div class="lyr" data-es="Transporte">Transport</div>
+          <div class="lyr" data-es="Internet">Internet</div>
+          <div class="lyr" data-es="Acceso a red">Network access</div>
+        </div>
+        <div class="stack-arrow">⟷</div>
+        <div class="stack-side" data-es="Conexión de transporte externa">External transport connection</div>
+      </div>
+      <ul class="clean" style="margin-top:1rem">
+        <li data-es="También llamado <strong>proxy de aplicación</strong>.">Also called an <strong>application proxy</strong>.</li>
+        <li data-es="Actúa como <strong>relevo</strong> del tráfico de nivel de aplicación: el cliente nunca habla directamente con el servidor externo.">Acts as a <strong>relay</strong> of application-level traffic: the client never talks directly to the external server.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- S27 — Application gateway pros/cons -->
+  <section class="slide" data-section="Gateways &amp; Hosts" data-section-es="Pasarelas y Hosts">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Más seguro, pero más lento"><span class="dot"></span>More secure, but slower</span>
+      <h2 data-es="Pasarela de aplicación: detalles">Application-level gateway: details</h2>
+      <ul class="clean">
+        <li data-es="Debe tener <strong>código proxy para cada aplicación</strong> — y puede restringir las funciones soportadas.">Must have <strong>proxy code for each application</strong> — and may restrict the features supported.</li>
+        <li data-es="Tiende a ser <strong>más seguro</strong> que los filtros de paquetes: entiende el protocolo, no solo las cabeceras.">Tends to be <strong>more secure</strong> than packet filters: it understands the protocol, not just headers.</li>
+        <li data-es="Desventaja: <strong>sobrecarga de procesamiento adicional</strong> en cada conexión.">Disadvantage: <strong>additional processing overhead</strong> on each connection.</li>
+      </ul>
+      <div class="callout discuss" style="margin-top:1rem"><span class="tag" data-es="Conexión moderna">Modern link</span><p data-es="Esta idea de «entender el protocolo» es la semilla del firewall de nueva generación (NGFW) y del WAF, que veremos al final. El proxy clásico es el ancestro directo.">This "understand the protocol" idea is the seed of the next-generation firewall (NGFW) and the WAF, which we'll see at the end. The classic proxy is their direct ancestor.</p></div>
+    </div>
+  </section>
+
+  <!-- S28 — Bastion hosts -->
+  <section class="slide" data-section="Gateways &amp; Hosts" data-section-es="Pasarelas y Hosts">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La caseta del guardia, fortificada"><span class="dot"></span>The hardened guardhouse</span>
+      <h2 data-es="Bastion hosts">Bastion hosts</h2>
+      <ul class="clean">
+        <li data-es="Sistema identificado como <strong>punto fuerte crítico</strong> en la seguridad de la red.">A system identified as a <strong>critical strong point</strong> in the network's security.</li>
+        <li data-es="Sirve de plataforma para una <strong>pasarela de nivel de aplicación</strong>.">Serves as a platform for an <strong>application-level gateway</strong>.</li>
+      </ul>
+      <div class="grid cols-2" style="margin-top:.9rem">
+        <div class="card accent-top" style="padding:.9rem 1.1rem"><p data-es="SO seguro con <strong>solo los servicios esenciales</strong>; puede exigir autenticación para acceder al proxy o al host.">Secure OS with <strong>only essential services</strong>; may require user authentication to reach the proxy or host.</p></div>
+        <div class="card teal-top" style="padding:.9rem 1.1rem"><p data-es="Cada proxy es <strong>pequeño, simple y auditado</strong>; restringe funciones y hosts accesibles.">Each proxy is <strong>small, simple, and checked</strong>; restricts features and reachable hosts.</p></div>
+        <div class="card good-top" style="padding:.9rem 1.1rem"><p data-es="Cada proxy es <strong>independiente y sin privilegios</strong>.">Each proxy is <strong>independent and non-privileged</strong>.</p></div>
+        <div class="card violet-top" style="padding:.9rem 1.1rem"><p data-es="Uso de disco limitado — por eso, <strong>código de solo lectura</strong>.">Limited disk use — hence <strong>read-only code</strong>.</p></div>
+      </div>
+      <div class="callout note" style="margin-top:.9rem"><span class="tag" data-es="Analogía">Analogy</span><p data-es="Un bastion host es la caseta del guardia fortificada en la DMZ: lo único expuesto al exterior, endurecido al máximo precisamente porque está en primera línea.">A bastion host is the hardened guardhouse in the DMZ: the only thing exposed to the outside, locked down as much as possible precisely because it's on the front line.</p></div>
+    </div>
+  </section>
+
+  <!-- S29 — Host-based firewalls -->
+  <section class="slide" data-section="Gateways &amp; Hosts" data-section-es="Pasarelas y Hosts">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Proteger un solo equipo"><span class="dot"></span>Securing one machine</span>
+      <h2 data-es="Firewalls basados en host">Host-based firewalls</h2>
+      <ul class="clean">
+        <li data-es="Usados para asegurar un <strong>host individual</strong>.">Used to secure an <strong>individual host</strong>.</li>
+        <li data-es="Vienen en el sistema operativo o como paquete adicional; filtran y restringen el flujo de paquetes.">Available in the OS or as an add-on package; filter and restrict packet flows.</li>
+        <li data-es="Normalmente implementados en un <strong>servidor</strong>.">Usually implemented on a <strong>server</strong>.</li>
+      </ul>
+      <div class="grid cols-3" style="margin-top:.9rem">
+        <div class="card good-top"><h3 data-es="A medida">Tailored</h3><p data-es="Las reglas se ajustan al entorno específico del host.">Filtering rules can be tailored to the host environment.</p></div>
+        <div class="card teal-top"><h3 data-es="Independiente de la topología">Topology-independent</h3><p data-es="La protección se brinda con independencia de la topología de red.">Protection is provided independent of topology.</p></div>
+        <div class="card accent-top"><h3 data-es="Capa extra">Extra layer</h3><p data-es="Aporta una capa de protección adicional — defensa en profundidad otra vez.">Provides an additional layer of protection — defense-in-depth again.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S30 — Personal firewall -->
+  <section class="slide" data-section="Gateways &amp; Hosts" data-section-es="Pasarelas y Hosts">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El firewall del usuario"><span class="dot"></span>The end-user firewall</span>
+      <h2 data-es="Firewall personal">Personal firewall</h2>
+      <ul class="clean">
+        <li data-es="Controla el tráfico entre un PC o estación de trabajo e Internet o la red corporativa.">Controls traffic between a personal computer or workstation and the Internet or enterprise network.</li>
+        <li data-es="Para uso doméstico o corporativo; suele ser un <strong>módulo de software</strong> en el equipo.">For home or corporate use; typically a <strong>software module</strong> on a personal computer.</li>
+        <li data-es="Puede alojarse en el <strong>router</strong> que conecta los equipos del hogar a un módem DSL/cable u otra interfaz de Internet.">Can be housed in the <strong>router</strong> that connects home computers to a DSL/cable modem or other Internet interface.</li>
+        <li data-es="Normalmente <strong>mucho menos complejo</strong> que otros tipos de firewall.">Typically <strong>much less complex</strong> than other firewall types.</li>
+        <li data-es="Función principal: <strong>denegar el acceso remoto no autorizado</strong>.">Primary role: <strong>deny unauthorized remote access</strong>.</li>
+        <li data-es="También puede monitorear el tráfico saliente para detectar y bloquear gusanos y malware.">May also monitor outgoing traffic to detect and block worms and malware activity.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- S31 — Advanced firewall protection -->
+  <section class="slide" data-section="Gateways &amp; Hosts" data-section-es="Pasarelas y Hosts">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Funciones avanzadas"><span class="dot"></span>Advanced features</span>
+      <h2 data-es="Protección avanzada del firewall">Advanced firewall protection</h2>
+      <p class="lead" style="max-width:62ch" data-es="Para mayor protección, pueden configurarse funciones avanzadas como:">For increased protection, advanced firewall features may be configured, such as:</p>
+      <div class="grid cols-3" style="margin-top:.8rem">
+        <div class="card accent-top"><span class="ico">🥷</span><h3 data-es="Modo sigiloso">Stealth mode</h3><p data-es="Oculta el sistema de Internet descartando los paquetes de comunicación no solicitados.">Hides the system from the Internet by dropping unsolicited communication packets.</p></div>
+        <div class="card teal-top"><span class="ico">📜</span><h3 data-es="Registro (logging)">Logging</h3><p data-es="Registra la actividad para detectar comportamiento no deseado.">Logs activity for checking on unwanted activity.</p></div>
+        <div class="card good-top"><span class="ico">✅</span><h3 data-es="Autorización de apps">App authorization</h3><p data-es="Las aplicaciones deben tener autorización para ofrecer servicios.">Applications must have authorization to provide services.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== H. DISTRIBUTED DEPLOYMENT & DMZ ===================== -->
+
+  <!-- S32 — Section divider -->
+  <section class="slide section" data-section="Deployment &amp; DMZ" data-section-es="Despliegue y DMZ">
+    <div class="slide-inner">
+      <div class="num">07</div>
+      <h1 data-es="Despliegue distribuido y DMZ">Distributed deployment &amp; the DMZ</h1>
+      <p class="lead" data-es="Capas de firewalls alrededor de zonas de confianza decreciente.">Layers of firewalls around zones of decreasing trust.</p>
+    </div>
+  </section>
+
+  <!-- S33 — Distributed firewall deployment / DMZ topology -->
+  <section class="slide" data-section="Deployment &amp; DMZ" data-section-es="Despliegue y DMZ">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Zonas de confianza decreciente"><span class="dot"></span>Zones of decreasing trust</span>
+      <h2 data-es="Despliegue de firewall distribuido">Distributed firewall deployment</h2>
+      <div class="dmz-zone internet">
+        <span class="z-name" data-es="Internet / Usuarios remotos">Internet / Remote users</span>
+        <div class="dmz-hosts">
+          <div class="dmz-host" data-es="☁️ Internet">☁️ Internet</div>
+          <div class="dmz-host" data-es="👤 Usuarios remotos">👤 Remote users</div>
+          <div class="dmz-host" data-es="📡 Router de frontera">📡 Boundary router</div>
+        </div>
+      </div>
+      <div class="dmz-fw" data-es="Firewall externo">External firewall</div>
+      <div class="dmz-zone dmz">
+        <span class="z-name" data-es="DMZ (externa) — servicios públicos">DMZ (external) — public services</span>
+        <div class="dmz-hosts">
+          <div class="dmz-host" data-es="🌐 Servidores web">🌐 Web servers</div>
+          <div class="dmz-host" data-es="✉️ Correo / DNS">✉️ Mail / DNS</div>
+          <div class="dmz-host" data-es="🏰 Bastion host">🏰 Bastion host</div>
+        </div>
+      </div>
+      <div class="dmz-fw" data-es="Firewall interno">Internal firewall</div>
+      <div class="dmz-zone internal">
+        <span class="z-name" data-es="Red interna protegida">Internal protected network</span>
+        <div class="dmz-hosts">
+          <div class="dmz-host" data-es="🗄️ Servidores de app y BD">🗄️ App &amp; DB servers</div>
+          <div class="dmz-host" data-es="💻 Estaciones de trabajo">💻 Workstations</div>
+        </div>
+      </div>
+      <p class="figure-note" data-es="Dos firewalls crean una DMZ: los servicios públicos viven en la zona intermedia, alcanzables desde Internet pero separados de la red interna sensible.">Two firewalls create a DMZ: public services live in the middle zone, reachable from the Internet but separated from the sensitive internal network.</p>
+    </div>
+  </section>
+
+  <!-- S34 — DMZ concept + security monitoring -->
+  <section class="slide" data-section="Deployment &amp; DMZ" data-section-es="Despliegue y DMZ">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Por qué existe la DMZ"><span class="dot"></span>Why the DMZ exists</span>
+      <h2 data-es="DMZ y monitoreo de seguridad">DMZ &amp; security monitoring</h2>
+      <div class="split">
+        <div class="card warn-top">
+          <h3>DMZ</h3>
+          <p data-es="La <strong>zona desmilitarizada</strong> aloja servidores que deben ser accesibles desde Internet (web, correo, DNS). Si uno se compromete, el atacante sigue atrapado <em>fuera</em> de la red interna, frenado por el firewall interno.">The <strong>demilitarized zone</strong> hosts servers that must be reachable from the Internet (web, mail, DNS). If one is compromised, the attacker is still trapped <em>outside</em> the internal network, held back by the internal firewall.</p>
+        </div>
+        <div class="card violet-top">
+          <h3 data-es="Monitoreo de seguridad">Security monitoring</h3>
+          <p data-es="Un aspecto importante de la configuración del firewall distribuido es el <strong>monitoreo de seguridad</strong>: los registros y alertas de cada firewall se centralizan para detectar y correlacionar incidentes en todas las zonas.">An important aspect of distributed firewall configuration is <strong>security monitoring</strong>: logs and alerts from each firewall are centralized to detect and correlate incidents across all zones.</p>
+        </div>
+      </div>
+      <div class="callout discuss" style="margin-top:.9rem"><span class="tag" data-es="Debate">Debate</span><p data-es="¿Es la DMZ el «foso del castillo» del modelo perímetro? ¿Qué pasa cuando tus servidores web ya no están en tu sala de servidores sino en la nube? Lo retomamos en la última sección.">Is the DMZ the "castle moat" of the perimeter model? What happens when your web servers no longer live in your server room but in the cloud? We'll pick this up in the final section.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== I. MODERN FIREWALLS ===================== -->
+
+  <!-- S35 — Section divider -->
+  <section class="slide section" data-section="Modern Firewalls" data-section-es="Firewalls Modernos">
+    <div class="slide-inner">
+      <div class="num">08</div>
+      <h1 data-es="El firewall hoy">The firewall today</h1>
+      <p class="lead" data-es="NGFW, WAF, nube, host — y por qué el perímetro está cambiando.">NGFW, WAF, cloud, host — and why the perimeter is changing.</p>
+    </div>
+  </section>
+
+  <!-- S36 — Next-generation firewalls -->
+  <section class="slide" data-section="Modern Firewalls" data-section-es="Firewalls Modernos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El firewall empresarial moderno"><span class="dot"></span>The modern enterprise firewall</span>
+      <h2 data-es="Firewalls de nueva generación (NGFW)">Next-generation firewalls (NGFW)</h2>
+      <div class="grid cols-3">
+        <div class="card accent-top"><h3 data-es="Inspección profunda (DPI)">Deep packet inspection</h3><p data-es="Mira el contenido del paquete, no solo las cabeceras — más allá del filtro clásico.">Looks at packet content, not just headers — beyond the classic filter.</p></div>
+        <div class="card teal-top"><h3 data-es="Conciencia de app y usuario">App &amp; user awareness</h3><p data-es="Identifica la aplicación real (no solo el puerto) y al usuario detrás del tráfico.">Identifies the actual application (not just the port) and the user behind the traffic.</p></div>
+        <div class="card violet-top"><h3 data-es="IPS integrado">Integrated IPS</h3><p data-es="Sistema de prevención de intrusiones incorporado para bloquear exploits conocidos.">Built-in intrusion-prevention system to block known exploits.</p></div>
+        <div class="card warn-top"><h3 data-es="Inspección TLS/SSL">TLS/SSL inspection</h3><p data-es="Descifra e inspecciona el tráfico cifrado — donde hoy se esconde casi todo.">Decrypts and inspects encrypted traffic — where almost everything now hides.</p></div>
+        <div class="card good-top"><h3 data-es="Inteligencia de amenazas">Threat intelligence</h3><p data-es="Feeds actualizados de IPs, dominios y firmas maliciosas conocidas.">Live feeds of known-malicious IPs, domains, and signatures.</p></div>
+        <div class="card accent-top"><h3 data-es="Ejemplos">Examples</h3><p data-es="Palo Alto, Fortinet (FortiGate), Cisco Firepower, Check Point.">Palo Alto, Fortinet (FortiGate), Cisco Firepower, Check Point.</p></div>
+      </div>
+      <div class="callout note" style="margin-top:.8rem"><span class="tag" data-es="Línea base hoy">Today's baseline</span><p data-es="La inspección con estado ya es lo mínimo, no lo avanzado. El NGFW combina las capas que vimos —filtro, estado y proxy de aplicación— en un solo dispositivo.">Stateful inspection is now the minimum, not the advanced option. The NGFW combines the layers we saw — filter, state, and application proxy — into a single device.</p></div>
+    </div>
+  </section>
+
+  <!-- S37 — WAF vs network firewall -->
+  <section class="slide" data-section="Modern Firewalls" data-section-es="Firewalls Modernos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Vínculo con la Semana 3 (OWASP)"><span class="dot"></span>Link to Week 3 (OWASP)</span>
+      <h2 data-es="Firewall de red vs. Firewall de aplicación web (WAF)">Network firewall vs. Web Application Firewall (WAF)</h2>
+      <table class="compare">
+        <thead><tr><th data-es="Firewall de red / NGFW">Network firewall / NGFW</th><th data-es="WAF">Web Application Firewall (WAF)</th></tr></thead>
+        <tbody>
+          <tr><td class="map-from" data-es="Opera en las capas de red y transporte (IP, puertos, conexiones).">Operates at network &amp; transport layers (IP, ports, connections).</td><td class="map-to" data-es="Opera en la capa HTTP (capa 7), inspeccionando peticiones y respuestas web.">Operates at the HTTP layer (layer 7), inspecting web requests and responses.</td></tr>
+          <tr><td class="map-from" data-es="Bloquea puertos, IPs y conexiones no autorizadas.">Blocks unauthorized ports, IPs, and connections.</td><td class="map-to" data-es="Filtra ataques de aplicación: SQLi, XSS, traversal de rutas (el OWASP Top 10).">Filters application attacks: SQLi, XSS, path traversal (the OWASP Top 10).</td></tr>
+          <tr><td class="map-from" data-es="No entiende «esto es un intento de inyección SQL».">Doesn't understand "this is a SQL injection attempt."</td><td class="map-to" data-es="Inspecciona el cuerpo y los parámetros HTTP para detectar cargas maliciosas.">Inspects the HTTP body and parameters to detect malicious payloads.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout check" style="margin-top:1rem"><span class="tag" data-es="No son rivales">Not rivals</span><p data-es="Se complementan: el firewall de red controla <em>quién</em> puede conectarse; el WAF controla <em>qué</em> hacen las peticiones web que sí llegan. Recuerda los ataques SQLi y XSS de la Semana 3 — el WAF es una capa diseñada precisamente contra ellos.">They complement each other: the network firewall controls <em>who</em> can connect; the WAF controls <em>what</em> the web requests that do arrive can do. Recall the SQLi and XSS attacks from Week 3 — the WAF is a layer built specifically against them.</p></div>
+    </div>
+  </section>
+
+  <!-- S38 — Cloud & host firewalls in practice -->
+  <section class="slide" data-section="Modern Firewalls" data-section-es="Firewalls Modernos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Dónde viven los firewalls hoy"><span class="dot"></span>Where firewalls live now</span>
+      <h2 data-es="Firewalls en la nube y en el host, en la práctica">Cloud &amp; host firewalls in practice</h2>
+      <div class="grid cols-2">
+        <div class="card accent-top"><h3 data-es="Nube">Cloud</h3><p data-es="AWS <strong>Security Groups</strong> (con estado) y <strong>NACLs</strong> (sin estado); <strong>NSG</strong> de Azure. El firewall es ahora una regla adjunta a cada carga de trabajo.">AWS <strong>Security Groups</strong> (stateful) and <strong>NACLs</strong> (stateless); Azure <strong>NSGs</strong>. The firewall is now a rule attached to each workload.</p></div>
+        <div class="card teal-top"><h3 data-es="Host / Linux">Host / Linux</h3><p data-es="<strong>nftables</strong> está reemplazando a <strong>iptables</strong> como filtro de paquetes del kernel de Linux."><strong>nftables</strong> is replacing <strong>iptables</strong> as the Linux kernel packet filter.</p></div>
+        <div class="card good-top"><h3 data-es="Host / Windows">Host / Windows</h3><p data-es="<strong>Windows Defender Firewall</strong>: firewall basado en host con estado, integrado en el SO."><strong>Windows Defender Firewall</strong>: a stateful host-based firewall built into the OS.</p></div>
+        <div class="card violet-top"><h3 data-es="Misma idea, nuevo lugar">Same idea, new place</h3><p data-es="Son los mismos conceptos —default-deny, con estado, por puerto/IP— aplicados al host y a la nube, no solo al perímetro.">Same concepts — default-deny, stateful, per port/IP — applied to the host and cloud, not just the perimeter.</p></div>
+      </div>
+      <div class="iptables">
+        <span class="ipt-cmt"># nftables — política por defecto: descartar entrante / nftables: default-drop inbound</span><br>
+        <span class="ipt-kw">nft</span> add rule inet filter input ct state <span class="ipt-val">established,related</span> <span class="ipt-kw">accept</span><br>
+        <span class="ipt-kw">nft</span> add rule inet filter input tcp dport <span class="ipt-tbl">{ 22, 443 }</span> <span class="ipt-kw">accept</span><br>
+        <span class="ipt-kw">nft</span> add rule inet filter input <span class="ipt-drop">drop</span> &nbsp;<span class="ipt-cmt"># todo lo demás / everything else</span>
+      </div>
+      <p class="figure-note" data-es="Tres reglas clásicas: permitir respuestas a conexiones ya establecidas (con estado), permitir SSH (22) y HTTPS (443) entrantes, y descartar el resto. Equivale a iptables: -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT.">Three classic rules: allow replies to already-established connections (stateful), allow inbound SSH (22) and HTTPS (443), and drop the rest. Equivalent in iptables: -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT.</p>
+    </div>
+  </section>
+
+  <!-- S39 — Zero Trust & microsegmentation -->
+  <section class="slide" data-section="Modern Firewalls" data-section-es="Firewalls Modernos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>¿Ha muerto el perímetro?"><span class="dot"></span>Is the perimeter dead?</span>
+      <h2 data-es="Zero Trust y microsegmentación">Zero Trust &amp; microsegmentation</h2>
+      <div class="split">
+        <div class="card danger-top">
+          <h3 data-es="Modelo «castillo y foso»">"Castle-and-moat" model</h3>
+          <p data-es="El firewall perimetral asume que todo lo de <em>dentro</em> es de confianza. Pero con la nube, el trabajo remoto y los dispositivos móviles, ya casi no hay un «dentro» claro.">The perimeter firewall assumes everything <em>inside</em> is trusted. But with cloud, remote work, and mobile devices, there's barely a clear "inside" anymore.</p>
+        </div>
+        <div class="card good-top">
+          <h3 data-es="Zero Trust">Zero Trust</h3>
+          <p data-es="<strong>Nunca confíes, verifica siempre.</strong> No hay confianza implícita; se aplica una política basada en identidad por cada carga de trabajo y petición (NIST SP 800-207)."><strong>Never trust, always verify.</strong> No implicit trust; identity-based policy is enforced per workload and per request (NIST SP 800-207).</p>
+        </div>
+      </div>
+      <div class="callout discuss" style="margin-top:1rem"><span class="tag" data-es="Vínculo con la Semana 2">Link to Week 2</span><p data-es="La <strong>microsegmentación</strong> coloca controles de acceso entre cargas de trabajo <em>internas</em>, no solo en el borde — es control de acceso (Semana 2) aplicado a la red. El firewall perimetral del modelo clásico es <em>una</em> capa, no toda la historia."><strong>Microsegmentation</strong> places access controls between <em>internal</em> workloads, not just at the edge — it's access control (Week 2) applied to the network. The classic perimeter firewall is <em>one</em> layer, not the whole story.</p></div>
+    </div>
+  </section>
+
+  <!-- S40 — Closing debate -->
+  <section class="slide activity" data-section="Modern Firewalls" data-section-es="Firewalls Modernos">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Debate final">◆ Closing debate</span>
+      <h2 style="margin-top:1rem" data-es="¿Está muerto el perímetro de red?">Is the network perimeter dead?</h2>
+      <p class="lead" style="max-width:60ch" data-es="Con todo en la nube y el trabajo remoto, ¿siguen importando los firewalls perimetrales, o el modelo Zero Trust los hace obsoletos?">With everything in the cloud and remote work, do perimeter firewalls still matter — or does Zero Trust make them obsolete?</p>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Una postura">One stance</span>
+        <p data-es="El perímetro no está muerto — se <strong>multiplicó</strong>. Cada host, contenedor y carga de trabajo en la nube tiene ahora su propio firewall. El modelo «castillo y foso» ya no basta por sí solo, pero el firewall perimetral sigue siendo una capa valiosa de defensa en profundidad. Zero Trust no <em>elimina</em> los firewalls: los <em>distribuye</em> y los une a la identidad.">The perimeter isn't dead — it <strong>multiplied</strong>. Every host, container, and cloud workload now carries its own firewall. The castle-and-moat model alone is no longer enough, but the perimeter firewall remains a valuable defense-in-depth layer. Zero Trust doesn't <em>remove</em> firewalls — it <em>distributes</em> them and ties them to identity.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== J. WRAP-UP ===================== -->
+
+  <!-- S41 — Summary -->
+  <section class="slide" data-section="Wrap-up" data-section-es="Cierre">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Resumen"><span class="dot"></span>Summary</span>
+      <h2 data-es="Firewalls, en una diapositiva">Firewalls, in one slide</h2>
+      <ul class="clean">
+        <li data-es="Aplican la política de seguridad para prevenir ataques mediante el <strong>filtrado de tráfico</strong>; <strong>default-deny</strong> por defecto.">Enforce security policy to prevent attacks by way of <strong>traffic filtering</strong>; <strong>default-deny</strong>.</li>
+        <li data-es="<strong>Filtrado de paquetes</strong> (sin estado) y <strong>filtrado de sesión</strong> (con estado), más la <strong>pasarela de nivel de aplicación</strong>."><strong>Packet filtering</strong> (stateless) and <strong>session filtering</strong> (stateful), plus the <strong>application-level gateway</strong>.</li>
+        <li data-es="Firewalls <strong>basados en host</strong>, router de cribado, <strong>bastion hosts</strong> y la <strong>DMZ</strong> en un despliegue distribuido."><strong>Host-based</strong> firewalls, screening router, <strong>bastion hosts</strong>, and the <strong>DMZ</strong> in a distributed deployment.</li>
+        <li data-es="Hoy: el <strong>NGFW</strong> (DPI, conciencia de app/usuario, IPS, inspección TLS) es la línea base; el <strong>WAF</strong> defiende la capa HTTP (OWASP).">Today: the <strong>NGFW</strong> (DPI, app/user awareness, IPS, TLS inspection) is the baseline; the <strong>WAF</strong> defends the HTTP layer (OWASP).</li>
+        <li data-es="El perímetro se distribuye a la nube y al host; <strong>Zero Trust</strong> y la microsegmentación enmarcan el firewall perimetral como una capa, no como toda la defensa.">The perimeter distributes to cloud and host; <strong>Zero Trust</strong> and microsegmentation frame the perimeter firewall as one layer, not the whole defense.</li>
+      </ul>
+      <div class="callout check" style="margin-top:.9rem"><span class="tag" data-es="Práctica">Hands-on</span><p data-es="Para absorber el tiempo restante: escribe un conjunto mínimo de reglas nftables (o Security Group de AWS) con default-deny que permita SSH y HTTPS, o explora la consola de un firewall en una VM de laboratorio.">To absorb remaining time: write a minimal default-deny nftables ruleset (or AWS Security Group) allowing SSH and HTTPS, or explore a firewall console on a lab VM.</p></div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <span class="course" data-es="TC2007B · S10 · C1 — Firewalls">TC2007B · W10 · L1 — Firewalls</span>
+  <span class="right">
+    <span class="sec-name" id="secName">Orientation</span>
+    <span class="counter"><span id="cur">1</span> / <span id="total">41</span></span>
+  </span>
+</footer>
+
+<div class="frag-hint" id="fragHint"><span id="fragHintText">click to reveal</span><span class="chev">▾</span></div>
+
+<div class="nav-btns">
+  <button id="prevBtn" title="Previous (←)">‹</button>
+  <button id="ovBtn" title="Overview (O)">▦</button>
+  <button id="helpBtn" title="Help (?)">?</button>
+  <button id="fsBtn" title="Fullscreen (F)">⛶</button>
+  <button id="nextBtn" title="Next (→)">›</button>
+</div>
+
+<div class="overview" id="overview">
+  <h2 id="ovTitle">Slide overview</h2>
+  <div class="ov-grid" id="ovGrid"></div>
+</div>
+
+<div class="help" id="help">
+  <div class="panel">
+    <h2 data-es="Navegación">Navigation</h2>
+    <table>
+      <tr><td><kbd>→</kbd> <kbd>Space</kbd> <kbd>PgDn</kbd></td><td data-es="Siguiente / revelar">Next / reveal</td></tr>
+      <tr><td><kbd>←</kbd> <kbd>PgUp</kbd></td><td data-es="Anterior">Previous</td></tr>
+      <tr><td><kbd>Home</kbd> / <kbd>End</kbd></td><td data-es="Primera / última">First / last slide</td></tr>
+      <tr><td><kbd>O</kbd></td><td data-es="Vista general">Slide overview grid</td></tr>
+      <tr><td><kbd>F</kbd></td><td data-es="Pantalla completa">Toggle fullscreen</td></tr>
+      <tr><td><kbd>L</kbd></td><td data-es="Idioma ES / EN">Language ES / EN</td></tr>
+      <tr><td><kbd>T</kbd></td><td data-es="Tema claro / oscuro">Light / dark theme</td></tr>
+      <tr><td><kbd>?</kbd></td><td>Help</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td data-es="Cerrar ventana">Close overlay</td></tr>
+    </table>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
