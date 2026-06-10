@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Week 11 · Intrusion Detection (IDS/IPS)</title>
+<meta name="description" content="Intrusion detection and prevention: defense-in-depth, IDS architecture, anomaly vs signature detection, network/host sensors, performance metrics and the base-rate fallacy, honeypots, IPS/IDPS, IDS evasion, and the modern SOC. Week 11 of TC2007B.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+/* ---- Lecture-local additions ---- */
+.did-row { display:flex; align-items:stretch; gap:0; flex-wrap:nowrap; margin-top:1.6rem; }
+.did-node { flex:1; background:var(--bg-2); border:2px solid var(--line); border-radius:14px; padding:1rem .8rem; text-align:center; }
+.did-node .d-ico { font-size:1.8rem; display:block; }
+.did-node .d-title { font-weight:800; font-size:var(--fs-body); margin-top:.3rem; }
+.did-node .d-sub { font-size:var(--fs-small); color:var(--ink-soft); margin-top:.25rem; line-height:1.4; }
+.did-arrow { display:flex; align-items:center; justify-content:center; font-size:1.6rem; color:var(--danger); padding:0 .4rem; flex:none; }
+
+/* IDS component pipeline */
+.ids-pipe { display:grid; grid-template-columns: 1fr; gap:.7rem; margin-top:1.2rem; }
+.ids-stage { display:flex; align-items:center; gap:.9rem; }
+.ids-kb { flex:none; background:var(--bg-3); border:2px solid var(--accent-2); border-radius:999px; padding:.5rem 1rem; font-weight:700; color:var(--accent-2); font-size:var(--fs-small); min-width:11ch; text-align:center; }
+.ids-box { flex:1; background:var(--bg-2); border:2px solid var(--good); border-radius:12px; padding:.7rem 1rem; }
+.ids-box .ib-t { font-weight:800; color:var(--good); }
+.ids-box .ib-s { font-size:var(--fs-small); color:var(--ink-soft); }
+.ids-link { font-size:var(--fs-small); color:var(--warn); font-weight:700; text-align:center; }
+.ids-down { text-align:center; color:var(--accent); font-size:1.2rem; line-height:.6; }
+
+/* sensor diagram */
+.wire { position:relative; height:3px; background:var(--ink-soft); margin:1.4rem 0; border-radius:2px; }
+.wire .wlabel { position:absolute; top:-1.6rem; left:50%; transform:translateX(-50%); font-size:var(--fs-small); color:var(--warn); font-weight:700; white-space:nowrap; }
+.sensor-grid { display:flex; align-items:center; justify-content:center; gap:1rem; margin-top:1rem; flex-wrap:wrap; }
+.sbox { background:var(--bg-2); border:2px solid var(--accent); border-radius:12px; padding:.7rem 1rem; text-align:center; min-width:9ch; }
+.sbox .s-t { font-weight:800; }
+.sbox .s-s { font-size:var(--fs-small); color:var(--ink-soft); }
+
+/* network topology */
+.topo { display:flex; align-items:center; justify-content:space-between; gap:.5rem; flex-wrap:wrap; margin-top:1.2rem; }
+.tnode { background:var(--bg-2); border:2px solid var(--line); border-radius:12px; padding:.6rem .7rem; text-align:center; font-size:var(--fs-small); min-width:8ch; }
+.tnode .tn-ico { font-size:1.4rem; display:block; }
+.tnode.fw { border-color:var(--danger); }
+.tnode.ids { border-color:var(--accent); }
+.tnode.net { border-color:var(--accent-2); }
+.tnode.hp { border-color:var(--warn); }
+.tarrow { color:var(--ink-soft); font-size:1.2rem; flex:none; }
+
+/* metrics confusion matrix */
+.cm { border-collapse:collapse; margin:1.2rem auto 0; font-size:clamp(.78rem,1.4vw,1.05rem); }
+.cm td, .cm th { border:1px solid var(--line); padding:.7rem 1rem; text-align:center; vertical-align:middle; }
+.cm th { background:var(--bg-3); color:var(--accent); font-size:var(--fs-small); text-transform:uppercase; letter-spacing:.05em; }
+.cm .tp { background:rgba(60,200,120,.16); color:var(--good); font-weight:800; }
+.cm .tn { background:rgba(60,200,120,.10); color:var(--good); font-weight:800; }
+.cm .fp { background:rgba(255,107,107,.16); color:var(--danger); font-weight:800; }
+.cm .fn { background:rgba(255,170,40,.18); color:var(--warn); font-weight:800; }
+.cm .axis { background:var(--bg-2); font-weight:800; color:var(--ink); }
+
+/* formula chips */
+.formula { display:flex; flex-wrap:wrap; gap:.7rem; margin-top:1.1rem; }
+.fchip { flex:1; min-width:18ch; background:var(--bg-3); border:1px solid var(--line); border-radius:12px; padding:.7rem .9rem; }
+.fchip .fn-name { font-weight:800; color:var(--accent); }
+.fchip .fn-eq { font-family:var(--mono); font-size:var(--fs-small); color:var(--ink-soft); margin-top:.25rem; display:block; }
+
+/* base-rate calc */
+.calc { background:var(--bg-3); border:1px solid var(--line); border-radius:14px; padding:1.1rem 1.4rem; margin-top:1rem; font-family:var(--mono); font-size:clamp(.85rem,1.5vw,1.15rem); line-height:1.9; }
+.calc .hl { color:var(--danger); font-weight:700; }
+.calc .ok { color:var(--good); font-weight:700; }
+.calc .dim { color:var(--ink-soft); }
+
+/* ROC */
+.roc-wrap { display:flex; gap:1.4rem; align-items:center; flex-wrap:wrap; margin-top:1rem; }
+.roc-svg { flex:none; }
+.roc-legend { flex:1; min-width:22ch; }
+
+/* SVG-stage label overlay */
+.code-cap { display:inline-block; font-size:.72em; font-weight:800; letter-spacing:.05em; text-transform:uppercase; padding:.15rem .5rem; border-radius:6px; margin-bottom:.4rem; }
+.code-cap.bad { background:rgba(255,107,107,.15); color:var(--danger); }
+.code-cap.ok  { background:rgba(60,200,120,.15); color:var(--good); }
+
+.ev-block { background:var(--bg-3); border:1px solid var(--line); border-radius:12px; padding:.9rem 1.1rem; font-family:var(--mono); font-size:var(--fs-small); line-height:1.7; margin-top:.6rem; }
+.ev-block .ttl { color:var(--ink-soft); font-style:italic; }
+.ev-block .hl { color:var(--danger); font-weight:700; }
+.ev-block .ok { color:var(--good); font-weight:700; }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="fill" id="progress"></div></div>
+
+<div class="controls">
+  <a href="/teaching/information-security/" class="ui-btn" title="Back to course / Volver al curso" style="text-decoration:none">⌂</a>
+  <button class="ui-btn" id="langBtn" title="Español / English">ES</button>
+  <button class="ui-btn" id="themeBtn" title="Light / Dark">☀</button>
+</div>
+
+<main class="deck" id="deck">
+
+  <!-- ===================== A. ORIENTATION ===================== -->
+
+  <!-- S1 — Title -->
+  <section class="slide title-slide active" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>TC2007B · Semana 11"><span class="dot"></span>TC2007B · Week 11</span>
+      <h1 data-es="Detección de Intrusiones (IDS / IPS)">Intrusion Detection (IDS / IPS)</h1>
+      <div class="title-rule"></div>
+      <p class="lead" data-es="Prevenir no siempre es posible — por eso también hay que <em>detectar</em>. Y detectar bien es más difícil de lo que parece.">Prevention isn't always possible — so we must also <em>detect</em>. And detecting well is harder than it looks.</p>
+      <div class="title-meta">
+        <span class="pill" data-es="Profesor: Mahdi Zareei">Instructor: Mahdi Zareei</span>
+        <span class="pill" data-es="Anomalía · Firma · Honeypots · Falacia de tasa base">Anomaly · Signature · Honeypots · Base-rate fallacy</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- S2 — Objectives -->
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Qué veremos hoy"><span class="dot"></span>What we'll cover</span>
+      <h2 data-es="Objetivos de la clase">Lecture objectives</h2>
+      <div class="grid cols-2">
+        <div class="card accent-top"><span class="ico">🏰</span><h3 data-es="Defensa en profundidad">Defense in depth</h3><p data-es="Dónde encaja la detección entre prevenir y sobrevivir; arquitectura y supuestos de un IDS.">Where detection fits between prevent and survive; IDS architecture and assumptions.</p></div>
+        <div class="card teal-top"><span class="ico">🧭</span><h3 data-es="Enfoques de detección">Detection approaches</h3><p data-es="Anomalía vs. firma; basada en host vs. en red; reglas a mano vs. aprendizaje automático.">Anomaly vs. signature; host- vs. network-based; hand-coded vs. machine learning.</p></div>
+        <div class="card warn-top"><span class="ico">📊</span><h3 data-es="Métricas y la falacia de la tasa base">Metrics &amp; the base-rate fallacy</h3><p data-es="Verdaderos/falsos positivos, precisión, recall, curva ROC — y por qué un IDS «99 % exacto» ahoga al SOC en falsas alarmas.">True/false positives, precision, recall, ROC — and why a "99% accurate" IDS drowns the SOC in false alarms.</p></div>
+        <div class="card good-top"><span class="ico">🍯</span><h3 data-es="Honeypots, IPS y evasión">Honeypots, IPS &amp; evasion</h3><p data-es="Sistemas señuelo, prevención inline (IDPS), y cómo los atacantes evaden la detección.">Decoy systems, inline prevention (IDPS), and how attackers evade detection.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S3 — Defense in depth diagram -->
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El contexto: defensa en profundidad"><span class="dot"></span>The context: defense in depth</span>
+      <h2 data-es="Prevenir · Detectar · Sobrevivir">Prevent · Detect · Survive</h2>
+      <div class="did-row">
+        <div class="did-node" style="border-color:var(--danger)"><span class="d-ico">🧱</span><span class="d-title" data-es="Prevenir">Prevent</span><span class="d-sub" data-es="Firewalls, cifrado, autenticación fuerte — detener el ataque en la puerta.">Firewalls, encryption, strong auth — stop the attack at the door.</span></div>
+        <div class="did-arrow">➜</div>
+        <div class="did-node" style="border-color:var(--accent)"><span class="d-ico">👁️</span><span class="d-title" data-es="Detectar">Detect</span><span class="d-sub" data-es="IDS / IPS — asumimos que algo <em>pasará</em> la barrera y hay que verlo.">IDS / IPS — assume something <em>will</em> get past the barrier, and see it.</span></div>
+        <div class="did-arrow">➜</div>
+        <div class="did-node" style="border-color:var(--good)"><span class="d-ico">🛟</span><span class="d-title" data-es="Sobrevivir">Survive</span><span class="d-sub" data-es="Respuesta a incidentes, copias de seguridad, recuperación — limitar el daño.">Incident response, backups, recovery — limit the damage.</span></div>
+      </div>
+      <div class="callout note" style="margin-top:1.4rem"><span class="tag" data-es="Idea clave">Key idea</span><p data-es="La detección de intrusiones es la <strong>segunda línea</strong>: parte de la premisa de que la prevención nunca es perfecta. Si el firewall (Semana 10) es el muro, el IDS es el guardia que vigila <em>dentro</em>.">Intrusion detection is the <strong>second line</strong>: it assumes prevention is never perfect. If the firewall (Week 10) is the wall, the IDS is the guard watching <em>inside</em>.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== B. FOUNDATIONS ===================== -->
+
+  <!-- S4 — Section divider -->
+  <section class="slide section" data-section="Foundations" data-section-es="Fundamentos">
+    <div class="slide-inner">
+      <div class="num">01</div>
+      <h1 data-es="¿Qué es una intrusión y cómo se detecta?">What is an intrusion, and how do we detect it?</h1>
+      <p class="lead" data-es="Definiciones, ejemplos y los supuestos que hacen posible la detección.">Definitions, examples, and the assumptions that make detection possible.</p>
+    </div>
+  </section>
+
+  <!-- S5 — Definitions -->
+  <section class="slide" data-section="Foundations" data-section-es="Fundamentos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Definiciones"><span class="dot"></span>Definitions</span>
+      <h2 data-es="Intrusión de seguridad y detección de intrusiones">Security intrusion &amp; intrusion detection</h2>
+      <div class="definition">
+        <blockquote data-es="<strong>Intrusión de seguridad:</strong> acto no autorizado de eludir los mecanismos de seguridad de un sistema."><strong>Security intrusion:</strong> an unauthorized act of bypassing the security mechanisms of a system.</blockquote>
+      </div>
+      <div class="definition" style="margin-top:1rem">
+        <blockquote data-es="<strong>Detección de intrusiones:</strong> función de hardware o software que recopila y analiza información de varias áreas de una computadora o una red para identificar posibles intrusiones de seguridad."><strong>Intrusion detection:</strong> a hardware or software function that gathers and analyzes information from various areas within a computer or network to identify possible security intrusions.</blockquote>
+      </div>
+      <div class="callout discuss" style="margin-top:1rem"><span class="tag" data-es="Matiz">Nuance</span><p data-es="«Eludir los mecanismos» incluye el abuso de credenciales <em>legítimas</em>. Un IDS no solo busca código malicioso — busca <strong>comportamiento</strong> no autorizado, aunque venga de una cuenta válida.">"Bypassing mechanisms" includes abuse of <em>legitimate</em> credentials. An IDS doesn't only look for malicious code — it looks for unauthorized <strong>behavior</strong>, even from a valid account.</p></div>
+    </div>
+  </section>
+
+  <!-- S6 — Examples of intrusion -->
+  <section class="slide" data-section="Foundations" data-section-es="Fundamentos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>¿Qué cuenta como intrusión?"><span class="dot"></span>What counts as an intrusion?</span>
+      <h2 data-es="Ejemplos de intrusión">Examples of intrusion</h2>
+      <div class="grid cols-2">
+        <ul class="clean">
+          <li data-es="Compromiso remoto de <strong>root</strong> en un servidor de correo.">Remote root compromise of an e-mail server.</li>
+          <li data-es="<strong>Defacement</strong> (desfiguración) de un servidor web.">Web server defacement.</li>
+          <li data-es="Adivinar o crackear <strong>contraseñas</strong>.">Guessing / cracking passwords.</li>
+          <li data-es="Copiar bases de datos con números de <strong>tarjetas de crédito</strong>.">Copying databases of credit-card numbers.</li>
+          <li data-es="Ver datos sensibles <strong>sin autorización</strong>.">Viewing sensitive data without authorization.</li>
+        </ul>
+        <ul class="clean">
+          <li data-es="Ejecutar un <strong>sniffer</strong> de paquetes.">Running a packet sniffer.</li>
+          <li data-es="Distribuir software <strong>pirata</strong>.">Distributing pirated software.</li>
+          <li data-es="Usar un módem inseguro para entrar a la red interna.">Using an unsecured modem to reach the internal network.</li>
+          <li data-es="<strong>Suplantar</strong> a un directivo para obtener información.">Impersonating an executive to get information.</li>
+          <li data-es="Usar una <strong>estación de trabajo desatendida</strong>.">Using an unattended workstation.</li>
+        </ul>
+      </div>
+      <div class="callout note" style="margin-top:.6rem"><span class="tag" data-es="Observa">Notice</span><p data-es="Algunos son técnicos (root remoto, sniffer); otros son humanos (suplantar, estación desatendida). La detección debe abarcar <strong>red, host y comportamiento</strong>.">Some are technical (remote root, sniffer); others are human (impersonation, unattended workstation). Detection must span <strong>network, host, and behavior</strong>.</p></div>
+    </div>
+  </section>
+
+  <!-- S7 — IDS effectiveness -->
+  <section class="slide" data-section="Foundations" data-section-es="Fundamentos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>¿Contra qué es eficaz un IDS?"><span class="dot"></span>What is an IDS effective against?</span>
+      <h2 data-es="Eficacia frente a distintos tipos de ataque">Effectiveness against different attack types</h2>
+      <div class="grid cols-3">
+        <div class="card good-top"><span class="ico">✅</span><h3 data-es="Eficaz">Effective</h3><p data-es="Ataques <strong>conocidos y poco sofisticados</strong>: ruido de fondo de Internet, escaneos masivos, malware con firma.">Known, less-sophisticated attacks: Internet background noise, mass scans, signatured malware.</p></div>
+        <div class="card warn-top"><span class="ico">⚠️</span><h3 data-es="Parcial">Partial</h3><p data-es="Ataques <strong>sofisticados y dirigidos</strong>: detectables solo si dejan evidencia anómala observable.">Sophisticated, targeted attacks: only detectable if they leave observable anomalous evidence.</p></div>
+        <div class="card danger-top"><span class="ico">❌</span><h3 data-es="Poco eficaz">Not effective</h3><p data-es="Exploits <strong>zero-day</strong> nuevos: sin firma, sin historial — la detección por firmas no los ve.">New zero-day exploits: no signature, no history — signature detection is blind to them.</p></div>
+      </div>
+      <div class="callout discuss" style="margin-top:1rem"><span class="tag" data-es="Debate">Debate</span><p data-es="Si un IDS no atrapa los zero-day, ¿para qué sirve? Pista: la mayoría de las brechas reales <em>no</em> usan zero-days — reutilizan técnicas conocidas. Detectar lo conocido sigue siendo enorme.">If an IDS can't catch zero-days, what's the point? Hint: most real breaches <em>don't</em> use zero-days — they reuse known techniques. Catching the known still matters enormously.</p></div>
+    </div>
+  </section>
+
+  <!-- S8 — Defense in depth strategies -->
+  <section class="slide" data-section="Foundations" data-section-es="Fundamentos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El IDS no trabaja solo"><span class="dot"></span>The IDS doesn't work alone</span>
+      <h2 data-es="Estrategias de defensa en profundidad que acompañan al IDS">Defense-in-depth strategies that surround the IDS</h2>
+      <ul class="clean">
+        <li data-es="<strong>Cifrado</strong> de datos en reposo y en tránsito."><strong>Encryption</strong> of data at rest and in transit.</li>
+        <li data-es="<strong>Registros de auditoría</strong> detallados — la materia prima de la detección basada en host."><strong>Detailed audit trails</strong> — the raw material of host-based detection.</li>
+        <li data-es="Controles fuertes de <strong>autenticación y autorización</strong>.">Strong <strong>authentication and authorization</strong> controls.</li>
+        <li data-es="Gestión activa de los <strong>sistemas operativos</strong> (parches, endurecimiento).">Active management of <strong>operating systems</strong> (patching, hardening).</li>
+        <li data-es="Seguridad a nivel de <strong>aplicación</strong> (ver Semana 3)."><strong>Application</strong> security (see Week 3).</li>
+      </ul>
+      <div class="callout note" style="margin-top:.8rem"><span class="tag" data-es="Conexión">Connection</span><p data-es="El IDS <em>consume</em> estas otras capas: sin buenos registros de auditoría no hay detección basada en host; sin segmentación de red no hay un buen punto de observación.">The IDS <em>feeds on</em> these other layers: no good audit logs means no host-based detection; no network segmentation means no good vantage point.</p></div>
+    </div>
+  </section>
+
+  <!-- S9 — Elements & assumptions -->
+  <section class="slide" data-section="Foundations" data-section-es="Fundamentos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Los dos supuestos fundamentales"><span class="dot"></span>The two founding assumptions</span>
+      <h2 data-es="Elementos de la detección de intrusiones">Elements of intrusion detection</h2>
+      <div class="split">
+        <div class="card accent-top">
+          <h3 data-es="Supuesto 1">Assumption 1</h3>
+          <p data-es="Las actividades del sistema son <strong>observables</strong> — se pueden registrar paquetes, llamadas al sistema, accesos, sesiones.">System activities are <strong>observable</strong> — packets, system calls, accesses, and sessions can be recorded.</p>
+        </div>
+        <div class="card teal-top">
+          <h3 data-es="Supuesto 2">Assumption 2</h3>
+          <p data-es="Las actividades normales e intrusivas tienen <strong>evidencia distinta</strong> — de lo contrario serían indistinguibles y la detección sería imposible.">Normal and intrusive activities have <strong>distinct evidence</strong> — otherwise they'd be indistinguishable and detection would be impossible.</p>
+        </div>
+      </div>
+      <div class="callout discuss" style="margin-top:1.1rem"><span class="tag" data-es="¿Y si fallan?">What if they fail?</span><p data-es="Cuando el supuesto 2 se debilita — cuando un ataque «se ve» casi como tráfico normal — el IDS o lo pierde (falso negativo) o marca lo normal como ataque (falso positivo). Esa tensión recorre toda la clase.">When assumption 2 weakens — when an attack "looks" almost like normal traffic — the IDS either misses it (false negative) or flags the normal as an attack (false positive). That tension runs through the whole lecture.</p></div>
+    </div>
+  </section>
+
+  <!-- S10 — Components: algorithmic + architecture -->
+  <section class="slide" data-section="Foundations" data-section-es="Fundamentos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Dos perspectivas"><span class="dot"></span>Two perspectives</span>
+      <h2 data-es="Componentes de un sistema de detección de intrusiones">Components of an intrusion detection system</h2>
+      <div class="split">
+        <div class="card accent-top">
+          <h3 data-es="Perspectiva algorítmica">Algorithmic perspective</h3>
+          <ul class="clean" style="margin-top:.6rem;gap:.5rem">
+            <li data-es="<strong>Features (rasgos)</strong>: capturan la evidencia de la intrusión."><strong>Features</strong>: capture the evidence of intrusion.</li>
+            <li data-es="<strong>Models (modelos)</strong>: unen la evidencia para decidir."><strong>Models</strong>: piece the evidence together to decide.</li>
+          </ul>
+        </div>
+        <div class="card teal-top">
+          <h3 data-es="Perspectiva de arquitectura">System-architecture perspective</h3>
+          <ul class="clean" style="margin-top:.6rem;gap:.5rem">
+            <li data-es="<strong>Procesador de datos de auditoría</strong>"><strong>Audit data processor</strong></li>
+            <li data-es="<strong>Base de conocimiento</strong>"><strong>Knowledge base</strong></li>
+            <li data-es="<strong>Motor de decisión</strong>"><strong>Decision engine</strong></li>
+            <li data-es="<strong>Generación de alarmas</strong> y respuestas"><strong>Alarm generation</strong> and responses</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S11 — IDS components pipeline (recreated diagram) -->
+  <section class="slide" data-section="Foundations" data-section-es="Fundamentos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La tubería de un IDS"><span class="dot"></span>The IDS pipeline</span>
+      <h2 data-es="Cómo fluye la información dentro de un IDS">How information flows inside an IDS</h2>
+      <div class="ids-pipe">
+        <div class="ids-link" data-es="↧ Datos de red / sistema">↧ Network / system data</div>
+        <div class="ids-stage"><span class="ids-kb" style="visibility:hidden">—</span><div class="ids-box"><div class="ib-t" data-es="Preprocesador de datos">Data preprocessor</div><div class="ib-s" data-es="Normaliza la entrada cruda → registros de actividad">Normalizes raw input → activity records</div></div></div>
+        <div class="ids-down">↓</div>
+        <div class="ids-stage"><span class="ids-kb" data-es="Modelos de detección">Detection models</span><div class="ids-box"><div class="ib-t" data-es="Motor de detección">Detection engine</div><div class="ib-s" data-es="Aplica los modelos a los registros de actividad → alertas">Applies models to activity records → alerts</div></div></div>
+        <div class="ids-down">↓</div>
+        <div class="ids-stage"><span class="ids-kb" data-es="Tabla de decisión">Decision table</span><div class="ids-box"><div class="ib-t" data-es="Motor de decisión">Decision engine</div><div class="ib-s" data-es="Decide la acción → respuesta / informe / alarma">Decides the action → response / report / alarm</div></div></div>
+        <div class="ids-link" data-es="↧ Respuesta / informe">↧ Response / report</div>
+      </div>
+      <p class="figure-note" data-es="Las cápsulas a la izquierda (modelos de detección, tabla de decisión) son la <em>base de conocimiento</em> que alimenta cada motor.">The capsules on the left (detection models, decision table) are the <em>knowledge base</em> feeding each engine.</p>
+    </div>
+  </section>
+
+  <!-- ===================== C. APPROACHES ===================== -->
+
+  <!-- S12 — Section divider -->
+  <section class="slide section" data-section="Approaches" data-section-es="Enfoques">
+    <div class="slide-inner">
+      <div class="num">02</div>
+      <h1 data-es="Tres ejes de clasificación">Three axes of classification</h1>
+      <p class="lead" data-es="Modelado · Despliegue · Desarrollo y mantenimiento.">Modeling · Deployment · Development &amp; maintenance.</p>
+    </div>
+  </section>
+
+  <!-- S13 — Approaches overview -->
+  <section class="slide" data-section="Approaches" data-section-es="Enfoques">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Cómo clasificar un IDS"><span class="dot"></span>How to classify an IDS</span>
+      <h2 data-es="Enfoques de detección de intrusiones">Intrusion detection approaches</h2>
+      <div class="grid cols-3">
+        <div class="card accent-top"><span class="ico">🧪</span><h3 data-es="Modelado y análisis">Modeling &amp; analysis</h3><p data-es="<strong>Detección por mal uso</strong> (a.k.a. por firmas) vs. <strong>detección por anomalías</strong>."><strong>Misuse detection</strong> (a.k.a. signature-based) vs. <strong>anomaly detection</strong>.</p></div>
+        <div class="card teal-top"><span class="ico">📍</span><h3 data-es="Despliegue">Deployment</h3><p data-es="Basado en <strong>host</strong> (HIDS) vs. basado en <strong>red</strong> (NIDS).">Host-based (HIDS) vs. network-based (NIDS).</p></div>
+        <div class="card warn-top"><span class="ico">🛠️</span><h3 data-es="Desarrollo y mantenimiento">Development &amp; maintenance</h3><p data-es="Codificación a mano del <strong>«conocimiento experto»</strong> vs. <strong>aprendizaje</strong> a partir de datos.">Hand-coding of <strong>"expert knowledge"</strong> vs. <strong>learning</strong> from data.</p></div>
+      </div>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Nota">Note</span><p data-es="Estos ejes son <em>independientes</em>: un IDS de red puede usar firmas y reglas a mano (p. ej. Snort), o anomalías aprendidas; un IDS de host puede hacer lo mismo. Las herramientas reales mezclan ejes.">These axes are <em>independent</em>: a network IDS can use signatures and hand-coded rules (e.g. Snort), or learned anomalies; a host IDS can do either. Real tools mix the axes.</p></div>
+    </div>
+  </section>
+
+  <!-- S14 — Anomaly vs Misuse side by side -->
+  <section class="slide" data-section="Approaches" data-section-es="Enfoques">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Las dos filosofías centrales"><span class="dot"></span>The two core philosophies</span>
+      <h2 data-es="Detección por anomalías vs. por firmas">Anomaly vs. signature detection</h2>
+      <table class="compare">
+        <thead><tr><th data-es="Detección por anomalías">Anomaly detection</th><th data-es="Detección por mal uso / firmas">Misuse / signature detection</th></tr></thead>
+        <tbody>
+          <tr><td class="map-from" data-es="Modela lo <strong>normal</strong>; marca lo que se desvía.">Models the <strong>normal</strong>; flags what deviates.</td><td class="map-to" data-es="Modela lo <strong>malicioso</strong>; marca lo que coincide.">Models the <strong>malicious</strong>; flags what matches.</td></tr>
+          <tr><td class="map-from" data-es="Recopila el comportamiento de usuarios legítimos durante un tiempo; compara el comportamiento actual con ese perfil.">Collects legitimate-user behavior over time; compares current behavior to that profile.</td><td class="map-to" data-es="Usa patrones de datos maliciosos conocidos o reglas de ataque, comparados con el comportamiento actual.">Uses known malicious data patterns or attack rules, compared against current behavior.</td></tr>
+          <tr><td class="map-from" data-es="Puede detectar ataques <strong>nuevos</strong>… a costa de muchas falsas alarmas.">Can detect <strong>novel</strong> attacks… at the cost of many false alarms.</td><td class="map-to" data-es="Solo identifica ataques <strong>conocidos</strong> para los que tiene patrón o regla.">Only identifies <strong>known</strong> attacks for which it has a pattern or rule.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout discuss" style="margin-top:.9rem"><span class="tag" data-es="Analogía">Analogy</span><p data-es="Firmas = <strong>carteles de «se busca»</strong>: solo atrapan a criminales ya conocidos. Anomalías = la alerta de tu banco «este gasto es raro para ti»: detecta lo inusual, aunque a veces se equivoque con una compra legítima.">Signatures = <strong>"wanted posters"</strong>: they only catch already-known criminals. Anomaly = your bank's "this charge is unusual for you" alert: it flags the unusual, though it sometimes misfires on a legitimate purchase.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== D. ANOMALY DETECTION ===================== -->
+
+  <!-- S15 — Section divider -->
+  <section class="slide section" data-section="Anomaly Detection" data-section-es="Detección por Anomalías">
+    <div class="slide-inner">
+      <div class="num">03</div>
+      <h1 data-es="Detección por anomalías">Anomaly detection</h1>
+      <p class="lead" data-es="Aprender qué es «normal» — y desconfiar de todo lo demás.">Learn what "normal" is — and distrust everything else.</p>
+    </div>
+  </section>
+
+  <!-- S16 — Three classification approaches (recreated diagram) -->
+  <section class="slide" data-section="Anomaly Detection" data-section-es="Detección por Anomalías">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Tres familias de clasificación"><span class="dot"></span>Three classification families</span>
+      <h2 data-es="Cómo se modela «lo normal»">How "normal" is modeled</h2>
+      <div class="grid cols-3">
+        <div class="card accent-top"><h3 data-es="Estadística">Statistical</h3><p data-es="Analiza el comportamiento observado con los datos del sensor para construir un <strong>perfil estadístico</strong> de las métricas.">Analyzes observed behavior using captured sensor data to build a <strong>statistical profile</strong> of the metrics.</p></div>
+        <div class="card teal-top"><h3 data-es="Basada en conocimiento">Knowledge-based</h3><p data-es="Un <strong>sistema experto</strong> clasifica el comportamiento observado según un conjunto de reglas que modelan el comportamiento legítimo.">An <strong>expert system</strong> classifies observed behavior according to a set of rules that model legitimate behavior.</p></div>
+        <div class="card warn-top"><h3 data-es="Aprendizaje automático">Machine-learning</h3><p data-es="Determina <strong>automáticamente</strong> un modelo de clasificación a partir de los datos de entrenamiento, usando minería de datos.">Automatically determines a classification model from the training data using data-mining techniques.</p></div>
+      </div>
+      <div class="callout note" style="margin-top:1.1rem"><span class="tag" data-es="En común">In common</span><p data-es="Las tres aprenden de datos <em>legítimos</em> para juzgar lo nuevo. La diferencia está en <strong>quién</strong> define el modelo: la estadística, un experto humano, o el algoritmo.">All three learn from <em>legitimate</em> data to judge the new. The difference is <strong>who</strong> defines the model: statistics, a human expert, or the algorithm.</p></div>
+    </div>
+  </section>
+
+  <!-- S17 — Statistical approach pros/cons -->
+  <section class="slide" data-section="Anomaly Detection" data-section-es="Detección por Anomalías">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Enfoque estadístico"><span class="dot"></span>Statistical approach</span>
+      <h2 data-es="Perfiles estadísticos: simple pero limitado">Statistical profiles: simple but limited</h2>
+      <p data-es="Características: usa datos del sensor (modelos <strong>univariados</strong>); modelos <strong>multivariados</strong> que incorporan el momento y el orden de los eventos.">Characteristics: uses captured sensor data (<strong>univariate</strong> models); <strong>multivariate</strong> models incorporating the time and order of events.</p>
+      <div class="split" style="margin-top:1rem">
+        <div class="card good-top">
+          <h3 data-es="Ventajas">Advantages</h3>
+          <ul class="clean" style="margin-top:.5rem;gap:.4rem">
+            <li data-es="Relativa simplicidad.">Relative simplicity.</li>
+            <li data-es="Bajo costo de cómputo.">Low computation cost.</li>
+            <li data-es="No requiere supuestos previos sobre el comportamiento esperado.">No prior assumptions about expected behavior.</li>
+          </ul>
+        </div>
+        <div class="card danger-top">
+          <h3 data-es="Desventajas">Disadvantages</h3>
+          <ul class="clean" style="margin-top:.5rem;gap:.4rem">
+            <li data-es="Dificultad para elegir las métricas adecuadas.">Difficulty selecting suitable metrics.</li>
+            <li data-es="No todos los comportamientos pueden modelarse con estos métodos.">Not all behaviors can be modeled this way.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S18 — Knowledge-based pros/cons -->
+  <section class="slide" data-section="Anomaly Detection" data-section-es="Detección por Anomalías">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Enfoque basado en conocimiento"><span class="dot"></span>Knowledge-based approach</span>
+      <h2 data-es="Reglas expertas que caracterizan lo normal">Expert rules that characterize the normal</h2>
+      <p data-es="Clasifica los datos observados con un conjunto de <strong>reglas</strong> desarrolladas durante el entrenamiento para separar los datos en clases distintas.">Classifies observed data using a set of <strong>rules</strong> developed during training to characterize the data into distinct classes.</p>
+      <div class="split" style="margin-top:1rem">
+        <div class="card good-top">
+          <h3 data-es="Ventajas">Advantages</h3>
+          <ul class="clean" style="margin-top:.5rem;gap:.4rem">
+            <li data-es="Robusto.">Robust.</li>
+            <li data-es="Flexible.">Flexible.</li>
+          </ul>
+        </div>
+        <div class="card danger-top">
+          <h3 data-es="Desventajas">Disadvantages</h3>
+          <ul class="clean" style="margin-top:.5rem;gap:.4rem">
+            <li data-es="Dificultad y tiempo para extraer el conocimiento de los datos.">Difficulty and time required to develop knowledge from the data.</li>
+            <li data-es="Requiere la asistencia de <strong>expertos humanos</strong>.">Human experts must assist with the process.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S19 — Machine-learning pros/cons -->
+  <section class="slide" data-section="Anomaly Detection" data-section-es="Detección por Anomalías">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Enfoque de aprendizaje automático"><span class="dot"></span>Machine-learning approach</span>
+      <h2 data-es="Modelos aprendidos: potentes pero costosos">Learned models: powerful but costly</h2>
+      <p data-es="Usa técnicas de minería de datos para construir un modelo que clasifica los datos como <strong>normales o anómalos</strong>.">Uses data-mining techniques to develop a model that classifies data as <strong>normal or anomalous</strong>.</p>
+      <div class="split" style="margin-top:1rem">
+        <div class="card good-top">
+          <h3 data-es="Ventajas">Advantages</h3>
+          <ul class="clean" style="margin-top:.5rem;gap:.4rem">
+            <li data-es="Flexibilidad.">Flexibility.</li>
+            <li data-es="Adaptabilidad.">Adaptability.</li>
+            <li data-es="Capta interdependencias entre las métricas observadas.">Captures interdependencies between observed metrics.</li>
+          </ul>
+        </div>
+        <div class="card danger-top">
+          <h3 data-es="Desventajas">Disadvantages</h3>
+          <ul class="clean" style="margin-top:.5rem;gap:.4rem">
+            <li data-es="Depende de supuestos sobre el comportamiento aceptado.">Depends on assumptions about accepted behavior.</li>
+            <li data-es="<strong>Alta tasa de falsas alarmas</strong>."><strong>High false-alarm rate</strong>.</li>
+            <li data-es="Alto costo de recursos; mucho tiempo y cómputo.">High resource cost; significant time and computation.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="callout note" style="margin-top:.8rem"><span class="tag" data-es="Recuérdalo">Hold this thought</span><p data-es="«Alta tasa de falsas alarmas» suena como un detalle — pero es <strong>el</strong> problema operativo del IDS. Volveremos a ello con la falacia de la tasa base.">"High false-alarm rate" sounds like a footnote — but it is <strong>the</strong> operational problem of IDS. We'll return to it with the base-rate fallacy.</p></div>
+    </div>
+  </section>
+
+  <!-- S20 — ML techniques -->
+  <section class="slide" data-section="Anomaly Detection" data-section-es="Detección por Anomalías">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El menú de técnicas"><span class="dot"></span>The menu of techniques</span>
+      <h2 data-es="Técnicas de aprendizaje automático para detección">Machine-learning techniques for detection</h2>
+      <div class="grid cols-3">
+        <div class="card accent-top"><h3 data-es="Redes bayesianas">Bayesian networks</h3><p data-es="Codifican relaciones <em>probabilísticas</em> entre las métricas observadas.">Encode <em>probabilistic</em> relationships among observed metrics.</p></div>
+        <div class="card teal-top"><h3 data-es="Modelos de Markov">Markov models</h3><p data-es="Construyen un modelo con conjuntos de <em>estados</em> y transiciones.">Build a model with sets of <em>states</em> and transitions.</p></div>
+        <div class="card good-top"><h3 data-es="Redes neuronales">Neural networks</h3><p data-es="Simulan el cerebro con <em>neuronas</em> y sinapsis entre ellas.">Simulate the brain with <em>neurons</em> and synapses between them.</p></div>
+        <div class="card warn-top"><h3 data-es="Lógica difusa">Fuzzy logic</h3><p data-es="Razonamiento <em>aproximado</em> que tolera la incertidumbre.">Approximate reasoning that accommodates uncertainty.</p></div>
+        <div class="card violet-top"><h3 data-es="Algoritmos genéticos">Genetic algorithms</h3><p data-es="Inspirados en la biología evolutiva (herencia, mutación, selección) para crear reglas de clasificación.">Inspired by evolutionary biology (inheritance, mutation, selection) to evolve classification rules.</p></div>
+        <div class="card danger-top"><h3 data-es="Clustering y outliers">Clustering &amp; outliers</h3><p data-es="Agrupan los datos en clústeres; los puntos que no encajan en ninguno son <em>outliers</em> (anomalías).">Group data into clusters; points that fit none are <em>outliers</em> (anomalies).</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S21 — Anomaly detection limitation -->
+  <section class="slide" data-section="Anomaly Detection" data-section-es="Detección por Anomalías">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El talón de Aquiles"><span class="dot"></span>The Achilles' heel</span>
+      <h2 data-es="Limitaciones de la detección por anomalías">Limitations of anomaly detection</h2>
+      <div class="definition">
+        <blockquote data-es="Por lo general se entrenan solo con datos <strong>legítimos</strong>. Esto limita la eficacia de algunas de las técnicas.">They are generally trained on <strong>legitimate</strong> data only. This limits the effectiveness of some of the techniques.</blockquote>
+      </div>
+      <ul class="clean" style="margin-top:1rem">
+        <li data-es="Si «lo normal» cambia (nuevo software, nuevos hábitos), el modelo marca falsas alarmas hasta reentrenarse — <strong>concept drift</strong>.">If "normal" shifts (new software, new habits), the model raises false alarms until retrained — <strong>concept drift</strong>.</li>
+        <li data-es="Un atacante puede <strong>envenenar</strong> el entrenamiento: actuar «normal» mientras el sistema aprende, y así normalizar su ataque.">An attacker can <strong>poison</strong> the training: act "normal" while the system learns, normalizing their attack.</li>
+        <li data-es="Definir el umbral entre normal y anómalo es un compromiso directo entre falsos positivos y falsos negativos.">Setting the normal-vs-anomalous threshold is a direct trade-off between false positives and false negatives.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===================== E. SIGNATURE DETECTION ===================== -->
+
+  <!-- S22 — Section divider -->
+  <section class="slide section" data-section="Signature Detection" data-section-es="Detección por Firmas">
+    <div class="slide-inner">
+      <div class="num">04</div>
+      <h1 data-es="Detección por mal uso / firmas">Misuse / signature detection</h1>
+      <p class="lead" data-es="La otra mitad: buscar lo malo conocido.">The other half: hunt for the known bad.</p>
+    </div>
+  </section>
+
+  <!-- S23 — Misuse detection steps -->
+  <section class="slide" data-section="Signature Detection" data-section-es="Detección por Firmas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Tres pasos"><span class="dot"></span>Three steps</span>
+      <h2 data-es="Cómo detecta una intrusión la detección por firmas">How signature detection spots an intrusion</h2>
+      <div class="flow">
+        <div class="node breach"><span class="n-label accent" data-es="1 · Observar">1 · Observe</span><span class="n-sub" data-es="los eventos del sistema">events in the system</span></div>
+        <div class="arrow">→</div>
+        <div class="node attack"><span class="n-label" style="color:var(--violet)" data-es="2 · Aplicar">2 · Apply</span><span class="n-sub" data-es="un conjunto de patrones o reglas a los datos">a set of patterns or rules to the data</span></div>
+        <div class="arrow">→</div>
+        <div class="node good-node"><span class="n-label good" data-es="3 · Decidir">3 · Decide</span><span class="n-sub" data-es="si los datos son intrusivos o normales">whether the data is intrusive or normal</span></div>
+      </div>
+      <div class="callout note" style="margin-top:1.2rem"><span class="tag" data-es="Herramientas reales">Real tools</span><p data-es="<strong>Snort</strong> y <strong>Suricata</strong> son NIDS por firmas: cada regla describe un patrón de paquete malicioso (la versión moderna de los «carteles de se busca»). <strong>Zeek</strong> (antes Bro) va más allá: registra y analiza el comportamiento de la red para detección flexible."><strong>Snort</strong> and <strong>Suricata</strong> are signature NIDS: each rule describes a malicious packet pattern (the modern "wanted poster"). <strong>Zeek</strong> (formerly Bro) goes further: it logs and analyzes network behavior for flexible detection.</p></div>
+    </div>
+  </section>
+
+  <!-- S24 — Signature example + pros/cons -->
+  <section class="slide" data-section="Signature Detection" data-section-es="Detección por Firmas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Una firma de Snort, y el balance"><span class="dot"></span>A Snort signature, and the trade-off</span>
+      <h2 data-es="Cómo se ve una firma — y qué cuesta">What a signature looks like — and what it costs</h2>
+      <div class="ev-block">
+        <span class="ttl"># Snort rule — alert on a known SQLi probe / regla Snort</span><br>
+        <span class="ok">alert</span> tcp any any -&gt; $HOME_NET 80 ( <span class="hl">content:"' OR '1'='1"</span>; msg:"SQLi attempt"; sid:1000001; )
+      </div>
+      <div class="split" style="margin-top:1rem">
+        <div class="card good-top">
+          <h3 data-es="Ventajas">Advantages</h3>
+          <ul class="clean" style="margin-top:.5rem;gap:.4rem">
+            <li data-es="Bajo costo de tiempo y recursos.">Low cost in time and resources.</li>
+            <li data-es="Amplia aceptación y madurez.">Wide acceptance and maturity.</li>
+            <li data-es="Pocas falsas alarmas: si coincide la firma, casi seguro es ataque.">Few false alarms: a signature match is almost certainly an attack.</li>
+          </ul>
+        </div>
+        <div class="card danger-top">
+          <h3 data-es="Desventajas">Disadvantages</h3>
+          <ul class="clean" style="margin-top:.5rem;gap:.4rem">
+            <li data-es="Gran esfuerzo para identificar y revisar malware nuevo y crear firmas.">Significant effort to identify and review new malware and create signatures.</li>
+            <li data-es="<strong>Incapaz de detectar ataques zero-day</strong> — sin firma, no hay detección."><strong>Cannot detect zero-day attacks</strong> — no signature, no detection.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== F. NETWORK & HOST IDS ===================== -->
+
+  <!-- S25 — Section divider -->
+  <section class="slide section" data-section="Network &amp; Host IDS" data-section-es="IDS de Red y de Host">
+    <div class="slide-inner">
+      <div class="num">05</div>
+      <h1 data-es="Vigilar redes y hosts">Monitoring networks and hosts</h1>
+      <p class="lead" data-es="Dónde se coloca el sensor — y qué puede hacer.">Where the sensor sits — and what it can do.</p>
+    </div>
+  </section>
+
+  <!-- S26 — Passive monitoring / NIDS vs HIDS -->
+  <section class="slide" data-section="Network &amp; Host IDS" data-section-es="IDS de Red y de Host">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Vigilancia pasiva"><span class="dot"></span>Passive monitoring</span>
+      <h2 data-es="Un IDS, por defecto, solo observa">An IDS, by default, only observes</h2>
+      <ul class="clean">
+        <li data-es="Un IDS realiza <strong>monitoreo pasivo</strong>: registra y analiza datos de la actividad del sistema y de la red.">An IDS performs <strong>passive monitoring</strong>: it records and analyzes data about system and network activity.</li>
+        <li data-es="Solo si el IDS emite una alerta <em>y</em> la política de respuesta dicta intervención se ven <strong>afectadas las actividades</strong>.">Only if the IDS raises an alert <em>and</em> the response policy dictates intervention are <strong>activities affected</strong>.</li>
+      </ul>
+      <div class="split" style="margin-top:1rem">
+        <div class="card accent-top"><h3>NIDS</h3><p data-es="Basado en <strong>red</strong>: vigila el tráfico de un segmento. Ve a muchos hosts a la vez, pero no el interior cifrado ni lo que ocurre en el host.">Network-based: watches traffic on a segment. Sees many hosts at once, but not encrypted payloads or what happens on the host itself.</p></div>
+        <div class="card teal-top"><h3>HIDS</h3><p data-es="Basado en <strong>host</strong>: vigila registros, llamadas al sistema y archivos de <em>una</em> máquina. Ve la actividad descifrada, pero solo de ese host.">Host-based: watches logs, system calls, and files on <em>one</em> machine. Sees decrypted activity, but only for that host.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S27 — Passive vs inline sensors (recreated diagram) -->
+  <section class="slide" data-section="Network &amp; Host IDS" data-section-es="IDS de Red y de Host">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Dos formas de conectar el sensor"><span class="dot"></span>Two ways to wire the sensor</span>
+      <h2 data-es="Sensores pasivos vs. inline">Passive vs. inline sensors</h2>
+      <div class="wire"><span class="wlabel" data-es="Tráfico de red →">Network traffic →</span></div>
+      <div class="sensor-grid">
+        <div class="sbox" style="border-color:var(--good)"><div class="s-t" data-es="Sensor pasivo">Passive sensor</div><div class="s-s" data-es="Recibe una <em>copia</em> (puerto espejo / TAP). El tráfico real NO pasa por él.">Gets a <em>copy</em> (mirror port / TAP). Real traffic does NOT pass through it.</div></div>
+        <div class="sbox" style="border-color:var(--danger)"><div class="s-t" data-es="Sensor inline">Inline sensor</div><div class="s-s" data-es="El tráfico monitoreado <em>debe</em> pasar a través de él; puede <strong>bloquear</strong> un ataque al detectarlo.">Monitored traffic <em>must</em> pass through it; it can <strong>block</strong> an attack on detection.</div></div>
+      </div>
+      <div class="grid cols-2" style="margin-top:1.1rem">
+        <div class="card good-top" style="padding:.9rem 1.1rem"><p data-es="<strong>Pasivo:</strong> más eficiente, sin punto único de fallo en el camino del tráfico. Interfaz de monitoreo sin IP, en modo promiscuo. Pero solo <em>detecta</em>."><strong>Passive:</strong> more efficient, no single point of failure in the traffic path. Monitoring interface has no IP, runs in promiscuous mode. But it only <em>detects</em>.</p></div>
+        <div class="card danger-top" style="padding:.9rem 1.1rem"><p data-es="<strong>Inline:</strong> hace detección <em>y</em> prevención. Se logra combinando la lógica NIDS con un firewall o switch LAN (sin hardware extra), o con un sensor NIDS inline independiente."><strong>Inline:</strong> does detection <em>and</em> prevention. Achieved by combining NIDS logic with a firewall or LAN switch (no extra hardware), or with a stand-alone inline NIDS sensor.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S28 — Firewall vs network IDS -->
+  <section class="slide" data-section="Network &amp; Host IDS" data-section-es="IDS de Red y de Host">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Conexión con la Semana 10"><span class="dot"></span>Link to Week 10</span>
+      <h2 data-es="Firewall vs. IDS de red">Firewall vs. network IDS</h2>
+      <table class="compare">
+        <thead><tr><th data-es="Firewall">Firewall</th><th data-es="IDS de red">Network IDS</th></tr></thead>
+        <tbody>
+          <tr><td class="map-from" data-es="Filtrado <strong>activo</strong>: decide qué pasa.">Active <strong>filtering</strong>: decides what passes.</td><td class="map-to" data-es="Monitoreo <strong>pasivo</strong>: observa y alerta.">Passive <strong>monitoring</strong>: observes and alerts.</td></tr>
+          <tr><td class="map-from" data-es="<strong>Fail-close</strong>: si falla, por defecto bloquea (prioriza seguridad)."><strong>Fail-close</strong>: if it fails, default is to block (prioritizes security).</td><td class="map-to" data-es="<strong>Fail-open</strong>: si falla, el tráfico sigue (prioriza disponibilidad)."><strong>Fail-open</strong>: if it fails, traffic still flows (prioritizes availability).</td></tr>
+          <tr><td class="map-from" data-es="Decide por reglas de política (puertos, IPs, estado).">Decides by policy rules (ports, IPs, state).</td><td class="map-to" data-es="Decide por análisis de contenido y comportamiento.">Decides by content and behavior analysis.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout discuss" style="margin-top:1rem"><span class="tag" data-es="Debate">Debate</span><p data-es="El IPS (más adelante) se coloca <em>inline</em> como un firewall, pero <em>decide</em> como un IDS. ¿Debería entonces ser fail-close o fail-open? ¿Qué priorizas: seguridad o disponibilidad?">The IPS (coming up) sits <em>inline</em> like a firewall but <em>decides</em> like an IDS. Should it then fail-close or fail-open? What do you prioritize: security or availability?</p></div>
+    </div>
+  </section>
+
+  <!-- S29 — NIDS deployment (recreated topology) -->
+  <section class="slide" data-section="Network &amp; Host IDS" data-section-es="IDS de Red y de Host">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>¿Dónde colocar los sensores?"><span class="dot"></span>Where do the sensors go?</span>
+      <h2 data-es="Despliegue de sensores NIDS">NIDS sensor deployment</h2>
+      <div class="topo">
+        <div class="tnode net"><span class="tn-ico">🖥️</span><span data-es="Servidores internos">Internal servers</span></div>
+        <span class="tarrow">—🔍—</span>
+        <div class="tnode fw"><span class="tn-ico">🔥</span><span data-es="Firewall interno">Internal FW</span></div>
+        <span class="tarrow">—🔍—</span>
+        <div class="tnode net"><span class="tn-ico">🌐</span><span data-es="Red de servicio (DMZ)">Service net (DMZ)</span></div>
+        <span class="tarrow">—🔍—</span>
+        <div class="tnode fw"><span class="tn-ico">🔥</span><span data-es="Firewall externo">External FW</span></div>
+        <span class="tarrow">—🔍—</span>
+        <div class="tnode"><span class="tn-ico">☁️</span><span data-es="Internet">Internet</span></div>
+      </div>
+      <p class="figure-note" style="text-align:center" data-es="🔍 = sensor NIDS. Se colocan en los puntos de estrechamiento donde el tráfico cruza límites de confianza.">🔍 = NIDS sensor. They sit at choke points where traffic crosses trust boundaries.</p>
+      <div class="grid cols-3" style="margin-top:.6rem">
+        <div class="card accent-top" style="padding:.8rem 1rem"><p data-es="<strong>Fuera del firewall externo:</strong> ve <em>todo</em> el ataque entrante — útil para medir amenazas, pero con muchísimo ruido."><strong>Outside the external firewall:</strong> sees <em>all</em> inbound attacks — good for threat measurement, but very noisy.</p></div>
+        <div class="card teal-top" style="padding:.8rem 1rem"><p data-es="<strong>En la DMZ:</strong> vigila los servicios públicos (web, correo, DNS) — los más expuestos."><strong>In the DMZ:</strong> watches public-facing services (web, mail, DNS) — the most exposed.</p></div>
+        <div class="card good-top" style="padding:.8rem 1rem"><p data-es="<strong>Dentro, junto a servidores y workstations:</strong> detecta lo que ya cruzó el perímetro y el movimiento lateral."><strong>Inside, near servers and workstations:</strong> catches what crossed the perimeter, and lateral movement.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== G. METRICS & BASE-RATE FALLACY ===================== -->
+
+  <!-- S30 — Section divider -->
+  <section class="slide section" data-section="Metrics" data-section-es="Métricas">
+    <div class="slide-inner">
+      <div class="num">06</div>
+      <h1 data-es="¿Qué tan «bueno» es un IDS?">How "good" is an IDS, really?</h1>
+      <p class="lead" data-es="Métricas de rendimiento — y la trampa que arruina a muchos IDS.">Performance metrics — and the trap that ruins many IDS.</p>
+    </div>
+  </section>
+
+  <!-- S31 — Confusion matrix -->
+  <section class="slide" data-section="Metrics" data-section-es="Métricas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Las cuatro casillas"><span class="dot"></span>The four cells</span>
+      <h2 data-es="Matriz de confusión: verdaderos y falsos, positivos y negativos">Confusion matrix: true/false, positive/negative</h2>
+      <table class="cm">
+        <thead>
+          <tr><th></th><th data-es="Realidad: ataque">Reality: attack</th><th data-es="Realidad: normal">Reality: normal</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="axis" data-es="IDS dice: alarma">IDS says: alarm</td>
+            <td class="tp" data-es="Verdadero positivo (TP)&#10;¡ataque detectado!">True positive (TP)<br><span style="font-weight:400;color:var(--ink-soft)" data-es="ataque detectado">attack caught</span></td>
+            <td class="fp" data-es="Falso positivo (FP)&#10;falsa alarma">False positive (FP)<br><span style="font-weight:400;color:var(--ink-soft)" data-es="falsa alarma">false alarm</span></td>
+          </tr>
+          <tr>
+            <td class="axis" data-es="IDS dice: nada">IDS says: nothing</td>
+            <td class="fn" data-es="Falso negativo (FN)&#10;¡ataque perdido!">False negative (FN)<br><span style="font-weight:400;color:var(--ink-soft)" data-es="ataque perdido">attack missed</span></td>
+            <td class="tn" data-es="Verdadero negativo (TN)&#10;correcto">True negative (TN)<br><span style="font-weight:400;color:var(--ink-soft)" data-es="silencio correcto">correct silence</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout discuss" style="margin-top:1rem"><span class="tag" data-es="Debate">Debate</span><p data-es="¿Qué es peor para un SOC: un <strong>falso negativo</strong> (perder un ataque) o <strong>10 000 falsos positivos</strong> (ahogarse en alarmas)? No hay respuesta única — depende del costo de cada error.">Which is worse for a SOC: a <strong>false negative</strong> (missing an attack) or <strong>10,000 false positives</strong> (drowning in alarms)? There's no single answer — it depends on the cost of each error.</p></div>
+    </div>
+  </section>
+
+  <!-- S32 — Derived metrics -->
+  <section class="slide" data-section="Metrics" data-section-es="Métricas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>De las casillas a las métricas"><span class="dot"></span>From cells to metrics</span>
+      <h2 data-es="Las métricas que de verdad importan">The metrics that actually matter</h2>
+      <div class="formula">
+        <div class="fchip"><span class="fn-name" data-es="Recall / Tasa de detección">Recall / detection rate</span><span class="fn-eq">TP / (TP + FN)</span></div>
+        <div class="fchip"><span class="fn-name" data-es="Precisión">Precision</span><span class="fn-eq">TP / (TP + FP)</span></div>
+        <div class="fchip"><span class="fn-name" data-es="Tasa de falsas alarmas">False-alarm rate</span><span class="fn-eq">FP / (FP + TN)</span></div>
+      </div>
+      <ul class="clean" style="margin-top:1rem">
+        <li data-es="<strong>Recall (detección):</strong> de todos los ataques reales, ¿cuántos atrapé? Bajo recall = se me escapan ataques."><strong>Recall (detection rate):</strong> of all real attacks, how many did I catch? Low recall = attacks slip through.</li>
+        <li data-es="<strong>Precisión:</strong> de todas mis alarmas, ¿cuántas eran ataques reales? Baja precisión = el analista pierde el tiempo."><strong>Precision:</strong> of all my alarms, how many were real attacks? Low precision = the analyst wastes time.</li>
+        <li data-es="<strong>Accuracy</strong> (exactitud global) engaña cuando una clase es rarísima — justo el caso de las intrusiones. Por eso enseguida viene la falacia de la tasa base."><strong>Accuracy</strong> (overall) is misleading when one class is very rare — exactly the case for intrusions. Hence the base-rate fallacy, next.</li>
+      </ul>
+      <div class="callout note" style="margin-top:.6rem"><span class="tag" data-es="Tensión central">Central tension</span><p data-es="Bajar el umbral sube el recall pero baja la precisión (más falsas alarmas). Subirlo hace lo contrario. <strong>No puedes maximizar ambos</strong>.">Lowering the threshold raises recall but lowers precision (more false alarms). Raising it does the reverse. <strong>You cannot maximize both</strong>.</p></div>
+    </div>
+  </section>
+
+  <!-- S33 — ROC curve (pure-shape SVG + HTML overlay) -->
+  <section class="slide" data-section="Metrics" data-section-es="Métricas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La curva ROC"><span class="dot"></span>The ROC curve</span>
+      <h2 data-es="ROC: el compromiso, dibujado">ROC: the trade-off, visualized</h2>
+      <div class="roc-wrap">
+        <div class="roc-svg">
+          <svg width="300" height="300" viewBox="0 0 300 300" role="img" aria-label="ROC curve">
+            <!-- axes -->
+            <line x1="40" y1="260" x2="280" y2="260" stroke="currentColor" stroke-width="2"/>
+            <line x1="40" y1="260" x2="40" y2="20" stroke="currentColor" stroke-width="2"/>
+            <!-- diagonal (random) -->
+            <line x1="40" y1="260" x2="280" y2="20" stroke="#888" stroke-width="2" stroke-dasharray="6 6"/>
+            <!-- ROC curve: good classifier bows toward top-left -->
+            <path d="M40,260 C70,120 150,55 280,20" fill="none" stroke="#4ea1ff" stroke-width="3.5"/>
+            <!-- operating point -->
+            <circle cx="120" cy="95" r="6" fill="#ff6b6b"/>
+          </svg>
+        </div>
+        <div class="roc-legend">
+          <ul class="clean">
+            <li data-es="Eje X: <strong>tasa de falsos positivos</strong> (FP / negativos).">X-axis: <strong>false-positive rate</strong> (FP / negatives).</li>
+            <li data-es="Eje Y: <strong>tasa de verdaderos positivos</strong> = recall.">Y-axis: <strong>true-positive rate</strong> = recall.</li>
+            <li data-es="La <span style='color:#888'>diagonal punteada</span> = adivinar al azar.">The <span style="color:#888">dashed diagonal</span> = random guessing.</li>
+            <li data-es="Cuanto más se arquea la <span style='color:#4ea1ff'>curva azul</span> hacia la esquina superior izquierda, mejor el detector (AUC → 1).">The more the <span style="color:#4ea1ff">blue curve</span> bows to the top-left, the better the detector (AUC → 1).</li>
+            <li data-es="El <span style='color:#ff6b6b'>punto rojo</span> es un <em>punto de operación</em>: el umbral elegido. Moverlo recorre la curva — siempre un trueque entre detección y falsas alarmas.">The <span style="color:#ff6b6b">red dot</span> is an <em>operating point</em>: the chosen threshold. Moving it slides along the curve — always trading detection for false alarms.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S34 — Base-rate fallacy: setup -->
+  <section class="slide" data-section="Metrics" data-section-es="Métricas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La trampa estadística"><span class="dot"></span>The statistical trap</span>
+      <h2 data-es="La falacia de la tasa base">The base-rate fallacy</h2>
+      <div class="definition">
+        <blockquote data-es="Cuando los ataques son <strong>rarísimos</strong>, incluso un IDS muy preciso produce abrumadoramente más <em>falsas</em> alarmas que verdaderas — porque hay muchísimo más tráfico normal que ataques.">When attacks are <strong>extremely rare</strong>, even a very accurate IDS produces overwhelmingly more <em>false</em> alarms than true ones — because there is vastly more normal traffic than attacks.</blockquote>
+      </div>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Intuición médica">Medical intuition</span><p data-es="Una prueba para una enfermedad rara con 99 % de exactitud: si das positivo, lo más probable es que estés <em>sano</em>. ¿Por qué? Porque los sanos son tantísimos que sus pocos falsos positivos superan a los pocos enfermos reales. El IDS sufre exactamente lo mismo.">A test for a rare disease with 99% accuracy: if you test positive, you're most likely <em>healthy</em>. Why? Because healthy people are so numerous that their few false positives outnumber the few truly sick. The IDS suffers exactly the same.</p></div>
+    </div>
+  </section>
+
+  <!-- S35 — Base-rate fallacy: worked calculation (fragments) -->
+  <section class="slide" data-section="Metrics" data-section-es="Métricas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Hagamos los números"><span class="dot"></span>Let's run the numbers</span>
+      <h2 data-es="Un ejemplo concreto, línea por línea">A concrete example, line by line</h2>
+      <div class="calc">
+        <span class="dim" data-es="// 1 millón de sesiones/día; solo 100 son ataques (0.01 %)"># 1,000,000 sessions/day; only 100 are attacks (0.01%)</span><br>
+        <span class="dim" data-es="// IDS: 99 % de detección, 1 % de falsas alarmas"># IDS: 99% detection rate, 1% false-alarm rate</span><br><br>
+        <span class="fragment" data-es="Verdaderos positivos = 99 % × 100 = <span class='ok'>99 ataques atrapados</span>">True positives = 99% × 100 = <span class="ok">99 attacks caught</span></span><br>
+        <span class="fragment" data-es="Falsos positivos = 1 % × 999 900 = <span class='hl'>9 999 falsas alarmas</span>">False positives = 1% × 999,900 = <span class="hl">9,999 false alarms</span></span><br><br>
+        <span class="fragment" data-es="Precisión = 99 / (99 + 9 999) = <span class='hl'>≈ 0.98 % ⟵ ¡!</span>">Precision = 99 / (99 + 9,999) = <span class="hl">≈ 0.98% ⟵ !!</span></span>
+      </div>
+      <div class="reveal-answer fragment" style="margin-top:1rem">
+        <span class="ra-tag" data-es="La lección">The lesson</span>
+        <p data-es="De cada 100 alarmas, <strong>solo ~1 es real</strong>. El analista descarta 99 falsas por cada ataque verdadero. Un IDS «99 % exacto» puede ser <em>operativamente inútil</em> si genera más ruido del que un equipo humano puede revisar. Por eso la baja tasa de falsas alarmas importa más que la exactitud bruta.">Out of every 100 alarms, <strong>only ~1 is real</strong>. The analyst sifts 99 false alarms for every true attack. A "99% accurate" IDS can be <em>operationally useless</em> if it generates more noise than a human team can triage. This is why a low false-alarm rate matters more than raw accuracy.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S36 — Connect to ML / modern SOC -->
+  <section class="slide" data-section="Metrics" data-section-es="Métricas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Por qué esto sigue doliendo en 2025"><span class="dot"></span>Why this still hurts in 2025</span>
+      <h2 data-es="IA, anomalías y el problema que no desaparece">AI, anomalies, and the problem that won't die</h2>
+      <ul class="clean">
+        <li data-es="La detección por <strong>ML/IA</strong> ya es estándar — pero la <em>detección por anomalías</em> sigue chocando con la falacia de la tasa base: muchas alarmas, pocas reales."><strong>ML/AI</strong> detection is now mainstream — but <em>anomaly detection</em> still collides with the base-rate fallacy: many alarms, few real.</li>
+        <li data-es="Por eso «alta tasa de falsas alarmas» (diapositiva de ML) es <strong>el</strong> dolor operativo central, no un detalle.">This is why "high false-alarm rate" (the ML slide) is <strong>the</strong> central operational pain, not a footnote.</li>
+        <li data-es="Los detectores de ML también son vulnerables a la <strong>evasión adversaria</strong>: entradas diseñadas para que el modelo las clasifique como normales.">ML detectors are also vulnerable to <strong>adversarial evasion</strong>: inputs crafted so the model labels them as normal.</li>
+      </ul>
+      <div class="callout note" style="margin-top:.8rem"><span class="tag" data-es="El SOC moderno">The modern SOC</span><p data-es="Un <strong>SIEM</strong> (Splunk, Elastic, Microsoft Sentinel) agrega y <em>correlaciona</em> los registros de IDS y de host para reducir el ruido; <strong>SOAR</strong> automatiza la respuesta; <strong>EDR/XDR</strong> extiende la detección al endpoint y <strong>NDR</strong> a la red. El IDS es una <em>fuente</em> dentro de este ecosistema."><strong>SIEM</strong> (Splunk, Elastic, Microsoft Sentinel) aggregates and <em>correlates</em> IDS and host logs to cut noise; <strong>SOAR</strong> automates response; <strong>EDR/XDR</strong> extends detection to the endpoint and <strong>NDR</strong> to the network. The IDS is one <em>feed</em> within this ecosystem.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== H. EVASION ===================== -->
+
+  <!-- S37 — Section divider -->
+  <section class="slide section" data-section="Evading the IDS" data-section-es="Evadir el IDS">
+    <div class="slide-inner">
+      <div class="num">07</div>
+      <h1 data-es="Cómo se engaña a un IDS">How attackers fool an IDS</h1>
+      <p class="lead" data-es="Inserción, evasión y denegación de servicio contra el detector.">Insertion, evasion, and denial of service against the detector.</p>
+    </div>
+  </section>
+
+  <!-- S38 — Insertion & Evasion (Ptacek & Newsham) -->
+  <section class="slide" data-section="Evading the IDS" data-section-es="Evadir el IDS">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Ptacek &amp; Newsham, 1998"><span class="dot"></span>Ptacek &amp; Newsham, 1998</span>
+      <h2 data-es="Ataques de inserción y de evasión">Insertion and evasion attacks</h2>
+      <div class="split">
+        <div class="card warn-top">
+          <h3 data-es="Inserción">Insertion</h3>
+          <p data-es="El IDS <strong>acepta</strong> un paquete que el host final <strong>rechazará</strong>. El atacante «inserta» basura que solo ve el IDS, ensuciando su reconstrucción del flujo y rompiendo la coincidencia de firmas.">The IDS <strong>accepts</strong> a packet the end host will <strong>reject</strong>. The attacker "inserts" junk only the IDS sees, polluting its view of the stream and breaking signature matching.</p>
+          <div class="ev-block">
+            <span class="ttl"># attacker sends:</span><br>
+            a <span class="hl">X</span> t <span class="hl">X</span> t a c k<br>
+            <span class="ttl"># IDS sees "aXtXtack" — no match</span><br>
+            <span class="ttl"># host drops the X's → "attack"</span>
+          </div>
+        </div>
+        <div class="card violet-top">
+          <h3 data-es="Evasión">Evasion</h3>
+          <p data-es="Lo opuesto: el host final <strong>acepta</strong> un paquete que el IDS <strong>descarta</strong>. Parte del ataque «pasa por debajo del radar» del IDS pero llega íntegro a la víctima.">The opposite: the end host <strong>accepts</strong> a packet the IDS <strong>discards</strong>. Part of the attack slips "under the radar" of the IDS but reaches the victim intact.</p>
+          <div class="ev-block">
+            <span class="ttl"># IDS drops a fragment it thinks invalid</span><br>
+            a t t <span class="ok">[seen by host only]</span> a c k<br>
+            <span class="ttl"># IDS sees "att...ack"? → no match</span><br>
+            <span class="ttl"># host reassembles → "attack"</span>
+          </div>
+        </div>
+      </div>
+      <div class="callout note" style="margin-top:.8rem"><span class="tag" data-es="Raíz del problema">Root cause</span><p data-es="El IDS y el host pueden <strong>interpretar de forma diferente</strong> los mismos bytes (TTL, fragmentación IP, checksums, reensamblado TCP). La defensa: <em>normalización de tráfico</em> — que el IDS vea exactamente lo que verá el host.">The IDS and host can <strong>interpret the same bytes differently</strong> (TTL, IP fragmentation, checksums, TCP reassembly). The defense: <em>traffic normalization</em> — make the IDS see exactly what the host will see.</p></div>
+    </div>
+  </section>
+
+  <!-- S39 — DoS against the IDS -->
+  <section class="slide" data-section="Evading the IDS" data-section-es="Evadir el IDS">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Tercer vector: agotar al detector"><span class="dot"></span>Third vector: exhaust the detector</span>
+      <h2 data-es="Denegación de servicio contra el IDS">Denial of service against the IDS</h2>
+      <ul class="clean">
+        <li data-es="<strong>Sobrecarga:</strong> inundar al IDS con tráfico para que no procese todo; si es pasivo y <em>fail-open</em>, el ataque real pasa mientras está saturado."><strong>Overload:</strong> flood the IDS so it can't process everything; if it's passive and <em>fail-open</em>, the real attack passes while it's saturated.</li>
+        <li data-es="<strong>Agotamiento de estado:</strong> abrir millones de conexiones para llenar las tablas de reensamblado/estado del sensor."><strong>State exhaustion:</strong> open millions of connections to fill the sensor's reassembly/state tables.</li>
+        <li data-es="<strong>Tormenta de alarmas:</strong> disparar miles de falsos positivos a propósito para esconder el ataque real entre el ruido — la falacia de la tasa base, <em>como arma</em>."><strong>Alarm storm:</strong> deliberately trigger thousands of false positives to hide the real attack in the noise — the base-rate fallacy <em>weaponized</em>.</li>
+      </ul>
+      <div class="callout discuss" style="margin-top:1rem"><span class="tag" data-es="Conexión Semana 9">Link to Week 9</span><p data-es="Mapear las detecciones a <strong>MITRE ATT&amp;CK</strong> ayuda a priorizar: en vez de ahogarse en alarmas sueltas, el analista pregunta «¿qué <em>técnica</em> del adversario es esta?» y correlaciona los pasos del ataque (recordando el malware de la Semana 9).">Mapping detections to <strong>MITRE ATT&amp;CK</strong> helps prioritize: instead of drowning in isolated alarms, the analyst asks "which adversary <em>technique</em> is this?" and correlates attack stages (recall the malware of Week 9).</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== I. HONEYPOTS ===================== -->
+
+  <!-- S40 — Section divider -->
+  <section class="slide section" data-section="Honeypots" data-section-es="Honeypots">
+    <div class="slide-inner">
+      <div class="num">08</div>
+      <h1 data-es="Honeypots">Honeypots</h1>
+      <p class="lead" data-es="No esperes al atacante — invítalo a una trampa.">Don't wait for the attacker — lure them into a trap.</p>
+    </div>
+  </section>
+
+  <!-- S41 — Honeypot purpose -->
+  <section class="slide" data-section="Honeypots" data-section-es="Honeypots">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El señuelo"><span class="dot"></span>The decoy</span>
+      <h2 data-es="¿Qué es un honeypot y para qué sirve?">What is a honeypot, and what is it for?</h2>
+      <div class="definition">
+        <blockquote data-es="Los honeypots son sistemas <strong>señuelo</strong> diseñados para atraer a los atacantes lejos de los sistemas críticos.">Honeypots are <strong>decoy</strong> systems designed to lure attackers away from critical systems.</blockquote>
+      </div>
+      <div class="grid cols-3" style="margin-top:1.1rem">
+        <div class="card accent-top"><span class="ico">🪤</span><h3 data-es="Desviar">Divert</h3><p data-es="Apartar al atacante de los activos reales.">Steer the attacker away from real assets.</p></div>
+        <div class="card teal-top"><span class="ico">🔬</span><h3 data-es="Recopilar">Collect</h3><p data-es="Reunir información sobre las tácticas del atacante.">Gather intelligence on the attacker's tactics.</p></div>
+        <div class="card warn-top"><span class="ico">⏳</span><h3 data-es="Retener">Detain</h3><p data-es="Mantenerlo ocupado lo suficiente para que los administradores respondan.">Keep them engaged long enough for admins to respond.</p></div>
+      </div>
+      <div class="callout note" style="margin-top:.9rem"><span class="tag" data-es="Analogía">Analogy</span><p data-es="Un honeypot es una <strong>caja fuerte señuelo</strong>: parece valiosa, está llena de billetes falsos, y en cuanto alguien la toca suena la alarma — porque nadie legítimo tendría razón para abrirla.">A honeypot is a <strong>decoy safe</strong>: it looks valuable, is stuffed with fake cash, and the instant someone touches it the alarm rings — because no legitimate person would have any reason to open it.</p></div>
+    </div>
+  </section>
+
+  <!-- S42 — Honeypot properties -->
+  <section class="slide" data-section="Honeypots" data-section-es="Honeypots">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Por qué un honeypot casi no da falsos positivos"><span class="dot"></span>Why a honeypot barely false-alarms</span>
+      <h2 data-es="Propiedades de un honeypot">Properties of a honeypot</h2>
+      <ul class="clean">
+        <li data-es="Está lleno de <strong>información fabricada</strong> (falsa).">Filled with <strong>fabricated information</strong>.</li>
+        <li data-es="<strong>Cualquier acceso</strong> dispara los monitores y registradores de eventos."><strong>Any access</strong> triggers monitors and event loggers.</li>
+        <li data-es="Un ataque contra el honeypot se hace <strong>parecer exitoso</strong> (para retener al atacante).">An attack against it is made to <strong>seem successful</strong> (to retain the attacker).</li>
+        <li data-es="No tiene <strong>ningún valor de producción</strong>; no hay razón legítima para acceder a él.">It has <strong>no production value</strong>; there is no legitimate reason to access it.</li>
+        <li data-es="Por eso, cualquier intento de comunicarse con él es, casi con certeza, un <strong>sondeo, escaneo o ataque</strong>.">So any attempt to communicate with it is almost certainly a <strong>probe, scan, or attack</strong>.</li>
+        <li data-es="Si el honeypot <strong>inicia tráfico saliente</strong>, lo más probable es que ya esté comprometido.">If the honeypot <strong>initiates outbound traffic</strong>, the system is most likely compromised.</li>
+      </ul>
+      <div class="callout check" style="margin-top:.6rem"><span class="tag" data-es="La gran ventaja">The big win</span><p data-es="Como nadie legítimo lo toca, el honeypot <strong>esquiva la falacia de la tasa base</strong>: casi todas sus alarmas son verdaderos positivos. Es lo opuesto a un NIDS ruidoso.">Because no legitimate user touches it, the honeypot <strong>sidesteps the base-rate fallacy</strong>: nearly every alarm is a true positive. It's the opposite of a noisy NIDS.</p></div>
+    </div>
+  </section>
+
+  <!-- S43 — Low vs high interaction -->
+  <section class="slide" data-section="Honeypots" data-section-es="Honeypots">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Dos niveles de realismo"><span class="dot"></span>Two levels of realism</span>
+      <h2 data-es="Honeypots de baja vs. alta interacción">Low- vs. high-interaction honeypots</h2>
+      <div class="split">
+        <div class="card accent-top">
+          <h3 data-es="Baja interacción">Low-interaction</h3>
+          <ul class="clean" style="margin-top:.5rem;gap:.45rem">
+            <li data-es="<strong>Emula</strong> servicios o sistemas lo justo para una interacción inicial realista, sin ejecutarlos de verdad."><strong>Emulates</strong> services well enough for a realistic initial interaction, without running them for real.</li>
+            <li data-es="Objetivo menos realista.">A less realistic target.</li>
+            <li data-es="Suele bastar como componente de un IDS distribuido para <strong>avisar de un ataque inminente</strong>.">Often sufficient as a component of a distributed IDS to <strong>warn of imminent attack</strong>.</li>
+          </ul>
+        </div>
+        <div class="card danger-top">
+          <h3 data-es="Alta interacción">High-interaction</h3>
+          <ul class="clean" style="margin-top:.5rem;gap:.45rem">
+            <li data-es="Un <strong>sistema real</strong>, con SO, servicios y aplicaciones completos, instrumentado y expuesto a los atacantes."><strong>Real system</strong>, with a full OS, services, and applications, instrumented and exposed to attackers.</li>
+            <li data-es="Objetivo más realista que puede ocupar al atacante mucho tiempo.">More realistic target that can occupy an attacker for a long time.</li>
+            <li data-es="Pero requiere <strong>muchos más recursos</strong> — y riesgo: puede ser comprometido de verdad.">But requires <strong>significantly more resources</strong> — and risk: it can be truly compromised.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S44 — Honeypot deployment + honeytokens -->
+  <section class="slide" data-section="Honeypots" data-section-es="Honeypots">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>¿Dónde se colocan?"><span class="dot"></span>Where do they go?</span>
+      <h2 data-es="Despliegue de honeypots">Honeypot deployment</h2>
+      <div class="topo">
+        <div class="tnode net"><span class="tn-ico">🖥️</span><span data-es="Red interna">Internal net</span><br><span class="tn-ico">🍯</span></div>
+        <span class="tarrow">—</span>
+        <div class="tnode net"><span class="tn-ico">🌐</span><span data-es="Red de servicio (DMZ)">Service net (DMZ)</span><br><span class="tn-ico">🍯</span></div>
+        <span class="tarrow">—</span>
+        <div class="tnode fw"><span class="tn-ico">🔥</span><span data-es="Firewall externo">External FW</span></div>
+        <span class="tarrow">—</span>
+        <div class="tnode hp"><span class="tn-ico">🍯</span><span data-es="Frente al firewall">In front of FW</span></div>
+        <span class="tarrow">—</span>
+        <div class="tnode"><span class="tn-ico">☁️</span><span data-es="Internet">Internet</span></div>
+      </div>
+      <p class="figure-note" style="text-align:center" data-es="🍯 = honeypot. Fuera del firewall mide el ruido de Internet; en la DMZ y dentro detecta a quien ya cruzó el perímetro.">🍯 = honeypot. Outside the firewall it measures Internet noise; in the DMZ and inside it detects whoever already crossed the perimeter.</p>
+      <div class="callout note" style="margin-top:.5rem"><span class="tag" data-es="Versión moderna y ligera">Modern lightweight version</span><p data-es="Los <strong>canary tokens / honeytokens</strong> son honeypots minúsculos: un documento falso, una clave API o un registro de BD señuelo que <em>nadie</em> debería tocar. En cuanto alguien los usa, salta la alerta — detección de alta señal y casi sin mantenimiento.">A <strong>canary token / honeytoken</strong> is a tiny honeypot: a fake document, API key, or decoy DB record that <em>no one</em> should ever touch. The moment someone uses it, an alert fires — high-signal detection with almost no upkeep.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== J. IPS / IDPS ===================== -->
+
+  <!-- S45 — Section divider -->
+  <section class="slide section" data-section="IPS / IDPS" data-section-es="IPS / IDPS">
+    <div class="slide-inner">
+      <div class="num">09</div>
+      <h1 data-es="De detectar a prevenir">From detecting to preventing</h1>
+      <p class="lead" data-es="Cuando observar no basta: bloquear en tiempo real.">When observing isn't enough: block in real time.</p>
+    </div>
+  </section>
+
+  <!-- S46 — IPS / IDPS -->
+  <section class="slide" data-section="IPS / IDPS" data-section-es="IPS / IDPS">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Sistemas de prevención de intrusiones"><span class="dot"></span>Intrusion prevention systems</span>
+      <h2 data-es="IPS / IDPS: el IDS que también actúa">IPS / IDPS: the IDS that also acts</h2>
+      <ul class="clean">
+        <li data-es="También llamado <strong>IDPS</strong> (sistema de detección y prevención de intrusiones).">Also known as an <strong>IDPS</strong> (intrusion detection and prevention system).</li>
+        <li data-es="Es una <strong>extensión de un IDS</strong> que añade la capacidad de intentar bloquear o prevenir la actividad maliciosa detectada.">It is an <strong>extension of an IDS</strong> that adds the ability to attempt to block or prevent detected malicious activity.</li>
+        <li data-es="Puede ser basado en <strong>host, red o distribuido/híbrido</strong>.">Can be host-based, network-based, or distributed/hybrid.</li>
+        <li data-es="Usa <strong>detección por anomalías</strong> (comportamiento no legítimo) o <strong>por firmas/heurística</strong> (malicioso conocido).">Uses <strong>anomaly detection</strong> (behavior unlike legitimate users) or <strong>signature/heuristic detection</strong> (known malicious behavior).</li>
+        <li data-es="Puede <strong>bloquear tráfico como un firewall</strong>, pero decide cuándo hacerlo con los algoritmos de un IDS.">Can <strong>block traffic like a firewall</strong>, but uses IDS-style algorithms to decide when to do so.</li>
+      </ul>
+      <div class="callout discuss" style="margin-top:.7rem"><span class="tag" data-es="El dilema del IPS">The IPS dilemma</span><p data-es="Como el IPS es <em>inline</em> y bloquea automáticamente, un <strong>falso positivo</strong> ahora corta tráfico legítimo — una autodenegación de servicio. La falacia de la tasa base deja de ser solo molesta: se vuelve peligrosa. Por eso muchos equipos despliegan en modo «solo detección» antes de activar el bloqueo.">Because the IPS is <em>inline</em> and blocks automatically, a <strong>false positive</strong> now cuts off legitimate traffic — a self-inflicted denial of service. The base-rate fallacy stops being merely annoying and becomes dangerous. That's why many teams deploy in "detect-only" mode before turning on blocking.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== K. WRAP-UP ===================== -->
+
+  <!-- S47 — Summary -->
+  <section class="slide" data-section="Wrap-up" data-section-es="Cierre">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Para llevar"><span class="dot"></span>Takeaways</span>
+      <h2 data-es="Resumen en una diapositiva">Summary in one slide</h2>
+      <ul class="clean">
+        <li data-es="La detección es la <strong>segunda línea</strong> de la defensa en profundidad: prevenir → detectar → sobrevivir.">Detection is the <strong>second line</strong> of defense in depth: prevent → detect → survive.</li>
+        <li data-es="Dos filosofías: <strong>anomalías</strong> (atrapa lo nuevo, ruidoso) y <strong>firmas</strong> (atrapa lo conocido, preciso). Desplegadas en <strong>red</strong> o en <strong>host</strong>.">Two philosophies: <strong>anomaly</strong> (catches novel, noisy) and <strong>signature</strong> (catches known, precise). Deployed on the <strong>network</strong> or the <strong>host</strong>.</li>
+        <li data-es="La <strong>falacia de la tasa base</strong> es el problema central: cuando los ataques son raros, las falsas alarmas dominan — incluso con un IDS «99 % exacto».">The <strong>base-rate fallacy</strong> is the central problem: when attacks are rare, false alarms dominate — even with a "99% accurate" IDS.</li>
+        <li data-es="<strong>Honeypots</strong> e <strong>IPS/IDPS</strong> completan el cuadro; la <strong>inserción, la evasión y el DoS</strong> son cómo los atacantes burlan al detector."><strong>Honeypots</strong> and <strong>IPS/IDPS</strong> complete the picture; <strong>insertion, evasion, and DoS</strong> are how attackers beat the detector.</li>
+        <li data-es="Hoy el IDS vive dentro de un <strong>SOC</strong>: Snort/Suricata/Zeek alimentan un SIEM (Splunk, Elastic, Sentinel); SOAR responde; EDR/XDR/NDR amplían el alcance; <strong>MITRE ATT&amp;CK</strong> mapea las detecciones a técnicas del adversario.">Today the IDS lives inside a <strong>SOC</strong>: Snort/Suricata/Zeek feed a SIEM (Splunk, Elastic, Sentinel); SOAR responds; EDR/XDR/NDR extend reach; <strong>MITRE ATT&amp;CK</strong> maps detections to adversary techniques.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- S48 — Closing debate -->
+  <section class="slide activity" data-section="Wrap-up" data-section-es="Cierre">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Debate final">◆ Closing debate</span>
+      <h2 style="margin-top:1rem" data-es="¿Debería la biometría… perdón, debería la detección reemplazar a la prevención?">Should detection ever replace prevention?</h2>
+      <p class="lead" style="max-width:60ch" data-es="Tu equipo tiene presupuesto para <em>una</em> sola mejora: un firewall/IPS inline más estricto (que puede cortar tráfico legítimo) o un IDS pasivo más sensible (que genera 10 000 alarmas al día). ¿Qué eliges y por qué?">Your team can fund <em>one</em> improvement: a stricter inline firewall/IPS (which may cut legitimate traffic) or a more sensitive passive IDS (which produces 10,000 alarms/day). Which do you choose, and why?</p>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Para guiar el debate">To guide the debate</span>
+        <p data-es="No hay respuesta correcta — depende del <strong>costo de cada error</strong>. Un hospital puede tolerar falsas alarmas pero no perder un ataque a vidas; un comercio online no puede permitirse bloquear clientes legítimos. Lo clave: la decisión es <em>económica y de riesgo</em>, no puramente técnica — y casi siempre la respuesta real es <strong>«ambas, en capas»</strong> con triaje humano y correlación en el SIEM.">There's no right answer — it depends on the <strong>cost of each error</strong>. A hospital can tolerate false alarms but not a missed attack on lives; an online store can't afford to block legitimate customers. The point: this is an <em>economic and risk</em> decision, not a purely technical one — and the real-world answer is almost always <strong>"both, layered"</strong> with human triage and SIEM correlation.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <span class="course" data-es="TC2007B · S11 — Detección de Intrusiones (IDS/IPS)">TC2007B · W11 — Intrusion Detection (IDS/IPS)</span>
+  <span class="right">
+    <span class="sec-name" id="secName">Orientation</span>
+    <span class="counter"><span id="cur">1</span> / <span id="total">48</span></span>
+  </span>
+</footer>
+
+<div class="frag-hint" id="fragHint"><span id="fragHintText">click to reveal</span><span class="chev">▾</span></div>
+
+<div class="nav-btns">
+  <button id="prevBtn" title="Previous (←)">‹</button>
+  <button id="ovBtn" title="Overview (O)">▦</button>
+  <button id="helpBtn" title="Help (?)">?</button>
+  <button id="fsBtn" title="Fullscreen (F)">⛶</button>
+  <button id="nextBtn" title="Next (→)">›</button>
+</div>
+
+<div class="overview" id="overview">
+  <h2 id="ovTitle">Slide overview</h2>
+  <div class="ov-grid" id="ovGrid"></div>
+</div>
+
+<div class="help" id="help">
+  <div class="panel">
+    <h2 data-es="Navegación">Navigation</h2>
+    <table>
+      <tr><td><kbd>→</kbd> <kbd>Space</kbd> <kbd>PgDn</kbd></td><td data-es="Siguiente / revelar">Next / reveal</td></tr>
+      <tr><td><kbd>←</kbd> <kbd>PgUp</kbd></td><td data-es="Anterior">Previous</td></tr>
+      <tr><td><kbd>Home</kbd> / <kbd>End</kbd></td><td data-es="Primera / última">First / last slide</td></tr>
+      <tr><td><kbd>O</kbd></td><td data-es="Vista general">Slide overview grid</td></tr>
+      <tr><td><kbd>F</kbd></td><td data-es="Pantalla completa">Toggle fullscreen</td></tr>
+      <tr><td><kbd>L</kbd></td><td data-es="Idioma ES / EN">Language ES / EN</td></tr>
+      <tr><td><kbd>T</kbd></td><td data-es="Tema claro / oscuro">Light / dark theme</td></tr>
+      <tr><td><kbd>?</kbd></td><td>Help</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td data-es="Cerrar ventana">Close overlay</td></tr>
+    </table>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

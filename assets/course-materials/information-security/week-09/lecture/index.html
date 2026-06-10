@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Week 9 · Malicious Code (Malware)</title>
+<meta name="description" content="Malicious code and malware: classification, viruses, worms, rootkits, botnets, APTs, ransomware, fileless and supply-chain malware, countermeasures, AV generations, EDR/XDR, and malware analysis. Week 9 of TC2007B.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+/* ---- Lecture-local additions ---- */
+/* code / pseudocode block */
+.code-block {
+  background: var(--bg-3); border: 1px solid var(--line);
+  border-radius: 14px; padding: 1.1rem 1.4rem;
+  font-family: var(--mono); font-size: clamp(.78rem, 1.4vw, 1.05rem);
+  margin-top: 1rem; line-height: 1.85;
+}
+.code-block .ln { display: block; }
+.kw   { color: var(--accent); font-weight: 700; }
+.cmt  { color: var(--ink-soft); font-style: italic; }
+.lbl2 { color: var(--good); font-weight: 700; }
+.str  { color: var(--warn); }
+.danger-txt { color: var(--danger); font-weight: 700; }
+.code-cap { display:inline-block; font-size:.72em; font-weight:800; letter-spacing:.05em; text-transform:uppercase; padding:.15rem .5rem; border-radius:6px; margin-bottom:.4rem; }
+.code-cap.bad  { background: rgba(255,107,107,.15); color: var(--danger); }
+.code-cap.ok   { background: rgba(60,200,120,.15); color: var(--good); }
+
+/* generic node-chain diagram (vertical) */
+.chain { display:flex; flex-direction:column; align-items:center; gap:.35rem; margin-top:1.1rem; }
+.chain .cn { background: var(--bg-2); border: 2px solid var(--line); border-radius: 12px; padding:.55rem 1rem; text-align:center; font-weight:700; font-size:clamp(.78rem,1.3vw,1rem); min-width:16ch; }
+.chain .cn small { display:block; font-weight:400; color:var(--ink-soft); font-size:.8em; }
+.chain .down { color: var(--accent); font-size:1.2rem; line-height:1; }
+.cn.api   { border-color: var(--good); }
+.cn.evil  { border-color: var(--danger); background: rgba(255,107,107,.08); }
+.cn.violet-node { border-color: var(--violet); background: rgba(155,124,255,.08); }
+.cn.accent-node { border-color: var(--accent); }
+
+/* horizontal decision flow */
+.dflow { display:flex; align-items:center; justify-content:center; gap:.6rem; flex-wrap:wrap; margin-top:1.2rem; }
+.dflow .box { background: var(--bg-2); border:2px solid var(--line); border-radius:12px; padding:.7rem 1rem; text-align:center; font-size:clamp(.75rem,1.25vw,.98rem); max-width:22ch; }
+.dflow .box.q { border-color: var(--violet); background: rgba(155,124,255,.08); font-weight:700; }
+.dflow .box.no { border-color: var(--good); }
+.dflow .box.yes { border-color: var(--warn); }
+.dflow .ar { color: var(--accent); font-size:1.3rem; }
+.dflow .ar small { display:block; font-weight:800; font-size:.62rem; letter-spacing:.05em; }
+
+/* boot-sector strip diagram */
+.disk { display:flex; gap:3px; margin:.5rem 0; }
+.disk .seg { flex:1; border:2px solid var(--line); border-radius:6px; padding:.55rem .3rem; text-align:center; font-size:clamp(.62rem,1vw,.82rem); font-weight:700; background: var(--bg-2); }
+.disk .seg.boot { border-color: var(--accent); }
+.disk .seg.virus { border-color: var(--danger); background: rgba(255,107,107,.1); color: var(--danger); }
+.disk .seg.sys { border-color: var(--good); }
+.disk .seg.empty { color: var(--ink-soft); font-weight:400; }
+.disk-cap { text-align:center; font-size:var(--fs-small); color:var(--ink-soft); margin-bottom:1rem; }
+
+/* botnet ddos diagram */
+.ddos { display:flex; flex-direction:column; align-items:center; gap:.5rem; margin-top:1rem; }
+.ddos .row { display:flex; gap:.7rem; align-items:center; justify-content:center; flex-wrap:wrap; }
+.ddos .dot-node { width:2.6rem; height:2.6rem; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:.8rem; color:#fff; }
+.ddos .att { background: var(--danger); }
+.ddos .bot { background: var(--good); }
+.ddos .vic { background: var(--accent); }
+.ddos .lbl { font-size:var(--fs-small); color:var(--ink-soft); margin-left:.4rem; }
+.ddos .down { color: var(--ink-soft); font-size:1.1rem; }
+
+/* timeline for malware history */
+.tl { display:flex; flex-direction:column; gap:.45rem; margin-top:1rem; }
+.tl .ev { display:flex; gap:.9rem; align-items:flex-start; background: var(--bg-2); border:1px solid var(--line); border-left:4px solid var(--accent); border-radius:8px; padding:.5rem .85rem; font-size:clamp(.72rem,1.2vw,.95rem); }
+.tl .ev .yr { font-weight:900; color:var(--accent); min-width:5ch; flex:none; }
+.tl .ev.danger-ev { border-left-color: var(--danger); }
+.tl .ev.danger-ev .yr { color: var(--danger); }
+
+/* simple definition list table */
+.deftable { width:100%; border-collapse:collapse; margin-top:1rem; font-size:clamp(.74rem,1.25vw,1rem); }
+.deftable td { border:1px solid var(--line); padding:.55rem .85rem; vertical-align:top; }
+.deftable td:first-child { font-weight:800; color:var(--ink); background:var(--bg-2); white-space:nowrap; }
+.deftable tr:hover { background: rgba(78,161,255,.05); }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="fill" id="progress"></div></div>
+
+<div class="controls">
+  <a href="/teaching/information-security/" class="ui-btn" title="Back to course / Volver al curso" style="text-decoration:none">⌂</a>
+  <button class="ui-btn" id="langBtn" title="Español / English">ES</button>
+  <button class="ui-btn" id="themeBtn" title="Light / Dark">☀</button>
+</div>
+
+<main class="deck" id="deck">
+
+  <!-- ===================== A. ORIENTATION ===================== -->
+
+  <!-- S1 — Title -->
+  <section class="slide title-slide active" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>TC2007B · Semana 9"><span class="dot"></span>TC2007B · Week 9</span>
+      <h1 data-es="Código Malicioso (Malware)">Malicious Code (Malware)</h1>
+      <div class="title-rule"></div>
+      <p class="lead" data-es="Viruses, gusanos, troyanos, rootkits, botnets, APTs y ransomware — cómo funcionan, cómo se ocultan y cómo nos defendemos.">Viruses, worms, trojans, rootkits, botnets, APTs and ransomware — how they work, how they hide, and how we defend against them.</p>
+      <div class="title-meta">
+        <span class="pill" data-es="Profesor: Mahdi Zareei">Instructor: Mahdi Zareei</span>
+        <span class="pill" data-es="Virus · Gusanos · Botnets · Ransomware · APTs">Viruses · Worms · Botnets · Ransomware · APTs</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- S2 — Objectives -->
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Qué veremos hoy"><span class="dot"></span>What we'll cover</span>
+      <h2 data-es="Objetivos de la clase">Lecture objectives</h2>
+      <div class="grid cols-2">
+        <div class="card accent-top"><span class="ico">🧬</span><h3 data-es="Clasificar el malware">Classify malware</h3><p data-es="Parasitario vs. independiente; replicante vs. no replicante; y la familia completa de tipos.">Parasitic vs. independent; replicating vs. non-replicating; and the full family of types.</p></div>
+        <div class="card teal-top"><span class="ico">🦠</span><h3 data-es="Cómo se propaga y se oculta">How it spreads &amp; hides</h3><p data-es="Fases del virus, gusanos, rootkits y las estrategias de ocultamiento (cifrado, sigiloso, polimórfico, metamórfico).">Virus phases, worms, rootkits, and concealment strategies (encrypted, stealth, polymorphic, metamorphic).</p></div>
+        <div class="card warn-top"><span class="ico">🌐</span><h3 data-es="Amenazas a gran escala">Large-scale threats</h3><p data-es="Botnets y su mando y control (C&amp;C), APTs «low-and-slow», y el ransomware moderno.">Botnets and their command-and-control (C&amp;C), low-and-slow APTs, and modern ransomware.</p></div>
+        <div class="card good-top"><span class="ico">🛡️</span><h3 data-es="Defensa y análisis">Defense &amp; analysis</h3><p data-es="Prevención, detección, generaciones de antivirus → EDR/XDR, y análisis estático vs. dinámico.">Prevention, detection, AV generations → EDR/XDR, and static vs. dynamic analysis.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S3 — NIST definition -->
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>¿Qué es el malware?"><span class="dot"></span>What is malware?</span>
+      <h2 data-es="La definición de NIST 800-83">The NIST 800-83 definition</h2>
+      <div class="definition">
+        <blockquote data-es="«Un programa que se inserta en un sistema, normalmente de forma encubierta, con la intención de comprometer la confidencialidad, integridad o disponibilidad de los datos, las aplicaciones o el sistema operativo de la víctima, o bien de molestar o perturbar a la víctima.»">"A program that is inserted into a system, usually covertly, with the intent of compromising the confidentiality, integrity, or availability of the victim's data, applications, or operating system or otherwise annoying or disrupting the victim."</blockquote>
+        <span class="src" data-es="— NIST SP 800-83">— NIST SP 800-83</span>
+      </div>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Conexión">Link</span><p data-es="La definición se ancla en la tríada CIA que vimos en la primera semana: el malware es, simplemente, software diseñado para violar uno o más de esos tres principios.">The definition is anchored in the CIA triad from Week 1: malware is simply software designed to violate one or more of those three principles.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== B. CLASSIFICATION ===================== -->
+
+  <!-- S4 — Section divider -->
+  <section class="slide section" data-section="Classification" data-section-es="Clasificación">
+    <div class="slide-inner">
+      <div class="num">01</div>
+      <h1 data-es="Clasificación del malware">Classifying malware</h1>
+      <p class="lead" data-es="Dos preguntas clave: ¿necesita un anfitrión? ¿se replica?">Two key questions: does it need a host? does it replicate?</p>
+    </div>
+  </section>
+
+  <!-- S5 — Two axes of classification -->
+  <section class="slide" data-section="Classification" data-section-es="Clasificación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Dos ejes de clasificación"><span class="dot"></span>Two classification axes</span>
+      <h2 data-es="Cómo se clasifica el malware">How malware is classified</h2>
+      <div class="split">
+        <div class="card accent-top">
+          <h3 data-es="Eje 1 — ¿Necesita un anfitrión?">Axis 1 — Does it need a host?</h3>
+          <ul class="clean" style="margin-top:.7rem">
+            <li data-es="<strong>Parasitario</strong>: necesita un programa anfitrión (p. ej. los virus). Se incrusta en código legítimo."><strong>Parasitic</strong>: needs a host program (e.g. viruses). Embeds itself in legitimate code.</li>
+            <li data-es="<strong>Independiente</strong>: programa autónomo y autocontenido (gusanos, troyanos, bots)."><strong>Independent</strong>: self-contained standalone program (worms, trojans, bots).</li>
+          </ul>
+        </div>
+        <div class="card teal-top">
+          <h3 data-es="Eje 2 — ¿Se replica?">Axis 2 — Does it replicate?</h3>
+          <ul class="clean" style="margin-top:.7rem">
+            <li data-es="<strong>No replicante</strong>: troyanos y spam — se activan pero no se copian solos."><strong>Non-replicating</strong>: trojans and spam — activated but don't self-copy.</li>
+            <li data-es="<strong>Replicante</strong>: virus y gusanos — crean copias de sí mismos para propagarse."><strong>Replicating</strong>: viruses and worms — make copies of themselves to spread.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Y además">Also</span><p data-es="Primero se clasifica por <strong>cómo se propaga</strong> para alcanzar sus objetivos; luego por las <strong>acciones o cargas útiles (payloads)</strong> que ejecuta una vez que llega.">First classify by <strong>how it spreads</strong> to reach its targets; then by the <strong>actions or payloads</strong> it performs once it arrives.</p></div>
+    </div>
+  </section>
+
+  <!-- S6 — Taxonomy tree (fragments) -->
+  <section class="slide" data-section="Classification" data-section-es="Clasificación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El árbol completo"><span class="dot"></span>The full tree</span>
+      <h2 data-es="La familia del software malicioso">The malicious-software family</h2>
+      <div class="split">
+        <div class="card accent-top fragment">
+          <h3 data-es="Necesitan anfitrión (parasitario)">Needs a host (parasitic)</h3>
+          <ul class="clean" style="margin-top:.6rem; gap:.4rem">
+            <li data-es="<strong>Trap doors / backdoors</strong> — entrada secreta a un sistema"><strong>Trap doors / backdoors</strong> — secret entry point</li>
+            <li data-es="<strong>Bombas lógicas</strong> — «explotan» al cumplirse una condición"><strong>Logic bombs</strong> — "explode" when a condition is met</li>
+            <li data-es="<strong>Caballos de Troya</strong> — útiles por fuera, dañinos por dentro"><strong>Trojan horses</strong> — useful outside, harmful inside</li>
+            <li data-es="<strong>Virus</strong> — infectan un programa modificándolo"><strong>Viruses</strong> — infect a program by modifying it</li>
+            <li data-es="<strong>Plug-ins / extensiones de navegador, scripts</strong>"><strong>Browser plug-ins / extensions, scripts</strong></li>
+          </ul>
+        </div>
+        <div class="card teal-top fragment">
+          <h3 data-es="Independientes">Independent</h3>
+          <ul class="clean" style="margin-top:.6rem; gap:.4rem">
+            <li data-es="<strong>Gusanos (worms)</strong> — buscan activamente más máquinas que infectar"><strong>Worms</strong> — actively seek out more machines to infect</li>
+            <li data-es="<strong>Botnets</strong> — redes de máquinas comprometidas bajo control de un atacante"><strong>Botnets</strong> — networks of compromised machines under attacker control</li>
+            <li data-es="<strong>APTs</strong> — amenazas persistentes avanzadas, dirigidas y sigilosas"><strong>APTs</strong> — advanced persistent threats, targeted and stealthy</li>
+          </ul>
+        </div>
+      </div>
+      <p class="figure-note" data-es="Haz clic para revelar cada rama. El ransomware moderno (que veremos más adelante) combina varios de estos mecanismos.">Click to reveal each branch. Modern ransomware (covered later) combines several of these mechanisms.</p>
+    </div>
+  </section>
+
+  <!-- S7 — Host-needing types detailed -->
+  <section class="slide" data-section="Classification" data-section-es="Clasificación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Tipos que necesitan anfitrión"><span class="dot"></span>Host-needing types</span>
+      <h2 data-es="Trap doors, bombas lógicas y troyanos">Trap doors, logic bombs &amp; trojans</h2>
+      <div class="grid cols-3">
+        <div class="card violet-top">
+          <span class="ico">🚪</span>
+          <h3 data-es="Trap door / backdoor">Trap door / backdoor</h3>
+          <p data-es="Un punto de entrada secreto a un programa o sistema. Suele activarse al reconocer una secuencia especial de entradas o un ID de usuario concreto.">A secret entry point to a program or system. Typically triggered by recognizing a special input sequence or a specific user ID.</p>
+        </div>
+        <div class="card warn-top">
+          <span class="ico">💣</span>
+          <h3 data-es="Bomba lógica">Logic bomb</h3>
+          <p data-es="Código incrustado en un programa legítimo que «explota» o ejecuta una acción maliciosa cuando se cumplen ciertas condiciones (una fecha, un despido, un archivo ausente).">Code embedded in a legitimate program that "explodes" or runs a malicious action when certain conditions are met (a date, a firing, a missing file).</p>
+        </div>
+        <div class="card danger-top">
+          <span class="ico">🎁</span>
+          <h3 data-es="Caballo de Troya">Trojan horse</h3>
+          <p data-es="Oculto dentro de un programa anfitrión aparentemente útil; ejecuta una función no deseada o dañina cuando el anfitrión se ejecuta.">Hidden inside an apparently useful host program; performs an unwanted or harmful function when the host runs.</p>
+        </div>
+      </div>
+      <div class="callout note" style="margin-top:.9rem"><span class="tag" data-es="Terminología moderna">Modern term</span><p data-es="Hoy el «trap door» se llama casi siempre <strong>backdoor</strong> (puerta trasera). Aparecen tanto introducidas por atacantes como dejadas (a veces sin querer) por los propios desarrolladores.">Today the "trap door" is almost always called a <strong>backdoor</strong>. They appear both as attacker-introduced entry points and as (sometimes accidental) developer-left ones.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== C. VIRUSES ===================== -->
+
+  <!-- S8 — Section divider -->
+  <section class="slide section" data-section="Viruses" data-section-es="Virus">
+    <div class="slide-inner">
+      <div class="num">02</div>
+      <h1 data-es="Virus">Viruses</h1>
+      <p class="lead" data-es="Como una infección biológica: necesita un anfitrión para reproducirse.">Like a biological infection: it needs a host to reproduce.</p>
+    </div>
+  </section>
+
+  <!-- S9 — Virus analogy + definition -->
+  <section class="slide" data-section="Viruses" data-section-es="Virus">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La analogía biológica"><span class="dot"></span>The biological analogy</span>
+      <h2 data-es="Qué es un virus informático">What a computer virus is</h2>
+      <ul class="clean">
+        <li data-es="Infecta un programa <strong>modificándolo</strong> e insertando una copia de sí mismo.">Infects a program by <strong>modifying it</strong> and inserting a copy of itself.</li>
+        <li data-es="Se copia dentro del programa para propagarse a otros programas.">Self-copies into the program to spread to other programs.</li>
+      </ul>
+      <div class="callout discuss" style="margin-top:1rem"><span class="tag" data-es="Analogía">Analogy</span><p data-es="Un virus informático es como un virus biológico: <strong>no puede reproducirse solo</strong>. Necesita secuestrar la maquinaria de una célula (un programa anfitrión) para hacer copias. Sin anfitrión que ejecutar, está inerte. Esto lo distingue del gusano, que veremos después.">A computer virus is like a biological virus: it <strong>cannot reproduce on its own</strong>. It must hijack a cell's machinery (a host program) to make copies. With no host to run, it is inert. This distinguishes it from the worm, which we'll see next.</p></div>
+    </div>
+  </section>
+
+  <!-- S10 — Virus phases (fragments) -->
+  <section class="slide" data-section="Viruses" data-section-es="Virus">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El ciclo de vida"><span class="dot"></span>The life cycle</span>
+      <h2 data-es="Las cuatro fases de un virus">The four virus phases</h2>
+      <div class="grid cols-2">
+        <div class="card accent-top fragment"><span class="ico">😴</span><h3 data-es="1 · Latente (dormant)">1 · Dormant</h3><p data-es="El virus está inactivo; eventualmente se activará por algún evento. (No todos los virus tienen esta fase.)">The virus is idle; it will eventually be activated by some event. (Not every virus has this phase.)</p></div>
+        <div class="card warn-top fragment"><span class="ico">⏰</span><h3 data-es="2 · Activación (triggering)">2 · Triggering</h3><p data-es="Se activa para realizar la función para la que fue diseñado. Puede dispararlo una variedad de eventos del sistema.">Activated to perform the function it was built for. Can be caused by a variety of system events.</p></div>
+        <div class="card teal-top fragment"><span class="ico">🔁</span><h3 data-es="3 · Propagación">3 · Propagation</h3><p data-es="Coloca una copia de sí mismo en otros programas o en zonas del disco. La copia puede no ser idéntica al original.">Places a copy of itself into other programs or disk areas. The copy may not be identical to the propagating version.</p></div>
+        <div class="card danger-top fragment"><span class="ico">💥</span><h3 data-es="4 · Ejecución">4 · Execution</h3><p data-es="Se realiza la función (el payload). Puede ser inofensiva o dañina.">The function (payload) is performed. May be harmless or damaging.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S11 — Virus structure (recreated pseudocode diagram) -->
+  <section class="slide" data-section="Viruses" data-section-es="Virus">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Anatomía de un virus"><span class="dot"></span>Anatomy of a virus</span>
+      <h2 data-es="Estructura de un virus">Virus structure</h2>
+      <div class="split">
+        <div>
+          <span class="code-cap bad" data-es="Pseudocódigo">Pseudocode</span>
+          <div class="code-block">
+            <span class="ln"><span class="kw">goto</span> main <span class="cmt"># 1st line: jump to virus main</span></span>
+            <span class="ln">1234567 <span class="cmt"># 2nd line: infection flag / marker</span></span>
+            <span class="ln"></span>
+            <span class="ln"><span class="lbl2">main:</span></span>
+            <span class="ln">&nbsp;&nbsp;<span class="kw">find</span> uninfected programs</span>
+            <span class="ln">&nbsp;&nbsp;<span class="kw">infect</span> them</span>
+            <span class="ln">&nbsp;&nbsp;<span class="danger-txt">do_damage()</span></span>
+            <span class="ln">&nbsp;&nbsp;<span class="kw">goto</span> host_program <span class="cmt"># run normally</span></span>
+          </div>
+        </div>
+        <div class="card accent-top">
+          <h3 data-es="Línea por línea">Line by line</h3>
+          <ul class="clean" style="margin-top:.6rem; gap:.45rem">
+            <li data-es="<strong>Primera línea</strong>: salta al «main» del virus."><strong>First line</strong>: go to the virus "main".</li>
+            <li data-es="<strong>Segunda línea</strong>: un marcador especial (infectado o no) para no reinfectar."><strong>Second line</strong>: a special flag (infected or not) to avoid re-infecting.</li>
+            <li data-es="<strong>Main</strong>: busca programas no infectados e infecta; hace algo dañino; salta a la primera línea del anfitrión para que trabaje con normalidad."><strong>Main</strong>: find uninfected programs and infect them; do something damaging; jump to the host's first line so it works normally.</li>
+            <li data-es="Para <strong>evadir la detección por tamaño</strong>, comprime/descomprime el programa anfitrión."><strong>To evade size-based detection</strong>, it compresses/decompresses the host program.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S12 — Virus classification (two axes) -->
+  <section class="slide" data-section="Viruses" data-section-es="Virus">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Dos formas de clasificar virus"><span class="dot"></span>Two ways to classify viruses</span>
+      <h2 data-es="Por objetivo y por estrategia de ocultamiento">By target &amp; by concealment strategy</h2>
+      <div class="split">
+        <div class="card accent-top">
+          <h3 data-es="Por objetivo (qué infectan)">By target (what they infect)</h3>
+          <ul class="clean" style="margin-top:.6rem; gap:.4rem">
+            <li data-es="<strong>Infector de sector de arranque</strong> — infecta el MBR/boot record; se propaga al arrancar desde el disco."><strong>Boot-sector infector</strong> — infects the MBR/boot record; spreads when booting from the disk.</li>
+            <li data-es="<strong>Infector de archivos</strong> — infecta archivos que el SO o shell consideran ejecutables."><strong>File infector</strong> — infects files the OS or shell considers executable.</li>
+            <li data-es="<strong>Virus de macro</strong> — infecta archivos con código de macro o scripting interpretado por una aplicación."><strong>Macro virus</strong> — infects files with macro or scripting code interpreted by an application.</li>
+            <li data-es="<strong>Multipartito</strong> — infecta archivos de múltiples maneras a la vez."><strong>Multipartite</strong> — infects files in multiple ways at once.</li>
+          </ul>
+        </div>
+        <div class="card violet-top">
+          <h3 data-es="Por ocultamiento (cómo se esconden)">By concealment (how they hide)</h3>
+          <ul class="clean" style="margin-top:.6rem; gap:.4rem">
+            <li data-es="<strong>Cifrado</strong> — una parte genera una clave aleatoria y cifra el resto del virus."><strong>Encrypted</strong> — a portion creates a random key and encrypts the rest of the virus.</li>
+            <li data-es="<strong>Sigiloso (stealth)</strong> — diseñado explícitamente para ocultarse del antivirus."><strong>Stealth</strong> — explicitly designed to hide itself from anti-virus software.</li>
+            <li data-es="<strong>Polimórfico</strong> — muta en cada infección (cambia de apariencia)."><strong>Polymorphic</strong> — mutates with every infection (changes appearance).</li>
+            <li data-es="<strong>Metamórfico</strong> — se reescribe por completo en cada iteración; puede cambiar comportamiento y apariencia."><strong>Metamorphic</strong> — completely rewrites itself each iteration; may change behavior and appearance.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S13 — Boot sector virus diagram (recreated) -->
+  <section class="slide" data-section="Viruses" data-section-es="Virus">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Infección del sector de arranque"><span class="dot"></span>Boot-sector infection</span>
+      <h2 data-es="Cómo un virus secuestra el arranque">How a virus hijacks the boot</h2>
+      <div>
+        <div class="disk">
+          <div class="seg boot" data-es="Sector arranque: Cargador (Bootstrap)">Boot Sector:<br>Bootstrap Loader</div>
+          <div class="seg empty" data-es="…">…</div>
+          <div class="seg sys" data-es="Inicialización del sistema">System<br>Initialization</div>
+          <div class="seg empty" data-es="…">…</div>
+          <div class="seg empty" data-es="…">…</div>
+        </div>
+        <p class="disk-cap" data-es="(a) Antes de la infección — el cargador encadena hacia la inicialización del sistema">(a) Before infection — the loader chains to system initialization</p>
+        <div class="disk">
+          <div class="seg virus" data-es="Código del virus">Virus Code</div>
+          <div class="seg empty" data-es="…">…</div>
+          <div class="seg sys" data-es="Inicialización del sistema">System<br>Initialization</div>
+          <div class="seg empty" data-es="…">…</div>
+          <div class="seg boot" data-es="Cargador (Bootstrap) reubicado">Bootstrap<br>Loader (moved)</div>
+        </div>
+        <p class="disk-cap" data-es="(b) Después de la infección — el virus ocupa el sector de arranque, se ejecuta primero, y luego encadena al cargador reubicado">(b) After infection — the virus occupies the boot sector, runs first, then chains to the relocated loader</p>
+      </div>
+      <div class="callout note"><span class="tag" data-es="Clave">Key</span><p data-es="Al ejecutarse <em>antes</em> que el sistema operativo, el virus de sector de arranque puede cargarse antes que cualquier defensa — un antecesor de los bootkits/rootkits modernos.">By running <em>before</em> the operating system, the boot-sector virus can load before any defense — an ancestor of modern bootkits/rootkits.</p></div>
+    </div>
+  </section>
+
+  <!-- S14 — Macro & scripting viruses -->
+  <section class="slide" data-section="Viruses" data-section-es="Virus">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Virus de macro y scripting"><span class="dot"></span>Macro &amp; scripting viruses</span>
+      <h2 data-es="El documento que se ejecuta solo">The document that runs itself</h2>
+      <div class="definition">
+        <blockquote data-es="«Un virus que se adjunta a documentos y usa las capacidades de programación de macros de la aplicación del documento para ejecutarse y propagarse.»">"A virus that attaches itself to documents and uses the macro programming capabilities of the document's application to execute and propagate."</blockquote>
+        <span class="src" data-es="— NISTIR 7298">— NISTIR 7298</span>
+      </div>
+      <div class="split" style="margin-top:1rem">
+        <div class="card accent-top">
+          <h3 data-es="Cómo se propaga">How it spreads</h3>
+          <ul class="clean" style="margin-top:.5rem; gap:.35rem">
+            <li data-es="Una macro virus se adjunta a un documento de Word.">A virus macro is attached to a Word document.</li>
+            <li data-es="El documento se abre en el sistema anfitrión.">The document is opened on the host system.</li>
+            <li data-es="Al ejecutarse, la macro se copia al archivo de macros global.">When it runs, the macro copies itself to the global macro file.</li>
+            <li data-es="La macro global se activa al abrir nuevos documentos.">The global macro activates when new documents are opened.</li>
+          </ul>
+        </div>
+        <div class="card warn-top">
+          <h3 data-es="Por qué son peligrosos">Why they're dangerous</h3>
+          <ul class="clean" style="margin-top:.5rem; gap:.35rem">
+            <li data-es="Son <strong>independientes de la plataforma</strong>.">Are <strong>platform-independent</strong>.</li>
+            <li data-es="Infectan documentos, no código ejecutable.">Infect documents, not executable code.</li>
+            <li data-es="Se propagan con mucha facilidad.">Are easily spread.</li>
+            <li data-es="Son más fáciles de escribir que los virus ejecutables tradicionales.">Are much easier to write than traditional executable viruses.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S15 — Encryption / detection arms race -->
+  <section class="slide" data-section="Viruses" data-section-es="Virus">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La carrera armamentista"><span class="dot"></span>The arms race</span>
+      <h2 data-es="Por qué el ocultamiento importa: virus vs. antivirus">Why concealment matters: virus vs. AV</h2>
+      <div class="flow">
+        <div class="node breach"><span class="n-label accent" data-es="Cifrado">Encrypted</span><span class="n-sub" data-es="oculta el cuerpo del virus tras una clave aleatoria">hides the body behind a random key</span></div>
+        <div class="arrow">→</div>
+        <div class="node attack"><span class="n-label" style="color:var(--violet)" data-es="Polimórfico">Polymorphic</span><span class="n-sub" data-es="cambia la apariencia en cada infección">changes appearance every infection</span></div>
+        <div class="arrow">→</div>
+        <div class="node good-node"><span class="n-label good" data-es="Metamórfico">Metamorphic</span><span class="n-sub" data-es="se reescribe por completo, lógica incluida">fully rewrites itself, logic included</span></div>
+      </div>
+      <div class="callout discuss" style="margin-top:1.1rem"><span class="tag" data-es="Debate">Debate</span><p data-es="Cada técnica de ocultamiento existe para derrotar la detección basada en firmas (signatures). Pregunta: si un virus se reescribe completamente cada vez, ¿qué le queda al antivirus para detectarlo? (Pista: su <em>comportamiento</em> — lo retomaremos en EDR.)">Every concealment technique exists to defeat signature-based detection. Question: if a virus rewrites itself completely every time, what is left for the AV to detect? (Hint: its <em>behavior</em> — we'll return to this with EDR.)</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== D. ROOTKITS ===================== -->
+
+  <!-- S16 — Section divider -->
+  <section class="slide section" data-section="Rootkits" data-section-es="Rootkits">
+    <div class="slide-inner">
+      <div class="num">03</div>
+      <h1 data-es="Rootkits">Rootkits</h1>
+      <p class="lead" data-es="El inspector de edificios corrupto que oculta los daños que él mismo causó.">The corrupt building inspector who hides the damage he caused.</p>
+    </div>
+  </section>
+
+  <!-- S17 — Rootkit definition -->
+  <section class="slide" data-section="Rootkits" data-section-es="Rootkits">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Acceso encubierto y persistente"><span class="dot"></span>Covert, persistent access</span>
+      <h2 data-es="Qué es un rootkit">What a rootkit is</h2>
+      <ul class="clean">
+        <li data-es="Un conjunto de programas ocultos instalados en un sistema para mantener <strong>acceso encubierto</strong> a ese sistema.">A set of hidden programs installed on a system to maintain <strong>covert access</strong> to that system.</li>
+        <li data-es="Se oculta <strong>subvirtiendo los mecanismos</strong> que monitorizan e informan sobre procesos, archivos y registros.">Hides by <strong>subverting the mechanisms</strong> that monitor and report on processes, files, and registries.</li>
+        <li data-es="Da al atacante privilegios de <strong>administrador (root)</strong>: añadir/cambiar programas, monitorizar procesos, enviar/recibir tráfico y obtener acceso de puerta trasera bajo demanda.">Gives the attacker <strong>administrator (root)</strong> privileges: add/change programs, monitor processes, send/receive traffic, and get backdoor access on demand.</li>
+        <li data-es="Ejemplo: se oculta del usuario — no aparece en <code>ls</code> ni <code>dir</code>.">Example: hides from the user — not listed in <code>ls</code> or <code>dir</code>.</li>
+      </ul>
+      <div class="callout discuss" style="margin-top:.9rem"><span class="tag" data-es="Analogía">Analogy</span><p data-es="Un rootkit es como un inspector de edificios corrupto: no solo permite la construcción ilegal, sino que <em>falsifica los informes</em> para que, cuando alguien pregunte, todo «parezca» en regla. La defensa ve la respuesta manipulada, no la realidad.">A rootkit is like a corrupt building inspector: it not only permits illegal construction, it <em>falsifies the reports</em> so that, when anyone asks, everything "looks" compliant. The defense sees the doctored answer, not reality.</p></div>
+    </div>
+  </section>
+
+  <!-- S18 — Rootkit decision flow (recreated diagram) -->
+  <section class="slide" data-section="Rootkits" data-section-es="Rootkits">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Cómo decide qué ocultar"><span class="dot"></span>How it decides what to hide</span>
+      <h2 data-es="El rootkit intercepta y filtra cada llamada">The rootkit intercepts &amp; filters every call</h2>
+      <div class="dflow">
+        <div class="box accent-node" data-es="Llamada de función interceptada">Intercepted function call</div>
+        <span class="ar">→</span>
+        <div class="box q" data-es="¿El resultado de la llamada revelaría el rootkit?">Will the call's result reveal the rootkit?</div>
+      </div>
+      <div class="dflow" style="margin-top:.8rem">
+        <div class="box no"><strong data-es="NO →">NO →</strong><br><span data-es="Pasa la llamada a la función del sistema operativo (resultado normal)">Pass call to the operating-system function (normal result)</span></div>
+        <div class="box yes"><strong data-es="SÍ →">YES →</strong><br><span data-es="Ejecuta la llamada pero monitoriza y ajusta el resultado (borra al propio rootkit de la respuesta)">Execute the call but monitor the result and adjust as necessary (scrub the rootkit out of the answer)</span></div>
+      </div>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Idea central">Core idea</span><p data-es="El rootkit se sienta entre el programa y el sistema operativo. Si una respuesta honesta lo delataría, la edita. Si no, deja pasar la respuesta real para no levantar sospechas.">The rootkit sits between the program and the OS. If an honest answer would expose it, it edits the answer. Otherwise it lets the real answer through so as not to raise suspicion.</p></div>
+    </div>
+  </section>
+
+  <!-- S19 — Rootkit hiding chain (recreated diagram) -->
+  <section class="slide" data-section="Rootkits" data-section-es="Rootkits">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Ocultando archivos en la práctica"><span class="dot"></span>Hiding files in practice</span>
+      <h2 data-es="Subvirtiendo la cadena de llamadas «inspeccionar archivos»">Subverting the "inspect all files" call chain</h2>
+      <div class="split">
+        <div>
+          <span class="code-cap" style="background:var(--bg-3);color:var(--ink-soft)" data-es="Programa: inspeccionar todos los archivos">App: inspect all files</span>
+          <div class="code-block" style="font-size:.85em">
+            <span class="ln"><span class="kw">FindFirstFile</span>()</span>
+            <span class="ln">{</span>
+            <span class="ln">&nbsp;&nbsp;checkfile</span>
+            <span class="ln">&nbsp;&nbsp;<span class="kw">FindNextFile</span>()</span>
+            <span class="ln">&nbsp;&nbsp;repeat</span>
+            <span class="ln">}</span>
+          </div>
+        </div>
+        <div class="chain">
+          <div class="cn api" data-es="API de Windows">Windows API</div>
+          <div class="down">↓</div>
+          <div class="cn" data-es="NtQueryDirectoryObject">NtQueryDirectoryObject</div>
+          <div class="down">↓</div>
+          <div class="cn api" data-es="Interfaz nativa del kernel">Kernel Native Interface</div>
+          <div class="down">↓</div>
+          <div class="cn violet-node" data-es="El rootkit filtra la llamada y los resultados">Rootkit filters call &amp; results</div>
+          <div class="down">↓</div>
+          <div class="cn" data-es="Funciones del controlador (driver) → Discos">Device driver functions → Drivers</div>
+        </div>
+      </div>
+      <div class="callout note"><span class="tag" data-es="Nota">Note</span><p data-es="Cuanto más profundo se inserta el rootkit (API → kernel → driver), más difícil es detectarlo. Un rootkit a nivel de kernel puede mentir a casi todo lo que se ejecute por encima de él.">The deeper the rootkit inserts itself (API → kernel → driver), the harder it is to detect. A kernel-level rootkit can lie to almost everything running above it.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== E. WORMS ===================== -->
+
+  <!-- S20 — Section divider -->
+  <section class="slide section" data-section="Worms" data-section-es="Gusanos">
+    <div class="slide-inner">
+      <div class="num">04</div>
+      <h1 data-es="Gusanos (Worms)">Worms</h1>
+      <p class="lead" data-es="A diferencia del virus, el gusano se mueve solo — no necesita anfitrión.">Unlike a virus, a worm moves on its own — no host needed.</p>
+    </div>
+  </section>
+
+  <!-- S21 — What is a worm -->
+  <section class="slide" data-section="Worms" data-section-es="Gusanos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El propagador autónomo"><span class="dot"></span>The self-propagating threat</span>
+      <h2 data-es="Qué hace un gusano">What a worm does</h2>
+      <ul class="clean">
+        <li data-es="Busca <strong>activamente</strong> más máquinas que infectar; cada máquina infectada se convierte en plataforma de lanzamiento para atacar a otras.">Actively <strong>seeks out</strong> more machines to infect; each infected machine becomes a launching pad to attack others.</li>
+        <li data-es="Explota vulnerabilidades de software en programas cliente o servidor; usa conexiones de red para saltar de sistema a sistema.">Exploits software vulnerabilities in client or server programs; uses network connections to spread system to system.</li>
+        <li data-es="También se propaga por medios compartidos (USB, CD/DVD) y por correo o mensajería (en macros/scripts adjuntos).">Also spreads via shared media (USB, CD/DVD) and via email or instant messenger (in attached macros/scripts).</li>
+        <li data-es="Al activarse, vuelve a replicarse y propagarse; normalmente lleva algún tipo de carga útil (payload).">On activation it replicates and propagates again; usually carries some form of payload.</li>
+      </ul>
+      <div class="callout discuss" style="margin-top:.8rem"><span class="tag" data-es="Virus vs. gusano">Virus vs. worm</span><p data-es="El virus es un <em>autoestopista</em>: necesita que ejecutes un anfitrión. El gusano es un <em>vehículo autopropulsado</em>: se mueve por la red sin ayuda humana. Por eso los gusanos pueden propagarse a escala mundial en minutos (recuerda WannaCry, más adelante).">A virus is a <em>hitchhiker</em>: it needs you to run a host. A worm is a <em>self-propelled vehicle</em>: it moves across the network with no human help. That's why worms can spread worldwide in minutes (recall WannaCry, later).</p></div>
+    </div>
+  </section>
+
+  <!-- S22 — Worm replication mechanisms (recreated table) -->
+  <section class="slide" data-section="Worms" data-section-es="Gusanos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Mecanismos de replicación"><span class="dot"></span>Replication mechanisms</span>
+      <h2 data-es="Cómo se copia un gusano de un sistema a otro">How a worm copies itself across systems</h2>
+      <table class="deftable">
+        <tr><td data-es="Correo / mensajería">Email / instant messenger</td><td data-es="El gusano se envía por correo a otros sistemas, o como adjunto vía un servicio de mensajería.">The worm e-mails a copy of itself to other systems, or sends itself as an attachment via an instant-message service.</td></tr>
+        <tr><td data-es="Compartición de archivos">File sharing</td><td data-es="Crea una copia de sí mismo o infecta un archivo (como un virus) en medios extraíbles.">Creates a copy of itself or infects a file (as a virus would) on removable media.</td></tr>
+        <tr><td data-es="Ejecución remota">Remote execution</td><td data-es="El gusano ejecuta una copia de sí mismo en otro sistema.">The worm executes a copy of itself on another system.</td></tr>
+        <tr><td data-es="Acceso/transferencia remota de archivos">Remote file access / transfer</td><td data-es="Usa un servicio de acceso o transferencia de archivos para copiarse de un sistema a otro.">Uses a remote file access or transfer service to copy itself from one system to another.</td></tr>
+        <tr><td data-es="Inicio de sesión remoto">Remote login</td><td data-es="Inicia sesión en un sistema remoto como usuario y usa comandos para copiarse a ese sistema.">Logs onto a remote system as a user, then uses commands to copy itself to that system.</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- S23 — Target discovery / scanning -->
+  <section class="slide" data-section="Worms" data-section-es="Gusanos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Descubrimiento de objetivos"><span class="dot"></span>Target discovery</span>
+      <h2 data-es="Escaneo: cómo el gusano encuentra nuevas víctimas">Scanning: how a worm finds new victims</h2>
+      <p data-es="El <strong>escaneo (fingerprinting)</strong> es la primera función de la fase de propagación de un gusano de red: busca otros sistemas que infectar. Existen cuatro estrategias de escaneo de direcciones:">Scanning (fingerprinting) is the first function of a network worm's propagation phase: it searches for other systems to infect. There are four address-scanning strategies:</p>
+      <div class="grid cols-2" style="margin-top:1rem">
+        <div class="card accent-top"><h3 data-es="Aleatorio">Random</h3><p data-es="Prueba direcciones IP al azar. Simple, pero ruidoso y desperdicia muchos intentos.">Tries random IP addresses. Simple, but noisy and wastes many attempts.</p></div>
+        <div class="card teal-top"><h3 data-es="Lista predefinida (hit-list)">Hit-list</h3><p data-es="Lleva una lista preconstruida de objetivos vulnerables para una propagación inicial muy rápida.">Carries a pre-built list of vulnerable targets for very fast initial spread.</p></div>
+        <div class="card good-top"><h3 data-es="Topológico">Topological</h3><p data-es="Usa información de la máquina ya infectada (libreta de contactos, hosts conocidos) para hallar el siguiente objetivo.">Uses information on the already-infected machine (address book, known hosts) to find the next target.</p></div>
+        <div class="card warn-top"><h3 data-es="Subred local">Local subnet</h3><p data-es="Se enfoca en máquinas de la misma red local, a menudo detrás del mismo firewall.">Focuses on machines in the same local network, often behind the same firewall.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== F. BOTNETS ===================== -->
+
+  <!-- S24 — Section divider -->
+  <section class="slide section" data-section="Botnets" data-section-es="Botnets">
+    <div class="slide-inner">
+      <div class="num">05</div>
+      <h1 data-es="Botnets">Botnets</h1>
+      <p class="lead" data-es="Un ejército de máquinas comprometidas a las órdenes de un «botmaster».">An army of compromised machines at the command of a "botmaster".</p>
+    </div>
+  </section>
+
+  <!-- S25 — What is a botnet -->
+  <section class="slide" data-section="Botnets" data-section-es="Botnets">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La plataforma de ataque"><span class="dot"></span>The attack platform</span>
+      <h2 data-es="Qué es una botnet">What a botnet is</h2>
+      <ul class="clean">
+        <li data-es="Un <strong>bot</strong> es una computadora comprometida bajo el control de un atacante.">A <strong>bot</strong> is a compromised computer under the control of an attacker.</li>
+        <li data-es="El código bot (malware) se comunica con el servidor del atacante y ejecuta actividades maliciosas según sus instrucciones.">The bot code (malware) communicates with the attacker's server and carries out malicious activities per the attacker's instructions.</li>
+        <li data-es="Una <strong>botnet</strong> es una red de bots controlada por un atacante para realizar actividades maliciosas coordinadas.">A <strong>botnet</strong> is a network of bots controlled by an attacker to perform coordinated malicious activities.</li>
+        <li data-es="Es la plataforma clave para la mayoría de los ataques y fraudes basados en Internet.">It is the key platform for most Internet-based attacks and frauds.</li>
+      </ul>
+      <div class="callout note" style="margin-top:.9rem"><span class="tag" data-es="Actualización">Update</span><p data-es="Caso moderno: <strong>Mirai</strong> (2016) reclutó cientos de miles de dispositivos IoT (cámaras, routers) con contraseñas por defecto y lanzó algunos de los mayores ataques DDoS de la historia. Hoy la mayor parte de la potencia de las botnets vive en dispositivos IoT mal protegidos.">Modern case: <strong>Mirai</strong> (2016) recruited hundreds of thousands of IoT devices (cameras, routers) with default passwords and launched some of the largest DDoS attacks in history. Today much botnet power lives in poorly secured IoT devices.</p></div>
+    </div>
+  </section>
+
+  <!-- S26 — Botnet attacks & frauds -->
+  <section class="slide" data-section="Botnets" data-section-es="Botnets">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Para qué se usan"><span class="dot"></span>What they're used for</span>
+      <h2 data-es="Ataques y fraudes con botnets">Attacks &amp; frauds by botnets</h2>
+      <div class="grid cols-3">
+        <div class="card warn-top"><h3 data-es="Spam">Spam</h3><p data-es="Envío masivo de correo no deseado desde miles de IPs distintas.">Mass-sending of unsolicited email from thousands of different IPs.</p></div>
+        <div class="card danger-top"><h3 data-es="DDoS">DDoS</h3><p data-es="Denegación de servicio distribuida — saturar a la víctima desde muchas máquinas.">Distributed Denial of Service — overwhelm the victim from many machines.</p></div>
+        <div class="card accent-top"><h3 data-es="Clickfraud">Click fraud</h3><p data-es="Generar clics falsos en anuncios para defraudar a las redes publicitarias.">Generating fake ad clicks to defraud advertising networks.</p></div>
+        <div class="card violet-top"><h3 data-es="Phishing &amp; Pharming">Phishing &amp; Pharming</h3><p data-es="Hospedar y distribuir páginas falsas para robar credenciales.">Hosting and distributing fake pages to steal credentials.</p></div>
+        <div class="card teal-top"><h3 data-es="Robo de datos / identidad">Data / identity theft</h3><p data-es="Registro de teclas (keylogging) y robo de datos personales.">Key logging and theft of personal data.</p></div>
+        <div class="card good-top"><h3 data-es="Más">More</h3><p data-es="Cracking de claves/contraseñas, trampas en juegos/encuestas online y comunicación anónima criminal.">Key/password cracking, cheating in online games/polls, and anonymized criminal communication.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S27 — DDoS using botnets (recreated diagram) -->
+  <section class="slide" data-section="Botnets" data-section-es="Botnets">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>DDoS con botnets"><span class="dot"></span>DDoS using botnets</span>
+      <h2 data-es="Un atacante, miles de cañones">One attacker, thousands of guns</h2>
+      <div class="ddos">
+        <div class="row">
+          <div class="dot-node att" data-es="Atac.">Att.</div><span class="lbl" data-es="Atacante / botmaster">Attacker / botmaster</span>
+        </div>
+        <div class="down">↓ ↓ ↓</div>
+        <div class="row">
+          <div class="dot-node bot">b1</div><div class="dot-node bot">b2</div><div class="dot-node bot">b3</div>
+          <span class="lbl">· · ·</span>
+          <div class="dot-node bot">bN</div><span class="lbl" data-es="Bots / zombies">Bots / zombies</span>
+        </div>
+        <div class="down" data-es="↓ SYN flood, etc. ↓">↓ SYN flood, etc. ↓</div>
+        <div class="row">
+          <div class="dot-node vic" data-es="Víc.">Vic.</div><span class="lbl" data-es="Víctima">Victim</span>
+        </div>
+      </div>
+      <div class="callout note" style="margin-top:.8rem"><span class="tag" data-es="Cómo">How</span><p data-es="El atacante ordena a todos los bots inundar simultáneamente a la víctima (p. ej. con un SYN flood). El tráfico viene de miles de IPs legítimas, por lo que es difícil bloquearlo sin cortar también a usuarios reales.">The attacker orders all bots to flood the victim simultaneously (e.g. a SYN flood). The traffic comes from thousands of legitimate IPs, so it's hard to block without also cutting off real users.</p></div>
+    </div>
+  </section>
+
+  <!-- S28 — DNS amplification (recreated diagram) -->
+  <section class="slide" data-section="Botnets" data-section-es="Botnets">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Amplificación: poco esfuerzo, gran daño"><span class="dot"></span>Amplification: little effort, big damage</span>
+      <h2 data-es="DDoS por amplificación de DNS">DNS-amplification DDoS</h2>
+      <div class="flow">
+        <div class="node breach"><span class="n-label accent" data-es="Atacante">Attacker</span><span class="n-sub" data-es="envía peticiones DNS pequeñas (~60 bytes) falsificando la IP de la víctima">sends small (~60 byte) DNS requests spoofing the victim's IP</span></div>
+        <div class="arrow">→</div>
+        <div class="node attack"><span class="n-label" style="color:var(--violet)" data-es="Servidores DNS recursivos abiertos">Open recursive DNS servers</span><span class="n-sub" data-es="cualquiera puede consultarlos; responden con registros grandes">anyone can query; they reply with large records</span></div>
+        <div class="arrow">→</div>
+        <div class="node good-node"><span class="n-label" style="color:var(--danger)" data-es="Víctima">Victim</span><span class="n-sub" data-es="recibe respuestas DNS enormes (1500+ bytes) que nunca pidió">gets huge DNS replies (1500+ bytes) it never asked for</span></div>
+      </div>
+      <div class="callout discuss" style="margin-top:1.1rem"><span class="tag" data-es="Por qué funciona">Why it works</span><p data-es="Una petición diminuta provoca una respuesta gigante: el «factor de amplificación» puede multiplicar el tráfico por 50× o más. El atacante apenas gasta ancho de banda, pero la víctima se ahoga. ¿La raíz del problema? Servidores DNS abiertos y la posibilidad de falsificar la IP de origen.">A tiny request triggers a giant reply: the "amplification factor" can multiply traffic 50× or more. The attacker spends almost no bandwidth, but the victim drowns. Root cause? Open DNS servers and the ability to spoof the source IP.</p></div>
+    </div>
+  </section>
+
+  <!-- S29 — C&C: the problem (recreated diagram) -->
+  <section class="slide" data-section="Botnets" data-section-es="Botnets">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Mando y control (C&amp;C)"><span class="dot"></span>Command and control (C&amp;C)</span>
+      <h2 data-es="Propagar es fácil — ¿pero cómo das órdenes?">Spreading is easy — but how do you give orders?</h2>
+      <div class="split">
+        <div class="card accent-top">
+          <h3 data-es="El plan ingenuo">The naive plan</h3>
+          <ul class="clean" style="margin-top:.5rem; gap:.4rem">
+            <li data-es="Creamos el malware (vx), lo compilamos y lo enviamos por correo / ingeniería social.">We build the malware (vx), compile it, and mail it via email / social engineering.</li>
+            <li data-es="Propagar es fácil… pero, ¿y si queremos <em>usar</em> las máquinas comprometidas?">Spreading is easy… but what if we want to <em>use</em> the compromised machines?</li>
+          </ul>
+        </div>
+        <div class="card danger-top">
+          <h3 data-es="Hay que dar órdenes">Orders are needed</h3>
+          <p data-es="Tiene que existir <strong>mando y control (C&amp;C)</strong> del botmaster a los bots. Por ejemplo: un bot reporta su estado, recibe la orden de descargar una actualización del código bot, o recibe instrucciones para spam/phish/DDoS.">There must be <strong>command &amp; control (C&amp;C)</strong> from the botmaster to the bots. For example: a bot reports its status, is told to download a botcode update, or receives instructions to spam/phish/DDoS.</p>
+        </div>
+      </div>
+      <div class="callout note" style="margin-top:.9rem"><span class="tag" data-es="La pregunta central">The core question</span><p data-es="Una vez infectadas miles de máquinas, ¿cómo les hablo sin delatarme y sin que cierren mi operación de un solo golpe? Esa es la pregunta que define el diseño del C&amp;C.">Once thousands of machines are infected, how do I talk to them without exposing myself and without letting them shut down my whole operation at once? That question defines C&amp;C design.</p></div>
+    </div>
+  </section>
+
+  <!-- S30 — C&C naive approaches & design -->
+  <section class="slide" data-section="Botnets" data-section-es="Botnets">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Enfoques ingenuos vs. diseño robusto"><span class="dot"></span>Naive approaches vs. robust design</span>
+      <h2 data-es="Por qué el C&amp;C es difícil de hacer bien">Why C&amp;C is hard to get right</h2>
+      <div class="split">
+        <div class="card danger-top">
+          <h3 data-es="Enfoques ingenuos (fallan)">Naive approaches (they fail)</h3>
+          <ul class="clean" style="margin-top:.5rem; gap:.35rem">
+            <li data-es="Que las víctimas nos contacten: el vx debe incluir <strong>nuestra dirección</strong> (no sigiloso).">Have victims contact us: the vx must include <strong>our address</strong> (not stealthy).</li>
+            <li data-es="Un único punto de reunión (no robusto) y dirección «quemada» en el código (no móvil).">A single rallying point (not robust) and a hard-coded address (not mobile).</li>
+            <li data-es="Contactar una sola IP/web/ping: fácil de derrotar (intervención del ISP, blackhole routing). Solo lo usan principiantes.">Contact a single IP/website/ping: easily defeated (ISP intervention, blackhole routing). Only used by beginners.</li>
+          </ul>
+        </div>
+        <div class="card good-top">
+          <h3 data-es="Buen diseño de C&amp;C">Good C&amp;C design</h3>
+          <ul class="clean" style="margin-top:.5rem; gap:.35rem">
+            <li data-es="<strong>Eficiente y fiable</strong>: alcanzar a un conjunto grande de bots dentro de un límite de tiempo."><strong>Efficient and reliable</strong>: reach a sizable set of bots within a time limit.</li>
+            <li data-es="<strong>Sigiloso</strong>: difícil de detectar; mezclado con el tráfico normal."><strong>Stealthy</strong>: hard to detect; blended with normal traffic.</li>
+            <li data-es="<strong>Resiliente</strong>: difícil de deshabilitar o bloquear."><strong>Resilient</strong>: hard to disable or block.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="callout note" style="margin-top:.8rem"><span class="tag" data-es="Hoy">Today</span><p data-es="Las botnets modernas logran resiliencia con C&amp;C <strong>peer-to-peer</strong> (sin servidor central) y con <strong>algoritmos de generación de dominios (DGA)</strong> que crean miles de dominios nuevos al día para evitar el bloqueo.">Modern botnets achieve resilience with <strong>peer-to-peer</strong> C&amp;C (no central server) and <strong>domain-generation algorithms (DGAs)</strong> that mint thousands of fresh domains per day to dodge blocking.</p></div>
+    </div>
+  </section>
+
+  <!-- S31 — Botnet debate -->
+  <section class="slide activity" data-section="Botnets" data-section-es="Botnets">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Debate">◆ Debate</span>
+      <h2 style="margin-top:1rem" data-es="¿Es un operador de botnets más peligroso que un autor de virus?">Is a botnet operator more dangerous than a virus writer?</h2>
+      <p class="lead" style="max-width:60ch" data-es="Un autor de virus libera código y lo pierde de vista. Un operador de botnets mantiene control directo y continuo sobre miles de máquinas. Discutan en parejas: ¿quién representa la mayor amenaza, y por qué?">A virus writer releases code and loses sight of it. A botnet operator keeps direct, ongoing control over thousands of machines. Discuss in pairs: who poses the greater threat, and why?</p>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Para guiar la discusión">To guide the discussion</span>
+        <p data-es="No hay respuesta única. El virus puede propagarse sin control y causar daño masivo no dirigido; la botnet ofrece <strong>control, flexibilidad y persistencia</strong> — puede re-usarse para spam hoy, DDoS mañana y minería de cripto la semana que viene, e incluso alquilarse a terceros (crimen como servicio). El control continuo suele ser lo que convierte el malware en un <em>negocio</em>.">There's no single answer. A virus can spread uncontrollably and cause massive untargeted harm; a botnet offers <strong>control, flexibility and persistence</strong> — reusable for spam today, DDoS tomorrow, crypto-mining next week, even rented out to third parties (crime-as-a-service). Ongoing control is often what turns malware into a <em>business</em>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== G. APTs ===================== -->
+
+  <!-- S32 — Section divider -->
+  <section class="slide section" data-section="APTs" data-section-es="APTs">
+    <div class="slide-inner">
+      <div class="num">06</div>
+      <h1 data-es="Amenazas Persistentes Avanzadas (APT)">Advanced Persistent Threats (APT)</h1>
+      <p class="lead" data-es="El depredador paciente: entra, espera y se mueve «despacio y por lo bajo».">The patient predator: it enters, waits, and moves low-and-slow.</p>
+    </div>
+  </section>
+
+  <!-- S33 — APT word by word -->
+  <section class="slide" data-section="APTs" data-section-es="APTs">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Descomponiendo el término"><span class="dot"></span>Breaking down the term</span>
+      <h2 data-es="Avanzada · Persistente · Amenaza">Advanced · Persistent · Threat</h2>
+      <div class="grid cols-3">
+        <div class="card accent-top"><span class="ico">🎯</span><h3 data-es="Avanzada">Advanced</h3><p data-es="Malware (especial) y operadores y operaciones especiales — recursos por encima del cibercrimen común.">(Special) malware and special operations and operators — resources beyond ordinary cybercrime.</p></div>
+        <div class="card warn-top"><span class="ico">⏳</span><h3 data-es="Persistente">Persistent</h3><p data-es="Presencia a largo plazo, en múltiples pasos, «low-and-slow» (despacio y por lo bajo).">Long-term presence, multi-step, "low-and-slow".</p></div>
+        <div class="card danger-top"><span class="ico">🏛️</span><h3 data-es="Amenaza">Threat</h3><p data-es="Dirigida a organizaciones e información de alto valor.">Targeted at high-value organizations and information.</p></div>
+      </div>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Diferencia clave">Key difference</span><p data-es="A diferencia del malware oportunista (que ataca a quien pille), una APT <strong>elige</strong> su objetivo y dedica meses o años. No busca cantidad; busca un objetivo concreto.">Unlike opportunistic malware (which attacks whoever it can), an APT <strong>chooses</strong> its target and invests months or years. It's not after volume; it's after one specific target.</p></div>
+    </div>
+  </section>
+
+  <!-- S34 — APT characteristics -->
+  <section class="slide" data-section="APTs" data-section-es="APTs">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Cómo operan"><span class="dot"></span>How they operate</span>
+      <h2 data-es="Características de una APT">Characteristics of an APT</h2>
+      <ul class="clean">
+        <li data-es="Atribuidas normalmente a organizaciones <strong>patrocinadas por estados</strong> o empresas criminales.">Typically attributed to <strong>state-sponsored</strong> organizations or criminal enterprises.</li>
+        <li data-es="Se distinguen por su cuidadosa <strong>selección de objetivos</strong> (de negocio o políticos).">Distinguished by their careful <strong>target selection</strong> (business or political).</li>
+        <li data-es="Usan <strong>ingeniería social</strong> para engañar incluso a usuarios sofisticados.">Use <strong>social engineering</strong> to trick even sophisticated users.</li>
+        <li data-es="Ejemplo: comprometen primero routers/servidores internos para conocer los objetivos valiosos; luego hacen <strong>man-in-the-middle (MITM)</strong> para que sus ataques de ingeniería social sean muy convincentes — incluso falsifican respuestas a las verificaciones de usuarios sospechosos.">Example: first compromise internal routers/servers to learn the valuable targets; then play <strong>man-in-the-middle (MITM)</strong> to make social-engineering attacks very convincing — even forging answers to suspicious users' challenges.</li>
+      </ul>
+      <div class="callout note" style="margin-top:.8rem"><span class="tag" data-es="Casos históricos">Historic cases</span><p data-es="Ataques de alto perfil: <strong>Operation Aurora, RSA, APT1 y Stuxnet</strong>.">High-profile attacks: <strong>Operation Aurora, RSA, APT1 and Stuxnet</strong>.</p></div>
+    </div>
+  </section>
+
+  <!-- S35 — Low-and-slow + lateral movement -->
+  <section class="slide" data-section="APTs" data-section-es="APTs">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>«Low-and-slow» y movimiento lateral"><span class="dot"></span>Low-and-slow &amp; lateral movement</span>
+      <h2 data-es="Mezclarse del todo con la actividad normal">Blending completely into normal activity</h2>
+      <div class="split">
+        <div class="card warn-top">
+          <h3 data-es="Low-and-slow (despacio y por lo bajo)">Low-and-slow</h3>
+          <p data-es="Realiza su misión —manipulación o exfiltración de datos— de forma lenta para mezclarse con la actividad normal.">Carries out its mission — data tampering or exfiltration — slowly to blend with normal activity.</p>
+          <ul class="clean" style="margin-top:.5rem; gap:.35rem">
+            <li data-es="Actúa solo cuando el usuario objetivo redacta y envía un documento.">Acts only when the target user is authoring and sending a document.</li>
+            <li data-es="Hace cambios pequeños e incrementales repetidos para alcanzar el objetivo final.">Makes repeated small incremental changes to reach the eventual goal.</li>
+            <li data-es="No es una anomalía detectable por los enfoques existentes.">Not a detectable anomaly for existing approaches.</li>
+          </ul>
+        </div>
+        <div class="card violet-top">
+          <h3 data-es="Operación persistente y multipaso">Persistent, multi-step operation</h3>
+          <p data-es="Una APT es una operación persistente con múltiples pasos deliberados a lo largo del tiempo, no un único acto de ataque.">An APT is a persistent operation involving multiple deliberate steps over time, rather than a single attack act.</p>
+          <ul class="clean" style="margin-top:.5rem; gap:.35rem">
+            <li data-es="Emplea una combinación de pasos para <strong>moverse lateralmente</strong> por la red.">Employs a combination of steps to <strong>move laterally</strong> through the network.</li>
+            <li data-es="Apunta solo a los sistemas y usuarios necesarios en cada paso del ataque.">Targets only the necessary systems and users at each attack step.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S36 — Modern APT landscape (modernize) -->
+  <section class="slide" data-section="APTs" data-section-es="APTs">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Hoy en día"><span class="dot"></span>Today's landscape</span>
+      <h2 data-es="APTs modernas: nombres y casos canónicos">Modern APTs: canonical names &amp; cases</h2>
+      <div class="grid cols-2">
+        <div class="card danger-top">
+          <h3 data-es="Stuxnet (2010)">Stuxnet (2010)</h3>
+          <p data-es="El ataque canónico de un estado-nación contra sistemas de control industrial (ICS): saboteó centrifugadoras de enriquecimiento de uranio. Cruzó del mundo digital al físico.">The canonical nation-state attack on industrial control systems (ICS): it sabotaged uranium-enrichment centrifuges. It crossed from the digital world into the physical.</p>
+        </div>
+        <div class="card violet-top">
+          <h3 data-es="Pegasus (NSO Group)">Pegasus (NSO Group)</h3>
+          <p data-es="Implante de spyware dirigido para móviles: infecta teléfonos (a veces con «zero-click») para vigilar a periodistas, activistas y funcionarios. El equivalente moderno y comercial del implante a medida.">A targeted mobile spyware implant: infects phones (sometimes "zero-click") to surveil journalists, activists and officials. The modern, commercial equivalent of the bespoke implant.</p>
+        </div>
+      </div>
+      <div class="callout note" style="margin-top:.9rem"><span class="tag" data-es="Nomenclatura actual">Naming today</span><p data-es="A los grupos APT se les asignan nombres en clave: <strong>APT28 / APT29</strong> (vinculados a Rusia), <strong>Lazarus</strong> (vinculado a Corea del Norte), entre otros. Cada proveedor de seguridad usa su propio esquema de nombres para el mismo grupo.">APT groups are given code names: <strong>APT28 / APT29</strong> (linked to Russia), <strong>Lazarus</strong> (linked to North Korea), among others. Each security vendor uses its own naming scheme for the same group.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== H. RANSOMWARE (modernize) ===================== -->
+
+  <!-- S37 — Section divider -->
+  <section class="slide section" data-section="Ransomware" data-section-es="Ransomware">
+    <div class="slide-inner">
+      <div class="num">07</div>
+      <h1 data-es="Ransomware">Ransomware</h1>
+      <p class="lead" data-es="La amenaza de malware dominante de la última década — ausente del material original.">The dominant malware threat of the last decade — absent from the original material.</p>
+    </div>
+  </section>
+
+  <!-- S38 — How ransomware works -->
+  <section class="slide" data-section="Ransomware" data-section-es="Ransomware">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Secuestrar para cobrar rescate"><span class="dot"></span>Hostage-taking for profit</span>
+      <h2 data-es="Cómo funciona el ransomware">How ransomware works</h2>
+      <div class="flow">
+        <div class="node breach"><span class="n-label accent" data-es="1 · Acceso">1 · Access</span><span class="n-sub" data-es="phishing, RDP expuesto, o explotación de una vulnerabilidad">phishing, exposed RDP, or exploiting a vulnerability</span></div>
+        <div class="arrow">→</div>
+        <div class="node attack"><span class="n-label" style="color:var(--violet)" data-es="2 · Cifrado">2 · Encrypt</span><span class="n-sub" data-es="cifra los archivos de la víctima con una clave que solo tiene el atacante">encrypts the victim's files with a key only the attacker holds</span></div>
+        <div class="arrow">→</div>
+        <div class="node good-node"><span class="n-label" style="color:var(--danger)" data-es="3 · Rescate">3 · Ransom</span><span class="n-sub" data-es="exige un pago (cripto) a cambio de la clave de descifrado">demands a (crypto) payment in exchange for the decryption key</span></div>
+      </div>
+      <div class="callout note" style="margin-top:1.1rem"><span class="tag" data-es="Modelo de negocio">Business model</span><p data-es="<strong>Ransomware como Servicio (RaaS)</strong>: los desarrolladores alquilan el ransomware a «afiliados» que llevan a cabo los ataques y reparten las ganancias. Esto industrializó el crimen y bajó la barrera técnica de entrada."><strong>Ransomware-as-a-Service (RaaS)</strong>: developers rent the ransomware to "affiliates" who carry out the attacks and split the profits. This industrialized the crime and lowered the technical barrier to entry.</p></div>
+    </div>
+  </section>
+
+  <!-- S39 — Double/triple extortion -->
+  <section class="slide" data-section="Ransomware" data-section-es="Ransomware">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La extorsión escala"><span class="dot"></span>Extortion escalates</span>
+      <h2 data-es="Extorsión doble y triple">Double &amp; triple extortion</h2>
+      <div class="grid cols-3">
+        <div class="card accent-top"><h3 data-es="Sencilla">Single</h3><p data-es="Solo cifran tus archivos. Si tienes copias de seguridad, restauras y no pagas.">They just encrypt your files. If you have backups, you restore and don't pay.</p></div>
+        <div class="card warn-top"><h3 data-es="Doble">Double</h3><p data-es="Antes de cifrar, <strong>exfiltran</strong> los datos. Si no pagas, los publican en un «leak-site». Las copias de seguridad ya no te salvan.">Before encrypting, they <strong>exfiltrate</strong> the data. If you don't pay, they publish it on a leak-site. Backups no longer save you.</p></div>
+        <div class="card danger-top"><h3 data-es="Triple">Triple</h3><p data-es="Añaden presión extra: DDoS contra la víctima, o amenazas/contacto directo a sus clientes y socios.">Add extra pressure: DDoS against the victim, or threats/direct contact to its customers and partners.</p></div>
+      </div>
+      <div class="callout discuss" style="margin-top:.9rem"><span class="tag" data-es="Por qué importa">Why it matters</span><p data-es="La extorsión doble cambió las reglas: ya no basta con tener buenas copias de seguridad, porque el atacante también te amenaza con <em>filtrar</em> tus datos. La prevención (no dejarlos entrar) vuelve a ser lo primero.">Double extortion changed the rules: good backups are no longer enough, because the attacker also threatens to <em>leak</em> your data. Prevention (keeping them out) becomes paramount again.</p></div>
+    </div>
+  </section>
+
+  <!-- S40 — Ransomware examples timeline -->
+  <section class="slide" data-section="Ransomware" data-section-es="Ransomware">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Casos que definieron la década"><span class="dot"></span>Cases that defined the decade</span>
+      <h2 data-es="Ransomware: ejemplos importantes">Ransomware: major examples</h2>
+      <div class="tl">
+        <div class="ev danger-ev"><span class="yr">2017</span><span data-es="<strong>WannaCry</strong> — gusano de ransomware que usó el exploit <em>EternalBlue</em>; se propagó a escala mundial en horas."><strong>WannaCry</strong> — a ransomware worm that used the <em>EternalBlue</em> exploit; spread worldwide in hours.</span></div>
+        <div class="ev danger-ev"><span class="yr">2017</span><span data-es="<strong>NotPetya</strong> — disfrazado de ransomware, en realidad era un <em>wiper</em> (destructor): nunca pretendió descifrar nada."><strong>NotPetya</strong> — disguised as ransomware, it was really a <em>wiper</em>: it never intended to decrypt anything.</span></div>
+        <div class="ev"><span class="yr">2018+</span><span data-es="<strong>Ryuk</strong> — dirigido a grandes organizaciones con rescates altos («big game hunting»)."><strong>Ryuk</strong> — targeted large organizations with high ransoms ("big game hunting").</span></div>
+        <div class="ev"><span class="yr">2020+</span><span data-es="<strong>Conti</strong> y <strong>LockBit</strong> — grandes operaciones RaaS con sitios de filtración (leak-sites)."><strong>Conti</strong> and <strong>LockBit</strong> — large RaaS operations with leak-sites.</span></div>
+        <div class="ev"><span class="yr">2023+</span><span data-es="<strong>Clop</strong> — explotó vulnerabilidades de transferencia de archivos (p. ej. MOVEit) para extorsión masiva."><strong>Clop</strong> — exploited file-transfer vulnerabilities (e.g. MOVEit) for mass extortion.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S41 — Ransomware debate -->
+  <section class="slide activity" data-section="Ransomware" data-section-es="Ransomware">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Debate · Pagar o no pagar">◆ Debate · To pay or not to pay</span>
+      <h2 style="margin-top:1rem" data-es="¿Deberían las víctimas de ransomware pagar el rescate?">Should ransomware victims pay the ransom?</h2>
+      <p class="lead" style="max-width:60ch" data-es="Un hospital tiene sus sistemas cifrados; hay vidas en juego y las copias de seguridad fallaron. ¿Pagan? Argumenten ambos lados.">A hospital has its systems encrypted; lives are at stake and the backups failed. Do they pay? Argue both sides.</p>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Puntos para el debate">Points for the debate</span>
+        <p data-es="<strong>En contra de pagar:</strong> financia y motiva más ataques; no hay garantía de recuperar los datos; puede ser ilegal si el grupo está sancionado. <strong>A favor:</strong> a veces es la única vía rápida para restaurar servicios críticos. <strong>Consenso de los expertos:</strong> evítalo siempre que sea posible — invierte en <em>prevención, copias de seguridad sin conexión y un plan de respuesta a incidentes</em> para no tener que enfrentarte nunca a esa decisión."><strong>Against paying:</strong> it funds and motivates more attacks; no guarantee you get the data back; it may be illegal if the group is sanctioned. <strong>For:</strong> sometimes it's the only fast way to restore critical services. <strong>Expert consensus:</strong> avoid it whenever possible — invest in <em>prevention, offline backups and an incident-response plan</em> so you never face the decision.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== I. MODERN TECHNIQUES (modernize) ===================== -->
+
+  <!-- S42 — Section divider -->
+  <section class="slide section" data-section="Modern threats" data-section-es="Amenazas modernas">
+    <div class="slide-inner">
+      <div class="num">08</div>
+      <h1 data-es="Técnicas de malware modernas">Modern malware techniques</h1>
+      <p class="lead" data-es="Cómo el malware actual evade el antivirus tradicional.">How today's malware evades traditional anti-virus.</p>
+    </div>
+  </section>
+
+  <!-- S43 — Fileless / LOLBins -->
+  <section class="slide" data-section="Modern threats" data-section-es="Amenazas modernas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Malware sin archivos"><span class="dot"></span>Fileless malware</span>
+      <h2 data-es="Vivir de la tierra (living-off-the-land)">Living off the land</h2>
+      <ul class="clean">
+        <li data-es="El malware <strong>sin archivos (fileless)</strong> no deja un ejecutable en disco: vive <strong>en memoria</strong>.">Fileless malware leaves no executable on disk: it lives <strong>in memory</strong>.</li>
+        <li data-es="Abusa de herramientas legítimas del sistema — <strong>LOLBins</strong> (PowerShell, WMI, <code>certutil</code>) — para realizar acciones maliciosas.">Abuses legitimate system tools — <strong>LOLBins</strong> (PowerShell, WMI, <code>certutil</code>) — to perform malicious actions.</li>
+        <li data-es="Como no hay archivo que escanear, <strong>evade la detección basada en firmas</strong>.">Because there's no file to scan, it <strong>evades signature-based detection</strong>.</li>
+      </ul>
+      <div class="callout note" style="margin-top:.9rem"><span class="tag" data-es="Conexión">Link</span><p data-es="Esto es exactamente lo que motiva el paso del antivirus por firmas al <strong>EDR</strong> (detección y respuesta en el endpoint): si no puedes detectar el <em>archivo</em>, tienes que detectar el <em>comportamiento</em>. Lo veremos en la sección de defensas.">This is exactly what drives the shift from signature AV to <strong>EDR</strong> (endpoint detection &amp; response): if you can't catch the <em>file</em>, you must catch the <em>behavior</em>. We'll see this in the defenses section.</p></div>
+    </div>
+  </section>
+
+  <!-- S44 — Supply-chain malware -->
+  <section class="slide" data-section="Modern threats" data-section-es="Amenazas modernas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Malware de cadena de suministro"><span class="dot"></span>Supply-chain malware</span>
+      <h2 data-es="Envenenar la fuente, no la víctima">Poison the source, not the victim</h2>
+      <p data-es="En lugar de atacar a cada víctima, el atacante compromete un <strong>componente de confianza</strong> (una actualización, una librería) que muchas víctimas instalan voluntariamente.">Instead of attacking each victim, the attacker compromises a <strong>trusted component</strong> (an update, a library) that many victims install willingly.</p>
+      <div class="grid cols-3" style="margin-top:1rem">
+        <div class="card danger-top"><h3 data-es="SolarWinds / SUNBURST (2020)">SolarWinds / SUNBURST (2020)</h3><p data-es="Una actualización troyanizada de software de gestión de red llegó a miles de organizaciones, incluidas agencias gubernamentales.">A trojanized network-management software update reached thousands of organizations, including government agencies.</p></div>
+        <div class="card warn-top"><h3 data-es="XZ Utils (2024)">XZ Utils (2024)</h3><p data-es="Una puerta trasera (backdoor) insertada sigilosamente en una librería de compresión de Linux, casi llega a producción mundial.">A backdoor stealthily inserted into a Linux compression library, nearly reaching worldwide production.</p></div>
+        <div class="card violet-top"><h3 data-es="Paquetes npm / PyPI">npm / PyPI packages</h3><p data-es="Envenenamiento de paquetes: subir librerías maliciosas o secuestrar las populares para infectar a quien las instale.">Package poisoning: uploading malicious libraries or hijacking popular ones to infect whoever installs them.</p></div>
+      </div>
+      <div class="callout note" style="margin-top:.9rem"><span class="tag" data-es="Conexión con la Semana 3">Link to Week 3</span><p data-es="Es tan grave que el <strong>OWASP Top 10:2025</strong> añadió una categoría nueva: «Software Supply Chain Failures» (fallos en la cadena de suministro de software).">It's so serious that the <strong>OWASP Top 10:2025</strong> added a new category: "Software Supply Chain Failures".</p></div>
+    </div>
+  </section>
+
+  <!-- S45 — Other modern types -->
+  <section class="slide" data-section="Modern threats" data-section-es="Amenazas modernas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El zoológico moderno"><span class="dot"></span>The modern zoo</span>
+      <h2 data-es="Otros tipos que hay que conocer">Other types worth knowing</h2>
+      <div class="grid cols-2">
+        <div class="card accent-top"><h3 data-es="Info-stealers">Info-stealers</h3><p data-es="Roban contraseñas guardadas, cookies de sesión, carteras de criptomonedas y datos del navegador. Combustible del crimen como servicio.">Steal saved passwords, session cookies, crypto wallets and browser data. Fuel for crime-as-a-service.</p></div>
+        <div class="card teal-top"><h3 data-es="Loaders / droppers">Loaders / droppers</h3><p data-es="Su único trabajo es lograr el primer acceso y luego <em>descargar e instalar</em> el malware principal (ransomware, stealer…).">Their only job is to gain the first foothold and then <em>download and install</em> the main malware (ransomware, stealer…).</p></div>
+        <div class="card warn-top"><h3 data-es="Cryptojacking">Cryptojacking</h3><p data-es="Secuestra silenciosamente la CPU/GPU de la víctima para minar criptomonedas en beneficio del atacante.">Silently hijacks the victim's CPU/GPU to mine cryptocurrency for the attacker.</p></div>
+        <div class="card violet-top"><h3 data-es="Botnets de IoT">IoT botnets</h3><p data-es="Mirai (2016) y sus sucesores reclutan dispositivos IoT inseguros para ataques DDoS masivos.">Mirai (2016) and its successors recruit insecure IoT devices for massive DDoS attacks.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== J. LESSER-KNOWN & UNINTENTIONAL ===================== -->
+
+  <!-- S46 — Lesser-known malware -->
+  <section class="slide" data-section="Other threats" data-section-es="Otras amenazas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Malware menos conocido"><span class="dot"></span>Lesser-known malware</span>
+      <h2 data-es="Cuatro técnicas más sutiles">Four subtler techniques</h2>
+      <div class="grid cols-2">
+        <div class="card violet-top"><h3 data-es="Clickjacking">Clickjacking</h3><p data-es="Recoge los clics de un usuario infectado usando capas transparentes u opacas para que crea que pulsa una cosa cuando pulsa otra. También puede secuestrar pulsaciones de teclado.">Collects an infected user's clicks using transparent or opaque layers so they think they click one thing while clicking another. Keystrokes can also be hijacked.</p></div>
+        <div class="card warn-top"><h3 data-es="Malvertising">Malvertising</h3><p data-es="Coloca malware en sitios web sin comprometerlos: el atacante paga anuncios que probablemente aparecerán en los sitios objetivo e incrusta malware en ellos. Difícil de rastrear.">Places malware on websites without compromising them: the attacker pays for ads likely to appear on target sites and embeds malware in them. Hard to track.</p></div>
+        <div class="card danger-top"><h3 data-es="Drive-by-downloads">Drive-by downloads</h3><p data-es="Explota vulnerabilidades del navegador/plugins: con solo visitar una página controlada por el atacante se descarga e instala malware sin el conocimiento del usuario. No se propaga solo como un gusano.">Exploits browser/plugin vulnerabilities: merely viewing an attacker-controlled page downloads and installs malware without the user's knowledge. Doesn't self-propagate like a worm.</p></div>
+        <div class="card accent-top"><h3 data-es="Watering-hole">Watering-hole</h3><p data-es="Variante dirigida del drive-by: el atacante compromete un sitio que su víctima objetivo suele visitar y espera. El código puede infectar solo a los sistemas de la organización objetivo.">A targeted drive-by variant: the attacker compromises a site the target victim is likely to visit, then waits. The code may infect only the target organization's systems.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S47 — Unintentional threats -->
+  <section class="slide" data-section="Other threats" data-section-es="Otras amenazas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Y, por último…"><span class="dot"></span>And finally…</span>
+      <h2 data-es="Amenazas no intencionadas">Unintentional threats</h2>
+      <p data-es="No todo riesgo es un atacante. Estas amenazas no son malware, pero comprometen la confidencialidad, integridad o disponibilidad — exactamente lo que protege la seguridad de la información.">Not every risk is an attacker. These threats aren't malware, but they compromise confidentiality, integrity or availability — exactly what information security protects.</p>
+      <div class="grid cols-3" style="margin-top:1rem">
+        <div class="card teal-top"><p data-es="Fallo de equipos">Equipment malfunction</p></div>
+        <div class="card teal-top"><p data-es="Fallo de software">Software malfunction</p></div>
+        <div class="card teal-top"><p data-es="Error de usuario">User error</p></div>
+        <div class="card teal-top"><p data-es="Fallo de los servicios de comunicación">Failure of communication services</p></div>
+        <div class="card teal-top"><p data-es="Fallo al externalizar operaciones">Failure to outsource operations</p></div>
+        <div class="card teal-top"><p data-es="Pérdida o ausencia de personal clave">Loss / absence of key personnel</p></div>
+        <div class="card teal-top"><p data-es="Mal enrutamiento de mensajes">Misrouting of messages</p></div>
+        <div class="card teal-top"><p data-es="Desastres naturales">Natural disasters</p></div>
+        <div class="card teal-top"><p data-es="Condiciones ambientales">Environmental conditions</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== K. COUNTERMEASURES ===================== -->
+
+  <!-- S48 — Section divider -->
+  <section class="slide section" data-section="Countermeasures" data-section-es="Contramedidas">
+    <div class="slide-inner">
+      <div class="num">09</div>
+      <h1 data-es="Contramedidas">Countermeasures</h1>
+      <p class="lead" data-es="La solución ideal es la prevención; cuando falla, detectar, identificar y eliminar.">The ideal solution is prevention; when it fails, detect, identify and remove.</p>
+    </div>
+  </section>
+
+  <!-- S49 — Prevention -->
+  <section class="slide" data-section="Countermeasures" data-section-es="Contramedidas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La solución ideal: prevenir"><span class="dot"></span>The ideal solution: prevent</span>
+      <h2 data-es="Cuatro elementos de la prevención">Four elements of prevention</h2>
+      <div class="grid cols-2">
+        <div class="card accent-top"><span class="ico">📜</span><h3 data-es="Política">Policy</h3><p data-es="Reglas claras sobre software permitido, dispositivos, descargas y privilegios.">Clear rules on permitted software, devices, downloads and privileges.</p></div>
+        <div class="card teal-top"><span class="ico">🎓</span><h3 data-es="Concienciación">Awareness</h3><p data-es="Formar a los usuarios: el eslabón humano es el vector de entrada más común.">Train users: the human link is the most common entry vector.</p></div>
+        <div class="card good-top"><span class="ico">🩹</span><h3 data-es="Mitigación de vulnerabilidades">Vulnerability mitigation</h3><p data-es="Parchear, endurecer (hardening) y reducir la superficie de ataque.">Patch, harden and reduce the attack surface.</p></div>
+        <div class="card warn-top"><span class="ico">🚧</span><h3 data-es="Mitigación de amenazas">Threat mitigation</h3><p data-es="Controles que limitan el daño aunque la prevención falle parcialmente.">Controls that limit damage even if prevention partially fails.</p></div>
+      </div>
+      <div class="callout note" style="margin-top:.9rem"><span class="tag" data-es="Si la prevención falla">If prevention fails</span><p data-es="Se recurre a mecanismos técnicos que apoyan tres opciones de mitigación: <strong>detección</strong> (¿hay una infección?), <strong>identificación</strong> (¿qué malware es?) y <strong>eliminación</strong> (quitarlo y restaurar).">Fall back on technical mechanisms supporting three mitigation options: <strong>detection</strong> (is there an infection?), <strong>identification</strong> (which malware is it?) and <strong>removal</strong> (remove it and restore).</p></div>
+    </div>
+  </section>
+
+  <!-- S50 — AV generations -->
+  <section class="slide" data-section="Countermeasures" data-section-es="Contramedidas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La evolución del antivirus"><span class="dot"></span>The evolution of anti-virus</span>
+      <h2 data-es="Cuatro generaciones de antivirus">Four generations of anti-virus</h2>
+      <div class="grid cols-2">
+        <div class="card accent-top"><h3 data-es="1.ª · Escáneres simples">1st · Simple scanners</h3><p data-es="Requieren una firma (signature) del malware. Solo detectan malware ya conocido.">Require a malware signature. Limited to detecting known malware.</p></div>
+        <div class="card teal-top"><h3 data-es="2.ª · Escáneres heurísticos">2nd · Heuristic scanners</h3><p data-es="Usan reglas heurísticas para hallar instancias probables de malware. También: comprobación de integridad.">Use heuristic rules to find probable malware. Also: integrity checking.</p></div>
+        <div class="card warn-top"><h3 data-es="3.ª · Trampas de actividad">3rd · Activity traps</h3><p data-es="Programas residentes en memoria que identifican el malware por sus <em>acciones</em>, no por su estructura.">Memory-resident programs that identify malware by its <em>actions</em>, not its structure.</p></div>
+        <div class="card good-top"><h3 data-es="4.ª · Protección completa">4th · Full-featured</h3><p data-es="Paquetes que combinan varias técnicas: escaneo, trampas de actividad y control de acceso.">Packages combining several techniques: scanning, activity traps and access control.</p></div>
+      </div>
+      <div class="callout note" style="margin-top:.9rem"><span class="tag" data-es="La continuación moderna">Modern continuation</span><p data-es="Hoy la protección del endpoint continúa esa línea con <strong>EDR/XDR</strong> (detección y respuesta en el endpoint / extendida), detección por <strong>comportamiento + ML/IA</strong> e <strong>inteligencia de amenazas</strong>. El estándar para describir las técnicas del adversario es <strong>MITRE ATT&amp;CK</strong>.">Today endpoint protection continues that line with <strong>EDR/XDR</strong> (endpoint / extended detection &amp; response), <strong>behavior + ML/AI</strong> detection and <strong>threat intelligence</strong>. The standard for describing adversary techniques is <strong>MITRE ATT&amp;CK</strong>.</p></div>
+    </div>
+  </section>
+
+  <!-- S51 — Signatures → EDR/XDR -->
+  <section class="slide" data-section="Countermeasures" data-section-es="Contramedidas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>De firmas a comportamiento"><span class="dot"></span>From signatures to behavior</span>
+      <h2 data-es="Defensa de hoy: EDR / XDR y detección por ML">Today's defense: EDR / XDR &amp; ML detection</h2>
+      <div class="flow">
+        <div class="node breach"><span class="n-label accent" data-es="Firmas (AV clásico)">Signatures (classic AV)</span><span class="n-sub" data-es="reconoce malware conocido; ciego ante lo nuevo y lo «fileless»">catches known malware; blind to novel and fileless threats</span></div>
+        <div class="arrow">→</div>
+        <div class="node attack"><span class="n-label" style="color:var(--violet)" data-es="EDR / XDR">EDR / XDR</span><span class="n-sub" data-es="vigila el comportamiento del endpoint en tiempo real y permite responder">watches endpoint behavior in real time and enables response</span></div>
+        <div class="arrow">→</div>
+        <div class="node good-node"><span class="n-label good" data-es="ML / IA + inteligencia de amenazas">ML / AI + threat intel</span><span class="n-sub" data-es="detecta patrones anómalos; se actualiza con indicadores compartidos">spots anomalous patterns; updated with shared indicators</span></div>
+      </div>
+      <div class="callout discuss" style="margin-top:1.1rem"><span class="tag" data-es="Compromiso del ML">ML trade-off</span><p data-es="La detección por ML capta amenazas nuevas sin firma, pero a costa de <strong>más falsos positivos</strong>: puede marcar software legítimo como malicioso. Demasiadas alertas falsas agotan al equipo de seguridad — el clásico problema del «que viene el lobo».">ML detection catches novel, signatureless threats, but at the cost of <strong>more false positives</strong>: it may flag legitimate software as malicious. Too many false alarms exhaust the security team — the classic "cry wolf" problem.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== L. MALWARE ANALYSIS ===================== -->
+
+  <!-- S52 — Section divider -->
+  <section class="slide section" data-section="Malware analysis" data-section-es="Análisis de malware">
+    <div class="slide-inner">
+      <div class="num">10</div>
+      <h1 data-es="Análisis de malware">Malware analysis</h1>
+      <p class="lead" data-es="Para defender, primero hay que entender qué hace el malware.">To defend, you first have to understand what the malware does.</p>
+    </div>
+  </section>
+
+  <!-- S53 — Static vs dynamic -->
+  <section class="slide" data-section="Malware analysis" data-section-es="Análisis de malware">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Dos enfoques"><span class="dot"></span>Two approaches</span>
+      <h2 data-es="Análisis estático vs. dinámico">Static vs. dynamic analysis</h2>
+      <p data-es="El objetivo del análisis es producir información para la <strong>detección y la respuesta</strong>.">The goal of analysis is to produce information for <strong>detection and response</strong>.</p>
+      <div class="split" style="margin-top:1rem">
+        <div class="card accent-top">
+          <h3 data-es="Análisis estático">Static analysis</h3>
+          <p data-es="Intenta entender qué <em>haría</em> una instancia de malware si se ejecutara — <strong>sin ejecutarla</strong>. Se inspecciona el código.">Tries to understand what a malware instance <em>would</em> do if executed — <strong>without running it</strong>. The code is inspected.</p>
+        </div>
+        <div class="card warn-top">
+          <h3 data-es="Análisis dinámico">Dynamic analysis</h3>
+          <p data-es="Intenta entender qué hace un programa <strong>al ejecutarlo</strong>. Con distinta granularidad:">Tries to understand what a program does <strong>when executed</strong>. At different granularities:</p>
+          <ul class="clean" style="margin-top:.5rem; gap:.3rem">
+            <li data-es="Fina (p. ej. desempaquetado automático).">Fine-grained (e.g. automated unpacking).</li>
+            <li data-es="Gruesa (p. ej. trazado de llamadas al sistema).">Coarse-grained (e.g. system-call tracing).</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S54 — Obfuscation / packing / unpacking -->
+  <section class="slide" data-section="Malware analysis" data-section-es="Análisis de malware">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Ofuscación y empaquetado"><span class="dot"></span>Obfuscation &amp; packing</span>
+      <h2 data-es="Packing y unpacking: la guerra de la ofuscación">Packing &amp; unpacking: the obfuscation war</h2>
+      <div class="split">
+        <div class="card danger-top">
+          <h3 data-es="Packing (empaquetado)">Packing</h3>
+          <p data-es="Técnica que comprime, cifra o transforma partes (o todo) de un ejecutable. El código que <em>revierte</em> la transformación se incluye dentro del propio ejecutable, listo para ejecutarse.">A technique that compresses, encrypts or transforms part or all of an executable. The code that <em>reverses</em> the transformation is included inside the executable itself, ready to run.</p>
+        </div>
+        <div class="card good-top">
+          <h3 data-es="Unpacking (desempaquetado)">Unpacking</h3>
+          <p data-es="Casi todo el malware moderno viene empaquetado; hay miles de packers. El volumen hace inviable el desempaquetado manual.">Almost all modern malware comes packed; there are thousands of packers. The volume makes manual unpacking untenable.</p>
+          <ul class="clean" style="margin-top:.5rem; gap:.3rem">
+            <li data-es="Se necesita desempaquetado automático sin conocimiento previo.">Automated unpacking that needs no a-priori knowledge is required.</li>
+            <li data-es="Algoritmos universales basados en trazado fino: detectan la ejecución de código que no estaba en el modelo estático del programa empaquetado.">Fine-grained tracing-based universal algorithms: detect execution of code not in the packed program's static model.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S55 — Sandbox + behavior blocking -->
+  <section class="slide" data-section="Malware analysis" data-section-es="Análisis de malware">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Ejecutar de forma segura, bloquear en tiempo real"><span class="dot"></span>Run it safely, block it live</span>
+      <h2 data-es="Análisis en sandbox y bloqueo de comportamiento">Sandbox analysis &amp; behavior-blocking</h2>
+      <div class="split">
+        <div class="card accent-top">
+          <h3 data-es="Análisis en sandbox">Sandbox analysis</h3>
+          <p data-es="Ejecutar código potencialmente malicioso en un sandbox emulado o una máquina virtual: un entorno controlado donde se observa su comportamiento sin amenazar a un sistema real.">Run potentially malicious code in an emulated sandbox or virtual machine: a controlled environment where its behavior is observed without threatening a real system.</p>
+          <p data-es="Permite detectar malware complejo: cifrado, polimórfico o metamórfico." style="margin-top:.5rem;color:var(--ink-soft)">Enables detection of complex malware: encrypted, polymorphic or metamorphic.</p>
+        </div>
+        <div class="card warn-top">
+          <h3 data-es="Bloqueo de comportamiento (host-based)">Host-based behavior-blocking</h3>
+          <p data-es="Se integra con el SO del host y monitoriza el comportamiento de los programas en tiempo real, bloqueando acciones potencialmente maliciosas antes de que afecten al sistema. Ventaja sobre las firmas/heurística.">Integrates with the host OS and monitors program behavior in real time, blocking potentially malicious actions before they affect the system. An advantage over signatures/heuristics.</p>
+        </div>
+      </div>
+      <div class="callout note" style="margin-top:.8rem"><span class="tag" data-es="Limitación">Limitation</span><p data-es="Como el código malicioso <strong>debe ejecutarse</strong> en la máquina objetivo para revelar todos sus comportamientos, puede causar daño <em>antes</em> de ser detectado y bloqueado. Por eso la prevención sigue siendo la primera línea.">Because malicious code <strong>must run</strong> on the target machine before all its behaviors can be identified, it can cause harm <em>before</em> being detected and blocked. That's why prevention remains the first line.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== M. WRAP-UP ===================== -->
+
+  <!-- S56 — Summary -->
+  <section class="slide" data-section="Wrap-up" data-section-es="Cierre">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Para llevarse a casa"><span class="dot"></span>Takeaways</span>
+      <h2 data-es="Resumen en una diapositiva">Summary in one slide</h2>
+      <ul class="clean">
+        <li data-es="Hay muchísimas variedades de código malicioso — se clasifican por si necesitan anfitrión y por si se replican.">There are very many varieties of malicious code — classified by whether they need a host and whether they replicate.</li>
+        <li data-es="El virus necesita un anfitrión; el gusano se propaga solo; el troyano engaña; el rootkit oculta; la botnet obedece a un C&amp;C; la APT se mantiene «low-and-slow».">A virus needs a host; a worm spreads on its own; a trojan deceives; a rootkit hides; a botnet obeys a C&amp;C; an APT stays low-and-slow.</li>
+        <li data-es="El <strong>ransomware</strong> es la amenaza dominante de la última década (RaaS, extorsión doble/triple). El malware moderno es <em>fileless</em> y ataca la <em>cadena de suministro</em>.">Ransomware is the dominant threat of the last decade (RaaS, double/triple extortion). Modern malware is fileless and targets the supply chain.</li>
+        <li data-es="La defensa pasa de las firmas al comportamiento: prevención, EDR/XDR, ML/IA y MITRE ATT&amp;CK, más análisis estático y dinámico.">Defense moves from signatures to behavior: prevention, EDR/XDR, ML/AI and MITRE ATT&amp;CK, plus static and dynamic analysis.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- S57 — Closing debate -->
+  <section class="slide activity" data-section="Wrap-up" data-section-es="Cierre">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Debate final">◆ Closing debate</span>
+      <h2 style="margin-top:1rem" data-es="Si el malware moderno se reescribe y vive en memoria, ¿el antivirus ha muerto?">If modern malware rewrites itself and lives in memory, is anti-virus dead?</h2>
+      <p class="lead" style="max-width:60ch" data-es="El malware polimórfico/metamórfico y «fileless» evade las firmas. Entonces, ¿tiene sentido seguir usando antivirus, o deberíamos confiar solo en la detección por comportamiento y ML?">Polymorphic/metamorphic and fileless malware evade signatures. So does it still make sense to use anti-virus, or should we rely only on behavior + ML detection?</p>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Para guiar la discusión">To guide the discussion</span>
+        <p data-es="Las firmas siguen siendo <strong>baratas y precisas</strong> contra el enorme volumen de malware conocido — un buen primer filtro. El comportamiento/ML captura lo nuevo, pero genera falsos positivos y consume recursos. La respuesta no es elegir uno: es la <strong>defensa en profundidad</strong> — firmas + comportamiento + EDR + prevención + concienciación del usuario. Ninguna capa basta por sí sola.">Signatures are still <strong>cheap and accurate</strong> against the huge volume of known malware — a good first filter. Behavior/ML catches the novel, but produces false positives and consumes resources. The answer isn't to pick one: it's <strong>defense in depth</strong> — signatures + behavior + EDR + prevention + user awareness. No single layer is enough.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <span class="course" data-es="TC2007B · S9 — Código Malicioso (Malware)">TC2007B · W9 — Malicious Code (Malware)</span>
+  <span class="right">
+    <span class="sec-name" id="secName">Orientation</span>
+    <span class="counter"><span id="cur">1</span> / <span id="total">57</span></span>
+  </span>
+</footer>
+
+<div class="frag-hint" id="fragHint"><span id="fragHintText">click to reveal</span><span class="chev">▾</span></div>
+
+<div class="nav-btns">
+  <button id="prevBtn" title="Previous (←)">‹</button>
+  <button id="ovBtn" title="Overview (O)">▦</button>
+  <button id="helpBtn" title="Help (?)">?</button>
+  <button id="fsBtn" title="Fullscreen (F)">⛶</button>
+  <button id="nextBtn" title="Next (→)">›</button>
+</div>
+
+<div class="overview" id="overview">
+  <h2 id="ovTitle">Slide overview</h2>
+  <div class="ov-grid" id="ovGrid"></div>
+</div>
+
+<div class="help" id="help">
+  <div class="panel">
+    <h2 data-es="Navegación">Navigation</h2>
+    <table>
+      <tr><td><kbd>→</kbd> <kbd>Space</kbd> <kbd>PgDn</kbd></td><td data-es="Siguiente / revelar">Next / reveal</td></tr>
+      <tr><td><kbd>←</kbd> <kbd>PgUp</kbd></td><td data-es="Anterior">Previous</td></tr>
+      <tr><td><kbd>Home</kbd> / <kbd>End</kbd></td><td data-es="Primera / última">First / last slide</td></tr>
+      <tr><td><kbd>O</kbd></td><td data-es="Vista general">Slide overview grid</td></tr>
+      <tr><td><kbd>F</kbd></td><td data-es="Pantalla completa">Toggle fullscreen</td></tr>
+      <tr><td><kbd>L</kbd></td><td data-es="Idioma ES / EN">Language ES / EN</td></tr>
+      <tr><td><kbd>T</kbd></td><td data-es="Tema claro / oscuro">Light / dark theme</td></tr>
+      <tr><td><kbd>?</kbd></td><td>Help</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td data-es="Cerrar ventana">Close overlay</td></tr>
+    </table>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
