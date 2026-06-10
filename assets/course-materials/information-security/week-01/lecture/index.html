@@ -236,12 +236,12 @@
         <tbody>
           <tr><td data-es="Cuenta de correo o red social hackeada">Hacked email / social account</td><td class="map-to">$1 – $15</td></tr>
           <tr><td data-es="Número de tarjeta de crédito robado">Stolen credit-card number</td><td class="map-to">$5 – $30</td></tr>
-          <tr><td data-es="Identidad completa (“fullz”: nombre, fecha de nacimiento, ID)">Full identity (“fullz”)</td><td class="map-to">$20 – $30+</td></tr>
-          <tr><td data-es="Acceso a banca en línea (según el saldo)">Online-banking login (by balance)</td><td class="map-to">$30 – $120+</td></tr>
-          <tr><td data-es="Expediente médico">Medical record</td><td class="map-to">$100 – $250+</td></tr>
+          <tr><td data-es="Identidad completa (“fullz”: nombre, fecha de nacimiento, ID)">Full identity (“fullz”)</td><td class="map-to">$20 – $100+</td></tr>
+          <tr><td data-es="Acceso a banca en línea (según el saldo)">Online-banking login (by balance)</td><td class="map-to">$200 – $1,000+</td></tr>
+          <tr><td data-es="Expediente médico">Medical record</td><td class="map-to">$70 – $250</td></tr>
         </tbody>
       </table>
-      <p class="figure-note" data-es="Cifras aproximadas e ilustrativas; varían mucho según la fuente y el año. Lo clave: tus datos tienen un precio — y el expediente médico suele valer más que la tarjeta.">Approximate, illustrative figures; they vary widely by source and year. The point: your data has a price — and a medical record often beats a credit card.</p>
+      <p class="figure-note" data-es="Rangos según informes de precios de la dark web de 2025; varían mucho según la fuente y el año. Lo clave: tus datos tienen un precio — y por registro, los datos médicos históricamente han alcanzado precios altos.">Ranges per 2025 dark-web pricing reports; they vary widely by source and year. The point: your data has a price — and per-record, medical data has historically commanded high prices.</p>
     </div>
   </section>
 
@@ -325,6 +325,24 @@
     </div>
   </section>
 
+  <!-- S18b — Worked example: phishing through the chain -->
+  <section class="slide" data-section="Security mindset" data-section-es="Mentalidad de seguridad">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La cadena, con un ejemplo concreto"><span class="dot"></span>The chain, with a concrete example</span>
+      <h2 data-es="Ejemplo: un correo de phishing recorre los cuatro eslabones">Worked example: a phishing email through the four links</h2>
+      <table class="compare">
+        <thead><tr><th data-es="Eslabón">Link in the chain</th><th data-es="En este ejemplo de phishing">In this phishing example</th></tr></thead>
+        <tbody>
+          <tr><td class="map-from" data-es="Actor de amenaza">Threat actor</td><td data-es="Un cibercriminal que busca lucrar.">A cybercriminal looking to profit.</td></tr>
+          <tr><td class="map-from" data-es="Vulnerabilidad">Vulnerability</td><td data-es="La <strong>confianza humana</strong> + una <strong>contraseña reutilizada</strong> en varios sitios.">Human <strong>trust</strong> + a <strong>reused password</strong> across several sites.</td></tr>
+          <tr><td class="map-from" data-es="Ataque / explotación">Attack / exploit</td><td data-es="Una <strong>página de phishing</strong> que cosecha credenciales, enlazada desde un correo falso de “tu banco”.">A credential-harvesting <strong>phishing page</strong>, linked from a fake “your bank” email.</td></tr>
+          <tr><td class="map-to" data-es="Compromiso">Compromise</td><td data-es="<strong>Robo de la cuenta</strong> — y, por la contraseña reutilizada, de otras cuentas también."><strong>Account takeover</strong> — and, thanks to the reused password, other accounts too.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout note"><span class="tag" data-es="Observa">Notice</span><p data-es="El mismo modelo de cuatro eslabones describe tanto una brecha corporativa como un correo fraudulento en tu bandeja de entrada.">The same four-link model describes both a corporate breach and a scam email in your inbox.</p></div>
+    </div>
+  </section>
+
   <!-- S19 — Threat actors (revealed) -->
   <section class="slide" data-section="Security mindset" data-section-es="Mentalidad de seguridad">
     <div class="slide-inner">
@@ -388,7 +406,7 @@
     <div class="slide-inner">
       <div class="num">03</div>
       <h1 data-es="Caso de estudio: una brecha real">Case study: a real breach</h1>
-      <p class="lead" data-es="Recorramos un incidente real a través de la cadena que aprendimos.">Let’s walk a real incident through the chain we just learned.</p>
+      <p class="lead" data-es="Ya construimos el modelo — ahora pongámoslo a prueba con un incidente real. Recorramos una brecha a través de la cadena que aprendimos.">We’ve built the model — now let’s test it on a real incident. Let’s walk a breach through the chain we just learned.</p>
     </div>
   </section>
 
@@ -434,7 +452,7 @@
         <div class="stat cost"><span class="big">~$202M</span><span class="lbl" data-es="costo bruto total estimado de la brecha (parcialmente cubierto por seguros)">est. total gross breach cost (partly offset by insurance)</span></div>
         <div class="stat legal"><span class="big">$18.5M</span><span class="lbl" data-es="acuerdo de 2017 con 47 estados + D.C. (récord en su momento)">2017 settlement with 47 states + D.C. (a record at the time)</span></div>
         <div class="stat legal"><span class="big">~$39M</span><span class="lbl" data-es="acuerdo con bancos por costos de reemisión de tarjetas">settlement with banks for card-reissue costs</span></div>
-        <div class="stat"><span class="big">−46%</span><span class="lbl" data-es="caída de la utilidad del 4.º trimestre de 2013 frente al año anterior">drop in Q4 2013 profit vs. the prior year</span></div>
+        <div class="stat"><span class="big">−46%</span><span class="lbl" data-es="caída de la utilidad neta del 4.º trimestre de 2013 frente al año anterior (la brecha fue uno de varios factores, incluidas las pérdidas por la expansión a Canadá)">drop in Q4 2013 profit (net profit, year-over-year — the breach was one of several factors, including Canada-expansion losses)</span></div>
       </div>
       <div class="callout discuss" style="margin-top:1.2rem"><span class="tag" data-es="Y además">And also</span><p data-es="Renunciaron tanto el <strong>director ejecutivo (CEO)</strong> como la <strong>directora de informática (CIO)</strong> en 2014; demandas colectivas de clientes; y un golpe duradero a la confianza de la marca.">Both the <strong>CEO</strong> and the <strong>CIO</strong> resigned in 2014; consumer class-action lawsuits followed; and brand trust took a lasting hit.</p></div>
       <p class="figure-note" data-es="Cifras de informes públicos y documentos regulatorios; los totales varían según qué costos se incluyan.">Figures from public reports and regulatory filings; totals vary by which costs are counted.</p>
@@ -452,6 +470,7 @@
         <li data-es="Si tú dirigieras la seguridad de una empresa así, ¿qué es lo <strong>primero</strong> que cambiarías?">If you ran security at a company like this, what is the <strong>first</strong> thing you’d change?</li>
       </ol>
       <div class="callout discuss"><span class="tag" data-es="Conexión">Tie-back</span><p data-es="Conecta las respuestas con las experiencias que compartieron en el rompehielos.">Connect answers to the experiences students shared in the icebreaker.</p></div>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Esto sigue pasando">This still happens</span><p data-es="<strong>Change Healthcare (2024)</strong>: el compromiso de un <strong>tercero / cadena de suministro</strong> paralizó la facturación del sistema de salud de EE. UU. — la misma lección que el proveedor de HVAC de Target. Tu seguridad depende de la de quienes confías."><strong>Change Healthcare (2024)</strong>: a <strong>third-party / supply-chain</strong> compromise crippled US healthcare billing — the same lesson as Target’s HVAC vendor. Your security depends on the parties you trust.</p></div>
     </div>
   </section>
 
@@ -550,9 +569,10 @@
       <div class="grid cols-3" style="margin-top:1rem">
         <div class="card accent-top"><span class="ico">🪪</span><h3 data-es="Autenticación">Authentication</h3><p data-es="Dar acceso a las personas con base en la <strong>verificación de su identidad</strong>.">Giving individuals access based on <strong>verifying their identity</strong>.</p></div>
         <div class="card teal-top"><span class="ico">🔑</span><h3 data-es="Autorización">Authorization</h3><p data-es="Determinar los <strong>niveles de acceso</strong> a archivos, servicios, programas, datos y funciones.">Determining <strong>access levels</strong> to files, services, programs, data, and features.</p></div>
-        <div class="card" style="border-top:4px solid var(--violet)"><span class="ico">✍️</span><h3 data-es="No repudio">Non-repudiation</h3><p data-es="La garantía de que alguien <strong>no puede negar</strong> la validez de algo que hizo.">Assurance that someone <strong>cannot deny</strong> the validity of something they did.</p></div>
+        <div class="card" style="border-top:4px solid var(--violet)"><span class="ico">✍️</span><h3 data-es="No repudio">Non-repudiation</h3><p data-es="La garantía de que alguien <strong>no puede negar</strong> la validez de algo que hizo. Ejemplo: <strong>no puedes negar que autorizaste esta transferencia bancaria</strong> — está firmada digitalmente.">Assurance that someone <strong>cannot deny</strong> the validity of something they did. Example: <strong>you can’t deny you authorized this bank transfer</strong> — it’s digitally signed.</p></div>
       </div>
-      <p class="muted" style="margin-top:1rem" data-es="C · I · A · A · A · N — la lista crece conforme los sistemas se vuelven más complejos.">C · I · A · A · A · N — the list keeps growing as systems get more complex.</p>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Cómo se cuenta">How it adds up</span><p data-es="“CIAAAN” extiende la tríada: las tres <strong>A</strong> = <strong>Disponibilidad</strong> (la A de la tríada) + <strong>Autenticación</strong> + <strong>Autorización</strong>, y la <strong>N</strong> = <strong>No repudio</strong>. No contamos la disponibilidad dos veces.">“CIAAAN” extends the triad: the three <strong>A</strong>’s = <strong>Availability</strong> (the triad’s A) + <strong>Authentication</strong> + <strong>Authorization</strong>, and the <strong>N</strong> = <strong>Non-repudiation</strong>. We don’t double-count availability.</p></div>
+      <p class="muted" style="margin-top:1rem" data-es="“CIAAAN” es nuestra abreviatura del curso; la extensión estándar de los libros de texto es la <strong>Héxada de Parker</strong> (o simplemente “CIA + AAA + no repudio”) — no cites “CIAAAN” como un término estándar de la industria.">“CIAAAN” is our course shorthand; the standard textbook extension is the <strong>Parkerian Hexad</strong> (or simply “CIA + AAA + non-repudiation”) — don’t cite “CIAAAN” as an industry-standard term.</p>
     </div>
   </section>
 
@@ -581,10 +601,10 @@
       <span class="kicker" data-es="<span class='dot'></span>No los confundas"><span class="dot"></span>Don’t confuse these</span>
       <h2 data-es="Phishing vs. spoofing">Phishing vs. spoofing</h2>
       <div class="split">
-        <div class="card accent-top"><span class="ico">🎣</span><h3 data-es="Phishing — un método de <em>obtención</em>">Phishing — a method of <em>retrieval</em></h3><p data-es="Te <strong>engaña a ti</strong> para que entregues información sensible (a menudo financiera) a un estafador.">Tricks <strong>you</strong> into giving up sensitive (often financial) information to a crook.</p></div>
-        <div class="card danger-top"><span class="ico">🎭</span><h3 data-es="Spoofing — un medio de <em>entrega</em>">Spoofing — a means of <em>delivery</em></h3><p data-es="Disfraza el origen para <strong>entregar malware</strong> a tu computadora o red.">Disguises the source to <strong>deliver malware</strong> to your computer or network.</p></div>
+        <div class="card danger-top"><span class="ico">🎭</span><h3 data-es="Spoofing — <em>falsificar</em> una identidad">Spoofing — <em>forging</em> an identity</h3><p data-es="Falsifica un <strong>origen o identidad</strong>: la dirección del remitente, el identificador de llamadas, un sitio web.">Forges a <strong>source or identity</strong>: the sender address, the caller ID, a website.</p></div>
+        <div class="card accent-top"><span class="ico">🎣</span><h3 data-es="Phishing — <em>manipular</em> a una víctima">Phishing — <em>manipulating</em> a victim</h3><p data-es="<strong>Ingeniería social</strong>: engaña a una persona para que revele información o actúe (hacer clic, iniciar sesión, pagar)."><strong>Social-engineers</strong> a victim into revealing info or taking an action (click, log in, pay).</p></div>
       </div>
-      <div class="callout check"><span class="tag" data-es="En una frase">One-liner</span><p data-es="<strong>El phishing es un método de obtención; el spoofing es un medio de entrega.</strong> A menudo se combinan en un mismo ataque."><strong>Phishing is a method of retrieval; spoofing is a means of delivery.</strong> They’re often combined in one attack.</p></div>
+      <div class="callout check"><span class="tag" data-es="Cómo se combinan">How they combine</span><p data-es="<strong>El spoofing falsifica una identidad; el phishing manipula a una persona.</strong> Con frecuencia se combinan — un correo de phishing suele usar un <strong>remitente falsificado</strong>: un correo de “tu banco” que te pide hacer clic e iniciar sesión."><strong>Spoofing forges an identity; phishing manipulates a person.</strong> They frequently combine — a phishing email usually uses a <strong>spoofed sender</strong>: a “your bank” email asking you to click and log in.</p></div>
     </div>
   </section>
 
@@ -662,6 +682,7 @@
           <li data-es="Completado en un tiempo <strong>aceptable</strong>">Completed in an <strong>acceptable</strong> time</li>
         </ul>
       </div>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Ejemplo concreto">Concrete example</span><p data-es="Un <strong>ataque DDoS</strong> satura un sitio con tráfico falso hasta que cae; un <strong>ransomware</strong> cifra los archivos del hospital y detiene la atención. En ambos casos los datos existen, pero <strong>no están disponibles cuando se necesitan</strong> — y cada hora de inactividad cuesta dinero o vidas.">A <strong>DDoS attack</strong> floods a site with fake traffic until it goes down; <strong>ransomware</strong> encrypts a hospital’s files and halts care. In both, the data exists but is <strong>not available when needed</strong> — and every hour of downtime costs money or lives.</p></div>
       <p class="muted" style="margin-top:.8rem">[Pfleeger &amp; Pfleeger]</p>
     </div>
   </section>
@@ -714,12 +735,12 @@
       <span class="kicker" data-es="<span class='dot'></span>Cómo reducir vulnerabilidades"><span class="dot"></span>How to reduce vulnerabilities</span>
       <h2 data-es="Principios clásicos para diseñar sistemas seguros">Classic principles for designing secure systems</h2>
       <div class="grid cols-3">
-        <div class="card danger-top"><h3 data-es="Economía del mecanismo">Economy of mechanism</h3><p data-es="Manténlo simple — la <strong>complejidad es el enemigo</strong> de la seguridad.">Keep it simple — <strong>complexity is the enemy</strong> of security.</p></div>
-        <div class="card accent-top"><h3 data-es="Valores por defecto seguros">Fail-safe defaults</h3><p data-es="Por defecto, <strong>sin acceso</strong>; concédelo de forma explícita.">Default to <strong>no access</strong>; grant explicitly.</p></div>
-        <div class="card accent-top"><h3 data-es="Mediación completa">Complete mediation</h3><p data-es="Verifica <strong>cada acceso</strong>, cada vez.">Check <strong>every access</strong>, every time.</p></div>
-        <div class="card teal-top"><h3 data-es="Diseño abierto">Open design</h3><p data-es="La seguridad no debe depender de que el diseño sea <strong>secreto</strong>.">Security must not depend on the design being <strong>secret</strong>.</p></div>
-        <div class="card teal-top"><h3 data-es="Mínimo privilegio">Least privilege</h3><p data-es="Da a cada parte <strong>solo el acceso que necesita</strong>.">Give each part <strong>only the access it needs</strong>.</p></div>
-        <div class="card good-top"><h3 data-es="Aceptabilidad psicológica">Psychological acceptability</h3><p data-es="Si la seguridad es <strong>demasiado molesta</strong>, la gente la evade.">If security is <strong>too painful</strong>, people route around it.</p></div>
+        <div class="card danger-top"><h3 data-es="Economía del mecanismo">Economy of mechanism</h3><p data-es="Manténlo simple — la <strong>complejidad es el enemigo</strong> de la seguridad. <em>Ej.: mantenlo lo bastante simple para auditarlo.</em>">Keep it simple — <strong>complexity is the enemy</strong> of security. <em>e.g. keep it simple enough to audit.</em></p></div>
+        <div class="card accent-top"><h3 data-es="Valores por defecto seguros">Fail-safe defaults</h3><p data-es="Por defecto, <strong>sin acceso</strong>; concédelo de forma explícita. <em>Ej.: el firewall deniega por defecto.</em>">Default to <strong>no access</strong>; grant explicitly. <em>e.g. the firewall denies by default.</em></p></div>
+        <div class="card accent-top"><h3 data-es="Mediación completa">Complete mediation</h3><p data-es="Verifica <strong>cada acceso</strong>, cada vez. <em>Ej.: revisa cada acceso, en todo momento.</em>">Check <strong>every access</strong>, every time. <em>e.g. check every access, every time.</em></p></div>
+        <div class="card teal-top"><h3 data-es="Diseño abierto">Open design</h3><p data-es="La seguridad no debe depender de que el diseño sea <strong>secreto</strong>. <em>Ej.: AES es público y aun así seguro — nada de seguridad por oscuridad.</em>">Security must not depend on the design being <strong>secret</strong>. <em>e.g. AES is public yet secure — no security through obscurity.</em></p></div>
+        <div class="card teal-top"><h3 data-es="Mínimo privilegio">Least privilege</h3><p data-es="Da a cada parte <strong>solo el acceso que necesita</strong>. <em>Ej.: tu app no se ejecuta como root.</em>">Give each part <strong>only the access it needs</strong>. <em>e.g. your app doesn’t run as root.</em></p></div>
+        <div class="card good-top"><h3 data-es="Aceptabilidad psicológica">Psychological acceptability</h3><p data-es="Si la seguridad es <strong>demasiado molesta</strong>, la gente la evade. <em>Ej.: si pelea contra el usuario, la rodeará.</em>">If security is <strong>too painful</strong>, people route around it. <em>e.g. if it fights the user, they bypass it.</em></p></div>
       </div>
       <p class="muted" style="margin-top:.9rem" data-es="…y más. Datan de hace décadas y siguen vigentes.">…and more. These date back decades and still hold up.</p>
     </div>

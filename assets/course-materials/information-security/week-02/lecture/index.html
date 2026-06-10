@@ -9,6 +9,50 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<style>
+  /* --- deck-specific additions (Week 2 · Lecture 1) --- */
+  .callout.danger { border-color: var(--danger); }
+  .callout.danger .tag { background: rgba(255,107,107,.15); color: var(--danger); }
+
+  .terminal {
+    font-family: var(--mono); background: var(--bg-3); border: 1px solid var(--line);
+    border-radius: 12px; padding: 1rem 1.2rem; margin-top: 1.1rem;
+    font-size: clamp(.78rem, 1.25vw, 1rem); line-height: 1.7; overflow-x: auto;
+  }
+  .terminal .cmd { color: var(--good); white-space: pre-wrap; word-break: break-all; }
+  .terminal .cmd::before { content: "$ "; color: var(--accent); font-weight: 700; }
+  .terminal .out { color: var(--ink-soft); white-space: pre-wrap; word-break: break-all; display: block; margin-bottom: .55rem; }
+  .terminal .cmt { color: var(--violet); }
+  .terminal .hl-a { color: var(--accent); font-weight: 700; }
+  .terminal .hl-b { color: var(--warn); font-weight: 700; }
+
+  .ladder { display: grid; gap: .65rem; margin-top: 1.1rem; }
+  .ladder .rung {
+    display: flex; align-items: center; gap: 1rem;
+    border: 1px solid var(--line); border-left-width: 6px; border-radius: 12px;
+    background: var(--bg-2); padding: .85rem 1.1rem;
+  }
+  .ladder .rung.weak    { border-left-color: var(--danger); }
+  .ladder .rung.medium  { border-left-color: var(--warn); }
+  .ladder .rung.strong  { border-left-color: var(--good); }
+  .ladder .rung .r-ico { font-size: 1.6rem; flex: none; }
+  .ladder .rung .r-body { flex: 1; }
+  .ladder .rung .r-body strong { display: block; font-size: var(--fs-body); }
+  .ladder .rung .r-body span { font-size: var(--fs-small); color: var(--ink-soft); }
+  .ladder .rung .r-tag {
+    font-family: var(--mono); font-size: var(--fs-small); font-weight: 700; flex: none;
+    padding: .15rem .6rem; border-radius: 999px; background: var(--bg-3); color: var(--ink-soft);
+  }
+
+  .commonpw { list-style: none; display: grid; gap: .45rem; margin-top: 1rem; }
+  .commonpw li {
+    display: flex; align-items: center; gap: .9rem; font-family: var(--mono);
+    background: var(--bg-3); border: 1px solid var(--line); border-radius: 10px; padding: .55rem .9rem;
+  }
+  .commonpw li .rank { color: var(--accent); font-weight: 700; flex: none; }
+  .commonpw li .pw { color: var(--danger); font-weight: 700; }
+  .commonpw li .note { margin-left: auto; font-family: var(--font); font-size: var(--fs-small); color: var(--ink-soft); }
+</style>
 </head>
 <body>
 
@@ -52,6 +96,24 @@
     </div>
   </section>
 
+  <!-- S2b — Roadmap -->
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El recorrido de hoy"><span class="dot"></span>Today's arc</span>
+      <h2 data-es="Cuatro etapas">Four stages</h2>
+      <div class="flow">
+        <div class="node breach"><span class="n-label accent" data-es="① Los factores">① The factors</span><span class="n-sub" data-es="saber · tener · ser · hacer">know · have · are · do</span></div>
+        <div class="arrow">→</div>
+        <div class="node attack"><span class="n-label" style="color:var(--violet)" data-es="② Contraseñas">② Passwords</span><span class="n-sub" data-es="hash · sal · endurecimiento">hash · salt · stretching</span></div>
+        <div class="arrow">→</div>
+        <div class="node vuln"><span class="n-label warn" data-es="③ Más allá de la contraseña">③ Beyond passwords</span><span class="n-sub" data-es="MFA · passkeys">MFA · passkeys</span></div>
+        <div class="arrow">→</div>
+        <div class="node good-node"><span class="n-label good" data-es="④ Sistemas y red">④ Systems &amp; network</span><span class="n-sub" data-es="SO · MITM">OS · MITM</span></div>
+      </div>
+      <p class="muted" style="margin-top:1.2rem" data-es="Empezamos por <em>cómo</em> probamos la identidad, vamos al detalle de las contraseñas, las superamos con factores adicionales y terminamos viendo dónde vive todo esto: el sistema operativo y la red.">We start with <em>how</em> we prove identity, drill into passwords, move beyond them with extra factors, and finish with where all of this lives: the operating system and the network.</p>
+    </div>
+  </section>
+
   <!-- S3 — What is authentication -->
   <section class="slide" data-section="Orientation" data-section-es="Orientación">
     <div class="slide-inner">
@@ -59,9 +121,10 @@
       <h2 data-es="¿Qué es la autenticación?">What is authentication?</h2>
       <div class="definition">
         <blockquote data-es="“El proceso de establecer confianza en las identidades de usuario que se presentan electrónicamente a un sistema de información.”">“The process of establishing confidence in user identities that are presented electronically to an information system.”</blockquote>
-        <span class="src" data-es="— NIST SP 800-63-3, Guía de Autenticación Digital (oct. 2016)">— NIST SP 800-63-3, Digital Authentication Guideline (Oct 2016)</span>
+        <span class="src" data-es="— NIST SP 800-63 (Pautas de Identidad Digital)">— NIST SP 800-63 (Digital Identity Guidelines)</span>
       </div>
       <div class="callout note"><span class="tag" data-es="Clave">Key</span><p data-es="La palabra es <strong>confianza</strong>. La autenticación no es certeza absoluta — es elevar la confianza lo suficiente para el riesgo en juego.">The word is <strong>confidence</strong>. Authentication isn't absolute certainty — it's raising confidence enough for the risk at hand.</p></div>
+      <div class="callout policy"><span class="tag" data-es="Estándar vigente">Current standard</span><p data-es="La referencia actual es <strong>NIST SP 800-63-4 (Revisión 4, finalizada en 2024–2025)</strong>, que reemplazó a la SP 800-63-3 de 2016. Usaremos su guía moderna a lo largo de la clase.">The current reference is <strong>NIST SP 800-63-4 (Revision 4, finalized 2024–2025)</strong>, which superseded the 2016 SP 800-63-3. We'll follow its modern guidance throughout this lecture.</p></div>
     </div>
   </section>
 
@@ -202,7 +265,9 @@
           <text x="360" y="255" class="d-fmr">↘ false accepts</text>
         </g>
       </svg>
+      <p class="figure-note" data-es="Cifras ilustrativas: un sensor de huella típico ronda FAR ≈ 0.01% (1 entre 10 000 impostores aceptado) y FRR ≈ 1–3%; el rostro suele ser menos exacto. Varían enormemente según el dispositivo y la configuración.">Illustrative ballpark: a typical fingerprint sensor sits around FAR ≈ 0.01% (1 in 10,000 impostors accepted) and FRR ≈ 1–3%; face is usually less accurate. These vary widely by device and setting.</p>
       <div class="callout discuss"><span class="tag" data-es="Discusión">Discuss</span><p data-es="Mover el umbral a la derecha reduce impostores aceptados pero rechaza a más usuarios reales. Y recuerda: <strong>si te roban la huella, no puedes “cambiarla”</strong> como una contraseña. ¿Deberían los biométricos reemplazar a las contraseñas?">Sliding the threshold right blocks more impostors but rejects more real users. And remember: <strong>if your fingerprint is stolen, you can't "change" it</strong> like a password. Should biometrics replace passwords?</p></div>
+      <div class="callout policy" style="margin-top:1rem"><span class="tag" data-es="Ataques de presentación">Presentation attacks</span><p data-es="Esas tasas suponen un atacante <em>honesto</em>. Pero los biométricos también se <strong>falsifican</strong>: huellas de gelatina (“gummy fingers”), una foto o un <em>deepfake</em> para el desbloqueo facial. Por eso los buenos sistemas añaden <strong>detección de vida (liveness)</strong>. Debate: ¿basta con liveness, o un atacante motivado siempre encontrará la grieta?">Those rates assume an <em>honest</em> attacker. But biometrics can also be <strong>spoofed</strong>: gelatin "gummy" fingerprints, a printed photo or a <em>deepfake</em> for face unlock. That's why good systems add <strong>liveness detection</strong>. Debate: is liveness enough, or will a motivated attacker always find the gap?</p></div>
     </div>
   </section>
 
@@ -290,6 +355,43 @@
     </div>
   </section>
 
+  <!-- S17b — Most common passwords -->
+  <section class="slide" data-section="Passwords" data-section-es="Contraseñas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La gente repite los mismos errores"><span class="dot"></span>People make the same mistakes</span>
+      <h2 data-es="Las contraseñas más comunes del mundo">The world's most common passwords</h2>
+      <ul class="commonpw">
+        <li><span class="rank">#1</span><span class="pw">123456</span><span class="note" data-es="la más usada a nivel mundial">most used worldwide</span></li>
+        <li><span class="rank">#2</span><span class="pw">123456789</span><span class="note" data-es="solo más larga, igual de mala">just longer, just as bad</span></li>
+        <li><span class="rank">#3</span><span class="pw">12345678</span><span class="note" data-es="secuencias de teclado">keyboard runs</span></li>
+        <li><span class="rank">#1 US</span><span class="pw">admin</span><span class="note" data-es="#1 en EE. UU., #2 a nivel mundial">#1 in the US, #2 globally</span></li>
+        <li><span class="rank">★</span><span class="pw">password</span><span class="note" data-es="el clásico imperecedero">the evergreen classic</span></li>
+      </ul>
+      <div class="callout danger"><span class="tag" data-es="El dato">The number</span><p data-es="Alrededor del <strong>80% de las brechas</strong> involucran contraseñas débiles, reutilizadas o ya filtradas. El atacante no necesita ser genio: empieza por esta lista.">Roughly <strong>80% of breaches</strong> involve weak, reused, or already-compromised passwords. The attacker doesn't need to be a genius — they start with this list.</p></div>
+      <p class="figure-note" data-es="Lista representativa según NordPass, 2025. El orden exacto varía por país y año.">Representative list per NordPass, 2025. Exact ordering varies by country and year.</p>
+    </div>
+  </section>
+
+  <!-- S17c — Live hashing + salting demo -->
+  <section class="slide" data-section="Passwords" data-section-es="Contraseñas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>En vivo en la terminal"><span class="dot"></span>Live in the terminal</span>
+      <h2 data-es="Demo: determinismo, avalancha y sal">Demo: determinism, avalanche, and salt</h2>
+      <div class="terminal">
+        <span class="cmd">echo -n "myfirstpet" | sha256sum</span>
+        <span class="out"><span class="hl-a">e3b1c4...8a2f9d</span>  -</span>
+        <span class="cmd">echo -n "myfirstpet" | sha256sum   <span class="cmt"># same input again</span></span>
+        <span class="out"><span class="hl-a">e3b1c4...8a2f9d</span>  -   <span class="cmt"># identical → deterministic</span></span>
+        <span class="cmd">echo -n "myfirstpeu" | sha256sum   <span class="cmt"># one letter changed</span></span>
+        <span class="out"><span class="hl-b">7f0a92...c14b06</span>  -   <span class="cmt"># totally different → avalanche</span></span>
+        <span class="cmd">echo -n "x7Qz!myfirstpet" | sha256sum   <span class="cmt"># same password + a salt</span></span>
+        <span class="out"><span class="hl-b">a14d77...20e9c3</span>  -   <span class="cmt"># different again → salt changes output</span></span>
+      </div>
+      <div class="callout check" style="margin-top:1rem"><span class="tag" data-es="Tres lecciones">Three lessons</span><p data-es="<strong>1)</strong> La misma entrada siempre da el mismo hash. <strong>2)</strong> Cambiar un solo carácter cambia <em>todo</em> el digest (efecto avalancha). <strong>3)</strong> Anteponer una sal produce un hash distinto aun con la misma contraseña."><strong>1)</strong> Same input always gives the same hash. <strong>2)</strong> Changing one character changes the <em>whole</em> digest (avalanche effect). <strong>3)</strong> Prepending a salt produces a different hash even for the same password.</p></div>
+      <p class="figure-note" data-es="Digests abreviados a modo ilustrativo; ejecútalo tú mismo para ver los valores completos de 64 hex.">Digests abbreviated for display; run it yourself to see the full 64-hex values.</p>
+    </div>
+  </section>
+
   <!-- S18 — Threat model -->
   <section class="slide" data-section="Passwords" data-section-es="Contraseñas">
     <div class="slide-inner">
@@ -300,6 +402,19 @@
         <div class="card warn-top"><h3 data-es="Ataque de diccionario">Dictionary attack</h3><p data-es="Si conocemos contraseñas comunes, calculamos su hash y buscamos coincidencias.">If we know common passwords, we hash them and look for matches.</p></div>
         <div class="card danger-top"><h3 data-es="Ataque offline">Offline attack</h3><p data-es="Con los hashes en mano y <strong>tiempo de sobra</strong>, el atacante prueba sin límites ni bloqueos.">With the hashes in hand and <strong>plenty of time</strong>, the attacker tests endlessly — no lockouts.</p></div>
       </div>
+    </div>
+  </section>
+
+  <!-- S18b — Real breach case study -->
+  <section class="slide" data-section="Passwords" data-section-es="Contraseñas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Caso real"><span class="dot"></span>Case study</span>
+      <h2 data-es="LinkedIn, 2012: por qué la sal y la lentitud importan">LinkedIn, 2012: why salt and slowness matter</h2>
+      <div class="split">
+        <div class="card danger-top"><h3 data-es="Qué falló">What went wrong</h3><p data-es="LinkedIn guardó ~<strong>117 millones</strong> de contraseñas como <strong>SHA-1 sin sal</strong>. SHA-1 es rápido y, sin sal, las tablas precalculadas funcionan a la perfección.">LinkedIn stored ~<strong>117 million</strong> passwords as <strong>unsalted SHA-1</strong>. SHA-1 is fast, and without salt, precomputed tables work perfectly.</p></div>
+        <div class="card warn-top"><h3 data-es="El resultado">The outcome</h3><p data-es="La gran mayoría de los hashes se <strong>descifraron</strong> rápidamente cuando la base se difundió en 2016. (Comparable: RockYou, 2009, guardó <strong>32 millones en texto plano</strong>.)">The vast majority of hashes were <strong>cracked</strong> quickly once the dump spread in 2016. (Compare: RockYou, 2009, stored <strong>32 million in plaintext</strong>.)</p></div>
+      </div>
+      <div class="callout check" style="margin-top:1.2rem"><span class="tag" data-es="La moraleja">The lesson</span><p data-es="Sal por usuario + una función <strong>lenta</strong> de diseño (bcrypt/Argon2) habrían convertido una catástrofe instantánea en un ataque inviable. Lo veremos en las próximas diapositivas.">Per-user salt + a deliberately <strong>slow</strong> function (bcrypt/Argon2) would have turned an instant catastrophe into an infeasible attack. We'll see exactly that in the next slides.</p></div>
     </div>
   </section>
 
@@ -326,14 +441,32 @@
   <section class="slide" data-section="Passwords" data-section-es="Contraseñas">
     <div class="slide-inner">
       <span class="kicker" data-es="<span class='dot'></span>Fuerza bruta"><span class="dot"></span>Brute force</span>
-      <h2 data-es="La longitud y la aleatoriedad lo son todo">Length and randomness are everything</h2>
-      <div class="stats">
-        <div class="stat people"><span class="big">10⁸/s</span><span class="lbl" data-es="hashes MD5 por segundo en una GPU (software público)">MD5 hashes/sec on a GPU (public software)</span></div>
-        <div class="stat cost"><span class="big">~10 min</span><span class="lbl" data-es="6 caracteres (may/min/dígitos): 62⁶ posibilidades">6 chars (upper/lower/digits): 62⁶ possibilities</span></div>
-        <div class="stat good-stat"><span class="big">~6 días</span><span class="lbl" data-es="8 caracteres aleatorios">8 random characters</span></div>
-      </div>
+      <h2 data-es="¿Cuánto tarda en caer una contraseña?">How long until a password falls?</h2>
+      <table class="compare">
+        <thead><tr><th data-es="Contraseña">Password</th><th data-es="Tiempo para descifrarla">Time to crack</th></tr></thead>
+        <tbody>
+          <tr><td class="map-from" data-es="8 caracteres, solo minúsculas">8 chars, lowercase only</td><td class="map-to" data-es="≈ 3 semanas">≈ 3 weeks</td></tr>
+          <tr><td class="map-from" data-es="8 caracteres, may/min/números/símbolos">8 chars, upper+lower+numbers+symbols</td><td class="map-to" data-es="≈ 164 años">≈ 164 years</td></tr>
+          <tr><td class="map-from" data-es="11 caracteres, juego completo">11 chars, full charset</td><td class="map-to" data-es="miles de años">thousands of years</td></tr>
+          <tr><td class="map-from" data-es="13+ caracteres, juego completo">13+ chars, full charset</td><td class="map-to" data-es="miles de millones de años (en la práctica, indescifrable)">billions of years (effectively uncrackable)</td></tr>
+        </tbody>
+      </table>
       <div class="callout discuss" style="margin-top:1.1rem"><span class="tag" data-es="Discusión">Discuss</span><p data-es="Cada carácter extra multiplica el trabajo. Por eso una frase larga (“correct horse battery staple”) puede vencer a “P@ss1!”. ¿Larga y memorable, o corta y compleja?">Each extra character multiplies the work. That's why a long passphrase ("correct horse battery staple") can beat "P@ss1!". Long-and-memorable, or short-and-complex?</p></div>
-      <p class="figure-note" data-es="Cifras del material original, a modo de orden de magnitud; las velocidades reales dependen del hardware y crecen con el tiempo (hoy, miles de millones/seg).">Figures from the source material, as orders of magnitude; real speeds are hardware-dependent and rise over time (today, billions/sec).</p>
+      <p class="figure-note" data-es="Hive Systems, 2025, suponiendo hashing <strong>lento y con sal</strong> (bcrypt, factor de costo 10) sobre un equipo de 12× RTX 5090. Ojo: contra un hash <strong>rápido y sin sal</strong> como MD5/SHA-1, esas mismas contraseñas caen en minutos u horas — exactamente por eso usamos hashing lento y con sal (lo veremos en la diapositiva de endurecimiento).">Hive Systems, 2025, assuming a <strong>slow, salted</strong> hash (bcrypt, cost factor 10) on a 12× RTX 5090 rig. Note: against a <strong>fast, unsalted</strong> hash like MD5/SHA-1, the same passwords fall in minutes-to-hours — which is exactly why we use slow, salted hashing (see the key-stretching slide).</p>
+    </div>
+  </section>
+
+  <!-- S20b — Entropy / length beats symbols -->
+  <section class="slide" data-section="Passwords" data-section-es="Contraseñas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La medida: entropía"><span class="dot"></span>The measure: entropy</span>
+      <h2 data-es="La longitud le gana a los símbolos">Length beats symbols</h2>
+      <p class="lead" style="max-width:58ch" data-es="La fuerza de una contraseña se mide en <strong>bits de entropía</strong> ≈ log₂( tamaño-del-alfabeto <sup>longitud</sup> ). Cada bit duplica el trabajo del atacante.">A password's strength is measured in <strong>bits of entropy</strong> ≈ log₂( charset-size <sup>length</sup> ). Each extra bit doubles the attacker's work.</p>
+      <div class="split">
+        <div class="card warn-top"><h3 data-es="“P@ss1!” — corta y “compleja”">"P@ss1!" — short and "complex"</h3><p data-es="6 caracteres de un alfabeto grande ≈ <strong>~39 bits</strong>. Difícil de recordar, fácil para un cracker moderno.">6 chars from a large charset ≈ <strong>~39 bits</strong>. Hard to remember, easy for a modern cracker.</p></div>
+        <div class="card good-top"><h3 data-es="“correct horse battery staple”">"correct horse battery staple"</h3><p data-es="4 palabras al azar de una lista común ≈ <strong>44+ bits</strong> — más fuerte <em>y</em> fácil de recordar (idea del cómic XKCD).">4 random words from a common list ≈ <strong>44+ bits</strong> — stronger <em>and</em> easier to remember (the XKCD comic idea).</p></div>
+      </div>
+      <div class="callout check" style="margin-top:1.1rem"><span class="tag" data-es="Conclusión">Takeaway</span><p data-es="Añadir <strong>longitud</strong> sube la entropía más rápido y barato que añadir símbolos raros. Una frase de cuatro palabras vence a “P@ss1!” en seguridad <em>y</em> en memorabilidad.">Adding <strong>length</strong> raises entropy faster and cheaper than adding odd symbols. A four-word passphrase beats "P@ss1!" on both security <em>and</em> memorability.</p></div>
     </div>
   </section>
 
@@ -343,9 +476,14 @@
       <span class="badge" data-es="◆ Actividad · Pruébalo">◆ Activity · Try it</span>
       <h2 style="margin-top:1rem" data-es="¿Qué tan segura es tu contraseña?">How secure is your password?</h2>
       <p class="lead" style="max-width:54ch" data-es="Estima cuánto tardaría un ataque de fuerza bruta en adivinar una contraseña de ejemplo (¡no uses una real!).">Estimate how long brute force would take to guess an example password (don't use a real one!).</p>
+      <ul class="clean">
+        <li data-es="Prueba el efecto de la <strong>longitud</strong>: añade un carácter y observa cómo se dispara el tiempo estimado.">Test the effect of <strong>length</strong>: add one character and watch the estimated time jump.</li>
+        <li data-es="Compara “P@ss1!” contra una frase de cuatro palabras — conecta con la diapositiva de entropía.">Compare "P@ss1!" against a four-word passphrase — ties back to the entropy slide.</li>
+        <li data-es="Recuerda: el estimador supone un hash y un hardware concretos; trátalo como orden de magnitud, no como verdad exacta.">Remember: the estimator assumes a specific hash and hardware; treat it as an order of magnitude, not exact truth.</li>
+      </ul>
       <div class="placeholder">
         <span class="ph-tag">⚑ Código QR — pega tu enlace/QR vigente</span>
-        <p style="margin-top:.8rem" data-es="Sustituye con el QR “SCAN ME” de tu diapositiva original (no se conoce el destino). Una herramienta de demostración adecuada es un estimador de “tiempo para descifrar una contraseña”. Verifica el enlace antes de usarlo en clase.">Replace with the original "SCAN ME" QR (its destination isn't known). A suitable demo tool is a "time-to-crack a password" estimator. Verify the link before class.</p>
+        <p style="margin-top:.8rem" data-es="Sustituye con el QR “SCAN ME” de tu diapositiva original (destino desconocido). Usa un <strong>estimador de fuerza de contraseñas de buena reputación</strong> (categoría “tiempo para descifrar”). Verifica el enlace antes de la clase. La diapositiva se sostiene sola aunque no haya enlace.">Replace with the original "SCAN ME" QR (destination unknown). Use a <strong>reputable password-strength estimator</strong> (a "time-to-crack" tool). Verify the link before class. The slide stands on its own even without a live link.</p>
       </div>
     </div>
   </section>
@@ -419,9 +557,10 @@
         <div class="card warn-top"><h3 data-es="Usabilidad vs. seguridad">Usability vs. security</h3><p data-es="A más longitud y complejidad, peor usabilidad. Las contraseñas usables son fáciles de adivinar.">More length/complexity → worse usability. Usable passwords are easy to guess.</p></div>
         <div class="card danger-top"><h3 data-es="Phishing">Phishing</h3><p data-es="El usuario no verifica <em>quién</em> le pide la contraseña.">Users don't authenticate <em>who</em> is asking for the password.</p></div>
         <div class="card danger-top"><h3 data-es="Reutilización">Reuse</h3><p data-es="Robada una vez, se usa muchas veces — y en muchos sitios.">Stolen once, used many times — and across many sites.</p></div>
-        <div class="card accent-top"><h3 data-es="Memoria humana">Human memory</h3><p data-es="Recordamos pocas; por eso existen políticas de cambio frecuente.">We remember few; hence policies to change them often.</p></div>
+        <div class="card accent-top"><h3 data-es="Memoria humana">Human memory</h3><p data-es="Recordamos pocas; durante años eso llevó a políticas de cambio frecuente.">We remember few; for years that drove frequent-change policies.</p></div>
       </div>
-      <div class="callout discuss" style="margin-top:1rem"><span class="tag" data-es="Debate">Debate</span><p data-es="El material dice “cambia las contraseñas con frecuencia”. Pero la guía moderna del NIST <strong>desaconseja</strong> la rotación forzada (lleva a contraseñas peores). ¿Quién tiene razón? (Verifica la guía vigente.)">The material says "change passwords frequently." But modern NIST guidance <strong>discourages</strong> forced rotation (it leads to worse passwords). Who's right? (Verify current guidance.)</p></div>
+      <div class="callout policy" style="margin-top:1rem"><span class="tag" data-es="Guía vigente del NIST">Current NIST guidance</span><p data-es="Según <strong>NIST SP 800-63B-4</strong>, los verificadores <strong>NO deben</strong> forzar la rotación periódica (solo ante evidencia de compromiso), <strong>NO deben</strong> imponer reglas de composición/complejidad, deben <strong>priorizar la longitud</strong> sobre la complejidad, <strong>cotejar contra listas de contraseñas ya filtradas</strong>, exigir mínimo <strong>8 caracteres (15 si es el único factor)</strong>, permitir hasta <strong>64</strong> y permitir pegar y los gestores de contraseñas.">Per <strong>NIST SP 800-63B-4</strong>, verifiers <strong>SHALL NOT</strong> force periodic rotation (only on evidence of compromise), <strong>SHALL NOT</strong> impose composition/complexity rules, should <strong>favor length</strong> over complexity, <strong>screen against known-breached-password blocklists</strong>, require a minimum of <strong>8 characters (15 when the password is the sole authenticator)</strong>, allow up to <strong>64</strong>, and allow paste and password managers.</p></div>
+      <div class="callout discuss" style="margin-top:1rem"><span class="tag" data-es="Qué cambió y por qué">What changed and why</span><p data-es="El consejo antiguo — “cámbiala cada 90 días” y “usa caracteres especiales” — ya <strong>no</strong> es buena práctica: la rotación forzada llevaba a contraseñas peores y predecibles (verano2024 → verano2025). Lo conservamos solo como contraste histórico.">The old advice — "change it every 90 days" and "use special characters" — is <strong>no longer</strong> best practice: forced rotation led to worse, predictable passwords (summer2024 → summer2025). We keep it only as a historical contrast.</p></div>
     </div>
   </section>
 
@@ -432,7 +571,7 @@
       <h2 data-es="Qué hacer (admins y usuarios)">What to do (admins &amp; users)</h2>
       <div class="split">
         <div class="card accent-top"><h3 data-es="Administradores de sistemas">System administrators</h3>
-          <p data-es="• Nunca guardes contraseñas en claro.<br>• Guarda solo hashes con <strong>sal aleatoria</strong> y limita el acceso.<br>• Evita funciones hash rápidas de propósito general.">• Never store passwords in the clear.<br>• Store only hashes with a <strong>random salt</strong>, and limit access.<br>• Avoid fast general-purpose hash functions.</p></div>
+          <p data-es="• Nunca guardes contraseñas en claro.<br>• Guarda solo hashes con <strong>sal aleatoria</strong> y limita el acceso.<br>• Evita funciones hash rápidas de propósito general.<br>• <strong>Coteja contra contraseñas ya filtradas</strong> y rechaza las comprometidas.">• Never store passwords in the clear.<br>• Store only hashes with a <strong>random salt</strong>, and limit access.<br>• Avoid fast general-purpose hash functions.<br>• <strong>Screen against known-breached passwords</strong> and reject compromised ones.</p></div>
         <div class="card good-top"><h3 data-es="Usuarios">Users</h3>
           <p data-es="• Usa un <strong>gestor de contraseñas</strong>.<br>• Contraseñas largas y únicas por sitio.<br>• Activa un segundo factor.">• Use a <strong>password manager</strong>.<br>• Long, unique passwords per site.<br>• Turn on a second factor.</p></div>
       </div>
@@ -489,6 +628,48 @@
         <div class="card good-top"><span class="ico">📲</span><h3 data-es="Segundo paso">Second step</h3><p data-es="Una app de autenticación (códigos temporales) o una llave de seguridad añade el factor “tienes”.">An authenticator app (time-based codes) or a security key adds the "have" factor.</p></div>
       </div>
       <div class="callout discuss" style="margin-top:1.2rem"><span class="tag" data-es="Debate">Debate</span><p data-es="Un gestor concentra todo en un punto: ¿no es un “único punto de fallo”? ¿Qué lo hace, aun así, más seguro que reutilizar contraseñas?">A manager puts everything in one place: isn't that a "single point of failure"? What still makes it safer than reusing passwords?</p></div>
+    </div>
+  </section>
+
+  <!-- S31b — Factor-strength ladder -->
+  <section class="slide" data-section="Beyond passwords" data-section-es="Más allá de la contraseña">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>No todos los segundos factores son iguales"><span class="dot"></span>Not all second factors are equal</span>
+      <h2 data-es="La escalera de fuerza de los factores">The factor-strength ladder</h2>
+      <div class="ladder">
+        <div class="rung weak"><span class="r-ico">📩</span><div class="r-body"><strong data-es="Código por SMS (OTP)">SMS one-time code (OTP)</strong><span data-es="Mejor que solo contraseña, pero el más débil: interceptable y phishable.">Better than password alone, but weakest: interceptable and phishable.</span></div><span class="r-tag" data-es="más débil">weakest</span></div>
+        <div class="rung medium"><span class="r-ico">📲</span><div class="r-body"><strong data-es="App de autenticación (TOTP)">Authenticator app (TOTP)</strong><span data-es="Código que vive en tu dispositivo; no viaja por la red móvil. Más fuerte.">Code lives on your device; never travels over the mobile network. Stronger.</span></div><span class="r-tag" data-es="intermedio">medium</span></div>
+        <div class="rung strong"><span class="r-ico">🔑</span><div class="r-body"><strong data-es="Llave de seguridad / passkey (FIDO2)">Hardware security key / passkey (FIDO2)</strong><span data-es="Resistente al phishing: la credencial está ligada al sitio. El más fuerte.">Phishing-resistant: the credential is bound to the site. Strongest.</span></div><span class="r-tag" data-es="más fuerte">strongest</span></div>
+      </div>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Regla práctica">Rule of thumb</span><p data-es="Cualquier MFA es mejor que ninguno. Pero si puedes elegir, sube por la escalera: SMS &lt; app &lt; llave/passkey.">Any MFA beats none. But if you can choose, climb the ladder: SMS &lt; app &lt; key/passkey.</p></div>
+    </div>
+  </section>
+
+  <!-- S31c — Why SMS OTP is weak -->
+  <section class="slide" data-section="Beyond passwords" data-section-es="Más allá de la contraseña">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El eslabón débil"><span class="dot"></span>The weak link</span>
+      <h2 data-es="¿Por qué el código por SMS es débil?">Why is the SMS code weak?</h2>
+      <div class="grid cols-3">
+        <div class="card danger-top"><span class="ico">🔄</span><h3 data-es="Cambio de SIM (SIM-swap)">SIM-swap</h3><p data-es="El atacante convence a la operadora de pasar tu número a su SIM y recibe tus códigos.">The attacker tricks the carrier into moving your number to their SIM and receives your codes.</p></div>
+        <div class="card danger-top"><span class="ico">🎣</span><h3 data-es="Phishing en tiempo real">Real-time phishing / relay</h3><p data-es="Un sitio falso te pide el código y lo reenvía al sitio real al instante.">A fake site asks for the code and relays it to the real site instantly.</p></div>
+        <div class="card warn-top"><span class="ico">📡</span><h3 data-es="Interceptación">Interception</h3><p data-es="Las redes de señalización (SS7) y el malware en el teléfono pueden leer los mensajes.">Signaling networks (SS7) and phone malware can read the messages.</p></div>
+      </div>
+      <div class="callout policy" style="margin-top:1rem"><span class="tag" data-es="Tendencia regulatoria">Regulatory trend</span><p data-es="Por estas razones, los reguladores y las grandes plataformas están <strong>retirando gradualmente</strong> el OTP por SMS como segundo factor. Úsalo solo si no hay opción mejor.">For these reasons, regulators and major platforms are <strong>phasing out</strong> SMS OTP as a second factor. Use it only when nothing better is available.</p></div>
+    </div>
+  </section>
+
+  <!-- S31d — Passkeys / FIDO2 / WebAuthn -->
+  <section class="slide" data-section="Beyond passwords" data-section-es="Más allá de la contraseña">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Sin contraseña, a prueba de phishing"><span class="dot"></span>Passwordless, phishing-resistant</span>
+      <h2 data-es="Passkeys: FIDO2 / WebAuthn">Passkeys: FIDO2 / WebAuthn</h2>
+      <p class="lead" style="max-width:60ch" data-es="Una <strong>passkey</strong> es un par de claves criptográficas: la clave <em>privada</em> nunca sale de tu dispositivo; el sitio solo guarda la clave <em>pública</em>. No hay secreto compartido que robar.">A <strong>passkey</strong> is a cryptographic key pair: the <em>private</em> key never leaves your device; the site only stores the <em>public</em> key. There is no shared secret to steal.</p>
+      <div class="split">
+        <div class="card good-top"><h3 data-es="A prueba de phishing">Phishing-resistant</h3><p data-es="La credencial está <strong>ligada al origen</strong> (el dominio real). Un sitio falso no puede provocar una firma válida — el navegador se niega.">The credential is <strong>origin-bound</strong> (the real domain). A fake site can't elicit a valid signature — the browser refuses.</p></div>
+        <div class="card teal-top"><h3 data-es="Sin secreto que filtrar">Nothing to leak</h3><p data-es="Una brecha en el servidor solo expone claves <em>públicas</em>, inútiles para suplantarte.">A server breach only exposes <em>public</em> keys, useless for impersonating you.</p></div>
+      </div>
+      <div class="callout check" style="margin-top:1.1rem"><span class="tag" data-es="Conexión">Connect</span><p data-es="Recuerda la diapositiva de red/MITM: las passkeys <strong>resisten la repetición y el phishing precisamente por estar ligadas al origen</strong>. Mayoritarias en Apple, Google y Microsoft desde 2024–2025.">Recall the network/MITM slide: passkeys <strong>resist replay and phishing precisely because they're origin-bound</strong>. Mainstream across Apple, Google, and Microsoft since 2024–2025.</p></div>
     </div>
   </section>
 
@@ -560,7 +741,7 @@
   <span class="course" data-es="TC2007B · S2 · C1 — Autenticación">TC2007B · W2 · L1 — Authentication</span>
   <span class="right">
     <span class="sec-name" id="secName">Orientation</span>
-    <span class="counter"><span id="cur">1</span> / <span id="total">35</span></span>
+    <span class="counter"><span id="cur">1</span> / <span id="total">43</span></span>
   </span>
 </footer>
 

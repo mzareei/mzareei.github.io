@@ -52,7 +52,20 @@
 .owasp-col { display: flex; flex-direction: column; gap: .4rem; }
 .owasp-row { display: flex; align-items: center; gap: .7rem; background: var(--bg-2); border: 1px solid var(--line); border-left: 4px solid var(--line); border-radius: 8px; padding: .45rem .8rem; font-size: clamp(.7rem, 1.2vw, .95rem); }
 .owasp-row.highlight { border-left-color: var(--accent); background: rgba(78,161,255,.08); }
+.owasp-row.is-new { border-left-color: var(--good); }
 .owasp-row .ow-num { font-weight: 900; color: var(--accent); min-width: 2.5ch; }
+.owasp-row .ow-tag { margin-left: auto; font-size: .72em; font-weight: 700; padding: .1rem .45rem; border-radius: 6px; white-space: nowrap; }
+.owasp-row .ow-tag.up { background: rgba(255,107,107,.15); color: var(--danger); }
+.owasp-row .ow-tag.new { background: rgba(60,200,120,.15); color: var(--good); }
+
+/* code-block tinting reused for HTML / JS / HTTP-header snippets */
+.sql-tag { color: var(--accent); }
+.sql-str { color: var(--warn); }
+.sql-fn  { color: var(--accent-2); }
+.sql-cmt { color: var(--ink-soft); font-style: italic; }
+.code-cap { display:inline-block; font-size:.72em; font-weight:800; letter-spacing:.05em; text-transform:uppercase; padding:.15rem .5rem; border-radius:6px; margin-bottom:.4rem; }
+.code-cap.bad  { background: rgba(255,107,107,.15); color: var(--danger); }
+.code-cap.ok   { background: rgba(60,200,120,.15); color: var(--good); }
 </style>
 </head>
 <body>
@@ -103,15 +116,16 @@
       <span class="kicker" data-es="<span class='dot'></span>El panorama de amenazas web"><span class="dot"></span>The web threat landscape</span>
       <h2 data-es="¿Por qué importa? Distribución de ataques web">Why it matters: distribution of web attacks</h2>
       <div class="bar-chart">
-        <div class="bar-row"><span class="bar-label">Cross-Site Scripting</span><div class="bar-track"><div class="bar-fill xss" style="width:78%">39.1 %</div></div></div>
-        <div class="bar-row"><span class="bar-label">SQL Injection</span><div class="bar-track"><div class="bar-fill sqli" style="width:50%">24.9 %</div></div></div>
-        <div class="bar-row"><span class="bar-label">Path Traversal</span><div class="bar-track"><div class="bar-fill med" style="width:13.2%">6.6 %</div></div></div>
-        <div class="bar-row"><span class="bar-label">Info Leakage</span><div class="bar-track"><div class="bar-fill low" style="width:9.2%">4.6 %</div></div></div>
-        <div class="bar-row"><span class="bar-label">OS Commanding</span><div class="bar-track"><div class="bar-fill low" style="width:8.8%">4.4 %</div></div></div>
-        <div class="bar-row"><span class="bar-label">XML Injection</span><div class="bar-track"><div class="bar-fill low" style="width:8.4%">4.2 %</div></div></div>
-        <div class="bar-row"><span class="bar-label" data-es="Otros ataques">Other attacks</span><div class="bar-track"><div class="bar-fill vlow" style="width:42%">~20.2 %</div></div></div>
+        <div class="bar-row"><span class="bar-label">Cross-Site Scripting</span><div class="bar-track"><div class="bar-fill xss" style="width:39.1%">39.1 %</div></div></div>
+        <div class="bar-row"><span class="bar-label">SQL Injection</span><div class="bar-track"><div class="bar-fill sqli" style="width:24.9%">24.9 %</div></div></div>
+        <div class="bar-row"><span class="bar-label">Path Traversal</span><div class="bar-track"><div class="bar-fill med" style="width:6.6%">6.6 %</div></div></div>
+        <div class="bar-row"><span class="bar-label">Info Leakage</span><div class="bar-track"><div class="bar-fill low" style="width:4.6%">4.6 %</div></div></div>
+        <div class="bar-row"><span class="bar-label">OS Commanding</span><div class="bar-track"><div class="bar-fill low" style="width:4.4%">4.4 %</div></div></div>
+        <div class="bar-row"><span class="bar-label">XML Injection</span><div class="bar-track"><div class="bar-fill low" style="width:4.2%">4.2 %</div></div></div>
+        <div class="bar-row"><span class="bar-label" data-es="Otros ataques">Other attacks</span><div class="bar-track"><div class="bar-fill vlow" style="width:20.2%">~20.2 %</div></div></div>
       </div>
-      <p class="figure-note" data-es="Fuente: datos de informe de amenazas web (valores aproximados e ilustrativos). XSS + SQLi representan casi dos tercios de todos los ataques registrados.">Source: web threat report data (approximate, illustrative values). XSS + SQLi account for nearly two-thirds of all recorded attacks.</p>
+      <p class="figure-note" data-es="Distribución histórica ilustrativa (era WASC, aprox. 2007–2011) — útil para mostrar la <em>forma</em> del problema, no las cifras actuales.">Illustrative historical distribution (WASC-era, ~2007–2011) — useful to show the <em>shape</em> of the problem, not today's exact figures.</p>
+      <div class="callout note" style="margin-top:.8rem"><span class="tag" data-es="Dato actual">Current data</span><p data-es="Según el Verizon 2024 DBIR, la inyección SQL (CWE-89) sigue siendo la vulnerabilidad de aplicación web más prevalente — la SQLi de MOVEit provocó más de 1.500 notificaciones de brecha en 2023.">Per the Verizon 2024 DBIR, SQL injection (CWE-89) remains the most prevalent web-application vulnerability — the MOVEit SQLi drove 1,500+ breach notifications in 2023.</p></div>
     </div>
   </section>
 
@@ -434,6 +448,37 @@
     </div>
   </section>
 
+  <!-- S19b — Blind & UNION worked walkthrough -->
+  <section class="slide" data-section="SQL Injection" data-section-es="Inyección SQL">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Extracción paso a paso"><span class="dot"></span>Step-by-step extraction</span>
+      <h2 data-es="SQLi ciego y basado en UNION: cómo se roban los datos">Blind &amp; UNION-based SQLi: how data is actually stolen</h2>
+      <div class="split">
+        <div class="card warn-top">
+          <h3 data-es="Ciego — carácter por carácter">Blind — character by character</h3>
+          <p style="margin-top:.4rem;color:var(--ink-soft)" data-es="Sin datos en la página: el atacante hace preguntas de sí/no y observa la respuesta.">No data on the page: the attacker asks yes/no questions and watches the response.</p>
+          <div class="sql-block" style="margin-top:.6rem; font-size:.8em; padding:.9rem">
+            <span class="sql-cmt"># booleano: ¿la 1ª letra es 'a'?</span><br>
+            <span class="sql-val">'</span> <span class="sql-kw">AND</span> <span class="sql-fn">SUBSTRING</span>(<span class="sql-col">password</span>,<span class="sql-col">1</span>,<span class="sql-col">1</span>)=<span class="sql-val">'a'</span> <span class="sql-inj">--</span><br><br>
+            <span class="sql-cmt"># tiempo: si acierta, tarda 5 s</span><br>
+            <span class="sql-val">'</span> <span class="sql-kw">AND IF</span>(<span class="sql-fn">SUBSTRING</span>(<span class="sql-col">password</span>,<span class="sql-col">1</span>,<span class="sql-col">1</span>)=<span class="sql-val">'a'</span>, <span class="sql-fn">SLEEP</span>(<span class="sql-col">5</span>), <span class="sql-col">0</span>) <span class="sql-inj">--</span>
+          </div>
+          <p style="margin-top:.5rem;color:var(--ink-soft);font-size:var(--fs-small)" data-es="Verdadero/falso (o página rápida/lenta) revela cada carácter. Se repite para cada posición — automatizable con un script.">True/false (or fast/slow page) reveals each character. Repeat for every position — easily scripted.</p>
+        </div>
+        <div class="card danger-top">
+          <h3 data-es="Basado en UNION — todo de una vez">UNION-based — all at once</h3>
+          <p style="margin-top:.4rem;color:var(--ink-soft)" data-es="Si los resultados se muestran en la página, UNION añade las filas del atacante a la salida legítima.">If results are shown on the page, UNION appends the attacker's rows to the legitimate output.</p>
+          <div class="sql-block" style="margin-top:.6rem; font-size:.8em; padding:.9rem">
+            <span class="sql-val">'</span> <span class="sql-kw">UNION SELECT</span> <span class="sql-col">username</span>, <span class="sql-col">password</span><br>
+            &nbsp;&nbsp;<span class="sql-kw">FROM</span> <span class="sql-tbl">users</span> <span class="sql-inj">--</span>
+          </div>
+          <p style="margin-top:.5rem;color:var(--ink-soft);font-size:var(--fs-small)" data-es="Requiere igualar el número y tipo de columnas de la consulta original. Vuelca toda la tabla en una sola petición.">Requires matching the original query's column count and types. Dumps the whole table in one request.</p>
+        </div>
+      </div>
+      <div class="callout note" style="margin-top:.8rem"><span class="tag" data-es="Conclusión">Takeaway</span><p data-es="El SQLi ciego es lento pero imparable si la entrada llega a la consulta; UNION es rápido cuando hay salida visible. Ambos se neutralizan con consultas parametrizadas.">Blind SQLi is slow but unstoppable once input reaches the query; UNION is fast when output is visible. Both are neutralized by parameterized queries.</p></div>
+    </div>
+  </section>
+
   <!-- ===================== E. COUNTERMEASURES ===================== -->
 
   <!-- S20 — Section divider -->
@@ -495,6 +540,7 @@
         </div>
       </div>
       <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Por qué funciona">Why it works</span><p data-es="La BD compila la plantilla SQL <em>antes</em> de que llegue la entrada del usuario. El parámetro no puede cambiar la estructura de la consulta; siempre se trata como un literal de datos.">The DB compiles the SQL template <em>before</em> user input arrives. The parameter cannot change the query structure; it is always treated as a data literal.</p></div>
+      <div class="callout discuss" style="margin-top:.8rem"><span class="tag" data-es="Cuidado">Caveat</span><p data-es="La parametrización <strong>no</strong> protege identificadores dinámicos — nombres de tabla/columna o la dirección de <code>ORDER BY</code> (ASC/DESC) — porque no son valores. Esos deben validarse contra una <strong>lista de permitidos</strong> (allow-list). No confíes en el <code>?</code> para todo.">Parameterization does <strong>not</strong> protect dynamic identifiers — table/column names or the <code>ORDER BY</code> direction (ASC/DESC) — because they are not values. Those must be validated against an <strong>allow-list</strong>. Don't over-trust the <code>?</code> placeholder.</p></div>
     </div>
   </section>
 
@@ -555,6 +601,7 @@
           <p data-es="Cuando la BD está cifrada, resulta mucho más difícil realizar búsquedas eficientes de registros, índices o consultas de rangos.">When the DB is encrypted, efficiently searching records, indexing, and range queries become much harder.</p>
         </div>
       </div>
+      <div class="callout check" style="margin-top:.9rem"><span class="tag" data-es="Respuesta moderna">Modern answer</span><p data-es="El <strong>Cifrado Transparente de Datos (TDE)</strong> cifra los archivos en reposo sin cambiar las consultas, y el <strong>cifrado con capacidad de búsqueda</strong> permite consultar sobre datos cifrados — reduciendo el problema de inflexibilidad.">Transparent Data Encryption (<strong>TDE</strong>) encrypts files at rest without changing queries, and <strong>searchable encryption</strong> lets you query over ciphertext — both ease the inflexibility problem.</p></div>
     </div>
   </section>
 
@@ -565,7 +612,7 @@
     <div class="slide-inner">
       <div class="num">05</div>
       <h1 data-es="OWASP y más allá del SQLi">OWASP &amp; beyond SQLi</h1>
-      <p class="lead" data-es="La inyección va más allá de SQL — XSS es el vector de ataque web número uno.">Injection goes beyond SQL — XSS is the #1 web attack vector.</p>
+      <p class="lead" data-es="La inyección va más allá de SQL: inyección de comandos del SO, inyección NoSQL e inyección de plantillas son hermanas del SQLi.">Injection goes beyond SQL — OS command injection, NoSQL injection, and template injection are all siblings of SQLi.</p>
     </div>
   </section>
 
@@ -573,31 +620,32 @@
   <section class="slide" data-section="OWASP &amp; XSS" data-section-es="OWASP y XSS">
     <div class="slide-inner">
       <span class="kicker" data-es="<span class='dot'></span>El estándar de referencia de la industria"><span class="dot"></span>The industry reference standard</span>
-      <h2 data-es="OWASP Top 10: los riesgos de seguridad web más críticos">OWASP Top 10: most critical web security risks</h2>
+      <h2 data-es="OWASP Top 10:2025 — los riesgos de seguridad web más críticos">OWASP Top 10:2025 — most critical web security risks</h2>
       <div class="split">
         <div class="owasp-col">
           <div class="owasp-row"><span class="ow-num">A01</span><span data-es="Control de acceso roto">Broken Access Control</span></div>
-          <div class="owasp-row"><span class="ow-num">A02</span><span data-es="Fallos criptográficos">Cryptographic Failures</span></div>
-          <div class="owasp-row highlight"><span class="ow-num">A03</span><strong>Injection</strong> ← <em data-es="aquí estamos">we are here</em></div>
-          <div class="owasp-row"><span class="ow-num">A04</span><span data-es="Diseño inseguro">Insecure Design</span></div>
-          <div class="owasp-row"><span class="ow-num">A05</span><span data-es="Configuración incorrecta de seguridad">Security Misconfiguration</span></div>
+          <div class="owasp-row"><span class="ow-num">A02</span><span data-es="Configuración incorrecta de seguridad">Security Misconfiguration</span><span class="ow-tag up" data-es="subió">moved up</span></div>
+          <div class="owasp-row is-new"><span class="ow-num">A03</span><span data-es="Fallos en la cadena de suministro de software">Software Supply Chain Failures</span><span class="ow-tag new" data-es="nuevo">new</span></div>
+          <div class="owasp-row"><span class="ow-num">A04</span><span data-es="Fallos criptográficos">Cryptographic Failures</span></div>
+          <div class="owasp-row highlight"><span class="ow-num">A05</span><strong>Injection</strong> ← <em data-es="aquí estamos">we are here</em></div>
         </div>
         <div class="owasp-col">
-          <div class="owasp-row"><span class="ow-num">A06</span><span data-es="Componentes vulnerables y obsoletos">Vulnerable &amp; Outdated Components</span></div>
-          <div class="owasp-row"><span class="ow-num">A07</span><span data-es="Fallos de identificación y autenticación">Identification &amp; Auth Failures</span></div>
+          <div class="owasp-row"><span class="ow-num">A06</span><span data-es="Diseño inseguro">Insecure Design</span></div>
+          <div class="owasp-row"><span class="ow-num">A07</span><span data-es="Fallos de autenticación">Authentication Failures</span></div>
           <div class="owasp-row"><span class="ow-num">A08</span><span data-es="Fallos en integridad de software y datos">Software &amp; Data Integrity Failures</span></div>
-          <div class="owasp-row"><span class="ow-num">A09</span><span data-es="Fallos en registro y monitoreo de seguridad">Security Logging &amp; Monitoring Failures</span></div>
-          <div class="owasp-row"><span class="ow-num">A10</span><span>Server-Side Request Forgery (SSRF)</span></div>
+          <div class="owasp-row"><span class="ow-num">A09</span><span data-es="Fallos en registro y alertas de seguridad">Security Logging &amp; Alerting Failures</span></div>
+          <div class="owasp-row"><span class="ow-num">A10</span><span data-es="Mal manejo de condiciones excepcionales">Mishandling of Exceptional Conditions</span></div>
         </div>
       </div>
-      <p class="figure-note" data-es="Fuente: owasp.org — lista de consenso actualizada periódicamente por la comunidad OWASP. A03 incluye SQLi <em>y</em> XSS.">Source: owasp.org — periodically updated consensus list from the OWASP community. A03 includes SQLi <em>and</em> XSS.</p>
+      <p class="figure-note" data-es="Fuente: owasp.org/Top10/2025. La inyección (A05) incluye SQLi <em>y</em> XSS. El SSRF se fusionó en A01 (Control de acceso roto).">Source: owasp.org/Top10/2025. Injection (A05) covers SQLi <em>and</em> XSS. SSRF was merged into A01 (Broken Access Control).</p>
+      <div class="callout note" style="margin-top:.8rem"><span class="tag" data-es="Qué cambió 2021 → 2025">What changed 2021 → 2025</span><p data-es="La inyección bajó de A03 a A05 — defensas como las consultas parametrizadas ya están muy extendidas. El <strong>Control de acceso roto</strong> sigue siendo el nº 1. Configuración incorrecta subió a A02 y los <strong>fallos en la cadena de suministro</strong> entran como A03.">Injection dropped from A03 to A05 — defenses like parameterized queries are now widespread. <strong>Broken Access Control</strong> remains #1. Security Misconfiguration rose to A02, and <strong>Supply Chain Failures</strong> is the new A03.</p></div>
     </div>
   </section>
 
   <!-- S28 — XSS definition -->
   <section class="slide" data-section="OWASP &amp; XSS" data-section-es="OWASP y XSS">
     <div class="slide-inner">
-      <span class="kicker" data-es="<span class='dot'></span>A03: Inyección — XSS"><span class="dot"></span>A03: Injection — XSS</span>
+      <span class="kicker" data-es="<span class='dot'></span>A05: Inyección — XSS"><span class="dot"></span>A05: Injection — XSS</span>
       <h2 data-es="Cross-Site Scripting (XSS)">Cross-Site Scripting (XSS)</h2>
       <div class="definition">
         <blockquote data-es="XSS ocurre cuando una aplicación acepta entradas de usuario maliciosas que ejecutan inadvertidamente código suministrado por el usuario — en el <em>navegador de la víctima</em>.">XSS occurs when an application takes in malicious user input that inadvertently executes user-supplied code — in the <em>victim's browser</em>.</blockquote>
@@ -614,8 +662,8 @@
   <!-- S29 — XSS types -->
   <section class="slide" data-section="OWASP &amp; XSS" data-section-es="OWASP y XSS">
     <div class="slide-inner">
-      <span class="kicker" data-es="<span class='dot'></span>Dos tipos principales de XSS"><span class="dot"></span>Two main types of XSS</span>
-      <h2 data-es="XSS almacenado vs. reflejado">Stored vs. Reflected XSS</h2>
+      <span class="kicker" data-es="<span class='dot'></span>Tres tipos principales de XSS"><span class="dot"></span>Three main types of XSS</span>
+      <h2 data-es="XSS almacenado · reflejado · basado en DOM">Stored · Reflected · DOM-based XSS</h2>
       <div class="split">
         <div class="card danger-top">
           <h3 data-es="XSS almacenado (persistente)">Stored (persistent) XSS</h3>
@@ -627,6 +675,11 @@
           <p data-es="El script <strong>no se almacena</strong>; está incrustado en una URL maliciosa que el atacante envía a la víctima. Requiere que la víctima haga clic en el enlace (p. ej., correo de phishing).">Script is <strong>not stored</strong>; embedded in a malicious URL sent to the victim. Requires the victim to click the link (e.g., phishing email).</p>
           <p style="margin-top:.6rem;color:var(--ink-soft);font-size:var(--fs-small)" data-es="Entrega: correo de phishing con un enlace que contiene el payload XSS en el parámetro de la URL.">Delivery: phishing email with a link containing the XSS payload in the URL parameter.</p>
         </div>
+      </div>
+      <div class="card violet-top" style="margin-top:1rem">
+        <h3 data-es="XSS basado en DOM (del lado del cliente)">DOM-based XSS (client-side)</h3>
+        <p data-es="El payload <strong>nunca llega al servidor</strong>: JavaScript del propio sitio lee datos controlados por el atacante (p. ej. <code>location.hash</code>) y los escribe en un <em>sink</em> peligroso como <code>innerHTML</code> o <code>document.write</code>, ejecutándolos en el navegador.">The payload <strong>never reaches the server</strong>: the site's own JavaScript reads attacker-controlled data (e.g. <code>location.hash</code>) and writes it to a dangerous <em>sink</em> like <code>innerHTML</code> or <code>document.write</code>, executing it in the browser.</p>
+        <p style="margin-top:.5rem;color:var(--ink-soft);font-size:var(--fs-small)" data-es="Muy relevante en SPAs modernas: sin ida y vuelta al servidor, los filtros del lado del servidor no lo ven.">Highly relevant in modern SPAs: with no server round-trip, server-side filters never see it.</p>
       </div>
       <div class="callout discuss" style="margin-top:.9rem"><span class="tag" data-es="Debate">Debate</span><p data-es="El XSS almacenado afecta a <em>todos</em> los visitantes futuros sin que hagan nada. El XSS reflejado requiere que la víctima haga clic. ¿Cuál es más peligroso? ¿Y cuál es más probable que pase desapercibido durante más tiempo?">Stored XSS affects <em>all</em> future visitors with no action on their part. Reflected XSS requires the victim to click. Which is more dangerous? And which is more likely to go undetected longer?</p></div>
     </div>
@@ -664,6 +717,37 @@
     </div>
   </section>
 
+  <!-- S31b — XSS vulnerable vs fixed code -->
+  <section class="slide" data-section="OWASP &amp; XSS" data-section-es="OWASP y XSS">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Vulnerable vs. corregido"><span class="dot"></span>Vulnerable vs. fixed</span>
+      <h2 data-es="Codificación de salida en código: el patrón XSS">Output encoding in code: the XSS pattern</h2>
+      <div class="split">
+        <div class="card danger-top">
+          <span class="code-cap bad" data-es="Vulnerable">Vulnerable</span>
+          <div class="sql-block" style="margin-top:.2rem; font-size:.82em; padding:1rem">
+            <span class="sql-cmt">// reflexión cruda — el HTML del atacante se ejecuta</span><br>
+            <span class="sql-fn">echo</span> <span class="sql-str">"&lt;div&gt;"</span> . <span class="sql-col">$_GET</span>[<span class="sql-str">'name'</span>] . <span class="sql-str">"&lt;/div&gt;"</span>;
+          </div>
+          <p style="margin-top:.5rem;color:var(--ink-soft);font-size:var(--fs-small)" data-es="Si <code>name</code> es <code>&lt;script&gt;…&lt;/script&gt;</code>, el navegador lo ejecuta.">If <code>name</code> is <code>&lt;script&gt;…&lt;/script&gt;</code>, the browser runs it.</p>
+        </div>
+        <div class="card good-top">
+          <span class="code-cap ok" data-es="Corregido">Fixed</span>
+          <div class="sql-block" style="margin-top:.2rem; font-size:.82em; padding:1rem">
+            <span class="sql-cmt">// codifica la salida — se muestra como texto</span><br>
+            <span class="sql-fn">echo</span> <span class="sql-str">"&lt;div&gt;"</span> . <span class="sql-fn">htmlspecialchars</span>(<span class="sql-col">$_GET</span>[<span class="sql-str">'name'</span>], <span class="sql-kw">ENT_QUOTES</span>) . <span class="sql-str">"&lt;/div&gt;"</span>;
+          </div>
+          <p style="margin-top:.5rem;color:var(--ink-soft);font-size:var(--fs-small)" data-es="Los motores de plantillas modernos (Twig, React, Jinja) escapan la salida automáticamente.">Modern templating engines (Twig, React, Jinja) auto-escape output for you.</p>
+        </div>
+      </div>
+      <div class="sql-block" style="margin-top:1rem; font-size:.85em">
+        <span class="sql-cmt"># Defensa en profundidad: una cabecera HTTP que limita qué scripts pueden ejecutarse</span><br>
+        <span class="sql-tag">Content-Security-Policy:</span> <span class="sql-str">default-src 'self'; script-src 'self'</span>
+      </div>
+      <div class="callout note" style="margin-top:.9rem"><span class="tag" data-es="Codificación vs. validación">Encoding vs. validation</span><p data-es="La <strong>validación de entrada</strong> rechaza datos malformados al entrar, pero datos válidos pueden contener caracteres peligrosos. La <strong>codificación de salida</strong> es la defensa principal contra XSS: neutraliza los caracteres <em>justo en el punto donde se muestran</em>, según el contexto (HTML, atributo, JS, URL)."><strong>Input validation</strong> rejects malformed data at the door, but valid data can still contain dangerous characters. <strong>Output encoding</strong> is the primary XSS defense: it neutralizes characters <em>right where they are rendered</em>, per context (HTML, attribute, JS, URL).</p></div>
+    </div>
+  </section>
+
   <!-- ===================== G. WRAP-UP ===================== -->
 
   <!-- S32 — Summary -->
@@ -675,9 +759,11 @@
         <li data-es="Las aplicaciones web son puntos de entrada — la <strong>BD es el objetivo real</strong>. La defensa debe operar en ambas capas.">Web apps are entry points — the <strong>DB is the real target</strong>. Defense must operate at both layers.</li>
         <li data-es="Los requisitos de seguridad de BD cubren cinco áreas: integridad física, lógica y de elementos, auditabilidad y control de acceso.">DB security requirements span five areas: physical, logical, and element integrity, auditability, and access control.</li>
         <li data-es="SQLi puede eliminarse casi por completo con <strong>consultas parametrizadas</strong>. La validación de entradas y la prevención en tiempo de ejecución aportan capas adicionales.">SQLi can be nearly eliminated with <strong>parameterized queries</strong>. Input validation and run-time prevention add extra layers.</li>
-        <li data-es="XSS es el ataque web más frecuente (≈ 39 %). La validación de entradas, la codificación de salida y la CSP son las principales defensas.">XSS is the most frequent web attack (≈ 39 %). Input validation, output encoding, and CSP are the main defenses.</li>
-        <li data-es="El <strong>OWASP Top 10</strong> es la referencia estándar de la industria para los riesgos de seguridad en aplicaciones web — conócelo.">The <strong>OWASP Top 10</strong> is the industry-standard reference for web app security risks — know it.</li>
+        <li data-es="XSS sigue siendo un ataque web de primer nivel. La validación de entradas, la <strong>codificación de salida</strong> y la CSP son las principales defensas.">XSS remains a top-tier web attack. Input validation, <strong>output encoding</strong>, and CSP are the main defenses.</li>
+        <li data-es="El <strong>OWASP Top 10:2025</strong> es la referencia estándar de la industria — la inyección bajó a A05, pero la SQLi sigue siendo la vulnerabilidad web nº 1 según el Verizon DBIR.">The <strong>OWASP Top 10:2025</strong> is the industry-standard reference — Injection dropped to A05, yet SQLi is still the #1 web vulnerability per the Verizon DBIR.</li>
+        <li data-es="Caso real: la SQLi de <strong>MOVEit Transfer</strong> (CVE-2023-34362, grupo Cl0p, 2023) — una sola vulnerabilidad que se propagó a miles de organizaciones.">Real-world case: the <strong>MOVEit Transfer</strong> SQLi (CVE-2023-34362, Cl0p, 2023) — one vulnerability that cascaded into thousands of organizations.</li>
       </ul>
+      <div class="callout check" style="margin-top:.9rem"><span class="tag" data-es="Práctica">Hands-on</span><p data-es="Para absorber el tiempo restante, practica con laboratorios gratuitos de SQLi y XSS: <strong>PortSwigger Web Security Academy</strong> o <strong>DVWA</strong> (Damn Vulnerable Web Application).">To absorb remaining time, practice on free SQLi &amp; XSS labs: <strong>PortSwigger Web Security Academy</strong> or <strong>DVWA</strong> (Damn Vulnerable Web Application).</p></div>
     </div>
   </section>
 

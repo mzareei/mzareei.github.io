@@ -9,6 +9,115 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<style>
+  /* Deck-specific additions for W2 L2 */
+  code, .code-inline {
+    font-family: var(--mono);
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: .08em .4em;
+    font-size: .92em;
+    color: var(--accent-2);
+  }
+  .terminal {
+    font-family: var(--mono);
+    background: #0a1220;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+    margin-top: 1.3rem;
+    font-size: var(--fs-body);
+    line-height: 1.7;
+    overflow-x: auto;
+    white-space: pre-wrap;
+  }
+  .terminal .prompt { color: var(--good); }
+  .terminal .cmd { color: var(--ink); }
+  .terminal .out { color: var(--ink-soft); }
+  .terminal .hi { color: var(--warn); font-weight: 700; }
+  .perm-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-top: 1.3rem;
+  }
+  @media (max-width: 900px){ .perm-grid { grid-template-columns: 1fr; } }
+  .perm-box {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: .9rem 1rem;
+    text-align: center;
+  }
+  .perm-box .bits {
+    font-family: var(--mono);
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    color: var(--accent);
+    display: block;
+    margin-bottom: .35rem;
+  }
+  .perm-box .who { font-weight: 700; font-size: var(--fs-small); text-transform: uppercase; letter-spacing: .06em; color: var(--ink); display: block; }
+  .perm-box .oct { font-family: var(--mono); color: var(--accent-2); font-size: var(--fs-small); display: block; margin-top: .25rem; }
+  /* Matrix-view (one matrix, three views) */
+  table.acm { width: 100%; border-collapse: collapse; margin-top: 1.2rem; font-family: var(--mono); font-size: var(--fs-body); }
+  table.acm th, table.acm td { border: 1px solid var(--line); padding: .55rem .7rem; text-align: center; }
+  table.acm thead th { color: var(--accent); background: var(--bg-3); }
+  table.acm tbody th { color: var(--violet); background: var(--bg-3); text-align: left; }
+  table.acm td.cell { color: var(--accent-2); }
+  table.acm .col-hi { background: rgba(78,161,255,.16); outline: 2px solid var(--accent); }
+  table.acm .row-hi { background: rgba(177,140,255,.16); }
+  .view-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; margin-top: 1.3rem; }
+  @media (max-width: 900px){ .view-pair { grid-template-columns: 1fr; } }
+  .view-pair .vp { background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; padding: .9rem 1.1rem; }
+  .view-pair .vp h4 { font-size: var(--fs-small); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .5rem; }
+  .view-pair .vp.acl-view { border-top: 4px solid var(--accent); }
+  .view-pair .vp.acl-view h4 { color: var(--accent); }
+  .view-pair .vp.cap-view { border-top: 4px solid var(--violet); }
+  .view-pair .vp.cap-view h4 { color: var(--violet); }
+  .view-pair .vp code { display: block; margin: .3rem 0; background: none; border: none; padding: 0; color: var(--ink-soft); }
+  /* Lattice for Bell-LaPadula / Biba */
+  .lattice { display: flex; flex-direction: column; gap: .55rem; margin-top: 1.3rem; max-width: 460px; }
+  .lattice .lv {
+    background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px;
+    padding: .65rem 1rem; font-weight: 700; display: flex; justify-content: space-between; align-items: center;
+  }
+  .lattice .lv .tier { font-size: var(--fs-small); color: var(--ink-soft); font-weight: 400; }
+  .lattice .lv.l4 { border-left: 4px solid var(--danger); }
+  .lattice .lv.l3 { border-left: 4px solid var(--warn); }
+  .lattice .lv.l2 { border-left: 4px solid var(--accent); }
+  .lattice .lv.l1 { border-left: 4px solid var(--good); }
+  .bll-wrap { display: grid; grid-template-columns: auto 1fr; gap: 1.6rem; align-items: center; margin-top: 1rem; }
+  @media (max-width: 900px){ .bll-wrap { grid-template-columns: 1fr; } }
+  .rule-list { display: flex; flex-direction: column; gap: .8rem; }
+  .rule-list .rule { background: var(--bg-2); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; padding: .7rem .95rem; }
+  .rule-list .rule b { color: var(--accent); }
+  .rule-list .rule.deny { border-left-color: var(--danger); }
+  .rule-list .rule.deny b { color: var(--danger); }
+  .policy-block {
+    font-family: var(--mono); background: #0a1220; border: 1px solid var(--line);
+    border-left: 4px solid var(--good); border-radius: 10px; padding: 1rem 1.2rem;
+    margin-top: 1.2rem; font-size: var(--fs-body); line-height: 1.75; white-space: pre-wrap; overflow-x: auto;
+  }
+  .policy-block .kw { color: var(--violet); font-weight: 700; }
+  .policy-block .at { color: var(--accent); }
+  .policy-block .vl { color: var(--accent-2); }
+  .policy-block .cm { color: var(--ink-soft); font-style: italic; }
+  .pdp-flow { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-top: 1.3rem; }
+  .pdp-row { display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; }
+  .pdp-box { background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; padding: .7rem 1rem; flex: 1; min-width: 180px; }
+  .pdp-box .pname { font-weight: 800; display: block; }
+  .pdp-box .psub { font-size: var(--fs-small); color: var(--ink-soft); display: block; margin-top: .25rem; }
+  .pdp-box.pep { border-top: 4px solid var(--accent); }
+  .pdp-box.pep .pname { color: var(--accent); }
+  .pdp-box.pdp { border-top: 4px solid var(--violet); }
+  .pdp-box.pdp .pname { color: var(--violet); }
+  .pdp-box.pip { border-top: 4px solid var(--accent-2); }
+  .pdp-box.pip .pname { color: var(--accent-2); }
+  .pdp-arrow { color: var(--accent); font-size: 1.6rem; }
+</style>
 </head>
 <body>
 
@@ -160,7 +269,39 @@
           <tr><td>Roberto</td><td class="map-from">✘</td><td class="map-to">✔</td><td class="map-from">✘</td><td class="map-to">✔</td></tr>
         </tbody>
       </table>
-      <div class="callout discuss" style="margin-top:1rem"><span class="tag" data-es="Discusión">Discuss</span><p data-es="Con 5 usuarios y 4 salas ya hay 20 celdas. ¿Cuántas tendría una universidad con 10,000 cuentas y 50,000 archivos? Ese tamaño es el problema que resolveremos a continuación.">5 users × 4 rooms is already 20 cells. How many for a university with 10,000 accounts and 50,000 files? That size is the problem we solve next.</p></div>
+      <div class="callout discuss" style="margin-top:1rem"><span class="tag" data-es="Discusión">Discuss</span><p data-es="Con 5 usuarios y 4 salas ya hay 20 celdas. <strong>10,000 cuentas × 50,000 archivos = 500 millones de celdas</strong>, casi todas vacías. Por eso nunca guardamos la matriz directamente: esa dispersión es justo la razón de existir de las ACL, las capacidades y el RBAC.">5 users × 4 rooms is already 20 cells. <strong>10,000 accounts × 50,000 files = 500 million cells</strong>, mostly empty. That's why we never store the matrix directly — that sparseness is exactly why ACLs, capabilities, and RBAC exist.</p></div>
+    </div>
+  </section>
+
+  <!-- S10b — One matrix, three views (worked) -->
+  <section class="slide" data-section="The model" data-section-es="El modelo">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Una matriz, dos vistas"><span class="dot"></span>One matrix, two views</span>
+      <h2 data-es="La misma matriz, vista por columna o por fila">The same matrix, sliced by column or by row</h2>
+      <p class="muted" style="max-width:62ch" data-es="Ahora las celdas guardan <strong>derechos</strong> (r = leer, w = escribir, x = ejecutar). Recorta una <strong>columna</strong> y obtienes una ACL; recorta una <strong>fila</strong> y obtienes una lista de capacidades.">Now the cells hold <strong>rights</strong> (r = read, w = write, x = execute). Slice a <strong>column</strong> and you get an ACL; slice a <strong>row</strong> and you get a capability list.</p>
+      <table class="acm">
+        <thead><tr><th data-es="Sujeto \\ Objeto">Subject \ Object</th><th class="col-hi">nomina.xlsx</th><th>app.bin</th><th>reporte.pdf</th></tr></thead>
+        <tbody>
+          <tr><th data-es="Ana (RH)">Ana (HR)</th><td class="cell col-hi">r w</td><td class="cell">r x</td><td class="cell">r</td></tr>
+          <tr class="row-hi"><th data-es="Beto (dev)">Beto (dev)</th><td class="cell col-hi">—</td><td class="cell">r w x</td><td class="cell">r w</td></tr>
+          <tr><th data-es="Cris (auditor)">Cris (auditor)</th><td class="cell col-hi">r</td><td class="cell">—</td><td class="cell">r</td></tr>
+        </tbody>
+      </table>
+      <div class="view-pair">
+        <div class="vp acl-view">
+          <h4 data-es="Columna azul → ACL de nomina.xlsx">Blue column → ACL of nomina.xlsx</h4>
+          <code>Ana : r w</code>
+          <code>Cris : r</code>
+          <code data-es="(Beto: sin acceso)">(Beto: no access)</code>
+        </div>
+        <div class="vp cap-view">
+          <h4 data-es="Fila violeta → capacidades de Beto">Violet row → Beto's capabilities</h4>
+          <code>app.bin : r w x</code>
+          <code>reporte.pdf : r w</code>
+          <code data-es="(nomina.xlsx: ninguna)">(nomina.xlsx: none)</code>
+        </div>
+      </div>
+      <div class="figure-note" data-es="La ACL vive con el objeto; la lista de capacidades viaja con el sujeto. Misma información, dos formas de cortarla.">The ACL lives with the object; the capability list travels with the subject. Same information, two ways to slice it.</div>
     </div>
   </section>
 
@@ -273,6 +414,23 @@
     </div>
   </section>
 
+  <!-- S18b — Linux permissions worked example -->
+  <section class="slide" data-section="Policy models" data-section-es="Modelos de política">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>DAC en la práctica"><span class="dot"></span>DAC in practice</span>
+      <h2 data-es="Caso concreto: permisos de archivo en Linux">A concrete case: Linux file permissions</h2>
+      <div class="terminal"><span class="prompt">$</span> <span class="cmd">ls -l nomina.xlsx</span>
+<span class="out"><span class="hi">-rwxr-xr-x</span>  1  ana  finanzas  8192  Jun 9 10:14  nomina.xlsx</span></div>
+      <p class="muted" style="margin-top:1rem" data-es="Los 9 bits tras el tipo de archivo se leen en tres bloques: <strong>dueño</strong>, <strong>grupo</strong>, <strong>mundo</strong> — justo el vocabulario sujeto de la matriz.">The 9 bits after the file-type read as three blocks: <strong>owner</strong>, <strong>group</strong>, <strong>world</strong> — exactly the subject vocabulary from the matrix.</p>
+      <div class="perm-grid">
+        <div class="perm-box"><span class="bits">rwx</span><span class="who" data-es="Dueño (ana)">Owner (ana)</span><span class="oct" data-es="leer+escribir+ejecutar = 7">read+write+exec = 7</span></div>
+        <div class="perm-box"><span class="bits">r-x</span><span class="who" data-es="Grupo (finanzas)">Group (finanzas)</span><span class="oct" data-es="leer+ejecutar = 5">read+exec = 5</span></div>
+        <div class="perm-box"><span class="bits">r-x</span><span class="who" data-es="Mundo (otros)">World (others)</span><span class="oct" data-es="leer+ejecutar = 5">read+exec = 5</span></div>
+      </div>
+      <div class="callout check" style="margin-top:1.2rem"><span class="tag" data-es="Ajustar">Tighten it</span><p data-es="<code>chmod 750 nomina.xlsx</code> → <code>rwxr-x---</code>: el dueño conserva todo (7), el grupo lee y ejecuta (5), y el <strong>mundo pierde todo acceso</strong> (0). Cada dígito octal es la suma 4+2+1 de leer/escribir/ejecutar."><code>chmod 750 nomina.xlsx</code> → <code>rwxr-x---</code>: the owner keeps everything (7), the group reads and executes (5), and the <strong>world loses all access</strong> (0). Each octal digit is the 4+2+1 sum of read/write/execute.</p></div>
+    </div>
+  </section>
+
   <!-- S19 — DAC problems -->
   <section class="slide" data-section="Policy models" data-section-es="Modelos de política">
     <div class="slide-inner">
@@ -297,7 +455,45 @@
         <div class="node good-node"><span class="n-label good" data-es="Objeto">Object</span><span class="n-sub" data-es="con clasificación">with a classification</span></div>
       </div>
       <p class="muted" style="margin-top:1.2rem" data-es="El sistema compara la <strong>autorización</strong> del sujeto con la <strong>clasificación</strong> del objeto. El individuo no puede anularlo.">The system compares the subject's <strong>clearance</strong> with the object's <strong>classification</strong>. The individual can't override it.</p>
-      <div class="callout check"><span class="tag" data-es="Ejemplo">Example</span><p data-es="Un hospital es dueño de los expedientes y limita cómo se comparten — a veces por ley: <strong>HIPAA</strong> (EE. UU.) o <strong>NOM-024-SSA3-2012</strong> (México).">A hospital owns patient records and limits sharing — sometimes by law: <strong>HIPAA</strong> (US) or <strong>NOM-024-SSA3-2012</strong> (Mexico).</p></div>
+      <div class="callout check"><span class="tag" data-es="Ejemplo">Example</span><p data-es="Un hospital es dueño de los expedientes y limita cómo se comparten — a veces por ley: <strong>HIPAA</strong> (EE. UU.) o <strong>NOM-024-SSA3-2012</strong> (México). Ojo: estas leyes son <em>impulsoras</em> de políticas tipo MAC (la organización, no el usuario, decide); no son por sí mismas el mecanismo de etiquetas multinivel del MAC clásico.">A hospital owns patient records and limits sharing — sometimes by law: <strong>HIPAA</strong> (US) or <strong>NOM-024-SSA3-2012</strong> (Mexico). Note: these laws are regulatory <em>drivers</em> of MAC-style policy (the organization, not the user, decides) — they are not themselves the multilevel label mechanism of classic MAC.</p></div>
+    </div>
+  </section>
+
+  <!-- S20b — Bell-LaPadula (confidentiality) -->
+  <section class="slide" data-section="Policy models" data-section-es="Modelos de política">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>MAC clásico · confidencialidad"><span class="dot"></span>Classic MAC · confidentiality</span>
+      <h2 data-es="Bell-LaPadula: “no leer arriba, no escribir abajo”">Bell-LaPadula: "no read up, no write down"</h2>
+      <div class="bll-wrap">
+        <div class="lattice">
+          <div class="lv l4" data-es="Alto secreto <span class='tier'>nivel 4</span>">Top Secret <span class="tier">level 4</span></div>
+          <div class="lv l3" data-es="Secreto <span class='tier'>nivel 3</span>">Secret <span class="tier">level 3</span></div>
+          <div class="lv l2" data-es="Confidencial <span class='tier'>nivel 2</span>">Confidential <span class="tier">level 2</span></div>
+          <div class="lv l1" data-es="No clasificado <span class='tier'>nivel 1</span>">Unclassified <span class="tier">level 1</span></div>
+        </div>
+        <div class="rule-list">
+          <div class="rule deny"><b data-es="Propiedad de seguridad simple — “no leer arriba”">Simple security property — "no read up"</b><span data-es=" Un sujeto no puede <strong>leer</strong> un objeto por encima de su autorización."> A subject can't <strong>read</strong> an object above its clearance.</span></div>
+          <div class="rule deny"><b data-es="Propiedad estrella (★) — “no escribir abajo”">Star (★) property — "no write down"</b><span data-es=" Un sujeto no puede <strong>escribir</strong> en un objeto por debajo de su nivel (evita fugas hacia abajo)."> A subject can't <strong>write</strong> to an object below its level (stops leaks downward).</span></div>
+        </div>
+      </div>
+      <div class="callout discuss" style="margin-top:1.2rem"><span class="tag" data-es="Discusión">Discuss</span><p data-es="“No escribir abajo” suena raro: ¿por qué prohibir que alguien con alta autorización escriba en un documento público? Porque podría copiar secretos hacia un nivel donde cualquiera los lea.">"No write down" feels odd — why forbid a highly-cleared person from writing to a public document? Because they could copy secrets into a level where anyone may read them.</p></div>
+    </div>
+  </section>
+
+  <!-- S20c — Biba (integrity, the dual) + quiz -->
+  <section class="slide" data-section="Policy models" data-section-es="Modelos de política">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El dual · integridad"><span class="dot"></span>The dual · integrity</span>
+      <h2 data-es="Biba: el espejo de Bell-LaPadula">Biba: the mirror of Bell-LaPadula</h2>
+      <div class="split">
+        <div class="card accent-top"><span class="ico">🔒</span><h3 data-es="Bell-LaPadula — confidencialidad">Bell-LaPadula — confidentiality</h3><p data-es="No leer arriba · no escribir abajo. <strong>Protege los secretos</strong> de filtrarse hacia abajo.">No read up · no write down. <strong>Keeps secrets</strong> from leaking downward.</p></div>
+        <div class="card good-top"><span class="ico">🛡️</span><h3 data-es="Biba — integridad">Biba — integrity</h3><p data-es="No leer abajo · no escribir arriba. <strong>Protege los datos confiables</strong> de ser contaminados desde abajo.">No read down · no write up. <strong>Keeps trusted data</strong> from being polluted from below.</p></div>
+      </div>
+      <div class="callout discuss" style="margin-top:1.1rem"><span class="tag" data-es="Debate">Debate</span><p data-es="¿Por qué la confidencialidad y la integridad apuntan en <strong>direcciones opuestas</strong>? Pista: una teme la <em>filtración hacia abajo</em>; la otra teme la <em>contaminación hacia arriba</em>.">Why do confidentiality and integrity point in <strong>opposite directions</strong>? Hint: one fears <em>leaking down</em>; the other fears <em>polluting up</em>.</p></div>
+      <div class="reveal-answer fragment" style="margin-top:1.1rem">
+        <span class="ra-tag" data-es="Mini-quiz">Mini-quiz</span>
+        <p data-es="<strong>Bajo Bell-LaPadula, ¿un usuario con autorización <em>Secreto</em> puede LEER un archivo <em>Alto secreto</em>? ¿Puede ESCRIBIR en él?</strong> Leer: <strong>no</strong> (sería leer arriba). Escribir: <strong>sí</strong> (escribir arriba está permitido — el secreto va hacia un nivel más protegido, no se filtra)."><strong>Under Bell-LaPadula, can a Secret-cleared user READ a Top-Secret file? Can they WRITE to one?</strong> Read: <strong>no</strong> (that's reading up). Write: <strong>yes</strong> (writing up is allowed — the secret moves into a more-protected level, it doesn't leak).</p>
+      </div>
     </div>
   </section>
 
@@ -329,7 +525,7 @@
         <li data-es="Encarna el <strong>mínimo privilegio</strong>: cada rol ve solo un subconjunto; cambiar de rol da acceso a otros recursos.">It embodies <strong>least privilege</strong>: each role sees only a subset; switching roles grants other resources.</li>
         <li data-es="<strong>SELinux</strong> soporta RBAC."><strong>SELinux</strong> supports RBAC.</li>
       </ul>
-      <div class="callout note"><span class="tag" data-es="En la industria">In industry</span><p data-es="Microsoft retiró los roles de administrador “clásicos” de Azure y pide migrar a <strong>Azure RBAC</strong> — el RBAC no es teoría, es el estándar en la nube. (Verifica las fechas exactas.)">Microsoft retired Azure "classic" administrator roles and asks customers to move to <strong>Azure RBAC</strong> — RBAC isn't theory, it's the cloud standard. (Verify exact dates.)</p></div>
+      <div class="callout note"><span class="tag" data-es="En la industria">In industry</span><p data-es="Microsoft <strong>retiró el 31 de agosto de 2024</strong> los roles de administrador “clásicos” de Azure y pide migrar a <strong>Azure RBAC</strong> — el RBAC no es teoría, es el estándar en la nube.">Microsoft <strong>retired Azure "classic" administrator roles on 31 August 2024</strong> and asks customers to move to <strong>Azure RBAC</strong> — RBAC isn't theory, it's the cloud standard.</p></div>
     </div>
   </section>
 
@@ -345,8 +541,27 @@
       </div>
       <div class="reveal-answer fragment">
         <span class="ra-tag" data-es="Respuesta">Answer</span>
-        <p data-es="<strong>2.</strong> Lo que hace al RBAC “obligatorio” es que la <em>organización</em> —no el usuario— decide los roles y sus permisos. Esa falta de discreción del usuario es la marca del MAC."><strong>2.</strong> What makes RBAC "mandatory" is that the <em>organization</em> — not the user — decides the roles and their permissions. That lack of user discretion is the hallmark of MAC.</p>
+        <p data-es="<strong>2.</strong> Lo que hace al RBAC “obligatorio” es que la <em>organización</em> —no el usuario— decide los roles y sus permisos. Esa falta de discreción del usuario es la marca del MAC.<br><br><strong>Con más precisión:</strong> el RBAC es <strong>no discrecional</strong>: puede implementar tanto DAC como MAC, y <em>no</em> es el MAC multinivel basado en etiquetas de Bell-LaPadula. (Ferraiolo &amp; Kuhn, 1992 / NIST RBAC.)"><strong>2.</strong> What makes RBAC "mandatory" is that the <em>organization</em> — not the user — decides the roles and their permissions. That lack of user discretion is the hallmark of MAC.<br><br><strong>More precisely:</strong> RBAC is <strong>non-discretionary</strong>: it can implement either DAC or MAC, and is <em>not</em> the multilevel-label MAC of Bell-LaPadula. (Ferraiolo &amp; Kuhn, 1992 / NIST RBAC.)</p>
       </div>
+    </div>
+  </section>
+
+  <!-- S23b — RBAC hierarchy + separation of duties -->
+  <section class="slide" data-section="Policy models" data-section-es="Modelos de política">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>RBAC avanzado"><span class="dot"></span>Advanced RBAC</span>
+      <h2 data-es="Jerarquía de roles y separación de funciones">Role hierarchy and separation of duties</h2>
+      <div class="split">
+        <div class="card teal-top">
+          <span class="ico">🪜</span><h3 data-es="Jerarquía de roles">Role hierarchy</h3>
+          <p data-es="Un rol <strong>senior</strong> hereda los permisos de los roles <strong>junior</strong>. “Médico jefe” obtiene todo lo de “médico” más extras — no se reescribe la lista.">A <strong>senior</strong> role inherits the permissions of <strong>junior</strong> roles. "Chief physician" gets everything "physician" has, plus extras — no list is rewritten.</p>
+        </div>
+        <div class="card warn-top">
+          <span class="ico">⚠️</span><h3 data-es="Explosión de roles">Role explosion</h3>
+          <p data-es="Cuando se crea un rol distinto para cada combinación de permisos, el número de roles crece sin control y se vuelve tan difícil de mantener como la matriz original.">When you mint a separate role for every permission combination, the role count grows without limit and becomes as unmanageable as the original matrix.</p>
+        </div>
+      </div>
+      <div class="callout policy" style="margin-top:1.2rem"><span class="tag" data-es="Separación de funciones">Separation of duties</span><p data-es="Restricción clave: <strong>la persona que SOLICITA un pago no puede también APROBARLO</strong>. Dos roles mutuamente excluyentes que un mismo usuario no puede activar a la vez — así un solo individuo no comete fraude por su cuenta.">Key constraint: <strong>the person who REQUESTS a payment cannot also APPROVE it</strong>. Two mutually exclusive roles a single user can't hold at once — so no lone individual can commit fraud unaided.</p></div>
     </div>
   </section>
 
@@ -364,6 +579,20 @@
     </div>
   </section>
 
+  <!-- S24b — Concrete ABAC policy -->
+  <section class="slide" data-section="Policy models" data-section-es="Modelos de política">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>ABAC en concreto"><span class="dot"></span>ABAC, concretely</span>
+      <h2 data-es="Una política ABAC se lee casi como una frase">An ABAC policy reads almost like a sentence</h2>
+      <div class="policy-block"><span class="kw">PERMIT</span> <span class="cm"># conceder acceso solo si todo se cumple</span>
+  <span class="kw">if</span>  <span class="at">subject.department</span> == <span class="at">resource.department</span>
+  <span class="kw">and</span> <span class="at">environment.time</span> <span class="vl">∈ 09:00–18:00</span>
+  <span class="kw">and</span> <span class="at">device.managed</span> == <span class="vl">true</span></div>
+      <p class="muted" style="margin-top:1rem" data-es="Una sola regla reemplaza miles de filas de la matriz: combina atributos del <strong>sujeto</strong>, del <strong>recurso</strong> y del <strong>entorno</strong>, y se evalúa en cada petición.">A single rule replaces thousands of matrix rows: it combines <strong>subject</strong>, <strong>resource</strong>, and <strong>environment</strong> attributes, and is evaluated on every request.</p>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Estándares">Standards</span><p data-es="La guía de referencia es <strong>NIST SP 800-162</strong> (Guide to ABAC). El lenguaje de política estándar es <strong>XACML</strong>; los proveedores de nube lo expresan como condiciones en sus políticas (p. ej. el bloque <code>Condition</code> de AWS IAM).">The reference guidance is <strong>NIST SP 800-162</strong> (Guide to ABAC). The standard policy language is <strong>XACML</strong>; cloud providers express it as policy conditions (e.g. the <code>Condition</code> block in AWS IAM).</p></div>
+    </div>
+  </section>
+
   <!-- S25 — ABAC pros/cons -->
   <section class="slide" data-section="Policy models" data-section-es="Modelos de política">
     <div class="slide-inner">
@@ -373,7 +602,7 @@
         <div class="card good-top"><h3 data-es="Pros">Pros</h3><p data-es="• Escalable.<br>• Consciente del contexto en tiempo real.<br>• Segregación de funciones: distintas personas gestionan atributos y política.">• Scalable.<br>• Real-time, context-aware.<br>• Segregation of duty: different people manage attributes and policy.</p></div>
         <div class="card danger-top"><h3 data-es="Contras">Cons</h3><p data-es="• Es relativamente nuevo.<br>• Requiere convencer y adoptar culturalmente.<br>• Exige cambios organizativos para gestionar atributos y políticas.">• Relatively new.<br>• Requires socialization and buy-in.<br>• Needs organizational change to manage attributes and policy.</p></div>
       </div>
-      <p class="figure-note" data-es="El material citaba una predicción de Gartner (“para 2020, 70% de las empresas usarían ABAC”). Esa fecha ya pasó — trátala como dato histórico y verifica cifras actuales.">The source cited a Gartner prediction ("by 2020, 70% of businesses would use ABAC"). That date has passed — treat it as historical and verify current figures.</p>
+      <p class="figure-note" data-es="Fuente: <strong>Gartner, IAM Summit 2013</strong> — predijo que para 2020 el 70% de las empresas usarían ABAC; la predicción <strong>no se cumplió</strong>. Trátala como dato histórico.">Source: <strong>Gartner, IAM Summit 2013</strong> — predicted 70% of businesses would use ABAC by 2020; the prediction <strong>was not met</strong>. Treat it as historical.</p>
     </div>
   </section>
 
@@ -404,6 +633,26 @@
       <h2 data-es="Todo vuelve al mínimo privilegio">It all comes back to least privilege</h2>
       <p class="lead" style="max-width:56ch" data-es="Sea cual sea el modelo, la meta es la misma: dar a cada sujeto <strong>solo</strong> el acceso que necesita — ni más, ni menos.">Whatever the model, the goal is the same: give each subject <strong>only</strong> the access they need — no more, no less.</p>
       <div class="callout discuss"><span class="tag" data-es="Reflexiona">Reflect</span><p data-es="Recuerda los principios de diseño de la semana 1: economía de mecanismo, valores por defecto seguros, mediación completa. El control de acceso es donde cobran vida.">Recall the design principles from week 1: economy of mechanism, fail-safe defaults, complete mediation. Access control is where they come to life.</p></div>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Cerrando la provocación">Closing the provocation</span><p data-es="Volviendo a “casi toda la seguridad es control de acceso”: el control de acceso gobierna <strong>quién</strong> puede hacer qué; el <strong>cifrado</strong> protege los datos en tránsito y en reposo aunque alguien los obtenga; y la <strong>disponibilidad</strong> es una pata aparte de la tríada CIA. El control de acceso es el núcleo, no la totalidad.">Back to "almost all security is access control": access control governs <strong>who</strong> may do what; <strong>encryption</strong> protects data in transit and at rest even if someone gets hold of it; and <strong>availability</strong> is a separate leg of the CIA triad. Access control is the core — not the whole.</p></div>
+    </div>
+  </section>
+
+  <!-- S27b — Zero Trust capstone (NIST SP 800-207) -->
+  <section class="slide" data-section="Wrap-up" data-section-es="Cierre">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La práctica de 2024–2026"><span class="dot"></span>2024–2026 practice</span>
+      <h2 data-es="Confianza cero: autorizar en cada petición">Zero Trust: authorize on every request</h2>
+      <p class="muted" style="max-width:62ch" data-es="<strong>NIST SP 800-207</strong> describe un modelo donde no se confía en nadie por estar “dentro de la red”: cada petición se autoriza de forma <strong>dinámica</strong>. Es nuestro monitor de referencia, partido en tres componentes."><strong>NIST SP 800-207</strong> describes a model where no one is trusted just for being "inside the network": every request is <strong>dynamically</strong> authorized. It's our reference monitor, split into three components.</p>
+      <div class="pdp-flow">
+        <div class="pdp-row">
+          <div class="pdp-box pep"><span class="pname" data-es="PEP — Punto de aplicación">PEP — Policy Enforcement Point</span><span class="psub" data-es="intercepta la petición y aplica la decisión (≈ aplicación)">intercepts the request and applies the decision (≈ enforcement)</span></div>
+          <span class="pdp-arrow">→</span>
+          <div class="pdp-box pdp"><span class="pname" data-es="PDP — Punto de decisión">PDP — Policy Decision Point</span><span class="psub" data-es="evalúa la política y decide permitir/denegar (≈ política)">evaluates policy and decides allow/deny (≈ policy)</span></div>
+          <span class="pdp-arrow">→</span>
+          <div class="pdp-box pip"><span class="pname" data-es="PIP — Punto de información">PIP — Policy Information Point</span><span class="psub" data-es="aporta atributos: identidad, dispositivo, riesgo">supplies attributes: identity, device, risk</span></div>
+        </div>
+      </div>
+      <div class="callout check" style="margin-top:1.1rem"><span class="tag" data-es="Conexión">Connection</span><p data-es="El PDP/PEP es exactamente nuestro marco de <strong>política + aplicación</strong> y el <strong>monitor de referencia</strong>. El motor de política natural es <strong>ABAC</strong> (decide con atributos). <strong>Google BeyondCorp</strong> lo popularizó; hoy se escribe como <em>política como código</em> con <strong>OPA (Open Policy Agent)</strong>. (NIST SP 800-207, 2020; 800-207A, 2023.)">The PDP/PEP is exactly our <strong>policy + enforcement</strong> framing and the <strong>reference monitor</strong>. The natural policy engine is <strong>ABAC</strong> (it decides on attributes). <strong>Google BeyondCorp</strong> popularized it; today it's written as <em>policy-as-code</em> with <strong>OPA (Open Policy Agent)</strong>. (NIST SP 800-207, 2020; 800-207A, 2023.)</p></div>
     </div>
   </section>
 
@@ -427,7 +676,7 @@
   <span class="course" data-es="TC2007B · S2 · C2 — Control de acceso">TC2007B · W2 · L2 — Access Control</span>
   <span class="right">
     <span class="sec-name" id="secName">Orientation</span>
-    <span class="counter"><span id="cur">1</span> / <span id="total">28</span></span>
+    <span class="counter"><span id="cur">1</span> / <span id="total">35</span></span>
   </span>
 </footer>
 

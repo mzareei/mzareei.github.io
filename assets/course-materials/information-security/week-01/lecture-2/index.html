@@ -90,11 +90,39 @@
         <tbody>
           <tr><td data-es="Estándar <strong>individual</strong> de lo correcto">An <strong>individual</strong> standard of right</td><td data-es="Estándar <strong>social</strong>, acordado colectivamente">A <strong>societal</strong> standard, collectively agreed</td></tr>
           <tr><td data-es="<strong>Sin árbitro externo</strong> ni mecanismo de cumplimiento">No <strong>external arbiter</strong> or enforcement</td><td data-es="Se <strong>aplica</strong> por tribunales y sanciones">Enforced by courts and penalties</td></tr>
+          <tr><td data-es="Cambia con la persona, la profesión y la cultura">Varies by person, profession, and culture</td><td data-es="Es la misma para todos dentro de la jurisdicción">The same for everyone within the jurisdiction</td></tr>
         </tbody>
       </table>
+      <div class="split" style="margin-top:1.4rem">
+        <div class="card warn-top"><h3 data-es="Legal pero poco ético">Legal but unethical</h3><p data-es="Vender los datos de tus usuarios a anunciantes <strong>está permitido por tus términos de servicio</strong>, pero traiciona su confianza.">Selling your users’ data to advertisers is <strong>allowed by your Terms of Service</strong>, yet betrays their trust.</p></div>
+        <div class="card good-top"><h3 data-es="Ilegal pero discutiblemente ético">Illegal but arguably ethical</h3><p data-es="Un denunciante (whistleblower) <strong>filtra pruebas</strong> de una vigilancia masiva ilegal: rompe la ley, pero muchos lo defienden como un deber moral.">A whistleblower <strong>leaks evidence</strong> of illegal mass surveillance: breaks the law, yet many defend it as a moral duty.</p></div>
+      </div>
+      <div class="callout note" style="margin-top:1.2rem">
+        <span class="tag" data-es="Idea clave">Key idea</span>
+        <p data-es="«Legal» y «ético» no son lo mismo. Los <strong>códigos de ética profesional</strong> — como los de (ISC)², IEEE y ACM — existen para guiarte cuando la ley calla.">“Legal” and “ethical” are not the same. <strong>Professional codes of ethics</strong> — such as those of (ISC)², IEEE, and ACM — exist to guide you when the law is silent.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S5b — Responsible disclosure worked example -->
+  <section class="slide" data-section="Ethics & law" data-section-es="Ética y ley">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Un dilema ético real"><span class="dot"></span>A real ethical dilemma</span>
+      <h2 data-es="Encuentras un bug: ¿divulgación coordinada o total?">You find a bug: coordinated or full disclosure?</h2>
+      <div class="split">
+        <div class="card good-top"><h3 data-es="Divulgación coordinada">Coordinated disclosure</h3><p data-es="Avisas <strong>en privado</strong> al fabricante, le das tiempo para parchear y publicas solo después. Protege a los usuarios; depende de que el fabricante actúe.">You report <strong>privately</strong> to the vendor, give them time to patch, and publish only afterward. Protects users; relies on the vendor acting.</p></div>
+        <div class="card warn-top"><h3 data-es="Divulgación total">Full disclosure</h3><p data-es="Publicas los detalles <strong>de inmediato</strong>. Presiona al fabricante, pero deja a los usuarios expuestos mientras no haya parche.">You publish the details <strong>immediately</strong>. Pressures the vendor, but leaves users exposed until a patch exists.</p></div>
+      </div>
+      <div class="flow">
+        <div class="node breach"><span class="n-label accent" data-es="Día 0">Day 0</span><span class="n-sub" data-es="reporte privado al fabricante">private report to vendor</span></div>
+        <div class="arrow">→</div>
+        <div class="node attack"><span class="n-label" style="color:var(--violet)" data-es="Día 1–90">Day 1–90</span><span class="n-sub" data-es="ventana para parchear (típicamente 90 días)">window to patch (typically 90 days)</span></div>
+        <div class="arrow">→</div>
+        <div class="node good-node"><span class="n-label good" data-es="Tras el parche">After patch</span><span class="n-sub" data-es="publicación coordinada del aviso">coordinated advisory published</span></div>
+      </div>
       <div class="callout discuss" style="margin-top:1.3rem">
-        <span class="tag" data-es="Ejemplo / discusión">Example / discuss</span>
-        <p data-es="Descubres una vulnerabilidad en un producto comercial. ¿Qué haces? ¿Cuál es la <strong>divulgación ética</strong> (responsible disclosure)?">You discover a vulnerability in a commercial product. What do you do? What counts as <strong>ethical (responsible) disclosure</strong>?</p>
+        <span class="tag" data-es="Discusión">Discuss</span>
+        <p data-es="Si pasan 90 días y el fabricante <strong>ignora</strong> tu reporte, ¿es ético publicarlo para proteger a los usuarios? ¿O eso pone en riesgo a más gente?">If 90 days pass and the vendor <strong>ignores</strong> your report, is it ethical to publish it to protect users? Or does that put more people at risk?</p>
       </div>
     </div>
   </section>
@@ -125,9 +153,10 @@
           <tr class="fragment"><td class="map-to">2019</td><td data-es="Acceder a datos públicos ≠ “acceso no autorizado” bajo la CFAA (ley de EE. UU.). Bloquear el acceso se vio como anticompetitivo.">Accessing public data ≠ “unauthorized access” under the U.S. CFAA. Blocking access seen as anti-competitive.</td></tr>
           <tr class="fragment"><td class="map-to">2021</td><td data-es="El caso se devolvió para reconsideración.">The case was returned for reconsideration.</td></tr>
           <tr class="fragment"><td class="map-to">2022</td><td data-es="Se reafirma el fallo: el scraping de datos públicos queda fuera de “acceso no autorizado” bajo la CFAA.">Original ruling reaffirmed: public scraping remains outside “unauthorized access” under the CFAA.</td></tr>
-          <tr class="fragment"><td class="map-from" data-es="Fin de 2022">Late 2022</td><td data-es="Pero sí hubo <strong>incumplimiento de contrato</strong> (scraping + cuentas falsas). Acuerdo: hiQ paga $500K y deja de operar con datos de LinkedIn.">But there <strong>was</strong> breach of contract (scraping + fake accounts). Settlement: hiQ pays $500K and ceases operating on LinkedIn data.</td></tr>
+          <tr class="fragment"><td class="map-from" data-es="Fin de 2022">Late 2022</td><td data-es="Pero sí hubo <strong>incumplimiento de contrato</strong> (scraping + cuentas falsas) y responsabilidad por agravios del <em>common law</em> de California (allanamiento de bienes muebles e indebida apropiación). Acuerdo: hiQ paga $500K y deja de operar con datos de LinkedIn.">But there <strong>was</strong> breach of contract (scraping + fake accounts), plus liability for California common-law torts (trespass to chattels and misappropriation). Settlement: hiQ pays $500K and ceases operating on LinkedIn data.</td></tr>
         </tbody>
       </table>
+      <div class="callout note" style="margin-top:1.2rem"><span class="tag" data-es="Jurisdicción">Jurisdiction</span><p data-es="Esto es <strong>derecho de EE. UU.</strong> (la CFAA). <strong>México no tiene un precedente equivalente</strong> sobre scraping — no asumas que el resultado se traslada.">This is <strong>U.S. law</strong> (the CFAA). <strong>Mexico has no equivalent scraping precedent</strong> — don’t assume the outcome transfers.</p></div>
       <p class="figure-note" data-es="Resumen de los fallos judiciales del caso; consulta el expediente para los detalles exactos.">Summary of the case’s court rulings; see the court record for exact details.</p>
     </div>
   </section>
@@ -151,7 +180,7 @@
       <div class="grid cols-3">
         <div class="card accent-top"><span class="ico">©️</span><h3 data-es="Derechos de autor (LFDA)">Copyright (LFDA)</h3><p data-es="Protege la propiedad intelectual, incluidas las obras digitales, contra la reproducción o distribución no autorizada.">Protects intellectual property — including digital works — against unauthorized reproduction or distribution.</p></div>
         <div class="card teal-top"><span class="ico">🛒</span><h3 data-es="Comercio electrónico">E-commerce law</h3><p data-es="Fija estándares para transacciones en línea seguras y protege los datos del consumidor.">Sets standards for secure online transactions and protects consumers’ data.</p></div>
-        <div class="card good-top"><span class="ico">🛡️</span><h3 data-es="Protección de datos personales (LFPDPPP)">Personal-data protection (LFPDPPP)</h3><p data-es="Obliga a las entidades privadas a proteger los datos personales que poseen.">Requires private entities to protect the personal data they hold.</p></div>
+        <div class="card good-top"><span class="ico">🛡️</span><h3 data-es="Protección de datos personales (ley de 2025)">Personal-data protection (2025 law)</h3><p data-es="Obliga a las entidades privadas a proteger los datos personales que poseen — la nueva ley federal en vigor desde marzo de 2025.">Requires private entities to protect the personal data they hold — the new federal law in force since March 2025.</p></div>
       </div>
     </div>
   </section>
@@ -176,8 +205,21 @@
       <div class="grid cols-3">
         <div class="card good-top"><span class="ico">🔓</span><h3 data-es="Art. 114 — pruebas de seguridad">Art. 114 — security testing</h3><p data-es="Eludir medidas tecnológicas de protección <strong>no es violación</strong> cuando se hace para ciertos fines, como pruebas de seguridad o accesibilidad para personas con discapacidad.">Circumventing technological protection measures is <strong>not</strong> a violation when done for certain purposes — like security testing, or accessibility for people with disabilities.</p></div>
         <div class="card accent-top"><span class="ico">🌐</span><h3 data-es="Art. 114 — proveedores de internet">Art. 114 — ISPs</h3><p data-es="Limita la responsabilidad de los proveedores de internet por infracciones en sus redes, si retiran el contenido infractor tras la notificación.">Limits ISP liability for infringement on their networks — if they remove infringing content upon notice.</p></div>
-        <div class="card warn-top"><span class="ico">🏷️</span><h3 data-es="Art. 232 — metadatos de autor">Art. 232 — copyright metadata</h3><p data-es="Prohíbe alterar la información de gestión de derechos (p. ej., metadatos que identifican al autor). Modificarla puede ocultar el origen de contenido pirata.">Prohibits tampering with copyright-management info (e.g., author metadata). Altering it can hide the source of pirated content.</p></div>
+        <div class="card warn-top"><span class="ico">🏷️</span><h3 data-es="Información de gestión de derechos">Rights-management info</h3><p data-es="La LFDA protege la información de gestión de derechos (p. ej., metadatos que identifican al autor). Alterarla puede ocultar el origen de contenido pirata.">The LFDA protects copyright-management information (e.g., metadata identifying the author). Altering it can hide the source of pirated content.</p></div>
       </div>
+    </div>
+  </section>
+
+  <!-- S11b — Concrete LFDA example -->
+  <section class="slide" data-section="Mexican law" data-section-es="Marco legal MX">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>LFDA · un caso concreto"><span class="dot"></span>LFDA · a concrete case</span>
+      <h2 data-es="¿Y si comparto el PDF del libro de texto?">What if I share the textbook PDF?</h2>
+      <div class="grid cols-2">
+        <div class="card danger-top"><span class="ico">📚</span><h3 data-es="Redistribuir un PDF con derechos">Redistributing a copyrighted PDF</h3><p data-es="Subir el PDF del libro de texto a un grupo de WhatsApp o a Drive es <strong>distribución no autorizada</strong> de una obra protegida — exactamente lo que la LFDA sanciona.">Uploading the textbook PDF to a WhatsApp group or a Drive folder is <strong>unauthorized distribution</strong> of a protected work — exactly what the LFDA penalizes.</p></div>
+        <div class="card warn-top"><span class="ico">🔓</span><h3 data-es="Romper el DRM">Cracking the DRM</h3><p data-es="Eludir el DRM de un e-book o un software es eludir una medida tecnológica de protección. Salvo excepciones (p. ej., pruebas de seguridad, accesibilidad), puede ser infracción.">Bypassing the DRM on an e-book or piece of software circumvents a technological protection measure. Outside the exceptions (e.g., security testing, accessibility), it can be an infringement.</p></div>
+      </div>
+      <div class="callout discuss" style="margin-top:1.2rem"><span class="tag" data-es="Discusión">Discuss</span><p data-es="«Pero lo compré, es mío.» ¿Comprar una copia te da derecho a copiarla y compartirla? ¿Cambia algo si no cobras nada?">“But I bought it, it’s mine.” Does buying a copy give you the right to copy and share it? Does it change anything if you charge nothing?</p></div>
     </div>
   </section>
 
@@ -187,15 +229,15 @@
       <span class="kicker" data-es="<span class='dot'></span>LFDA · sanciones"><span class="dot"></span>LFDA · penalties</span>
       <h2 data-es="Las infracciones cuestan — y se miden en múltiplos">Infringement costs — measured in multiples</h2>
       <table class="compare">
-        <thead><tr><th data-es="Artículo">Article</th><th data-es="Multa (múltiplos del salario mínimo diario)">Fine (multiples of daily minimum wage)</th></tr></thead>
+        <thead><tr><th data-es="Artículo">Article</th><th data-es="Multa (en UMA — Unidad de Medida y Actualización)">Fine (in UMA — Unidad de Medida y Actualización)</th></tr></thead>
         <tbody>
-          <tr><td class="map-from">Art. 230</td><td data-es="8,000–22,000 por infracciones graves (reproducción/distribución no autorizada); 1,500–8,000 por infracciones menores.">8,000–22,000 for serious violations (unauthorized reproduction/distribution); 1,500–8,000 for lesser ones.</td></tr>
-          <tr><td class="map-from">Art. 231</td><td data-es="5,000–40,000 por infracciones comerciales (reproducción y distribución con fines de lucro).">5,000–40,000 for commercial infringement (reproduction &amp; distribution for profit).</td></tr>
-          <tr><td class="map-from">Art. 232</td><td data-es="1,000–20,000 por alterar la información de gestión de derechos.">1,000–20,000 for tampering with copyright-management information.</td></tr>
+          <tr><td class="map-from">Art. 230</td><td data-es="Infracciones en materia de derechos de autor: 8,000–22,000 UMA (graves) y 1,500–8,000 UMA (menores).">Author-rights infractions: 8,000–22,000 UMA (serious) and 1,500–8,000 UMA (lesser).</td></tr>
+          <tr><td class="map-from">Art. 231</td><td data-es="<strong>Define</strong> las infracciones en materia de comercio (la lista de conductas) — no fija las cifras de la multa."><strong>Defines</strong> the commercial infractions (the list of conducts) — it does not set the fine figures.</td></tr>
+          <tr><td class="map-from">Art. 232</td><td data-es="<strong>Impone</strong> las multas por infracciones comerciales: aprox. 5,000–40,000 UMA, 1,000–5,000 UMA o 500–1,000 UMA según la fracción."><strong>Imposes</strong> the commercial-infraction fines: roughly 5,000–40,000 UMA, 1,000–5,000 UMA, or 500–1,000 UMA depending on the fraction.</td></tr>
           <tr><td class="map-from">Art. 233</td><td data-es="Hasta 50% más para infractores a gran escala (p. ej., editoriales y radiodifusoras).">Up to 50% higher for large-scale infringers (e.g., publishers and broadcasters).</td></tr>
         </tbody>
       </table>
-      <p class="figure-note" data-es="Nota: en México este tipo de multas hoy se calcula en UMA (Unidad de Medida y Actualización), no en salario mínimo — verifica los valores vigentes.">Note: in Mexico such fines are now calculated in UMA (Unidad de Medida y Actualización), not minimum wage — verify current values.</p>
+      <p class="figure-note" data-es="En México estas multas se calculan en UMA (Unidad de Medida y Actualización), que se actualiza cada año — consulta el valor vigente de la UMA.">In Mexico these fines are calculated in UMA (Unidad de Medida y Actualización), updated yearly — check the current UMA value.</p>
     </div>
   </section>
 
@@ -206,7 +248,7 @@
       <h2 data-es="Multas en la LFDA, pero cárcel en el Código Penal">Fines under the LFDA, but prison under the Criminal Code</h2>
       <div class="split">
         <div class="card accent-top"><h3 data-es="La LFDA: solo multas">The LFDA: fines only</h3><p data-es="La LFDA establece únicamente sanciones económicas por infracción de derechos de autor — no penas de prisión.">The LFDA establishes only monetary fines for copyright infringement — not prison sentences.</p></div>
-        <div class="card danger-top"><h3 data-es="El Código Penal: prisión">The Criminal Code: prison</h3><p data-es="Art. 424: reproducción o publicación no autorizada de una obra → 6 meses a 6 años. Fabricar/distribuir/vender aparatos para decodificar señales satelitales cifradas → 3 a 10 años.">Art. 424: unauthorized reproduction/publication of a work → 6 months to 6 years. Making/distributing/selling devices to decode encrypted satellite signals → 3 to 10 years.</p></div>
+        <div class="card danger-top"><h3 data-es="El Código Penal: prisión">The Criminal Code: prison</h3><p data-es="Art. 424: reproducción o publicación no autorizada de una obra → 6 meses a 6 años. Art. 424 <strong>BIS</strong>: fabricar/distribuir/vender aparatos para decodificar señales satelitales cifradas → 3 a 10 años.">Art. 424: unauthorized reproduction/publication of a work → 6 months to 6 years. Art. 424 <strong>BIS</strong>: making/distributing/selling devices to decode encrypted satellite signals → 3 to 10 years.</p></div>
       </div>
       <div class="callout note" style="margin-top:1.2rem"><span class="tag" data-es="En la práctica">In practice</span><p data-es="La prisión ocurre sobre todo en casos graves: piratería a gran escala con fines de lucro.">Prison mainly applies in severe cases: large-scale piracy for profit.</p></div>
     </div>
@@ -215,14 +257,14 @@
   <!-- S14 — E-commerce law -->
   <section class="slide" data-section="Mexican law" data-section-es="Marco legal MX">
     <div class="slide-inner">
-      <span class="kicker" data-es="<span class='dot'></span>Ley de Comercio Electrónico"><span class="dot"></span>Ley de Comercio Electrónico</span>
-      <h2 data-es="Comercio electrónico: protegiendo al consumidor en línea">E-commerce: protecting the online consumer</h2>
+      <span class="kicker" data-es="<span class='dot'></span>Comercio electrónico en México"><span class="dot"></span>E-commerce in Mexico</span>
+      <h2 data-es="No hay una sola «Ley de Comercio Electrónico»">There is no single “E-commerce Law”</h2>
       <div class="definition">
-        <blockquote data-es="Regula el comercio en línea, asegurando transacciones electrónicas seguras y protegiendo los datos de los consumidores.">Regulates online commerce, ensuring secure electronic transactions and protecting consumers’ data.</blockquote>
+        <blockquote data-es="En México el comercio electrónico <strong>no</strong> se regula con una sola ley: las reglas están repartidas entre el <strong>Código de Comercio</strong> y la <strong>Ley Federal de Protección al Consumidor (LFPC)</strong>.">In Mexico, e-commerce is <strong>not</strong> governed by one law: the rules are distributed across the <strong>Código de Comercio</strong> and the <strong>Ley Federal de Protección al Consumidor (LFPC)</strong>.</blockquote>
       </div>
       <ul class="clean" style="margin-top:1.2rem">
-        <li data-es="La regulación arrancó en abril de 1998, impulsada por la <strong>OCDE</strong>.">The regulation began in April 1998, driven by the <strong>OECD</strong>.</li>
-        <li data-es="En México, la <strong>Ley Federal de Protección al Consumidor</strong> promueve y protege los derechos del consumidor, buscando equidad y seguridad jurídica entre proveedores y consumidores.">In Mexico, the <strong>Federal Consumer Protection Law</strong> promotes and protects consumer rights, seeking fairness and legal certainty between suppliers and consumers.</li>
+        <li data-es="A nivel <strong>internacional</strong>, el hito fue la Conferencia Ministerial de la <strong>OCDE</strong> en Ottawa (1998) y sus directrices de protección al consumidor (1999) — no el inicio de la regulación mexicana.">The <strong>international</strong> milestone was the <strong>OECD</strong>’s Ottawa Ministerial Conference (1998) and its consumer-protection guidelines (1999) — not the start of Mexican regulation.</li>
+        <li data-es="La <strong>LFPC</strong> promueve y protege los derechos del consumidor, buscando equidad y seguridad jurídica entre proveedores y consumidores.">The <strong>LFPC</strong> promotes and protects consumer rights, seeking fairness and legal certainty between suppliers and consumers.</li>
         <li data-es="El ciberconsumidor mexicano está protegido al comprar en línea — vigilado por la <strong>Profeco</strong> (Procuraduría Federal del Consumidor).">The Mexican cyber-consumer is protected when buying online — overseen by <strong>Profeco</strong> (the Federal Consumer Protection Agency).</li>
       </ul>
     </div>
@@ -231,20 +273,20 @@
   <!-- S15 — LFPDPPP overview -->
   <section class="slide" data-section="Mexican law" data-section-es="Marco legal MX">
     <div class="slide-inner">
-      <span class="kicker" data-es="<span class='dot'></span>Protección de datos personales"><span class="dot"></span>Personal-data protection</span>
-      <h2 data-es="LFPDPPP: derechos sobre tus datos personales">LFPDPPP: rights over your personal data</h2>
+      <span class="kicker" data-es="<span class='dot'></span>Protección de datos personales · ley de 2025"><span class="dot"></span>Personal-data protection · 2025 law</span>
+      <h2 data-es="La nueva ley federal de datos personales (2025)">Mexico’s new federal data-protection law (2025)</h2>
       <div class="split">
         <div class="card accent-top"><h3 data-es="Principios y derechos">Principles &amp; rights</h3><p data-es="Establece principios y derechos sobre los datos personales en manos de privados: consentimiento, aviso, acceso, rectificación, cancelación y oposición.">Sets principles and rights for personal data held by private parties: consent, notice, access, rectification, cancellation, and opposition.</p></div>
-        <div class="card teal-top"><h3 data-es="Supervisión: el INAI">Oversight: INAI</h3><p data-es="Crea un organismo independiente (INAI) para vigilar el cumplimiento, atender quejas e imponer sanciones.">Creates an independent body (INAI) to oversee compliance, hear complaints, and impose sanctions.</p></div>
+        <div class="card teal-top"><h3 data-es="Supervisión">Oversight</h3><p data-es="La supervisión y la aplicación pasaron a la <strong>Secretaría Anticorrupción y Buen Gobierno</strong>, que vigila el cumplimiento, atiende quejas e impone sanciones.">Oversight and enforcement now sit with the <strong>Secretaría Anticorrupción y Buen Gobierno</strong> (Secretariat of Anti-Corruption and Good Governance), which monitors compliance, hears complaints, and imposes sanctions.</p></div>
       </div>
-      <div class="callout note" style="margin-top:1.1rem"><span class="tag" data-es="Verificar">Verify</span><p data-es="Las instituciones reguladoras en México han cambiado en años recientes — confirma cuál es la autoridad de protección de datos vigente antes de clase.">Mexico’s regulatory institutions have changed in recent years — confirm the current data-protection authority before class.</p></div>
+      <div class="callout note" style="margin-top:1.1rem"><span class="tag" data-es="Qué cambió">What changed</span><p data-es="México <strong>derogó</strong> la LFPDPPP de 2010 y promulgó una nueva ley federal, en vigor desde el <strong>~20 de marzo de 2025</strong>. El <strong>INAI fue disuelto</strong> y sus funciones pasaron a la Secretaría Anticorrupción y Buen Gobierno.">Mexico <strong>repealed</strong> the 2010 LFPDPPP and enacted a new federal law, in force since <strong>~20 March 2025</strong>. The <strong>INAI was dissolved</strong>, and its functions moved to the Secretaría Anticorrupción y Buen Gobierno.</p></div>
     </div>
   </section>
 
   <!-- S16 — Personal vs sensitive data -->
   <section class="slide" data-section="Mexican law" data-section-es="Marco legal MX">
     <div class="slide-inner">
-      <span class="kicker" data-es="<span class='dot'></span>LFPDPPP · definiciones"><span class="dot"></span>LFPDPPP · definitions</span>
+      <span class="kicker" data-es="<span class='dot'></span>Datos personales · definiciones"><span class="dot"></span>Personal data · definitions</span>
       <h2 data-es="Datos personales vs. datos sensibles">Personal data vs. sensitive data</h2>
       <div class="split">
         <div class="card accent-top"><h3 data-es="Datos personales">Personal data</h3><p data-es="Cualquier información que concierne a una persona física identificada o identificable.">Any information concerning an identified or identifiable natural person.</p></div>
@@ -257,7 +299,7 @@
   <!-- S17 — Sensitive data extra protections -->
   <section class="slide" data-section="Mexican law" data-section-es="Marco legal MX">
     <div class="slide-inner">
-      <span class="kicker" data-es="<span class='dot'></span>LFPDPPP · datos sensibles"><span class="dot"></span>LFPDPPP · sensitive data</span>
+      <span class="kicker" data-es="<span class='dot'></span>Datos personales · datos sensibles"><span class="dot"></span>Personal data · sensitive data</span>
       <h2 data-es="Los datos sensibles exigen protección extra">Sensitive data demands extra protection</h2>
       <ul class="clean">
         <li data-es="Se exigen <strong>protecciones adicionales</strong> para los datos sensibles."><strong>Extra protections</strong> are mandated for sensitive data.</li>
@@ -270,13 +312,14 @@
   <!-- S18 — Breach notification, ARCO rights, penalties -->
   <section class="slide" data-section="Mexican law" data-section-es="Marco legal MX">
     <div class="slide-inner">
-      <span class="kicker" data-es="<span class='dot'></span>LFPDPPP · cumplimiento"><span class="dot"></span>LFPDPPP · compliance</span>
+      <span class="kicker" data-es="<span class='dot'></span>Datos personales · cumplimiento"><span class="dot"></span>Personal data · compliance</span>
       <h2 data-es="Notificación de brechas, derechos ARCO y sanciones">Breach notice, ARCO rights, and penalties</h2>
       <div class="grid cols-3">
         <div class="card warn-top"><span class="ico">📣</span><h3 data-es="Notificar la brecha">Notify the breach</h3><p data-es="Las brechas que afectan de forma significativa a los titulares deben informárseles para que tomen medidas defensivas.">Breaches that significantly affect data subjects must be reported to them so they can take defensive measures.</p></div>
         <div class="card accent-top"><span class="ico">🙋</span><h3 data-es="Derechos ARCO">ARCO rights</h3><p data-es="Las personas pueden ejercer Acceso, Rectificación, Cancelación y Oposición sobre sus datos.">Individuals can exercise Access, Rectification, Cancellation, and Opposition over their data.</p></div>
-        <div class="card danger-top"><span class="ico">⚠️</span><h3 data-es="Sanciones">Penalties</h3><p data-es="Multas, prisión en casos de mala fe o fraude, y sanciones <strong>duplicadas</strong> cuando se trata de datos sensibles.">Fines, prison in cases of bad faith or fraud, and <strong>doubled</strong> penalties for violations involving sensitive data.</p></div>
+        <div class="card danger-top"><span class="ico">⚠️</span><h3 data-es="Sanciones">Penalties</h3><p data-es="Multas administrativas de <strong>100 a 320,000 UMA</strong>, mayores para brechas de datos sensibles y reincidentes; prisión en casos de mala fe o fraude.">Administrative fines of <strong>100 to 320,000 UMA</strong>, higher for sensitive-data breaches and repeat offenders; prison in cases of bad faith or fraud.</p></div>
       </div>
+      <div class="callout note" style="margin-top:1.2rem"><span class="tag" data-es="Novedad 2025">New in 2025</span><p data-es="La nueva ley ahora cubre <strong>expresamente a los encargados</strong> (procesadores) de datos, no solo a los responsables (controladores).">The new law now expressly covers data <strong>processors</strong>, not just controllers.</p></div>
     </div>
   </section>
 
@@ -288,7 +331,7 @@
       <div class="callout check"><span class="tag" data-es="Empareja">Match</span><p data-es="(1) Una tienda en línea filtra historiales de compra de clientes. (2) Alguien revende software con licencia copiándolo. (3) Un cobro no autorizado en una compra en línea. — ¿Qué ley es la principal en cada caso?">(1) An online store leaks customers’ purchase histories. (2) Someone resells licensed software by copying it. (3) An unauthorized charge on an online purchase. — Which law is primary in each case?</p></div>
       <div class="reveal-answer fragment">
         <span class="ra-tag" data-es="Para discutir">For discussion</span>
-        <p data-es="(1) <span class='accent'>Protección de datos (LFPDPPP)</span> · (2) <span class='accent'>Derechos de autor (LFDA)</span> · (3) <span class='accent'>Comercio electrónico / protección al consumidor</span>. Varios pueden solaparse — esa es la idea.">(1) <span class="accent">Data protection (LFPDPPP)</span> · (2) <span class="accent">Copyright (LFDA)</span> · (3) <span class="accent">E-commerce / consumer protection</span>. Several can overlap — that’s the point.</p>
+        <p data-es="(1) <span class='accent'>Protección de datos (ley de 2025)</span> · (2) <span class='accent'>Derechos de autor (LFDA)</span> · (3) <span class='accent'>Comercio electrónico / protección al consumidor</span>. Varios pueden solaparse — esa es la idea.">(1) <span class="accent">Data protection (2025 law)</span> · (2) <span class="accent">Copyright (LFDA)</span> · (3) <span class="accent">E-commerce / consumer protection</span>. Several can overlap — that’s the point.</p>
       </div>
     </div>
   </section>
@@ -309,7 +352,7 @@
     <div class="slide-inner">
       <span class="badge" data-es="◆ Una última pregunta">◆ One last question</span>
       <h2 style="margin-top:1rem" data-es="El “derecho al olvido”">The “right to be forgotten”</h2>
-      <p class="lead" style="max-width:60ch" data-es="En 2014, el Tribunal de Justicia de la UE dictaminó que los ciudadanos tienen “derecho al olvido”: Google no debe devolver enlaces a información “inexacta, inadecuada, irrelevante o excesiva”. ¿Cuál de estos NO debería devolver Google?">In 2014 the EU Court of Justice ruled that citizens have a “right to be forgotten”: Google must not return links to information that is “inaccurate, inadequate, irrelevant or excessive.” Which one should Google NOT return?</p>
+      <p class="lead" style="max-width:60ch" data-es="En <strong>Google Spain v. AEPD</strong> (TJUE, asunto C-131/12, 2014), el Tribunal de Justicia de la UE dictaminó que los ciudadanos tienen “derecho al olvido”: Google no debe devolver enlaces a información “inexacta, inadecuada, irrelevante o excesiva”. ¿Cuál de estos NO debería devolver Google?">In <strong>Google Spain v. AEPD</strong> (CJEU, Case C-131/12, 2014), the EU Court of Justice ruled that citizens have a “right to be forgotten”: Google must not return links to information that is “inaccurate, inadequate, irrelevant or excessive.” Which one should Google NOT return?</p>
       <div class="grid cols-2" style="margin-top:1rem">
         <div class="card accent-top"><span class="ico">⚖️</span><h3 data-es="A">A</h3><p data-es="Una nota sobre una condena penal que fue <strong>revocada en apelación</strong>.">A story about a criminal conviction that was <strong>revoked on appeal</strong>.</p></div>
         <div class="card warn-top"><span class="ico">🩺</span><h3 data-es="B">B</h3><p data-es="Un médico pide eliminar enlaces a notas periodísticas sobre <strong>procedimientos mal realizados</strong> por él.">A doctor asks to remove links to news stories about <strong>botched procedures</strong> he performed.</p></div>
@@ -318,6 +361,7 @@
         <span class="ra-tag" data-es="Para discutir">For discussion</span>
         <p data-es="<strong>A.</strong> Una condena revocada es ahora inexacta/irrelevante → no debería devolverse. La información del médico es de <strong>interés público</strong> y suele permanecer. El “olvido” equilibra la privacidad con el derecho del público a saber."><strong>A.</strong> A revoked conviction is now inaccurate/irrelevant → should not be returned. The doctor’s information is of <strong>public interest</strong> and usually stays. “Forgetting” balances privacy against the public’s right to know.</p>
       </div>
+      <div class="callout note" style="margin-top:1.1rem"><span class="tag" data-es="Jurisdicción">Jurisdiction</span><p data-es="Esto es <strong>derecho de la UE</strong>. <strong>México no tiene un “derecho al olvido” de alcance equivalente</strong> al europeo — no asumas que aplica igual aquí.">This is <strong>EU law</strong>. <strong>Mexico has no right to be forgotten of equivalent scope</strong> to the EU’s — don’t assume it applies the same way here.</p></div>
     </div>
   </section>
 
@@ -485,6 +529,7 @@
         <div class="node good-node"><span class="n-label good" data-es="Servicio web">Web service</span><span class="n-sub" data-es="solo ve el último relevo">only sees the last relay</span></div>
       </div>
       <div class="callout note" style="margin-top:1.4rem"><span class="tag" data-es="Idea">Idea</span><p data-es="Ningún relevo conoce a la vez quién eres y qué pides — esa separación es lo que protege tu identidad.">No single relay knows both who you are and what you’re asking for — that separation is what protects your identity.</p></div>
+      <div class="callout discuss" style="margin-top:1.1rem"><span class="tag" data-es="Límites">Limits</span><p data-es="El <strong>nodo de salida</strong> ve tu tráfico no cifrado; ataques de <strong>correlación de tráfico</strong> pueden desanonimizarte; y <strong>Tor ≠ anonimato</strong> si inicias sesión en tus cuentas. Una <strong>VPN</strong> solo desplaza la confianza a un proveedor, y el <strong>cifrado de extremo a extremo</strong> oculta el contenido pero no quién habla con quién.">The <strong>exit node</strong> sees your unencrypted traffic; <strong>traffic-correlation</strong> attacks can deanonymize you; and <strong>Tor ≠ anonymity</strong> once you log into accounts. A <strong>VPN</strong> just shifts trust to one provider, and <strong>end-to-end encryption</strong> hides content but not who is talking to whom.</p></div>
     </div>
   </section>
 
@@ -495,11 +540,11 @@
       <h2 data-es="Lo legal y lo ético, en una diapositiva">Legal &amp; ethical, in one slide</h2>
       <ul class="clean">
         <li data-es="La <strong>ética</strong> es un estándar individual; la <strong>ley</strong> es social y se aplica — a menudo se refuerzan."><strong>Ethics</strong> is an individual standard; <strong>law</strong> is societal and enforced — they often reinforce each other.</li>
-        <li data-es="En México: <strong>LFDA</strong> (derechos de autor), <strong>comercio electrónico / Profeco</strong> y <strong>LFPDPPP</strong> (datos personales) forman el marco central.">In Mexico: <strong>LFDA</strong> (copyright), <strong>e-commerce / Profeco</strong>, and <strong>LFPDPPP</strong> (personal data) form the core framework.</li>
+        <li data-es="En México: <strong>LFDA</strong> (derechos de autor), comercio electrónico repartido entre el <strong>Código de Comercio</strong> y la <strong>LFPC / Profeco</strong>, y la <strong>nueva ley de datos personales de 2025</strong> forman el marco central.">In Mexico: <strong>LFDA</strong> (copyright), e-commerce split across the <strong>Código de Comercio</strong> and the <strong>LFPC / Profeco</strong>, and the <strong>2025 personal-data law</strong> form the core framework.</li>
         <li data-es="La <strong>propiedad</strong> de los datos es filosóficamente resbaladiza — y por eso la regulación importa.">Data <strong>ownership</strong> is philosophically slippery — which is why regulation matters.</li>
         <li data-es="La <strong>privacidad</strong> es <strong>control</strong>, no secreto: quién recopila, usa y comparte tus datos."><strong>Privacy</strong> is <strong>control</strong>, not secrecy: who collects, uses, and shares your data.</li>
       </ul>
-      <p class="figure-note" data-es="Fuentes y herramientas mencionadas: hiQ Labs v. LinkedIn (expedientes judiciales); LFDA, LFPDPPP y leyes de comercio/consumidor de México; amiunique.org; tosdr.org; Proyecto Tor.">Sources &amp; tools referenced: hiQ Labs v. LinkedIn (court records); Mexico’s LFDA, LFPDPPP and commerce/consumer laws; amiunique.org; tosdr.org; the Tor Project.</p>
+      <p class="figure-note" data-es="Fuentes y herramientas: hiQ Labs v. LinkedIn (9.º Circuito, 2022; acuerdo de $500K, dic. 2022); Google Spain v. AEPD (TJUE, C-131/12, 2014); LFDA (arts. 230–232) y Código Penal Federal (arts. 424 y 424 bis); nueva ley federal de protección de datos personales (2025); Código de Comercio y LFPC / Profeco; amiunique.org; tosdr.org; Proyecto Tor.">Sources &amp; tools: hiQ Labs v. LinkedIn (9th Cir., 2022; $500K settlement, Dec. 2022); Google Spain v. AEPD (CJEU, C-131/12, 2014); LFDA (arts. 230–232) &amp; Código Penal Federal (arts. 424 and 424 bis); Mexico’s new federal personal-data law (2025); Código de Comercio and LFPC / Profeco; amiunique.org; tosdr.org; the Tor Project.</p>
     </div>
   </section>
 
@@ -509,7 +554,7 @@
   <span class="course" data-es="TC2007B · S1 · C2 — Aspectos legales">TC2007B · W1 · L2 — Legal Aspects</span>
   <span class="right">
     <span class="sec-name" id="secName">Orientation</span>
-    <span class="counter"><span id="cur">1</span> / <span id="total">34</span></span>
+    <span class="counter"><span id="cur">1</span> / <span id="total">36</span></span>
   </span>
 </footer>
 
