@@ -54,4 +54,60 @@ outside the public repository until you are ready to publish them.
 
 </div>
 
-<p class="todo">TODO: add the remaining weeks, slides, labs, and assignments.</p>
+<p class="todo">Week 4 — TODO (no materials yet).</p>
+
+<div class="course-week" markdown="1">
+
+### Week 5 — Cryptography: Asymmetric Encryption
+
+| # | Topic | Deck |
+|---|-------|------|
+| L1 | Asymmetric Encryption (modular arithmetic, RSA, Diffie-Hellman) | [Open deck →](/assets/course-materials/information-security/week-05/lecture/) |
+
+</div>
+
+<p class="todo">Week 6 — TODO (no materials yet).</p>
+
+<div class="course-week" markdown="1">
+
+### Week 7 — Security Protocols & Hash Functions
+
+| # | Topic | Deck |
+|---|-------|------|
+| L1 | Security Protocols & Hash Functions (mutual auth, Kerberos, hashes, HMAC) — extended session | [Open deck →](/assets/course-materials/information-security/week-07/lecture/) |
+
+</div>
+
+<p class="todo">Week 8 — TODO (no materials yet).</p>
+
+<div class="course-week" markdown="1">
+
+### Week 9 — Malicious Code
+
+| # | Topic | Deck |
+|---|-------|------|
+| L1 | Malicious Code (malware taxonomy, botnets, APTs, ransomware, defenses) | [Open deck →](/assets/course-materials/information-security/week-09/lecture/) |
+
+</div>
+
+<div class="course-week" markdown="1">
+
+### Week 10 — Network Defense: Firewalls
+
+| # | Topic | Deck |
+|---|-------|------|
+| L1 | Firewalls (packet/stateful filtering, gateways, DMZ, NGFW, Zero Trust) | [Open deck →](/assets/course-materials/information-security/week-10/lecture/) |
+
+</div>
+
+<div class="course-week" markdown="1">
+
+### Week 11 — Intrusion Detection
+
+| # | Topic | Deck |
+|---|-------|------|
+| L1 | Intrusion Detection (IDS/IPS, anomaly vs signature, honeypots, base-rate fallacy) | [Open deck →](/assets/course-materials/information-security/week-11/lecture/) |
+
+</div>
+
+<p class="todo">TODO: add the remaining weeks (4, 6, 8), labs, and assignments.</p>
