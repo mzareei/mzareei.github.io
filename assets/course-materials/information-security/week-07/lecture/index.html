@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Week 7 — Security Protocols &amp; Hash Functions</title>
+<meta name="description" content="Security protocols and hash functions: mutual authentication, nonces, the reflection attack, session keys, KDC and Kerberos; then hash properties, the birthday paradox, SHA-1/2/3, message processing, and HMAC. Week 7 of TC2007B.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+/* ---- Lecture-local additions ---- */
+
+/* Protocol message-sequence diagram: two (or three) actor columns with
+   arrowed message rows between them. Labels are HTML so data-es works. */
+.proto { margin-top: 1.2rem; }
+.proto-actors { display: grid; gap: 0; align-items: end; margin-bottom: .3rem; }
+.proto-actors.two   { grid-template-columns: 1fr 1fr; }
+.proto-actors.three { grid-template-columns: 1fr 1fr 1fr; }
+.actor { text-align: center; }
+.actor .who { font-weight: 900; font-size: var(--fs-body); letter-spacing: -.01em; }
+.actor .who.alice { color: var(--accent); }
+.actor .who.bob   { color: var(--warn); }
+.actor .who.trudy { color: var(--danger); }
+.actor .who.kdc   { color: var(--good); }
+.actor .who.ca    { color: var(--violet); }
+.actor .key { display:inline-block; margin-top:.25rem; font-family: var(--mono); font-size: var(--fs-small); color: var(--ink-soft); background: var(--bg-3); border: 1px solid var(--line); border-radius: 7px; padding: .12rem .5rem; }
+.lifelines { position: relative; }
+.msg { display: grid; grid-template-columns: 1fr; align-items: center; margin: .42rem 0; }
+.msg .wire { position: relative; height: 2.1rem; display:flex; align-items:center; }
+/* the arrow line spans the actor gap */
+.msg .line { position:absolute; top:50%; height:2px; background: var(--accent); }
+.msg .line.danger { background: var(--danger); }
+.msg .line.warn   { background: var(--warn); }
+.msg .line.good   { background: var(--good); }
+.msg .label { position: relative; z-index: 2; justify-self: center; font-family: var(--mono); font-size: clamp(.72rem,1.35vw,1.02rem); font-weight: 700; background: var(--bg-2); border: 1.5px solid var(--accent); color: var(--ink); border-radius: 8px; padding: .28rem .65rem; white-space: nowrap; }
+.msg .label.danger { border-color: var(--danger); }
+.msg .label.warn   { border-color: var(--warn); }
+.msg .label.good   { border-color: var(--good); }
+.msg .label .step { color: var(--accent); font-weight: 900; margin-right: .4rem; }
+.msg .label.danger .step { color: var(--danger); }
+.msg .label.warn .step   { color: var(--warn); }
+.msg .label.good .step   { color: var(--good); }
+/* arrow direction via a simple triangle at one end */
+.msg .arrowhead { position:absolute; top:50%; transform: translateY(-50%); width:0; height:0; border-top:6px solid transparent; border-bottom:6px solid transparent; }
+.msg .arrowhead.r { right:6%; border-left:9px solid var(--accent); }
+.msg .arrowhead.l { left:6%;  border-right:9px solid var(--accent); }
+.msg .arrowhead.r.danger { border-left-color: var(--danger); }
+.msg .arrowhead.l.danger { border-right-color: var(--danger); }
+.msg .arrowhead.r.warn { border-left-color: var(--warn); }
+.msg .arrowhead.l.warn { border-right-color: var(--warn); }
+.msg .arrowhead.r.good { border-left-color: var(--good); }
+.msg .arrowhead.l.good { border-right-color: var(--good); }
+/* line variants for left/right reach */
+.line.r { left: 18%; right: 18%; }
+
+/* crypto / math notation */
+.crypto { font-family: var(--mono); }
+.crypto sub { font-size: .72em; }
+.note-math { background: var(--bg-3); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.3rem; font-family: var(--mono); font-size: clamp(.95rem,1.8vw,1.4rem); margin-top: 1rem; line-height: 1.7; }
+.note-math .kw { color: var(--accent); font-weight: 700; }
+.note-math .red { color: var(--danger); font-weight: 700; }
+.note-math .gr { color: var(--good); }
+
+/* SHA comparison table */
+.sha-table { width:100%; border-collapse: collapse; margin-top: 1.1rem; font-size: clamp(.74rem,1.25vw,1.02rem); }
+.sha-table th, .sha-table td { border: 1px solid var(--line); padding: .5rem .7rem; text-align:center; }
+.sha-table thead th { background: var(--bg-3); color: var(--accent); text-transform:uppercase; letter-spacing:.06em; font-size: var(--fs-small); }
+.sha-table tbody td:first-child { text-align:left; font-weight:800; color: var(--ink); background: var(--bg-2); white-space:nowrap; }
+.sha-table tbody tr:hover { background: rgba(78,161,255,.05); }
+.sha-table .broken { color: var(--danger); font-weight:800; }
+.sha-table .strong { color: var(--good); font-weight:800; }
+
+/* block-chaining (Merkle-Damgard) visual */
+.chain { display:flex; align-items:center; gap:.35rem; flex-wrap:wrap; margin-top:1.2rem; justify-content:center; }
+.chain .blk { background: var(--bg-2); border:2px solid var(--accent); border-radius:10px; padding:.55rem .7rem; text-align:center; min-width:5.2rem; }
+.chain .blk .bt { font-family: var(--mono); font-weight:800; color: var(--accent); display:block; }
+.chain .blk .bs { font-size: var(--fs-small); color: var(--ink-soft); display:block; margin-top:.15rem; }
+.chain .f { background: var(--bg-3); border:2px solid var(--violet); color: var(--violet); border-radius:10px; padding:.55rem .8rem; font-family: var(--mono); font-weight:800; }
+.chain .out { background: var(--bg-3); border:2px solid var(--good); color: var(--good); border-radius:10px; padding:.55rem .8rem; font-family: var(--mono); font-weight:800; }
+.chain .ar { color: var(--ink-soft); font-size:1.4rem; }
+
+/* pigeonhole pictogram */
+.holes { display:flex; gap:.5rem; margin-top:1rem; flex-wrap:wrap; }
+.hole { flex:1; min-width:3rem; background: var(--bg-2); border:1.5px solid var(--line); border-radius:10px; padding:.6rem .3rem; text-align:center; font-size:1.6rem; }
+.hole.full { border-color: var(--danger); background: rgba(255,107,107,.08); }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="fill" id="progress"></div></div>
+
+<div class="controls">
+  <a href="/teaching/information-security/" class="ui-btn" title="Back to course / Volver al curso" style="text-decoration:none">⌂</a>
+  <button class="ui-btn" id="langBtn" title="Español / English">ES</button>
+  <button class="ui-btn" id="themeBtn" title="Light / Dark">☀</button>
+</div>
+
+<main class="deck" id="deck">
+
+  <!-- ===================== TITLE ===================== -->
+  <section class="slide title-slide active" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>TC2007B · Semana 7 · Sesión larga (2 partes)"><span class="dot"></span>TC2007B · Week 7 · Long session (2 parts)</span>
+      <h1 data-es="Protocolos de Seguridad y Funciones Hash">Security Protocols &amp; Hash Functions</h1>
+      <div class="title-rule"></div>
+      <p class="lead" data-es="Cómo dos extraños prueban quiénes son y acuerdan claves — y cómo un pequeño «sello a prueba de manipulación» protege la integridad de cualquier mensaje.">How two strangers prove who they are and agree on keys — and how a tiny "tamper-evident seal" protects the integrity of any message.</p>
+      <div class="title-meta">
+        <span class="pill" data-es="Profesor: Mahdi Zareei">Instructor: Mahdi Zareei</span>
+        <span class="pill" data-es="Parte 1 · Protocolos &amp; Kerberos">Part 1 · Protocols &amp; Kerberos</span>
+        <span class="pill" data-es="Parte 2 · Hashes &amp; HMAC">Part 2 · Hashes &amp; HMAC</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROADMAP -->
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El plan de hoy"><span class="dot"></span>Today's plan</span>
+      <h2 data-es="Una sesión larga, dos grandes temas">One long session, two big topics</h2>
+      <div class="grid cols-2">
+        <div class="card accent-top">
+          <span class="ico">🤝</span>
+          <h3 data-es="Parte 1 — Protocolos de seguridad">Part 1 — Security protocols</h3>
+          <p data-es="Autenticación mutua, nonces, el ataque de reflexión, claves de sesión, KDC y Kerberos.">Mutual authentication, nonces, the reflection attack, session keys, KDC and Kerberos.</p>
+        </div>
+        <div class="card teal-top">
+          <span class="ico">🔏</span>
+          <h3 data-es="Parte 2 — Funciones hash">Part 2 — Hash functions</h3>
+          <p data-es="Propiedades, la paradoja del cumpleaños, SHA-1/2/3, procesamiento por bloques y HMAC.">Properties, the birthday paradox, SHA-1/2/3, block processing, and HMAC.</p>
+        </div>
+      </div>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Hilo conductor">Through-line</span><p data-es="Las dos partes se unen: los protocolos modernos (TLS, Kerberos) usan funciones hash y HMAC como bloques de construcción. Verás cómo encaja todo al final.">The two parts connect: modern protocols (TLS, Kerberos) use hash functions and HMAC as building blocks. You'll see how it all fits together at the end.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================================================================
+       PART 1 — SECURITY PROTOCOLS & KERBEROS
+       =================================================================== -->
+
+  <section class="slide section" data-section="Part 1 · Protocols" data-section-es="Parte 1 · Protocolos">
+    <div class="slide-inner">
+      <div class="num">P1</div>
+      <h1 data-es="Parte 1 — Protocolos de seguridad y Kerberos">Part 1 — Security Protocols &amp; Kerberos</h1>
+      <p class="lead" data-es="Autenticación mutua, intercambio de claves y el sistema de tickets de Kerberos.">Mutual authentication, key exchange, and the Kerberos ticket system.</p>
+    </div>
+  </section>
+
+  <!-- Why protocols -->
+  <section class="slide" data-section="Part 1 · Protocols" data-section-es="Parte 1 · Protocolos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>¿Por qué protocolos?"><span class="dot"></span>Why protocols?</span>
+      <h2 data-es="Alice y Bob quieren comunicarse de forma segura por Internet">Alice and Bob want to communicate securely over the Internet</h2>
+      <p data-es="Para hacerlo, necesitan ponerse de acuerdo en tres cosas:">To do that, they need to agree on three things:</p>
+      <div class="grid cols-3" style="margin-top:1rem">
+        <div class="card accent-top"><span class="ico">🪪</span><h3 data-es="(Mutuamente) autenticarse">(Mutually) authenticate</h3><p data-es="Cada parte debe probar a la otra que es quien dice ser.">Each party must prove to the other that they are who they claim to be.</p></div>
+        <div class="card teal-top"><span class="ico">🔑</span><h3 data-es="Establecer e intercambiar claves">Establish &amp; exchange keys</h3><p data-es="Acordar una clave secreta compartida para cifrar la conversación.">Agree on a shared secret key to encrypt the conversation.</p></div>
+        <div class="card good-top"><span class="ico">⚙️</span><h3 data-es="Acordar algoritmos">Agree on algorithms</h3><p data-es="Ponerse de acuerdo en las operaciones y algoritmos criptográficos a usar.">Settle on the cryptographic operations and algorithms to use.</p></div>
+      </div>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Bloques de construcción">Building blocks</span><p data-es="Los protocolos combinan piezas que ya conoces: algoritmos de clave pública (asimétricos), de clave secreta (simétricos) y funciones hash — el tema de la Parte 2.">Protocols combine pieces you already know: public-key (asymmetric) algorithms, secret-key (symmetric) algorithms, and hash functions — the topic of Part 2.</p></div>
+    </div>
+  </section>
+
+  <!-- Mutual auth: shared secret intro -->
+  <section class="slide" data-section="Part 1 · Protocols" data-section-es="Parte 1 · Protocolos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Autenticación mutua: secreto compartido"><span class="dot"></span>Mutual authentication: shared secret</span>
+      <h2 data-es="Reto–respuesta con una clave compartida">Challenge–response with a shared key</h2>
+      <p data-es="Alice y Bob ya comparten una clave secreta <span class='crypto'>K<sub>AB</sub></span>. Ninguno envía la clave; cada uno demuestra que la <em>conoce</em> resolviendo un reto que solo el dueño de la clave puede resolver.">Alice and Bob already share a secret key <span class="crypto">K<sub>AB</sub></span>. Neither sends the key; each proves they <em>know</em> it by solving a challenge only the key-holder can solve.</p>
+      <div class="definition" style="margin-top:1rem">
+        <blockquote data-es="Un <strong>nonce</strong> (R₁, R₂) es «una pregunta fresca y aleatoria que solo la verdadera Alice puede responder». Se usa una sola vez y nunca se repite.">A <strong>nonce</strong> (R₁, R₂) is "a fresh, random question that only the real Alice can answer." It is used exactly once and never repeats.</blockquote>
+        <span class="src" data-es="nonce = «number used once»">nonce = "number used once"</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Mutual auth: shared secret full flow -->
+  <section class="slide" data-section="Part 1 · Protocols" data-section-es="Parte 1 · Protocolos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El intercambio, paso a paso"><span class="dot"></span>The exchange, step by step</span>
+      <h2 data-es="Autenticación mutua con secreto compartido">Mutual authentication with a shared secret</h2>
+      <div class="proto">
+        <div class="proto-actors two">
+          <div class="actor"><div class="who alice">Alice</div><span class="key crypto">K<sub>AB</sub></span></div>
+          <div class="actor"><div class="who bob">Bob</div><span class="key crypto">K<sub>AB</sub></span></div>
+        </div>
+        <div class="lifelines">
+          <div class="msg fragment"><div class="wire"><span class="line r"></span><span class="arrowhead r"></span><span class="label"><span class="step">1.</span><span class="crypto" data-es="Soy Alice">I'm Alice</span></span></div></div>
+          <div class="msg fragment"><div class="wire"><span class="line r warn"></span><span class="arrowhead l warn"></span><span class="label warn"><span class="step">2.</span><span class="crypto">R<sub>1</sub></span></span></div></div>
+          <div class="msg fragment"><div class="wire"><span class="line r"></span><span class="arrowhead r"></span><span class="label"><span class="step">3.</span><span class="crypto">E[K<sub>AB</sub>, R<sub>1</sub>]</span></span></div></div>
+          <div class="msg fragment"><div class="wire"><span class="line r warn"></span><span class="arrowhead l warn"></span><span class="label warn"><span class="step">4.</span><span class="crypto">R<sub>2</sub></span></span></div></div>
+          <div class="msg fragment"><div class="wire"><span class="line r"></span><span class="arrowhead r"></span><span class="label"><span class="step">5.</span><span class="crypto">E[K<sub>AB</sub>, R<sub>2</sub>]</span></span></div></div>
+        </div>
+      </div>
+      <div class="callout check fragment"><span class="tag" data-es="Lógica">Logic</span><p data-es="Bob lanza el reto R₁; solo quien conoce K<sub>AB</sub> puede devolver E[K<sub>AB</sub>, R₁]. Luego Alice reta a Bob con R₂. Al final, <strong>ambos</strong> han probado que poseen la clave.">Bob throws challenge R₁; only someone who knows K<sub>AB</sub> can return E[K<sub>AB</sub>, R₁]. Then Alice challenges Bob with R₂. At the end, <strong>both</strong> have proven they hold the key.</p></div>
+    </div>
+  </section>
+
+  <!-- Why R1/R2 must be large/random -->
+  <section class="slide" data-section="Part 1 · Protocols" data-section-es="Parte 1 · Protocolos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El nonce debe ser impredecible"><span class="dot"></span>The nonce must be unpredictable</span>
+      <h2 data-es="¿Por qué R₁ y R₂ deben ser aleatorios y grandes?">Why must R₁ and R₂ be large &amp; random?</h2>
+      <ul class="clean">
+        <li data-es="R₁ y R₂ <strong>no deben repetirse ni ser predecibles</strong>.">R₁ and R₂ must <strong>not be easily repeatable or predictable</strong>.</li>
+        <li data-es="Si lo fueran, la adversaria Trudy puede <strong>grabar y reproducir</strong> (replay) un reto y/o su respuesta para suplantar a Alice o a Bob.">If they were, the adversary Trudy can <strong>record and replay</strong> a challenge and/or its response to impersonate Alice or Bob.</li>
+        <li data-es="Solución: usar <strong>valores aleatorios grandes</strong> (p. ej. 128 bits), imposibles de adivinar o de haber visto antes.">Fix: use <strong>large random values</strong> (e.g. 128 bits), impossible to guess or to have seen before.</li>
+        <li data-es="<span class='crypto'>K<sub>AB</sub></span> debe estar <strong>protegida en ambos extremos</strong> (Alice y Bob) — es la raíz de toda la seguridad."><span class="crypto">K<sub>AB</sub></span> must be <strong>protected at both endpoints</strong> (Alice and Bob) — it is the root of all the security.</li>
+      </ul>
+      <div class="callout discuss" style="margin-top:.6rem"><span class="tag" data-es="Analogía">Analogy</span><p data-es="Si la «pregunta secreta» fuera siempre la misma, alguien que escuche una vez ya sabe la respuesta para siempre. Un nonce fresco hace que cada conversación tenga su propia pregunta nueva.">If the "secret question" were always the same, anyone who eavesdrops once knows the answer forever. A fresh nonce gives every conversation its own brand-new question.</p></div>
+    </div>
+  </section>
+
+  <!-- Simplified version -->
+  <section class="slide" data-section="Part 1 · Protocols" data-section-es="Parte 1 · Protocolos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Versión simplificada (3 mensajes)"><span class="dot"></span>Simplified version (3 messages)</span>
+      <h2 data-es="Autenticación mutua: simplificada">Mutual authentication: simplified</h2>
+      <div class="proto">
+        <div class="proto-actors two">
+          <div class="actor"><div class="who alice">Alice</div><span class="key crypto">K<sub>AB</sub></span></div>
+          <div class="actor"><div class="who bob">Bob</div><span class="key crypto">K<sub>AB</sub></span></div>
+        </div>
+        <div class="lifelines">
+          <div class="msg"><div class="wire"><span class="line r"></span><span class="arrowhead r"></span><span class="label"><span class="step">1.</span><span class="crypto" data-es="Soy Alice, R₂">I'm Alice, R<sub>2</sub></span></span></div></div>
+          <div class="msg"><div class="wire"><span class="line r warn"></span><span class="arrowhead l warn"></span><span class="label warn"><span class="step">2.</span><span class="crypto">R<sub>1</sub>, E[K<sub>AB</sub>, R<sub>2</sub>]</span></span></div></div>
+          <div class="msg"><div class="wire"><span class="line r"></span><span class="arrowhead r"></span><span class="label"><span class="step">3.</span><span class="crypto">E[K<sub>AB</sub>, R<sub>1</sub>]</span></span></div></div>
+        </div>
+      </div>
+      <div class="callout note"><span class="tag" data-es="Idea">Idea</span><p data-es="Para ahorrar mensajes, Alice envía su reto R₂ junto con «Soy Alice», y Bob responde con su reto R₁ <em>y</em> la respuesta a R₂ en un solo mensaje. Tres mensajes en vez de cinco — pero, ¡cuidado!, esta optimización abre la puerta a un ataque.">To save messages, Alice sends her challenge R₂ together with "I'm Alice," and Bob replies with his challenge R₁ <em>and</em> the answer to R₂ in one message. Three messages instead of five — but beware, this optimization opens the door to an attack.</p></div>
+    </div>
+  </section>
+
+  <!-- Reflection attack: setup -->
+  <section class="slide" data-section="Part 1 · Protocols" data-section-es="Parte 1 · Protocolos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El ataque de reflexión"><span class="dot"></span>The reflection attack</span>
+      <h2 data-es="¿Puede Trudy autenticarse como Alice sin la clave?">Can Trudy authenticate as Alice without the key?</h2>
+      <p data-es="Trudy <strong>no conoce</strong> <span class='crypto'>K<sub>AB</sub></span>. Pero el protocolo simplificado le permite engañar a Bob para que le entregue la respuesta que necesita. La clave del ataque: <strong>usar al propio Bob como oráculo de cifrado</strong>.">Trudy does <strong>not know</strong> <span class="crypto">K<sub>AB</sub></span>. But the simplified protocol lets her trick Bob into handing her the answer she needs. The trick: <strong>use Bob himself as an encryption oracle</strong>.</p>
+      <div class="callout discuss" style="margin-top:1rem"><span class="tag" data-es="Idea clave">Key idea</span><p data-es="Trudy no rompe la criptografía. Le pide a Bob que cifre exactamente lo que ella no puede cifrar, y luego le «refleja» esa respuesta. Por eso se llama ataque de <em>reflexión</em>.">Trudy does not break the cryptography. She asks Bob to encrypt exactly what she cannot encrypt, then "reflects" that answer back to him. That is why it is called a <em>reflection</em> attack.</p></div>
+    </div>
+  </section>
+
+  <!-- Reflection attack: connection 1 -->
+  <section class="slide" data-section="Part 1 · Protocols" data-section-es="Parte 1 · Protocolos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Conexión 1 — Trudy se atasca"><span class="dot"></span>Connection 1 — Trudy gets stuck</span>
+      <h2 data-es="Ataque de reflexión: paso 1">Reflection attack: step 1</h2>
+      <div class="proto">
+        <div class="proto-actors two">
+          <div class="actor"><div class="who trudy">Trudy <span style="color:var(--ink-soft);font-weight:400" data-es="(fingiendo ser Alice)">(pretending to be Alice)</span></div></div>
+          <div class="actor"><div class="who bob">Bob</div><span class="key crypto">K<sub>AB</sub></span></div>
+        </div>
+        <div class="lifelines">
+          <div class="msg"><div class="wire"><span class="line r danger"></span><span class="arrowhead r danger"></span><span class="label danger"><span class="step">1.</span><span class="crypto" data-es="Soy Alice, R₂">I'm Alice, R<sub>2</sub></span></span></div></div>
+          <div class="msg"><div class="wire"><span class="line r warn"></span><span class="arrowhead l warn"></span><span class="label warn"><span class="step">2.</span><span class="crypto">R<sub>1</sub>, E[K<sub>AB</sub>, R<sub>2</sub>]</span></span></div></div>
+        </div>
+      </div>
+      <div class="callout note"><span class="tag" data-es="El problema de Trudy">Trudy's problem</span><p data-es="Bob ahora exige el paso 3: <span class='crypto'>E[K<sub>AB</sub>, R₁]</span>. Pero Trudy <strong>no tiene la clave</strong>, así que no puede calcularlo. La conexión 1 queda en pausa…">Bob now demands step 3: <span class="crypto">E[K<sub>AB</sub>, R<sub>1</sub>]</span>. But Trudy has <strong>no key</strong>, so she cannot compute it. Connection 1 is paused…</p></div>
+    </div>
+  </section>
+
+  <!-- Reflection attack: connection 2 -->
+  <section class="slide" data-section="Part 1 · Protocols" data-section-es="Parte 1 · Protocolos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Conexión 2 — Trudy abre un segundo canal"><span class="dot"></span>Connection 2 — a second channel</span>
+      <h2 data-es="Ataque de reflexión: paso 2">Reflection attack: step 2</h2>
+      <p data-es="Sin cerrar la conexión 1, Trudy abre una <strong>segunda conexión</strong> con Bob — y le pide a Bob que cifre justo el valor R₁ que se quedó atascada.">Without closing connection 1, Trudy opens a <strong>second connection</strong> to Bob — and asks Bob to encrypt the very R₁ value she got stuck on.</p>
+      <div class="proto">
+        <div class="proto-actors two">
+          <div class="actor"><div class="who trudy">Trudy <span style="color:var(--ink-soft);font-weight:400" data-es="(de nuevo «Alice»)">(again "Alice")</span></div></div>
+          <div class="actor"><div class="who bob">Bob</div><span class="key crypto">K<sub>AB</sub></span></div>
+        </div>
+        <div class="lifelines">
+          <div class="msg"><div class="wire"><span class="line r danger"></span><span class="arrowhead r danger"></span><span class="label danger"><span class="step">1.</span><span class="crypto" data-es="Soy Alice, R₁">I'm Alice, R<sub>1</sub></span></span></div></div>
+          <div class="msg"><div class="wire"><span class="line r warn"></span><span class="arrowhead l warn"></span><span class="label warn"><span class="step">2.</span><span class="crypto">R<sub>3</sub>, E[K<sub>AB</sub>, R<sub>1</sub>]</span></span></div></div>
+        </div>
+      </div>
+      <div class="callout danger"><span class="tag" data-es="¡Bob coopera!">Bob helps!</span><p data-es="Bob, servicial, devuelve <span class='crypto'>E[K<sub>AB</sub>, R₁]</span> — exactamente el valor que Trudy necesitaba para la conexión 1. Trudy ya tiene su respuesta.">Bob helpfully returns <span class="crypto">E[K<sub>AB</sub>, R<sub>1</sub>]</span> — exactly the value Trudy needed for connection 1. Trudy now has her answer.</p></div>
+    </div>
+  </section>
+
+  <!-- Reflection attack: completion -->
+  <section class="slide" data-section="Part 1 · Protocols" data-section-es="Parte 1 · Protocolos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Reflejar la respuesta de vuelta"><span class="dot"></span>Reflect the answer back</span>
+      <h2 data-es="Ataque de reflexión: paso 3 (completado)">Reflection attack: step 3 (completed)</h2>
+      <p data-es="Trudy vuelve a la <strong>conexión 1</strong> y entrega el <span class='crypto'>E[K<sub>AB</sub>, R₁]</span> que Bob acaba de regalarle. Bob lo verifica… y cree que está hablando con Alice.">Trudy returns to <strong>connection 1</strong> and delivers the <span class="crypto">E[K<sub>AB</sub>, R<sub>1</sub>]</span> Bob just gave her. Bob verifies it… and believes he is talking to Alice.</p>
+      <div class="proto">
+        <div class="proto-actors two">
+          <div class="actor"><div class="who trudy">Trudy</div></div>
+          <div class="actor"><div class="who bob">Bob</div><span class="key crypto">K<sub>AB</sub></span></div>
+        </div>
+        <div class="lifelines">
+          <div class="msg"><div class="wire"><span class="line r danger"></span><span class="arrowhead r danger"></span><span class="label danger"><span class="step" data-es="conn 1, 3.">conn 1, 3.</span><span class="crypto">E[K<sub>AB</sub>, R<sub>1</sub>]</span></span></div></div>
+        </div>
+      </div>
+      <div class="callout danger"><span class="tag" data-es="Suplantación lograda">Impersonation done</span><p data-es="Trudy se autenticó como Alice <strong>sin conocer la clave</strong>. El defecto: Bob estaba dispuesto a cifrar el mismo tipo de reto para cualquiera. La «reflexión» convirtió a Bob en su propio enemigo.">Trudy authenticated as Alice <strong>without knowing the key</strong>. The flaw: Bob was willing to encrypt the same kind of challenge for anyone. The "reflection" turned Bob into his own enemy.</p></div>
+    </div>
+  </section>
+
+  <!-- Fix 1: different keys -->
+  <section class="slide" data-section="Part 1 · Protocols" data-section-es="Parte 1 · Protocolos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Solución 1"><span class="dot"></span>Fix 1</span>
+      <h2 data-es="Claves distintas para iniciador y respondedor">Different keys for initiator and responder</h2>
+      <ul class="clean">
+        <li data-es="Usa <span class='crypto'>K<sub>AB1</sub></span> cuando Alice <strong>inicia</strong> y <span class='crypto'>K<sub>AB2</sub></span> cuando Bob <strong>responde</strong>.">Use <span class="crypto">K<sub>AB1</sub></span> when Alice <strong>initiates</strong> and <span class="crypto">K<sub>AB2</sub></span> when Bob <strong>responds</strong>.</li>
+        <li data-es="Ahora Trudy <strong>no puede</strong> hacer que Bob cifre con la clave de Alice — la respuesta de la conexión 2 está cifrada con la clave «equivocada» y no sirve para la conexión 1.">Now Trudy <strong>cannot</strong> get Bob to encrypt using Alice's key — the connection-2 answer is encrypted with the "wrong" key and is useless for connection 1.</li>
+      </ul>
+      <div class="proto" style="margin-top:.5rem">
+        <div class="proto-actors two">
+          <div class="actor"><div class="who alice">Alice</div><span class="key crypto">K<sub>AB1</sub></span></div>
+          <div class="actor"><div class="who bob">Bob</div><span class="key crypto">K<sub>AB2</sub></span></div>
+        </div>
+        <div class="lifelines">
+          <div class="msg"><div class="wire"><span class="line r"></span><span class="arrowhead r"></span><span class="label"><span class="step">1.</span><span class="crypto" data-es="Soy Alice, R₁">I'm Alice, R<sub>1</sub></span></span></div></div>
+          <div class="msg"><div class="wire"><span class="line r warn"></span><span class="arrowhead l warn"></span><span class="label warn"><span class="step">2.</span><span class="crypto">R<sub>2</sub>, E[K<sub>AB2</sub>, R<sub>1</sub>]</span></span></div></div>
+          <div class="msg"><div class="wire"><span class="line r"></span><span class="arrowhead r"></span><span class="label"><span class="step">3.</span><span class="crypto">E[K<sub>AB1</sub>, R<sub>2</sub>]</span></span></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Fix 2: different challenge types -->
+  <section class="slide" data-section="Part 1 · Protocols" data-section-es="Parte 1 · Protocolos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Solución 2"><span class="dot"></span>Fix 2</span>
+      <h2 data-es="Tipos de reto distintos para cada rol">Different challenge types per role</h2>
+      <div class="grid cols-2">
+        <div class="card accent-top"><h3 data-es="Iniciador → números pares">Initiator → even numbers</h3><p data-es="Alice (que inicia) solo emite y acepta retos <strong>pares</strong>.">Alice (initiator) only issues and accepts <strong>even</strong> challenges.</p></div>
+        <div class="card warn-top"><h3 data-es="Respondedor → números impares">Responder → odd numbers</h3><p data-es="Bob (que responde) solo emite y acepta retos <strong>impares</strong>.">Bob (responder) only issues and accepts <strong>odd</strong> challenges.</p></div>
+      </div>
+      <div class="callout check" style="margin-top:1rem"><span class="tag" data-es="Por qué funciona">Why it works</span><p data-es="El reto que Trudy obtiene de Bob en la conexión 2 tiene «la paridad equivocada» para colarlo en la conexión 1. La asimetría entre los roles rompe la reflexión.">The challenge Trudy gets from Bob in connection 2 has "the wrong parity" to slip into connection 1. The asymmetry between roles breaks the reflection.</p></div>
+      <div class="callout discuss" style="margin-top:.7rem"><span class="tag" data-es="Lección general">General lesson</span><p data-es="Lección de diseño de protocolos: <strong>nunca dejes que un mensaje sea válido en ambas direcciones</strong>. La simetría es cómoda para el programador, pero es un regalo para el atacante.">Protocol-design lesson: <strong>never let a message be valid in both directions</strong>. Symmetry is convenient for the programmer but a gift to the attacker.</p></div>
+    </div>
+  </section>
+
+  <!-- Mutual auth with public keys -->
+  <section class="slide" data-section="Part 1 · Protocols" data-section-es="Parte 1 · Protocolos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Sin secreto previo compartido"><span class="dot"></span>No pre-shared secret</span>
+      <h2 data-es="Autenticación mutua con claves públicas">Mutual authentication with public keys</h2>
+      <p data-es="Cada parte tiene un par de claves (<span class='crypto'>PU</span>, <span class='crypto'>PR</span>). El reto se cifra con la clave <em>pública</em> del otro; solo su clave <em>privada</em> puede descifrarlo.">Each party has a key pair (<span class="crypto">PU</span>, <span class="crypto">PR</span>). The challenge is encrypted with the other's <em>public</em> key; only their <em>private</em> key can decrypt it.</p>
+      <div class="proto">
+        <div class="proto-actors two">
+          <div class="actor"><div class="who alice">Alice</div><span class="key crypto">PU<sub>A</sub> · PR<sub>A</sub></span></div>
+          <div class="actor"><div class="who bob">Bob</div><span class="key crypto">PU<sub>B</sub> · PR<sub>B</sub></span></div>
+        </div>
+        <div class="lifelines">
+          <div class="msg"><div class="wire"><span class="line r"></span><span class="arrowhead r"></span><span class="label"><span class="step">1.</span><span class="crypto" data-es="Soy Alice, E[PU<sub>B</sub>, R₂]">I'm Alice, E[PU<sub>B</sub>, R<sub>2</sub>]</span></span></div></div>
+          <div class="msg"><div class="wire"><span class="line r warn"></span><span class="arrowhead l warn"></span><span class="label warn"><span class="step">2.</span><span class="crypto">R<sub>2</sub>, E[PU<sub>A</sub>, R<sub>1</sub>]</span></span></div></div>
+          <div class="msg"><div class="wire"><span class="line r"></span><span class="arrowhead r"></span><span class="label"><span class="step">3.</span><span class="crypto">R<sub>1</sub></span></span></div></div>
+        </div>
+      </div>
+      <div class="callout note"><span class="tag" data-es="Ventaja">Upside</span><p data-es="No hace falta un secreto compartido de antemano — pero ahora hay que confiar en que <span class='crypto'>PU<sub>B</sub></span> es <em>realmente</em> de Bob. Ese problema lo resuelven los certificados (siguientes diapositivas).">No pre-shared secret is needed — but now you must trust that <span class="crypto">PU<sub>B</sub></span> really belongs to Bob. Certificates solve that problem (next slides).</p></div>
+    </div>
+  </section>
+
+  <!-- Session keys: why -->
+  <section class="slide" data-section="Part 1 · Protocols" data-section-es="Parte 1 · Protocolos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Claves de sesión"><span class="dot"></span>Session keys</span>
+      <h2 data-es="¿Por qué una clave nueva por sesión?">Why a fresh key for each session?</h2>
+      <ul class="clean">
+        <li data-es="<strong>Autenticar primero</strong>, luego establecer una clave de sesión nueva para esa conversación."><strong>Authenticate first</strong>, then establish a new session key for that conversation.</li>
+        <li data-es="Se establece una clave compartida para la sesión <em>aunque ya exista</em> una clave secreta compartida.">Establish a shared key for the session <em>even if</em> a shared secret key already exists.</li>
+        <li data-es="La clave secreta de largo plazo se llama <strong>clave maestra</strong> (master key), posiblemente derivada de una contraseña.">The long-term secret key is called the <strong>master key</strong>, possibly derived from a password.</li>
+        <li data-es="La clave maestra se usa para <strong>autenticar y establecer</strong> una clave de sesión nueva — no para cifrar el tráfico directamente.">The master key is used to <strong>authenticate and establish</strong> a new session key — not to encrypt traffic directly.</li>
+      </ul>
+      <div class="callout discuss" style="margin-top:.6rem"><span class="tag" data-es="Por qué importa">Why it matters</span><p data-es="Si una clave de sesión se filtra, solo se compromete <em>esa</em> conversación, no todo el historial. Limitar el uso de la clave maestra limita su exposición — esta idea reaparece en Kerberos y en el «forward secrecy» de TLS 1.3.">If a session key leaks, only <em>that</em> conversation is compromised, not the entire history. Limiting use of the master key limits its exposure — this idea reappears in Kerberos and in TLS 1.3's forward secrecy.</p></div>
+    </div>
+  </section>
+
+  <!-- Session keys: master key flow -->
+  <section class="slide" data-section="Part 1 · Protocols" data-section-es="Parte 1 · Protocolos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Vía clave maestra"><span class="dot"></span>Via master key</span>
+      <h2 data-es="Establecer una clave de sesión con la clave maestra">Establishing a session key with the master key</h2>
+      <div class="proto">
+        <div class="proto-actors two">
+          <div class="actor"><div class="who alice">Alice</div><span class="key crypto">K<sub>AB</sub></span></div>
+          <div class="actor"><div class="who bob">Bob</div><span class="key crypto">K<sub>AB</sub></span></div>
+        </div>
+        <div class="lifelines">
+          <div class="msg"><div class="wire"><span class="line r"></span><span class="arrowhead r"></span><span class="label"><span class="step">1.</span><span class="crypto" data-es="Soy Alice">I'm Alice</span></span></div></div>
+          <div class="msg"><div class="wire"><span class="line r warn"></span><span class="arrowhead l warn"></span><span class="label warn"><span class="step">2.</span><span class="crypto">R</span></span></div></div>
+          <div class="msg"><div class="wire"><span class="line r"></span><span class="arrowhead r"></span><span class="label"><span class="step">3.</span><span class="crypto">E[K<sub>AB</sub>, R]</span></span></div></div>
+          <div class="msg"><div class="wire"><span class="line r warn"></span><span class="arrowhead l warn"></span><span class="label warn"><span class="step">4.</span><span class="crypto">E[f(K<sub>AB</sub>), R]</span></span></div></div>
+        </div>
+      </div>
+      <div class="callout note"><span class="tag" data-es="Clave derivada">Derived key</span><p data-es="La nueva clave de sesión se deriva de la maestra mediante una función <span class='crypto'>f(K<sub>AB</sub>)</span>. Ambos lados pueden calcularla, pero un atacante que vea el tráfico no puede.">The new session key is derived from the master key via a function <span class="crypto">f(K<sub>AB</sub>)</span>. Both sides can compute it, but an eavesdropper cannot.</p></div>
+    </div>
+  </section>
+
+  <!-- Session keys: public key & DH -->
+  <section class="slide" data-section="Part 1 · Protocols" data-section-es="Parte 1 · Protocolos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Vía claves públicas"><span class="dot"></span>Via public keys</span>
+      <h2 data-es="Clave de sesión con criptografía de clave pública">Session key with public-key crypto</h2>
+      <div class="split">
+        <div class="card accent-top">
+          <h3 data-es="Cifrar la clave nueva">Encrypt the new key</h3>
+          <div class="note-math" style="margin-top:.6rem">
+            Alice → Bob:<br>
+            E(<span class="kw">PR<sub>A</sub></span>, E(<span class="kw">PU<sub>B</sub></span>, K))
+          </div>
+          <p style="margin-top:.6rem;color:var(--ink-soft);font-size:var(--fs-small)" data-es="Alice cifra la nueva clave K con la pública de Bob (confidencialidad), luego firma con su privada (autenticidad). Solo Bob la abre y sabe que vino de Alice.">Alice encrypts the new key K with Bob's public key (confidentiality), then signs with her private key (authenticity). Only Bob can open it and he knows it came from Alice.</p>
+        </div>
+        <div class="card teal-top">
+          <h3 data-es="Diffie–Hellman con firma">Diffie–Hellman with signing</h3>
+          <div class="note-math" style="margin-top:.6rem">
+            Alice → Bob: E(<span class="kw">PR<sub>A</sub></span>, Y<sub>A</sub>)<br>
+            Bob → Alice: E(<span class="kw">PR<sub>B</sub></span>, Y<sub>B</sub>)
+          </div>
+          <p style="margin-top:.6rem;color:var(--ink-soft);font-size:var(--fs-small)" data-es="Cada parte firma su aporte público Y de Diffie–Hellman. La firma impide el ataque de hombre en el medio; DH produce un secreto compartido fresco.">Each party signs their Diffie–Hellman public contribution Y. The signature blocks man-in-the-middle; DH produces a fresh shared secret.</p>
+        </div>
+      </div>
+      <div class="callout note" style="margin-top:.8rem"><span class="tag" data-es="Hoy">Today</span><p data-es="Esta idea — DH efímero + firmas/certificados — es exactamente el corazón del handshake de <strong>TLS 1.3</strong> (ECDHE + certificados). Lo retomamos al cierre.">This idea — ephemeral DH + signatures/certificates — is exactly the heart of the <strong>TLS 1.3</strong> handshake (ECDHE + certificates). We return to it in the wrap-up.</p></div>
+    </div>
+  </section>
+
+  <!-- Certificates -->
+  <section class="slide" data-section="Part 1 · Protocols" data-section-es="Parte 1 · Protocolos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>¿De quién es esta clave pública?"><span class="dot"></span>Whose public key is this?</span>
+      <h2 data-es="Intercambio de certificados de clave pública">Exchanging public-key certificates</h2>
+      <p data-es="Una <strong>Autoridad de Certificación (CA)</strong> de confianza firma un certificado que ata un nombre/identidad a una clave pública. Cualquiera puede verificar la firma de la CA.">A trusted <strong>Certificate Authority (CA)</strong> signs a certificate that binds a name/identity to a public key. Anyone can verify the CA's signature.</p>
+      <div class="note-math">
+        <span class="gr">C<sub>A</sub></span> = E(<span class="kw">PR<sub>CA</sub></span>, T<sub>A</sub> ‖ ID<sub>A</sub> ‖ PU<sub>A</sub>)<br>
+        <span class="gr">C<sub>B</sub></span> = E(<span class="kw">PR<sub>CA</sub></span>, T<sub>B</sub> ‖ ID<sub>B</sub> ‖ PU<sub>B</sub>)
+      </div>
+      <ul class="clean" style="margin-top:1rem">
+        <li data-es="(1) Alice envía su certificado <span class='crypto'>C<sub>A</sub></span> a Bob; (2) Bob envía <span class='crypto'>C<sub>B</sub></span> a Alice.">(1) Alice sends her certificate <span class="crypto">C<sub>A</sub></span> to Bob; (2) Bob sends <span class="crypto">C<sub>B</sub></span> to Alice.</li>
+        <li data-es="Cada uno verifica la firma de la CA y extrae la clave pública auténtica del otro. <span class='crypto'>T</span> es una marca de tiempo (caducidad).">Each verifies the CA's signature and extracts the other's authentic public key. <span class="crypto">T</span> is a timestamp (expiry).</li>
+      </ul>
+      <div class="callout note"><span class="tag" data-es="En la web real">On the real web</span><p data-es="Esto es exactamente lo que hace HTTPS: tu navegador confía en un conjunto de CAs raíz y valida el certificado del sitio antes de mostrar el candado.">This is exactly what HTTPS does: your browser trusts a set of root CAs and validates the site's certificate before showing the padlock.</p></div>
+    </div>
+  </section>
+
+  <!-- KDC: motivation -->
+  <section class="slide" data-section="Part 1 · Protocols" data-section-es="Parte 1 · Protocolos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El problema de escala"><span class="dot"></span>The scaling problem</span>
+      <h2 data-es="Centro de Distribución de Claves (KDC)">Key Distribution Center (KDC)</h2>
+      <ul class="clean">
+        <li data-es="Las claves maestras compartidas <strong>no escalan</strong>: cada par de comunicación necesita compartir su propia clave maestra.">Shared master keys <strong>do not scale</strong>: each communicating pair needs to share its own master key.</li>
+        <li data-es="Con <span class='crypto'>n</span> usuarios harían falta <span class='crypto'>n(n−1)/2</span> claves — para 1000 usuarios, ~500 000 claves.">With <span class="crypto">n</span> users you would need <span class="crypto">n(n−1)/2</span> keys — for 1000 users, ~500,000 keys.</li>
+        <li data-es="Solución: cada usuario comparte <strong>una sola</strong> clave maestra con un <strong>KDC</strong> de confianza, que reparte claves de sesión bajo demanda.">Fix: each user shares <strong>just one</strong> master key with a trusted <strong>KDC</strong>, which hands out session keys on demand.</li>
+      </ul>
+      <div class="stats" style="margin-top:1rem">
+        <div class="stat people"><span class="big">n(n−1)/2</span><span class="lbl" data-es="claves sin KDC">keys without KDC</span></div>
+        <div class="stat good-stat"><span class="big">n</span><span class="lbl" data-es="claves con KDC">keys with KDC</span></div>
+      </div>
+      <div class="callout discuss"><span class="tag" data-es="Analogía">Analogy</span><p data-es="El KDC es un «agente de viajes de confianza» que emite billetes. No tienes que conocer de antemano a cada hotel; confías en el agente, y el agente te conecta.">The KDC is a "trusted travel agent" issuing tickets. You do not need to know every hotel in advance; you trust the agent, and the agent connects you.</p></div>
+    </div>
+  </section>
+
+  <!-- KDC: flow -->
+  <section class="slide" data-section="Part 1 · Protocols" data-section-es="Parte 1 · Protocolos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El KDC reparte una clave de sesión"><span class="dot"></span>The KDC hands out a session key</span>
+      <h2 data-es="Flujo del KDC">KDC flow</h2>
+      <p data-es="<span class='crypto'>K<sub>A</sub>, K<sub>B</sub></span> son claves maestras que Alice y Bob comparten con el KDC; <span class='crypto'>K<sub>S</sub></span> es la clave de sesión que el KDC genera."><span class="crypto">K<sub>A</sub>, K<sub>B</sub></span> are master keys Alice and Bob share with the KDC; <span class="crypto">K<sub>S</sub></span> is the session key the KDC generates.</p>
+      <div class="proto">
+        <div class="proto-actors three">
+          <div class="actor"><div class="who alice">Alice</div></div>
+          <div class="actor"><div class="who kdc">KDC</div></div>
+          <div class="actor"><div class="who bob">Bob</div></div>
+        </div>
+        <div class="lifelines">
+          <div class="msg fragment"><div class="wire"><span class="line" style="left:18%;right:51%"></span><span class="arrowhead r" style="right:51%"></span><span class="label"><span class="step">1.</span><span class="crypto" data-es="Solicitud, N₁">Request, N<sub>1</sub></span></span></div></div>
+          <div class="msg fragment"><div class="wire"><span class="line good" style="left:18%;right:51%"></span><span class="arrowhead l good" style="left:18%"></span><span class="label good"><span class="step">2.</span><span class="crypto">E(K<sub>A</sub>, K<sub>S</sub> ‖ N<sub>1</sub> ‖ E(K<sub>B</sub>, K<sub>S</sub> ‖ "Alice"))</span></span></div></div>
+          <div class="msg fragment"><div class="wire"><span class="line" style="left:18%;right:18%"></span><span class="arrowhead r" style="right:18%"></span><span class="label"><span class="step">3.</span><span class="crypto" data-es="Ticket a Bob: E(K<sub>B</sub>, K<sub>S</sub> ‖ &quot;Alice&quot;)">Ticket to Bob: E(K<sub>B</sub>, K<sub>S</sub> ‖ "Alice")</span></span></div></div>
+          <div class="msg fragment"><div class="wire"><span class="line warn" style="left:51%;right:18%"></span><span class="arrowhead l warn" style="left:51%"></span><span class="label warn"><span class="step">4.</span><span class="crypto">E(K<sub>S</sub>, N<sub>2</sub> ‖ "Bob")</span></span></div></div>
+          <div class="msg fragment"><div class="wire"><span class="line" style="left:51%;right:18%"></span><span class="arrowhead r" style="right:18%"></span><span class="label"><span class="step">5.</span><span class="crypto">E(K<sub>S</sub>, f(N<sub>2</sub>))</span></span></div></div>
+        </div>
+      </div>
+      <div class="callout note fragment"><span class="tag" data-es="Idea">Idea</span><p data-es="El KDC entrega <span class='crypto'>K<sub>S</sub></span> a Alice envuelta en su clave, e incluye un «ticket» que solo Bob puede abrir. Alice nunca ve la clave de Bob; el ticket viaja a través de Alice pero solo Bob lo descifra.">The KDC gives <span class="crypto">K<sub>S</sub></span> to Alice wrapped in her key, and includes a "ticket" only Bob can open. Alice never sees Bob's key; the ticket travels through Alice but only Bob decrypts it.</p></div>
+    </div>
+  </section>
+
+  <!-- Kerberos: concepts -->
+  <section class="slide" data-section="Part 1 · Protocols" data-section-es="Parte 1 · Protocolos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Kerberos"><span class="dot"></span>Kerberos</span>
+      <h2 data-es="Autenticación y control de acceso en una red">Authentication &amp; access control in a network</h2>
+      <ul class="clean">
+        <li data-es="Cada <strong>principal</strong> (usuario o servicio) tiene una clave maestra (secreta).">Every <strong>principal</strong> (user or service) has a master (secret) key.</li>
+        <li data-es="La clave maestra de un usuario humano se <strong>deriva de su contraseña</strong>.">A human user's master key is <strong>derived from their password</strong>.</li>
+        <li data-es="Otros recursos (impresoras, servidores) deben tener su clave <strong>configurada</strong> de antemano.">Other resources (printers, servers) must have their keys <strong>configured</strong> in advance.</li>
+        <li data-es="Todas las claves maestras se guardan en la <strong>base de datos del KDC</strong>, protegidas/cifradas.">All principals' master keys are stored in the <strong>KDC database</strong>, protected/encrypted.</li>
+      </ul>
+      <div class="callout note"><span class="tag" data-es="Nombre">Name</span><p data-es="Kerberos es el perro de tres cabezas de la mitología griega — las tres «cabezas» son el cliente, el servidor y el KDC. El protocolo nació en el proyecto Athena del MIT.">Kerberos is the three-headed dog of Greek myth — the three "heads" are the client, the server, and the KDC. The protocol was born in MIT's Project Athena.</p></div>
+    </div>
+  </section>
+
+  <!-- Kerberos: tickets concept -->
+  <section class="slide" data-section="Part 1 · Protocols" data-section-es="Parte 1 · Protocolos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Tickets y TGT"><span class="dot"></span>Tickets and the TGT</span>
+      <h2 data-es="La idea del «ticket» en Kerberos">The "ticket" idea in Kerberos</h2>
+      <div class="grid cols-2">
+        <div class="card accent-top"><span class="ico">🎫</span><h3 data-es="Ticket">Ticket</h3><p data-es="Un permiso cifrado que prueba que el KDC autorizó a un usuario a usar un servicio concreto. Solo el servicio destino puede abrirlo.">An encrypted permit proving the KDC authorized a user to use a specific service. Only the target service can open it.</p></div>
+        <div class="card teal-top"><span class="ico">🎟️</span><h3 data-es="Ticket-Granting Ticket (TGT)">Ticket-Granting Ticket (TGT)</h3><p data-es="Un «ticket para pedir tickets». Te lo dan al iniciar sesión (con tu contraseña) y lo reutilizas todo el día sin volver a teclear la clave.">A "ticket to ask for tickets." Issued at login (using your password) and reused all day without re-typing your key.</p></div>
+      </div>
+      <div class="callout discuss" style="margin-top:1rem"><span class="tag" data-es="Analogía">Analogy</span><p data-es="El TGT es como el sello de entrada a un parque de atracciones: lo obtienes una vez en la taquilla (login), y luego lo muestras en cada atracción (servicio) sin volver a pagar.">The TGT is like the hand-stamp at a theme park: you get it once at the gate (login), then show it at each ride (service) without paying again.</p></div>
+    </div>
+  </section>
+
+  <!-- Kerberos: login (AS exchange) -->
+  <section class="slide" data-section="Part 1 · Protocols" data-section-es="Parte 1 · Protocolos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Paso A — Login (intercambio AS)"><span class="dot"></span>Step A — Login (AS exchange)</span>
+      <h2 data-es="Bob inicia sesión y obtiene su TGT">Bob logs in and gets his TGT</h2>
+      <div class="proto">
+        <div class="proto-actors three">
+          <div class="actor"><div class="who bob">Bob</div></div>
+          <div class="actor"><div class="who alice" style="color:var(--ink-soft)" data-es="Host local de Bob">Bob's local host</div></div>
+          <div class="actor"><div class="who kdc">KDC</div></div>
+        </div>
+        <div class="lifelines">
+          <div class="msg fragment"><div class="wire"><span class="line" style="left:18%;right:51%"></span><span class="arrowhead r" style="right:51%"></span><span class="label"><span class="step">1.</span><span class="crypto" data-es="&lt;Bob, contraseña&gt;">&lt;Bob, passwd&gt;</span></span></div></div>
+          <div class="msg fragment"><div class="wire"><span class="line" style="left:51%;right:18%"></span><span class="arrowhead r" style="right:18%"></span><span class="label"><span class="step">2.</span><span class="crypto">AS_REQ</span></span></div></div>
+          <div class="msg fragment"><div class="wire"><span class="line good" style="left:51%;right:18%"></span><span class="arrowhead l good" style="left:51%"></span><span class="label good"><span class="step">3–4.</span><span class="crypto">AS_REP: E(K<sub>B</sub>, S<sub>B</sub> ‖ TGT<sub>B</sub>)</span></span></div></div>
+          <div class="msg fragment"><div class="wire"><span class="line warn" style="left:18%;right:51%"></span><span class="arrowhead l warn" style="left:18%"></span><span class="label warn"><span class="step">5.</span><span class="crypto" data-es="el host descifra, guarda S<sub>B</sub> y TGT<sub>B</sub>">host decrypts, saves S<sub>B</sub> &amp; TGT<sub>B</sub></span></span></div></div>
+        </div>
+      </div>
+      <div class="callout note fragment"><span class="tag" data-es="Clave de la jornada">Day key</span><p data-es="El KDC crea una clave de sesión <span class='crypto'>S<sub>B</sub></span> y el TGT <span class='crypto'>TGT<sub>B</sub> = E(K<sub>KDC</sub>, &quot;Bob&quot; ‖ S<sub>B</sub>)</span>, cifrado con la <em>propia</em> clave del KDC. La contraseña de Bob (<span class='crypto'>K<sub>B</sub></span>) solo se usa para abrir el paso 3–4 — una vez al día.">The KDC creates a session key <span class="crypto">S<sub>B</sub></span> and the TGT <span class="crypto">TGT<sub>B</sub> = E(K<sub>KDC</sub>, "Bob" ‖ S<sub>B</sub>)</span>, encrypted with the KDC's <em>own</em> key. Bob's password (<span class="crypto">K<sub>B</sub></span>) is only used to open step 3–4 — once a day.</p></div>
+    </div>
+  </section>
+
+  <!-- Kerberos: TGS exchange (get printer ticket) -->
+  <section class="slide" data-section="Part 1 · Protocols" data-section-es="Parte 1 · Protocolos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Paso B — Pedir un ticket para la impresora"><span class="dot"></span>Step B — Request a printer ticket</span>
+      <h2 data-es="Accediendo a la impresora: obtener el ticket">Accessing the printer: getting the ticket</h2>
+      <div class="proto">
+        <div class="proto-actors three">
+          <div class="actor"><div class="who bob">Bob</div></div>
+          <div class="actor"><div class="who alice" style="color:var(--ink-soft)" data-es="Host local de Bob">Bob's local host</div></div>
+          <div class="actor"><div class="who kdc">KDC</div></div>
+        </div>
+        <div class="lifelines">
+          <div class="msg fragment"><div class="wire"><span class="line" style="left:18%;right:51%"></span><span class="arrowhead r" style="right:51%"></span><span class="label"><span class="step">1.</span><span class="crypto" data-es="«lpr -P hp1»">"lpr -P hp1"</span></span></div></div>
+          <div class="msg fragment"><div class="wire"><span class="line" style="left:51%;right:18%"></span><span class="arrowhead r" style="right:18%"></span><span class="label"><span class="step">2.</span><span class="crypto">TGS_REQ [hp1, TGT<sub>B</sub>, E(S<sub>B</sub>, ts)]</span></span></div></div>
+          <div class="msg fragment"><div class="wire"><span class="line good" style="left:51%;right:18%"></span><span class="arrowhead l good" style="left:51%"></span><span class="label good"><span class="step">3–4.</span><span class="crypto">TGS_REP: E(S<sub>B</sub>, "Bob" ‖ K<sub>BP</sub> ‖ T<sub>P</sub>)</span></span></div></div>
+          <div class="msg fragment"><div class="wire"><span class="line warn" style="left:18%;right:51%"></span><span class="arrowhead l warn" style="left:18%"></span><span class="label warn"><span class="step">5.</span><span class="crypto" data-es="el host obtiene K<sub>BP</sub> y T<sub>P</sub>">host obtains K<sub>BP</sub> &amp; T<sub>P</sub></span></span></div></div>
+        </div>
+      </div>
+      <div class="callout note fragment"><span class="tag" data-es="Qué hace el KDC">KDC's job</span><p data-es="El KDC descifra el <span class='crypto'>TGT<sub>B</sub></span>, verifica el autenticador (timestamp) y genera la clave <span class='crypto'>K<sub>BP</sub></span> y el ticket para la impresora <span class='crypto'>T<sub>P</sub> = E(K<sub>P</sub>, &quot;Bob&quot; ‖ K<sub>BP</sub>)</span>. El TGT evita volver a pedir la contraseña.">The KDC decrypts the <span class="crypto">TGT<sub>B</sub></span>, verifies the authenticator (timestamp), and generates key <span class="crypto">K<sub>BP</sub></span> and the printer ticket <span class="crypto">T<sub>P</sub> = E(K<sub>P</sub>, "Bob" ‖ K<sub>BP</sub>)</span>. The TGT avoids re-asking for the password.</p></div>
+    </div>
+  </section>
+
+  <!-- Kerberos: AP exchange (use printer) -->
+  <section class="slide" data-section="Part 1 · Protocols" data-section-es="Parte 1 · Protocolos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Paso C — Presentar el ticket a la impresora"><span class="dot"></span>Step C — Present the ticket to the printer</span>
+      <h2 data-es="Accediendo a la impresora: usar el servicio">Accessing the printer: using the service</h2>
+      <div class="proto">
+        <div class="proto-actors three">
+          <div class="actor"><div class="who bob">Bob</div></div>
+          <div class="actor"><div class="who alice" style="color:var(--ink-soft)" data-es="Host local de Bob">Bob's local host</div></div>
+          <div class="actor"><div class="who good" style="color:var(--good)" data-es="Servidor de impresión">Printer server</div></div>
+        </div>
+        <div class="lifelines">
+          <div class="msg fragment"><div class="wire"><span class="line" style="left:51%;right:18%"></span><span class="arrowhead r" style="right:18%"></span><span class="label"><span class="step">1.</span><span class="crypto">AP_REQ [T<sub>P</sub>, E(K<sub>BP</sub>, ts)]</span></span></div></div>
+          <div class="msg fragment"><div class="wire"><span class="line good" style="left:51%;right:18%"></span><span class="arrowhead l good" style="left:51%"></span><span class="label good"><span class="step">3.</span><span class="crypto">AP_REP: E(K<sub>BP</sub>, ts+1)</span></span></div></div>
+        </div>
+      </div>
+      <div class="callout check fragment"><span class="tag" data-es="Autenticación mutua">Mutual auth</span><p data-es="La impresora descifra <span class='crypto'>T<sub>P</sub></span> para obtener <span class='crypto'>K<sub>BP</sub></span> y verifica el autenticador. Devuelve <span class='crypto'>ts+1</span> para probarle a Bob que ella también conoce <span class='crypto'>K<sub>BP</sub></span> — autenticación mutua, sin que la impresora consulte al KDC en cada trabajo.">The printer decrypts <span class="crypto">T<sub>P</sub></span> to get <span class="crypto">K<sub>BP</sub></span> and verifies the authenticator. It returns <span class="crypto">ts+1</span> to prove to Bob it also knows <span class="crypto">K<sub>BP</sub></span> — mutual authentication, with no KDC call per print job.</p></div>
+    </div>
+  </section>
+
+  <!-- Kerberos: benefits -->
+  <section class="slide" data-section="Part 1 · Protocols" data-section-es="Parte 1 · Protocolos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>¿Por qué es elegante?"><span class="dot"></span>Why is it elegant?</span>
+      <h2 data-es="Beneficios de Kerberos">Kerberos benefits</h2>
+      <div class="grid cols-3">
+        <div class="card good-top"><span class="ico">🚫🔑</span><h3 data-es="El host no guarda contraseñas">Host stores no passwords</h3><p data-es="El equipo local de Bob no necesita almacenar contraseñas — solo maneja tickets temporales.">Bob's local host does not need to store passwords — it only handles temporary tickets.</p></div>
+        <div class="card teal-top"><span class="ico">🕐</span><h3 data-es="Clave maestra: una vez al día">Master key: once a day</h3><p data-es="La clave que el usuario comparte con el KDC se usa solo una vez al día (en el login).">The master key the user shares with the KDC is only used once a day (at login).</p></div>
+        <div class="card accent-top"><span class="ico">🛡️</span><h3 data-es="Exposición limitada">Limited exposure</h3><p data-es="Esto limita la exposición de la clave maestra: cuanto menos viaja, menos puede interceptarse.">This limits exposure of the master key: the less it travels, the less it can be intercepted.</p></div>
+      </div>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Vivo hoy">Alive today</span><p data-es="<strong>Kerberos v5 sigue muy vivo</strong>: es la columna vertebral de la autenticación de <strong>Microsoft Active Directory</strong>. No es un protocolo de libro de texto del pasado — lo usas cada vez que inicias sesión en una red corporativa Windows."><strong>Kerberos v5 is very much alive</strong>: it is the backbone of <strong>Microsoft Active Directory</strong> authentication. It is not a relic textbook protocol — you use it every time you log into a corporate Windows network.</p></div>
+    </div>
+  </section>
+
+  <!-- Part 1 summary -->
+  <section class="slide" data-section="Part 1 · Protocols" data-section-es="Parte 1 · Protocolos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Resumen de la Parte 1"><span class="dot"></span>Part 1 summary</span>
+      <h2 data-es="Protocolos de seguridad — lo esencial">Security protocols — the essentials</h2>
+      <ul class="clean">
+        <li data-es="Autenticación basada en clave secreta y en clave pública, con <strong>reto y respuesta aleatorios</strong> (nonces).">Secret-key and public-key based authentication, with <strong>random challenge and response</strong> (nonces).</li>
+        <li data-es="Ataques de suplantación como la <strong>reflexión</strong>, y sus correcciones (claves o retos asimétricos por rol).">Impersonation attacks like <strong>reflection</strong>, and their fixes (asymmetric keys or challenges per role).</li>
+        <li data-es="Establecer una <strong>clave de sesión</strong> a partir de un secreto compartido o de claves públicas, tras autenticarse; usar <strong>KDC</strong> o <strong>CA</strong>.">Establish a <strong>session key</strong> from a pre-shared secret or public keys after authenticating; use a <strong>KDC</strong> or <strong>CA</strong>.</li>
+        <li data-es="<strong>Kerberos</strong>: autenticación y control de acceso mediante <strong>tickets</strong> y el <strong>ticket-granting ticket</strong>."><strong>Kerberos</strong>: authentication and access control via <strong>tickets</strong> and the <strong>ticket-granting ticket</strong>.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===================================================================
+       PART 2 — HASH FUNCTIONS
+       =================================================================== -->
+
+  <section class="slide section" data-section="Part 2 · Hashes" data-section-es="Parte 2 · Hashes">
+    <div class="slide-inner">
+      <div class="num">P2</div>
+      <h1 data-es="Parte 2 — Funciones Hash">Part 2 — Hash Functions</h1>
+      <p class="lead" data-es="Propiedades, la paradoja del cumpleaños, la familia SHA, procesamiento por bloques y HMAC.">Properties, the birthday paradox, the SHA family, block processing, and HMAC.</p>
+    </div>
+  </section>
+
+  <!-- Hashes intro / roadmap -->
+  <section class="slide" data-section="Part 2 · Hashes" data-section-es="Parte 2 · Hashes">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>¿Qué es una función hash?"><span class="dot"></span>What is a hash function?</span>
+      <h2 data-es="El «sello a prueba de manipulación» de la criptografía">Cryptography's "tamper-evident seal"</h2>
+      <div class="definition">
+        <blockquote data-es="Una función hash toma una entrada de <strong>tamaño arbitrario</strong> y produce una salida de <strong>tamaño fijo</strong> (128–512 bits) — una huella digital del mensaje.">A hash function takes an input of <strong>arbitrary size</strong> and produces a <strong>fixed-size</strong> output (128–512 bits) — a fingerprint of the message.</blockquote>
+      </div>
+      <p style="margin-top:1rem" data-es="Cambia un solo bit de la entrada y la huella cambia por completo. Como un sello de cera en un sobre: si alguien lo abre, se nota.">Change a single bit of the input and the fingerprint changes completely. Like a wax seal on an envelope: if anyone opens it, it shows.</p>
+      <div class="note-math">
+        H(<span class="kw" data-es="«hola»">"hello"</span>) → 2cf24dba5fb0a30e…<br>
+        H(<span class="kw" data-es="«Hola»">"Hello"</span>) → 185f8db32271fe25… &nbsp;<span class="red" data-es="¡totalmente distinto!">totally different!</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Hash properties -->
+  <section class="slide" data-section="Part 2 · Hashes" data-section-es="Parte 2 · Hashes">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Las cuatro propiedades clave"><span class="dot"></span>The four key properties</span>
+      <h2 data-es="Propiedades de una función hash criptográfica">Properties of a cryptographic hash function</h2>
+      <div class="grid cols-2">
+        <div class="card accent-top fragment"><h3 data-es="1 · Fácil de calcular">1 · Easy to compute</h3><p data-es="Dado <span class='crypto'>m</span>, calcular <span class='crypto'>H(m)</span> es rápido. La salida tiene longitud fija (128–512 bits).">Given <span class="crypto">m</span>, computing <span class="crypto">H(m)</span> is fast. The output is fixed length (128–512 bits).</p></div>
+        <div class="card teal-top fragment"><h3 data-es="2 · Unidireccional (resistencia a preimagen)">2 · One-way (preimage resistance)</h3><p data-es="Dado <span class='crypto'>H(m)</span>, no hay forma fácil de encontrar <span class='crypto'>m</span>. La huella no revela el mensaje.">Given <span class="crypto">H(m)</span>, there is no easy way to find <span class="crypto">m</span>. The fingerprint does not reveal the message.</p></div>
+        <div class="card warn-top fragment"><h3 data-es="3 · Resistencia a 2.ª preimagen">3 · Second-preimage resistance</h3><p data-es="Dado <span class='crypto'>m₁</span>, es inviable encontrar <span class='crypto'>m₂ ≠ m₁</span> con <span class='crypto'>H(m₂) = H(m₁)</span>. <em>(El origen lo llamaba «resistencia débil a colisiones».)</em>">Given <span class="crypto">m<sub>1</sub></span>, it is infeasible to find <span class="crypto">m<sub>2</sub> ≠ m<sub>1</sub></span> with <span class="crypto">H(m<sub>2</sub>) = H(m<sub>1</sub>)</span>. <em>(The source called this "weak collision resistance.")</em></p></div>
+        <div class="card danger-top fragment"><h3 data-es="4 · Resistencia a colisiones">4 · Collision resistance</h3><p data-es="Es inviable encontrar <em>cualquier</em> par <span class='crypto'>m₁ ≠ m₂</span> con <span class='crypto'>H(m₁) = H(m₂)</span>. <em>(El origen lo llamaba «resistencia fuerte a colisiones».)</em>">It is infeasible to find <em>any</em> pair <span class="crypto">m<sub>1</sub> ≠ m<sub>2</sub></span> with <span class="crypto">H(m<sub>1</sub>) = H(m<sub>2</sub>)</span>. <em>(The source called this "strong collision resistance.")</em></p></div>
+      </div>
+      <p class="figure-note fragment" data-es="Terminología moderna: «resistencia débil a colisiones» = <strong>resistencia a la segunda preimagen</strong>; «resistencia fuerte a colisiones» = <strong>resistencia a colisiones</strong>. Usaremos los nombres modernos.">Modern terminology: "weak collision resistance" = <strong>second-preimage resistance</strong>; "strong collision resistance" = <strong>collision resistance</strong>. We'll use the modern names.</p>
+    </div>
+  </section>
+
+  <!-- Why hashes matter -->
+  <section class="slide" data-section="Part 2 · Hashes" data-section-es="Parte 2 · Hashes">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>¿Para qué sirven?"><span class="dot"></span>What are they for?</span>
+      <h2 data-es="¿Por qué importan los hashes?">Why hashes matter</h2>
+      <div class="grid cols-3">
+        <div class="card accent-top"><span class="ico">✅</span><h3 data-es="Integridad">Integrity</h3><p data-es="Detectar cualquier alteración de un archivo o mensaje: si el hash cambia, el contenido cambió. Único para cada mensaje.">Detect any alteration of a file or message: if the hash changes, the content changed. Unique per message.</p></div>
+        <div class="card teal-top"><span class="ico">🔐</span><h3 data-es="Autenticación de mensajes">Message authentication</h3><p data-es="Combinado con una clave secreta (HMAC), prueba que el mensaje viene de quien dice y no fue modificado.">Combined with a secret key (HMAC), proves the message comes from whom it claims and was not modified.</p></div>
+        <div class="card good-top"><span class="ico">🖋️</span><h3 data-es="Autenticidad">Authenticity</h3><p data-es="Las firmas digitales firman el <em>hash</em> del mensaje, no el mensaje entero — más rápido y vincula identidad al contenido.">Digital signatures sign the <em>hash</em> of the message, not the whole message — faster, and binds identity to content.</p></div>
+      </div>
+      <div class="callout discuss" style="margin-top:1rem"><span class="tag" data-es="Debate">Debate</span><p data-es="Un hash por sí solo prueba <em>integridad</em> pero no <em>autenticidad</em>: si Trudy cambia el mensaje, también puede recalcular el hash. ¿Qué le falta a un hash «pelado» para autenticar de verdad? (Pista: una clave secreta → HMAC.)">A bare hash proves <em>integrity</em> but not <em>authenticity</em>: if Trudy changes the message, she can also recompute the hash. What does a "naked" hash lack to truly authenticate? (Hint: a secret key → HMAC.)</p></div>
+    </div>
+  </section>
+
+  <!-- Simple XOR hash -->
+  <section class="slide" data-section="Part 2 · Hashes" data-section-es="Parte 2 · Hashes">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Un ejemplo de juguete"><span class="dot"></span>A toy example</span>
+      <h2 data-es="Función hash simple con XOR bit a bit">Simple hash function using bitwise XOR</h2>
+      <p data-es="Divide el mensaje en bloques de <span class='crypto'>m</span> bits y haz XOR de todos los bloques. El bit <span class='crypto'>i</span> del resultado es el XOR del bit <span class='crypto'>i</span> de cada bloque:">Split the message into blocks of <span class="crypto">m</span> bits and XOR all the blocks together. Bit <span class="crypto">i</span> of the result is the XOR of bit <span class="crypto">i</span> of every block:</p>
+      <div class="note-math">
+        C<sub>i</sub> = b<sub>i1</sub> ⊕ b<sub>i2</sub> ⊕ … ⊕ b<sub>im</sub>
+      </div>
+      <div class="callout danger" style="margin-top:1rem"><span class="tag" data-es="¿Por qué es inseguro?">Why it's insecure</span><p data-es="Es trivial fabricar colisiones: intercambia dos bloques, o cambia dos bits en la misma posición de dos bloques, y el XOR no cambia. Sirve para detectar errores de transmisión, <strong>jamás</strong> para seguridad.">It is trivial to forge collisions: swap two blocks, or flip two bits in the same position of two blocks, and the XOR is unchanged. Fine for detecting transmission errors, <strong>never</strong> for security.</p></div>
+    </div>
+  </section>
+
+  <!-- Section: weaknesses -->
+  <section class="slide section" data-section="Part 2 · Hashes" data-section-es="Parte 2 · Hashes">
+    <div class="slide-inner">
+      <div class="num">P2·b</div>
+      <h1 data-es="Debilidades: el problema de las colisiones">Weaknesses: the collision problem</h1>
+      <p class="lead" data-es="El principio del palomar y la paradoja del cumpleaños.">The Pigeonhole Principle and the Birthday Paradox.</p>
+    </div>
+  </section>
+
+  <!-- Pigeonhole principle -->
+  <section class="slide" data-section="Part 2 · Hashes" data-section-es="Parte 2 · Hashes">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Principio del palomar"><span class="dot"></span>Pigeonhole Principle</span>
+      <h2 data-es="Las colisiones son inevitables">Collisions are inevitable</h2>
+      <ul class="clean">
+        <li data-es="Sea <span class='crypto'>n</span> = número de palomas, <span class='crypto'>m</span> = número de huecos (palomares).">Let <span class="crypto">n</span> = number of pigeons, <span class="crypto">m</span> = number of holes.</li>
+        <li data-es="Si <span class='crypto'>n = m</span>: cabe una paloma por hueco.">If <span class="crypto">n = m</span>: exactly one pigeon per hole is possible.</li>
+        <li data-es="Si <span class='crypto'>n &gt; m</span>: al menos un hueco debe tener <strong>más de una</strong> paloma — una colisión forzosa.">If <span class="crypto">n &gt; m</span>: at least one hole must hold <strong>more than one</strong> pigeon — a forced collision.</li>
+      </ul>
+      <div class="holes">
+        <div class="hole full">🐦🐦</div>
+        <div class="hole">🐦</div>
+        <div class="hole">🐦</div>
+        <div class="hole full">🐦🐦</div>
+        <div class="hole">🐦</div>
+      </div>
+      <div class="callout note"><span class="tag" data-es="Aplicado a hashes">Applied to hashes</span><p data-es="Entradas infinitas, salidas finitas (2<sup>n</sup> valores posibles). Por el palomar, <strong>las colisiones existen siempre</strong>. La seguridad no es evitarlas, sino hacer que sean <em>imposibles de encontrar</em>.">Infinite inputs, finite outputs (2<sup>n</sup> possible values). By the pigeonhole principle, <strong>collisions always exist</strong>. Security is not about preventing them, but making them <em>infeasible to find</em>.</p></div>
+    </div>
+  </section>
+
+  <!-- Birthday paradox: question -->
+  <section class="slide activity" data-section="Part 2 · Hashes" data-section-es="Parte 2 · Hashes">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Actividad · La paradoja del cumpleaños">◆ Activity · The Birthday Paradox</span>
+      <h2 style="margin-top:1rem" data-es="¿Cuántas personas en una sala?">How many people in a room?</h2>
+      <p class="lead" style="max-width:60ch" data-es="¿Cuántas personas necesitas en una sala para tener una probabilidad <strong>mayor del 50 %</strong> de que dos compartan cumpleaños? (Supón 365 días posibles — los «contenedores».)">How many people do you need in a room for a <strong>greater than 50%</strong> chance that two share a birthday? (Assume 365 possible days — the "containers.")</p>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Respuesta">Answer</span>
+        <p data-es="Solo <strong>23 personas</strong>. Mucho menos de lo que la intuición sugiere. (Y para una certeza del 100 % harían falta 366 personas — eso sí es el principio del palomar.)">Just <strong>23 people</strong>. Far fewer than intuition suggests. (And for 100% certainty you would need 366 people — that part is the pigeonhole principle.)</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Birthday paradox: math -->
+  <section class="slide" data-section="Part 2 · Hashes" data-section-es="Parte 2 · Hashes">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La matemática"><span class="dot"></span>The math</span>
+      <h2 data-es="¿Por qué solo 23?">Why only 23?</h2>
+      <p data-es="No comparamos a una persona con las demás, sino <strong>todos los pares posibles</strong>. Con 23 personas hay 23·22/2 = 253 pares — muchas oportunidades de coincidir.">We do not compare one person against the rest; we compare <strong>all possible pairs</strong>. With 23 people there are 23·22/2 = 253 pairs — many chances to match.</p>
+      <div class="note-math">
+        <span data-es="muestra de n personas de k = 365 días">sample of n people from k = 365 days</span><br>
+        p = 1 − (k)<sub>n</sub> / k<sup>n</sup> ≈ n(n−1) / 2k<br>
+        p = 0.5 &nbsp;<span class="kw" data-es="cuando">when</span>&nbsp; n ≈ <span class="gr">√k</span> &nbsp;⟶&nbsp; √365 ≈ 19–23
+      </div>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="La regla clave">Key rule</span><p data-es="Encontrar una colisión cuesta del orden de <strong>√(número de salidas)</strong>. Para un hash de <span class='crypto'>n</span> bits hay 2<sup>n</sup> salidas, así que una colisión cuesta ≈ <strong>2<sup>n/2</sup></strong>, no 2<sup>n</sup>.">Finding a collision costs about <strong>√(number of outputs)</strong>. For an <span class="crypto">n</span>-bit hash there are 2<sup>n</sup> outputs, so a collision costs ≈ <strong>2<sup>n/2</sup></strong>, not 2<sup>n</sup>.</p></div>
+    </div>
+  </section>
+
+  <!-- Determining hash length -->
+  <section class="slide" data-section="Part 2 · Hashes" data-section-es="Parte 2 · Hashes">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Elegir la longitud del hash"><span class="dot"></span>Choosing the hash length</span>
+      <h2 data-es="Determinar la longitud del hash">Determining hash length</h2>
+      <table class="sha-table">
+        <thead><tr>
+          <th data-es="Longitud del hash">Hash length</th>
+          <th data-es="N.º de valores posibles">Possible hash values</th>
+          <th data-es="Mensajes para hallar colisión">Messages to find a collision</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>1</td><td>2<sup>1</sup></td><td>2<sup>1/2</sup></td></tr>
+          <tr><td>4</td><td>2<sup>4</sup></td><td>2<sup>2</sup></td></tr>
+          <tr><td>64</td><td>2<sup>64</sup></td><td>2<sup>32</sup></td></tr>
+          <tr><td class="strong">256</td><td>2<sup>256</sup></td><td class="strong">2<sup>128</sup></td></tr>
+        </tbody>
+      </table>
+      <div class="callout check" style="margin-top:1rem"><span class="tag" data-es="Regla de seguridad">Security rule</span><p data-es="Un hash de <span class='crypto'>n</span> bits da solo <strong>n/2 bits</strong> de resistencia a colisiones (por la paradoja del cumpleaños). Para 128 bits de seguridad necesitas una salida de <strong>≥ 256 bits</strong>. Por eso <strong>SHA-256 es la base de hoy</strong>.">An <span class="crypto">n</span>-bit hash gives only <strong>n/2 bits</strong> of collision resistance (because of the birthday paradox). For 128-bit security you need a <strong>≥ 256-bit</strong> output. This is why <strong>SHA-256 is today's baseline</strong>.</p></div>
+    </div>
+  </section>
+
+  <!-- More pigeons than holes -->
+  <section class="slide" data-section="Part 2 · Hashes" data-section-es="Parte 2 · Hashes">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Conclusión de las debilidades"><span class="dot"></span>Weakness takeaway</span>
+      <h2 data-es="Muchas más palomas que palomares">Many more pigeons than pigeonholes</h2>
+      <ul class="clean">
+        <li data-es="En los hashes siempre hay <strong>muchas más entradas que salidas</strong>.">In hashing there are always <strong>far more inputs than outputs</strong>.</li>
+        <li data-es="Muchos mensajes distintos se mapean a la misma salida — muchos mensajes comparten el mismo hash.">Many different messages map to the same output — many messages share the same hash.</li>
+        <li data-es="<strong>Conclusión:</strong> cuanto mayor sea la longitud del hash, menos probable es <em>tropezar</em> con una colisión."><strong>Conclusion:</strong> the longer the hash length, the less likely you are to <em>stumble onto</em> a collision.</li>
+      </ul>
+      <div class="callout discuss" style="margin-top:1rem"><span class="tag" data-es="Debate">Debate</span><p data-es="Si las colisiones siempre existen, ¿por qué confiamos en los hashes? Porque «existir» y «poder encontrarse en la práctica» son cosas muy distintas — 2<sup>128</sup> operaciones superan la capacidad de cómputo de la humanidad. La seguridad es económica, no absoluta.">If collisions always exist, why do we trust hashes? Because "existing" and "being findable in practice" are very different — 2<sup>128</sup> operations exceed humanity's compute. Security is economic, not absolute.</p></div>
+    </div>
+  </section>
+
+  <!-- Section: SHA family -->
+  <section class="slide section" data-section="Part 2 · Hashes" data-section-es="Parte 2 · Hashes">
+    <div class="slide-inner">
+      <div class="num">P2·c</div>
+      <h1 data-es="Algoritmos hash seguros: la familia SHA">Secure hash algorithms: the SHA family</h1>
+      <p class="lead" data-es="SHA-1, SHA-2, SHA-3 — y cuáles están rotos.">SHA-1, SHA-2, SHA-3 — and which ones are broken.</p>
+    </div>
+  </section>
+
+  <!-- SHA history -->
+  <section class="slide" data-section="Part 2 · Hashes" data-section-es="Parte 2 · Hashes">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Una breve historia"><span class="dot"></span>A short history</span>
+      <h2 data-es="Algoritmo de Hash Seguro (SHA)">Secure Hash Algorithm (SHA)</h2>
+      <div class="flow">
+        <div class="node"><span class="n-label accent">SHA-0/1</span><span class="n-sub" data-es="NIST, 1993 → SHA-1 en 1995 · 160 bits">NIST, 1993 → SHA-1 in 1995 · 160-bit</span></div>
+        <div class="arrow">→</div>
+        <div class="node"><span class="n-label" style="color:var(--good)">SHA-2</span><span class="n-sub" data-es="2002 · 256 / 384 / 512 bits · similar a SHA-1">2002 · 256 / 384 / 512-bit · similar to SHA-1</span></div>
+        <div class="arrow">→</div>
+        <div class="node"><span class="n-label" style="color:var(--violet)">SHA-3</span><span class="n-sub" data-es="competencia 2007 · estándar 2015 · estructura nueva">2007 competition · standardized 2015 · new structure</span></div>
+      </div>
+      <ul class="clean" style="margin-top:1.2rem">
+        <li data-es="Desarrollado por <strong>NIST</strong>, en el Secure Hash Standard (originalmente 1993).">Developed by <strong>NIST</strong>, in the Secure Hash Standard (originally 1993).</li>
+        <li data-es="<strong>SHA-1</strong> (1995): hash de 160 bits. <strong>SHA-2</strong> (2002): 256/384/512 bits, similar a SHA-1 en estructura."><strong>SHA-1</strong> (1995): 160-bit hash. <strong>SHA-2</strong> (2002): 256/384/512-bit, similar to SHA-1 in structure.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- SHA comparison table -->
+  <section class="slide" data-section="Part 2 · Hashes" data-section-es="Parte 2 · Hashes">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Comparación de parámetros"><span class="dot"></span>Parameter comparison</span>
+      <h2 data-es="Comparación de parámetros SHA">Comparison of SHA parameters</h2>
+      <table class="sha-table">
+        <thead><tr>
+          <th data-es="Parámetro (bits)">Parameter (bits)</th>
+          <th class="broken">SHA-1</th><th class="strong">SHA-256</th><th>SHA-384</th><th>SHA-512</th>
+        </tr></thead>
+        <tbody>
+          <tr><td data-es="Tamaño del resumen">Message digest size</td><td>160</td><td>256</td><td>384</td><td>512</td></tr>
+          <tr><td data-es="Tamaño del mensaje">Message size</td><td>&lt;2<sup>64</sup></td><td>&lt;2<sup>64</sup></td><td>&lt;2<sup>128</sup></td><td>&lt;2<sup>128</sup></td></tr>
+          <tr><td data-es="Tamaño de bloque">Block size</td><td>512</td><td>512</td><td>1024</td><td>1024</td></tr>
+          <tr><td data-es="Tamaño de palabra">Word size</td><td>32</td><td>32</td><td>64</td><td>64</td></tr>
+          <tr><td data-es="N.º de pasos">Number of steps</td><td>80</td><td>64</td><td>80</td><td>80</td></tr>
+          <tr><td data-es="Seguridad (colisión)">Security (collision)</td><td class="broken">80 ✗</td><td class="strong">128</td><td>192</td><td>256</td></tr>
+        </tbody>
+      </table>
+      <p class="figure-note" data-es="Todos los tamaños en bits. «Seguridad» = factor de trabajo ≈ 2<sup>n/2</sup> para un ataque de cumpleaños sobre un resumen de n bits. SHA-1 (80 bits) ya no ofrece seguridad práctica.">All sizes in bits. "Security" = work factor ≈ 2<sup>n/2</sup> for a birthday attack on an n-bit digest. SHA-1 (80-bit) no longer offers practical security.</p>
+    </div>
+  </section>
+
+  <!-- BROKEN HASHES -->
+  <section class="slide" data-section="Part 2 · Hashes" data-section-es="Parte 2 · Hashes">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Actualización crítica"><span class="dot"></span>Critical currency update</span>
+      <h2 data-es="Hashes rotos: MD5 y SHA-1">Broken hashes: MD5 and SHA-1</h2>
+      <div class="split">
+        <div class="card danger-top">
+          <h3 data-es="MD5 — roto">MD5 — broken</h3>
+          <ul class="clean" style="margin-top:.6rem;gap:.5rem">
+            <li data-es="Colisiones prácticas desde 2004/2008.">Practical collisions since 2004/2008.</li>
+            <li data-es="El malware <strong>Flame</strong> (2012) forjó un certificado de Microsoft abusando de una colisión MD5.">The <strong>Flame</strong> malware (2012) forged a Microsoft certificate by abusing an MD5 collision.</li>
+            <li data-es="<strong>Nunca</strong> uses MD5 para seguridad."><strong>Never</strong> use MD5 for security.</li>
+          </ul>
+        </div>
+        <div class="card danger-top">
+          <h3 data-es="SHA-1 — roto">SHA-1 — broken</h3>
+          <ul class="clean" style="margin-top:.6rem;gap:.5rem">
+            <li data-es="<strong>SHAttered</strong> (Google/CWI, 2017): primera colisión real de SHA-1 (dos PDF)."><strong>SHAttered</strong> (Google/CWI, 2017): first real SHA-1 collision (two PDFs).</li>
+            <li data-es="Colisiones de prefijo elegido (2019–2020) las abarataron drásticamente.">Chosen-prefix collisions (2019–2020) made them cheap.</li>
+            <li data-es="SHA-1 está <strong>obsoleto/prohibido</strong> en nuevos sistemas.">SHA-1 is <strong>deprecated / disallowed</strong> in new systems.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="callout check" style="margin-top:.9rem"><span class="tag" data-es="Usa hoy">Use today</span><p data-es="Usa <strong>SHA-256</strong> o <strong>SHA-3</strong>. Para velocidad, <strong>BLAKE2 / BLAKE3</strong> son hashes modernos rápidos y seguros (BLAKE3 es paralelizable y muy veloz).">Use <strong>SHA-256</strong> or <strong>SHA-3</strong>. For speed, <strong>BLAKE2 / BLAKE3</strong> are fast, secure modern hashes (BLAKE3 is parallelizable and very fast).</p></div>
+    </div>
+  </section>
+
+  <!-- SHA-3 -->
+  <section class="slide" data-section="Part 2 · Hashes" data-section-es="Parte 2 · Hashes">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Un diseño estructuralmente distinto"><span class="dot"></span>A structurally different design</span>
+      <h2 data-es="SHA-3 (Keccak) y la construcción de esponja">SHA-3 (Keccak) and the sponge construction</h2>
+      <ul class="clean">
+        <li data-es="SHA-2 comparte estructura y operaciones con sus predecesores — eso preocupaba: si SHA-1 cae, ¿caería SHA-2?">SHA-2 shares its structure and operations with its predecessors — a concern: if SHA-1 falls, would SHA-2?</li>
+        <li data-es="Por el tiempo que costaría reemplazar SHA-2, NIST anunció en <strong>2007</strong> un concurso para producir SHA-3; ganó <strong>Keccak</strong>.">Because of the time needed to replace SHA-2, NIST announced a <strong>2007</strong> competition to produce SHA-3; <strong>Keccak</strong> won.</li>
+        <li data-es="SHA-3 usa una <strong>construcción de esponja</strong>, <em>estructuralmente distinta</em> del encadenamiento de bloques Merkle–Damgård de SHA-1/SHA-2.">SHA-3 uses a <strong>sponge construction</strong>, <em>structurally different</em> from the Merkle–Damgård block-chaining of SHA-1/SHA-2.</li>
+        <li data-es="Estandarizado por NIST en <strong>FIPS 202 (2015)</strong>. No reemplaza a SHA-2 — es una alternativa independiente con un diseño no relacionado.">Standardized by NIST in <strong>FIPS 202 (2015)</strong>. It does not replace SHA-2 — it is an independent alternative with an unrelated design.</li>
+      </ul>
+      <div class="callout note" style="margin-top:.6rem"><span class="tag" data-es="Esponja vs. Merkle–Damgård">Sponge vs. M–D</span><p data-es="La esponja «absorbe» el mensaje en un estado interno grande y luego lo «exprime» para producir la salida — esto la inmuniza contra el ataque de extensión de longitud que afecta a SHA-1/256.">The sponge "absorbs" the message into a large internal state, then "squeezes" out the output — making it immune to the length-extension attack that affects SHA-1/256.</p></div>
+    </div>
+  </section>
+
+  <!-- Section: processing & HMAC -->
+  <section class="slide section" data-section="Part 2 · Hashes" data-section-es="Parte 2 · Hashes">
+    <div class="slide-inner">
+      <div class="num">P2·d</div>
+      <h1 data-es="Cómo se construye un hash, y HMAC">How a hash is built, and HMAC</h1>
+      <p class="lead" data-es="Procesamiento por bloques y hashes con clave.">Block-by-block processing and keyed hashes.</p>
+    </div>
+  </section>
+
+  <!-- Message processing: Merkle-Damgard -->
+  <section class="slide" data-section="Part 2 · Hashes" data-section-es="Parte 2 · Hashes">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Procesamiento del mensaje"><span class="dot"></span>Message processing</span>
+      <h2 data-es="Hashing bloque por bloque (Merkle–Damgård)">Block-by-block hashing (Merkle–Damgård)</h2>
+      <p data-es="El mensaje se rellena (padding) y se parte en bloques de tamaño fijo (p. ej. 1024 bits en SHA-512). Cada bloque se mezcla con el resultado del bloque anterior:">The message is padded and split into fixed-size blocks (e.g. 1024 bits in SHA-512). Each block is mixed with the previous block's result:</p>
+      <div class="chain">
+        <div class="blk"><span class="bt">IV = H<sub>0</sub></span><span class="bs" data-es="valor inicial">init value</span></div>
+        <span class="ar">→</span>
+        <div class="f">F</div>
+        <div class="blk" style="border-color:var(--warn)"><span class="bt" style="color:var(--warn)">M<sub>1</sub></span><span class="bs" data-es="bloque 1">block 1</span></div>
+        <span class="ar">→</span>
+        <div class="f">F</div>
+        <div class="blk" style="border-color:var(--warn)"><span class="bt" style="color:var(--warn)">M<sub>2</sub></span><span class="bs" data-es="bloque 2">block 2</span></div>
+        <span class="ar">→</span>
+        <span class="ar">…</span>
+        <div class="f">F</div>
+        <div class="blk" style="border-color:var(--warn)"><span class="bt" style="color:var(--warn)">M<sub>N</sub></span><span class="bs" data-es="bloque N">block N</span></div>
+        <span class="ar">→</span>
+        <div class="out">H<sub>N</sub></div>
+      </div>
+      <div class="callout note" style="margin-top:1.2rem"><span class="tag" data-es="Cómo funciona">How it works</span><p data-es="<span class='crypto'>H<sub>i</sub> = F(H<sub>i−1</sub>, M<sub>i</sub>)</span>. El padding incluye la longitud original del mensaje. El resultado de cada bloque (<span class='crypto'>H<sub>i</sub></span>) alimenta el siguiente; el último <span class='crypto'>H<sub>N</sub></span> es el código hash final."><span class="crypto">H<sub>i</sub> = F(H<sub>i−1</sub>, M<sub>i</sub>)</span>. The padding encodes the original message length. Each block's result (<span class="crypto">H<sub>i</sub></span>) feeds the next; the final <span class="crypto">H<sub>N</sub></span> is the hash code.</p></div>
+    </div>
+  </section>
+
+  <!-- HMAC: what -->
+  <section class="slide" data-section="Part 2 · Hashes" data-section-es="Parte 2 · Hashes">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Autenticación de mensajes con hash"><span class="dot"></span>Hash-based message authentication</span>
+      <h2 data-es="HMAC — un hash con clave secreta">HMAC — a hash with a secret key</h2>
+      <ul class="clean">
+        <li data-es="Las funciones hash criptográficas son <strong>rápidas</strong> y hay <strong>código de biblioteca</strong> ampliamente disponible.">Cryptographic hash functions are <strong>fast</strong>, and <strong>library code</strong> is widely available.</li>
+        <li data-es="Un hash «pelado» no sirve para autenticación: <strong>no depende de una clave secreta</strong>, así que cualquiera puede recalcularlo.">A bare hash is not enough for authentication: it <strong>does not rely on a secret key</strong>, so anyone can recompute it.</li>
+        <li data-es="HMAC mezcla una <strong>clave secreta</strong> con el mensaje antes y después de aplicar el hash. Se publicó como <strong>RFC 2104</strong>.">HMAC mixes a <strong>secret key</strong> with the message before and after hashing. It was issued as <strong>RFC 2104</strong>.</li>
+        <li data-es="Es el MAC <strong>obligatorio</strong> de IPsec, y se usa en <strong>TLS</strong> y SET.">It is the <strong>mandatory-to-implement</strong> MAC for IPsec, and is used in <strong>TLS</strong> and SET.</li>
+      </ul>
+      <p class="figure-note" data-es="Corrección de la fuente: HMAC es <strong>RFC 2104</strong>, no «RFC 2014». IPsec y TLS siguen usándolo; también aparece en los JWT (HS256 = HMAC-SHA256).">Source fix: HMAC is <strong>RFC 2104</strong>, not "RFC 2014." IPsec and TLS still use it; it also appears in JWTs (HS256 = HMAC-SHA256).</p>
+    </div>
+  </section>
+
+  <!-- HMAC: structure -->
+  <section class="slide" data-section="Part 2 · Hashes" data-section-es="Parte 2 · Hashes">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La estructura de HMAC"><span class="dot"></span>HMAC structure</span>
+      <h2 data-es="Cómo se calcula HMAC(K, M)">How HMAC(K, M) is computed</h2>
+      <div class="note-math">
+        HMAC(K, M) = H( (K ⊕ <span class="kw">opad</span>) ‖ H( (K ⊕ <span class="kw">ipad</span>) ‖ M ) )
+      </div>
+      <ul class="clean" style="margin-top:1rem">
+        <li data-es="<strong>Hash interno:</strong> la clave (XOR con <span class='crypto'>ipad</span>) se antepone al mensaje y se aplica el hash."><strong>Inner hash:</strong> the key (XORed with <span class="crypto">ipad</span>) is prepended to the message and hashed.</li>
+        <li data-es="<strong>Hash externo:</strong> la clave (XOR con <span class='crypto'>opad</span>) se antepone al resultado interno y se vuelve a aplicar el hash."><strong>Outer hash:</strong> the key (XORed with <span class="crypto">opad</span>) is prepended to the inner result and hashed again.</li>
+        <li data-es="<span class='crypto'>ipad</span> y <span class='crypto'>opad</span> son dos constantes de relleno distintas; la doble aplicación protege contra ataques de extensión de longitud."><span class="crypto">ipad</span> and <span class="crypto">opad</span> are two distinct padding constants; the double application protects against length-extension attacks.</li>
+      </ul>
+      <div class="callout note" style="margin-top:.6rem"><span class="tag" data-es="Ventaja de diseño">Design upside</span><p data-es="HMAC trata la función hash como una «caja negra». Si algún día SHA-256 hay que cambiarlo, basta enchufar otra función hash sin rediseñar HMAC.">HMAC treats the hash as a "black box." If SHA-256 ever needs replacing, you just plug in a different hash function without redesigning HMAC.</p></div>
+    </div>
+  </section>
+
+  <!-- HMAC: security -->
+  <section class="slide" data-section="Part 2 · Hashes" data-section-es="Parte 2 · Hashes">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>¿Por qué es seguro?"><span class="dot"></span>Why is it secure?</span>
+      <h2 data-es="Seguridad de HMAC">HMAC security</h2>
+      <ul class="clean">
+        <li data-es="La seguridad <strong>depende de la fuerza criptográfica</strong> de la función hash subyacente.">Security <strong>depends on the cryptographic strength</strong> of the underlying hash function.</li>
+        <li data-es="Es <strong>mucho más difícil</strong> lanzar ataques de colisión exitosos contra HMAC <strong>por la clave secreta</strong>: el atacante no puede calcular el MAC sin conocer K.">It is <strong>much harder</strong> to launch successful collision attacks on HMAC <strong>because of the secret key</strong>: the attacker cannot compute the MAC without knowing K.</li>
+        <li data-es="Por eso HMAC <strong>sigue siendo seguro incluso con SHA-1</strong> en algunos contextos heredados — aunque SHA-1 «pelado» esté roto, el ataque necesita la clave.">This is why HMAC <strong>remains secure even with SHA-1</strong> in some legacy contexts — though bare SHA-1 is broken, the attack needs the key.</li>
+      </ul>
+      <div class="callout check" style="margin-top:.8rem"><span class="tag" data-es="Conclusión">Bottom line</span><p data-es="<strong>HMAC sigue vigente y seguro hoy</strong>: lo usan TLS, IPsec y los JWT. Aun así, para nuevos diseños prefiere HMAC-SHA256 sobre HMAC-SHA1."><strong>HMAC is current and secure today</strong>: it is used in TLS, IPsec, and JWTs. Even so, for new designs prefer HMAC-SHA256 over HMAC-SHA1.</p></div>
+    </div>
+  </section>
+
+  <!-- Password hashing caveat -->
+  <section class="slide" data-section="Part 2 · Hashes" data-section-es="Parte 2 · Hashes">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Un error muy común"><span class="dot"></span>A very common mistake</span>
+      <h2 data-es="Contraseñas ≠ hashing de propósito general">Passwords ≠ general-purpose hashing</h2>
+      <div class="split">
+        <div class="card danger-top">
+          <h3 data-es="❌ Nunca">❌ Never</h3>
+          <p data-es="No guardes contraseñas con SHA-256 «pelado». Es <em>demasiado rápido</em>: un atacante prueba miles de millones por segundo en una GPU.">Don't store passwords with bare SHA-256. It is <em>too fast</em>: an attacker tries billions per second on a GPU.</p>
+        </div>
+        <div class="card good-top">
+          <h3 data-es="✅ Usa">✅ Use</h3>
+          <p data-es="Usa funciones <strong>lentas y con sal</strong> diseñadas para contraseñas: <strong>bcrypt, scrypt, Argon2</strong>. Su lentitud es intencional.">Use <strong>slow, salted</strong> functions designed for passwords: <strong>bcrypt, scrypt, Argon2</strong>. Their slowness is intentional.</p>
+        </div>
+      </div>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Enlace con la Semana 2">Links to Week 2</span><p data-es="Recuerda Autenticación: la velocidad que hace bueno a un hash para integridad lo hace <em>malo</em> para guardar contraseñas. Distintas tareas, distintas herramientas.">Recall Authentication: the speed that makes a hash good for integrity makes it <em>bad</em> for storing passwords. Different jobs, different tools.</p></div>
+    </div>
+  </section>
+
+  <!-- Bringing it together: TLS 1.3 -->
+  <section class="slide" data-section="Part 2 · Hashes" data-section-es="Parte 2 · Hashes">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Uniendo Parte 1 y Parte 2"><span class="dot"></span>Tying Part 1 and Part 2 together</span>
+      <h2 data-es="El sucesor real: el handshake de TLS 1.3">The real-world successor: the TLS 1.3 handshake</h2>
+      <p data-es="Los protocolos de libro de texto de la Parte 1 viven hoy en <strong>TLS 1.3</strong>, el protocolo que protege casi toda la web:">The textbook protocols of Part 1 live today in <strong>TLS 1.3</strong>, the protocol that secures almost the entire web:</p>
+      <div class="grid cols-3" style="margin-top:.8rem">
+        <div class="card accent-top"><h3 data-es="Intercambio de claves">Key exchange</h3><p data-es="<strong>ECDHE</strong> efímero — Diffie–Hellman con curvas elípticas, con «forward secrecy»."><strong>Ephemeral ECDHE</strong> — elliptic-curve Diffie–Hellman, with forward secrecy.</p></div>
+        <div class="card teal-top"><h3 data-es="Autenticación">Authentication</h3><p data-es="<strong>Certificados</strong> firmados por una CA (y <strong>TLS mutuo</strong>, mTLS, cuando ambos lados se autentican)."><strong>Certificates</strong> signed by a CA (and <strong>mutual TLS</strong>, mTLS, when both sides authenticate).</p></div>
+        <div class="card good-top"><h3 data-es="Derivación de claves">Key derivation</h3><p data-es="<strong>HKDF</strong>, basado en <strong>HMAC</strong>, deriva las claves de sesión — Parte 1 y Parte 2 unidas."><strong>HKDF</strong>, built on <strong>HMAC</strong>, derives the session keys — Part 1 and Part 2 united.</p></div>
+      </div>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Síntesis">Synthesis</span><p data-es="Reto–respuesta + claves de sesión (Parte 1) + funciones hash y HMAC (Parte 2) = el handshake que ves cada vez que aparece el candado de HTTPS.">Challenge–response + session keys (Part 1) + hash functions and HMAC (Part 2) = the handshake behind every HTTPS padlock you see.</p></div>
+    </div>
+  </section>
+
+  <!-- Part 2 summary -->
+  <section class="slide" data-section="Part 2 · Hashes" data-section-es="Parte 2 · Hashes">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Resumen de la Parte 2"><span class="dot"></span>Part 2 summary</span>
+      <h2 data-es="Funciones hash — lo esencial">Hash functions — the essentials</h2>
+      <ul class="clean">
+        <li data-es="La longitud del hash debe ser de al menos 128 bits — pero por la paradoja del cumpleaños se necesitan ≈2<sup>n/2</sup> mensajes para una colisión, así que <strong>usa ≥256 bits</strong> hoy.">Hash length should be at least 128 bits — but the birthday paradox means ≈2<sup>n/2</sup> messages find a collision, so <strong>use ≥256 bits</strong> today.</li>
+        <li data-es="<strong>SHA-1</strong> (160 bits) y <strong>MD5</strong> están <strong>rotos</strong>; usa <strong>SHA-256</strong>, <strong>SHA-3</strong> o BLAKE2/3."><strong>SHA-1</strong> (160-bit) and <strong>MD5</strong> are <strong>broken</strong>; use <strong>SHA-256</strong>, <strong>SHA-3</strong>, or BLAKE2/3.</li>
+        <li data-es="El mensaje se procesa/hashea bloque por bloque, pasando el resultado al siguiente (Merkle–Damgård); SHA-3 usa una esponja.">The message is processed/hashed block by block, passing the result on (Merkle–Damgård); SHA-3 uses a sponge.</li>
+        <li data-es="<strong>HMAC</strong>: hashea el mensaje con una clave secreta → autenticación de mensajes; sigue seguro y muy usado (TLS, IPsec, JWT)."><strong>HMAC</strong>: hash the message with a secret key → message authentication; still secure and widely used (TLS, IPsec, JWT).</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Final synthesis / debate -->
+  <section class="slide activity" data-section="Wrap-up" data-section-es="Cierre">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Debate de cierre">◆ Closing debate</span>
+      <h2 style="margin-top:1rem" data-es="Para discutir">To discuss</h2>
+      <ul class="clean" style="margin-top:.5rem">
+        <li data-es="¿Por qué la asimetría (claves o retos distintos por rol) es una idea de seguridad tan recurrente? ¿Dónde más la has visto?">Why is asymmetry (different keys or challenges per role) such a recurring security idea? Where else have you seen it?</li>
+        <li data-es="Si una colisión de hash «siempre existe», ¿qué significa realmente decir que un hash es «seguro»?">If a hash collision "always exists," what does it really mean to call a hash "secure"?</li>
+        <li data-es="Kerberos centraliza la confianza en el KDC; TLS la distribuye entre muchas CAs. ¿Qué modelo prefieres y por qué?">Kerberos centralizes trust in the KDC; TLS spreads it across many CAs. Which model do you prefer, and why?</li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <span class="course" data-es="TC2007B · S7 — Protocolos de Seguridad y Funciones Hash">TC2007B · W7 — Security Protocols &amp; Hash Functions</span>
+  <span class="right">
+    <span class="sec-name" id="secName">Orientation</span>
+    <span class="counter"><span id="cur">1</span> / <span id="total">53</span></span>
+  </span>
+</footer>
+
+<div class="frag-hint" id="fragHint"><span id="fragHintText">click to reveal</span><span class="chev">▾</span></div>
+
+<div class="nav-btns">
+  <button id="prevBtn" title="Previous (←)">‹</button>
+  <button id="ovBtn" title="Overview (O)">▦</button>
+  <button id="helpBtn" title="Help (?)">?</button>
+  <button id="fsBtn" title="Fullscreen (F)">⛶</button>
+  <button id="nextBtn" title="Next (→)">›</button>
+</div>
+
+<div class="overview" id="overview">
+  <h2 id="ovTitle">Slide overview</h2>
+  <div class="ov-grid" id="ovGrid"></div>
+</div>
+
+<div class="help" id="help">
+  <div class="panel">
+    <h2 data-es="Navegación">Navigation</h2>
+    <table>
+      <tr><td><kbd>→</kbd> <kbd>Space</kbd> <kbd>PgDn</kbd></td><td data-es="Siguiente / revelar">Next / reveal</td></tr>
+      <tr><td><kbd>←</kbd> <kbd>PgUp</kbd></td><td data-es="Anterior">Previous</td></tr>
+      <tr><td><kbd>Home</kbd> / <kbd>End</kbd></td><td data-es="Primera / última">First / last slide</td></tr>
+      <tr><td><kbd>O</kbd></td><td data-es="Vista general">Slide overview grid</td></tr>
+      <tr><td><kbd>F</kbd></td><td data-es="Pantalla completa">Toggle fullscreen</td></tr>
+      <tr><td><kbd>L</kbd></td><td data-es="Idioma ES / EN">Language ES / EN</td></tr>
+      <tr><td><kbd>T</kbd></td><td data-es="Tema claro / oscuro">Light / dark theme</td></tr>
+      <tr><td><kbd>?</kbd></td><td>Help</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td data-es="Cerrar ventana">Close overlay</td></tr>
+    </table>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
