@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Week 1 Quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="quiz.css">
+</head>
+<body>
+<main class="shell">
+  <div class="topline">
+    <div class="brand">
+      <span class="eyebrow">TC2007B · Week 1 · Lecture 1</span>
+      <h1>Quick Quiz</h1>
+      <p class="muted">Introduction to cybersecurity</p>
+    </div>
+    <a class="back-link" href="../index.html">Lecture</a>
+  </div>
+
+  <section class="layout">
+    <form class="panel stack" id="joinForm">
+      <div>
+        <h2>Join Session</h2>
+        <p class="muted">Use the code shown in class.</p>
+      </div>
+      <label class="field">
+        <span>Session code</span>
+        <input class="input mono" id="sessionCode" name="session_code" autocomplete="off" required>
+      </label>
+      <label class="field">
+        <span>Name</span>
+        <input class="input" id="studentName" name="student_name" autocomplete="name" required>
+      </label>
+      <label class="field">
+        <span>Student ID</span>
+        <input class="input" id="studentId" name="student_identifier" autocomplete="off" required>
+      </label>
+      <div class="actions">
+        <button class="btn" type="submit">Start</button>
+        <span class="status" id="joinStatus"></span>
+      </div>
+    </form>
+
+    <form class="panel stack hidden" id="quizForm">
+      <div>
+        <span class="eyebrow" id="quizSessionLabel"></span>
+        <h2 id="quizTitle">Quiz</h2>
+        <div class="quiz-chrome">
+          <span class="quiz-pill" id="quizMeta"></span>
+          <span class="quiz-pill timer" id="quizTimer">--:--</span>
+        </div>
+        <div class="progress-track" aria-hidden="true"><span id="quizProgress"></span></div>
+      </div>
+      <div class="question-list" id="questionList"></div>
+      <div class="actions">
+        <button class="btn" type="submit" id="quizActionBtn">Next</button>
+        <span class="status" id="quizStatus"></span>
+      </div>
+    </form>
+
+    <section class="result" id="resultPanel">
+      <span class="eyebrow">Result</span>
+      <h2 id="resultTitle">Submitted</h2>
+      <div class="score" id="scoreText"></div>
+      <p class="muted" id="resultMeta"></p>
+      <a class="back-link" href="../index.html">Back to lecture</a>
+    </section>
+  </section>
+</main>
+
+<script src="config.js"></script>
+<script type="module" src="student.js"></script>
+</body>
+</html>

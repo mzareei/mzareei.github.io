@@ -1,0 +1,11 @@
+[functions.quiz-create-session]
+verify_jwt = false
+
+[functions.quiz-start-attempt]
+verify_jwt = false
+
+[functions.quiz-submit-attempt]
+verify_jwt = false
+
+[functions.quiz-session-summary]
+verify_jwt = false

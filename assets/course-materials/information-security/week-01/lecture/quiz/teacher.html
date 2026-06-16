@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Teacher Quiz Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="quiz.css">
+</head>
+<body>
+<main class="shell">
+  <div class="topline">
+    <div class="brand">
+      <span class="eyebrow">TC2007B · Week 1 · Lecture 1</span>
+      <h1>Quiz Console</h1>
+      <p class="muted">Introduction to cybersecurity</p>
+    </div>
+    <a class="back-link" href="../index.html">Lecture</a>
+  </div>
+
+  <section class="layout layout--teacher">
+    <div class="stack">
+      <form class="panel stack" id="sessionForm">
+        <div>
+          <h2>Session</h2>
+          <p class="muted" id="modeText"></p>
+        </div>
+        <label class="field">
+          <span>Session code</span>
+          <input class="input mono" id="sessionCode" name="session_code" maxlength="8" placeholder="Auto">
+        </label>
+        <div class="row">
+          <label class="field">
+            <span>Questions</span>
+            <input class="input" id="questionCount" name="question_count" type="number" min="1" max="30" value="10">
+          </label>
+          <label class="field">
+            <span>Minutes</span>
+            <input class="input" id="durationMinutes" name="duration_minutes" type="number" min="1" max="90" value="8">
+          </label>
+        </div>
+        <label class="field">
+          <span>Teacher PIN</span>
+          <input class="input" id="teacherPin" name="teacher_pin" type="password" autocomplete="current-password">
+        </label>
+        <div class="actions">
+          <button class="btn" type="submit">Start</button>
+          <button class="btn btn--secondary" type="button" id="refreshBtn">Refresh</button>
+          <span class="status" id="sessionStatus"></span>
+        </div>
+      </form>
+
+      <section class="panel qr-zone">
+        <span class="eyebrow">Student Link</span>
+        <div class="session-code mono" id="sessionCodeDisplay">------</div>
+        <div class="qr-box" id="qrBox">
+          <canvas id="qrCanvas" width="220" height="220" aria-label="Student QR code"></canvas>
+        </div>
+        <p class="muted mono" id="studentLink"></p>
+        <div class="actions">
+          <button class="btn btn--secondary" type="button" id="copyLinkBtn">Copy link</button>
+          <button class="btn btn--secondary" type="button" id="exportBtn">Export CSV</button>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel stack">
+      <div>
+        <h2>Live Results</h2>
+        <div class="stat-grid">
+          <div class="stat"><strong id="participantStat">0</strong><span>Participants</span></div>
+          <div class="stat"><strong id="averageGradeStat">0%</strong><span>Avg grade</span></div>
+          <div class="stat"><strong id="averageAScoreStat">0</strong><span>Avg A-score</span></div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="resultsTable">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Name</th>
+              <th>ID</th>
+              <th>Grade</th>
+              <th>A-score</th>
+              <th>Time</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="empty" id="emptyResults">No attempts yet.</div>
+    </section>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+<script src="config.js"></script>
+<script type="module" src="teacher.js"></script>
+</body>
+</html>
