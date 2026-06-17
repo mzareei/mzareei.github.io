@@ -153,6 +153,7 @@
       case "o": case "O": toggleOverview(); break;
       case "l": case "L": toggleLang(); break;
       case "t": case "T": toggleTheme(); break;
+      case "q": case "Q": window.location.href = "quiz/teacher.html"; break;
       case "?": toggleHelp(); break;
       case "Escape": closeOverlays(); break;
       default: if (/^[0-9]$/.test(e.key)) handleNumeric(e.key);
