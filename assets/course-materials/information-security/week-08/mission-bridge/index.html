@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 8 Bridge Mission · Secure The Channel</title>
+<meta name="description" content="Interactive TLS, certificates, and secure-channel bridge mission for TC2007B Information Security.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../week-01/mission-01/style.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="mission-shell">
+  <header class="mission-top">
+    <a href="/teaching/information-security/" class="back-link">Course</a>
+    <div>
+      <span class="eyebrow">TC2007B &middot; Week 8 Bridge</span>
+      <h1>Secure The Channel</h1>
+      <p class="lead">Inspect certificate warnings, choose channel controls, and decide what must happen when trust breaks.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="scoreValue">0</strong>
+      <span>bridge score</span>
+    </div>
+  </header>
+
+  <section class="mission-card">
+    <span class="eyebrow">Checkpoint 1</span>
+    <h2>Certificate triage</h2>
+    <p class="lead">Decide what each browser or client warning means for channel trust.</p>
+    <div class="cert-grid">
+      <article><strong>Hostname mismatch</strong><span>Certificate name does not match the site.</span></article>
+      <article><strong>Expired certificate</strong><span>The certificate is outside its valid date range.</span></article>
+      <article><strong>Untrusted issuer</strong><span>The chain does not lead to a trusted authority.</span></article>
+    </div>
+    <div class="challenge-list" id="certChallenge"></div>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Checkpoint 2</span>
+    <h2>Control picker</h2>
+    <p class="lead">Choose the best control for the channel problem in front of you.</p>
+    <div class="challenge-list" id="channelChallenge"></div>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Checkpoint 3</span>
+    <h2>Downgrade alert</h2>
+    <p class="lead">A proxy forces a service from HTTPS to HTTP on public Wi-Fi. What is the right security interpretation?</p>
+    <div class="choice-row" id="downgradeChoices"></div>
+    <p class="feedback" id="downgradeFeedback" aria-live="polite"></p>
+  </section>
+
+  <section class="completion-panel">
+    <span class="eyebrow">Debrief</span>
+    <h2>A secure channel proves who and protects what</h2>
+    <p id="debriefText">Complete the checkpoints to connect certificates, encryption, authentication, and downgrade resistance.</p>
+    <div class="actions">
+      <a class="btn" href="../../week-01/lecture/quiz/teacher.html?lecture=tc2007b-w8-bridge">Teacher quiz</a>
+      <a class="btn btn-secondary" href="../../exit-ticket/?lecture=tc2007b-w8-bridge">Exit ticket</a>
+      <a class="btn btn-secondary" href="../../progress/">My progress</a>
+    </div>
+  </section>
+</main>
+<script src="script.js"></script>
+</body>
+</html>

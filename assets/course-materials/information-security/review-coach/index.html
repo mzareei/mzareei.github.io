@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Review Coach</title>
+<meta name="description" content="Local review coach and flashcard sprint for TC2007B Information Security.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../week-01/mission-01/style.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="mission-shell review-shell">
+  <header class="mission-top">
+    <a href="/teaching/information-security/" class="back-link">Course</a>
+    <div>
+      <span class="eyebrow">TC2007B · Student review</span>
+      <h1>Review Coach</h1>
+      <p class="lead">A short daily sprint that turns missions, quizzes, cases, and exit-ticket confidence into focused review.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="reviewScore">0</strong>
+      <span>cards done</span>
+    </div>
+  </header>
+
+  <section class="review-grid">
+    <article class="mission-card coach-card">
+      <div class="coach-head">
+        <div>
+          <span class="eyebrow" id="cardTopic">Review sprint</span>
+          <h2 id="cardTitle">Loading card</h2>
+        </div>
+        <span class="card-count" id="cardCount">1 / 1</span>
+      </div>
+      <p class="card-prompt" id="cardPrompt"></p>
+      <div class="answer-panel" id="answerPanel">
+        <strong>Answer</strong>
+        <p id="cardAnswer"></p>
+      </div>
+      <div class="actions">
+        <button class="btn" id="showAnswerBtn" type="button">Show answer</button>
+        <button class="btn btn-secondary" id="againBtn" type="button">Review again</button>
+        <button class="btn btn-secondary" id="gotItBtn" type="button">Got it</button>
+        <a class="btn btn-secondary" id="practiceLink" href="../progress/">Practice</a>
+      </div>
+      <p class="feedback" id="coachStatus" aria-live="polite"></p>
+    </article>
+
+    <aside class="mission-card">
+      <span class="eyebrow">Coach signal</span>
+      <h2>Why these cards?</h2>
+      <div class="signal-list" id="signalList"></div>
+    </aside>
+  </section>
+
+  <section class="review-grid review-grid--lower">
+    <article class="mission-card">
+      <span class="eyebrow">Sprint queue</span>
+      <h2>Today’s cards</h2>
+      <div class="mini-card-list" id="queueList"></div>
+    </article>
+
+    <article class="mission-card">
+      <span class="eyebrow">Practice history</span>
+      <h2>Local review record</h2>
+      <div class="stat-row">
+        <div><strong id="masteredStat">0</strong><span>Got it</span></div>
+        <div><strong id="againStat">0</strong><span>Review again</span></div>
+      </div>
+      <div class="actions review-actions">
+        <button class="btn btn-secondary" id="resetSprintBtn" type="button">Reset sprint</button>
+        <a class="btn btn-secondary" href="../progress/">Progress</a>
+        <a class="btn btn-secondary" href="../case-files/">Case files</a>
+        <a class="btn btn-secondary" href="../portfolio/">Portfolio</a>
+      </div>
+    </article>
+  </section>
+</main>
+<script src="script.js"></script>
+</body>
+</html>

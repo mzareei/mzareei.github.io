@@ -1,12 +1,12 @@
-# TC2007B Quiz Pilot
+# TC2007B Course Interaction Backend
 
-This folder contains the Supabase backend for the Week 1 Lecture 1 quiz pilot.
+This folder contains the Supabase backend for the TC2007B live quiz, question-bank import, exit-ticket reflection tools, and portfolio record submissions.
 
 ## Deploy Order
 
 1. Create a Supabase project.
-2. Run `migrations/0001_quiz_pilot.sql` in the Supabase SQL editor.
-3. For a non-sensitive demo bank, run `seed/week01_lecture01_demo.sql`.
+2. Run `migrations/0001_quiz_pilot.sql`, `migrations/0002_exit_tickets.sql`, and `migrations/0003_portfolio_submissions.sql` in the Supabase SQL editor.
+3. For a non-sensitive starter bank, run `seed/week01_lecture01_demo.sql`.
 4. Set the teacher PIN function secret:
 
 ```text
@@ -20,6 +20,44 @@ Supabase provides service credentials to Edge Functions through built-in environ
 
 ```text
 assets/course-materials/information-security/week-01/lecture/quiz/config.js
+```
+
+## Teacher Tools
+
+- `quiz/teacher.html` starts live sessions, shows the QR code, exports results, and surfaces the most-missed concepts.
+- `quiz/bank.html` imports new question-bank items into Supabase from JSON. It requires the teacher PIN and the safe browser publishable key in `config.js`.
+- `exit-ticket/` lets students save a short reflection after lecture. In demo mode it stays in browser local storage; with Supabase configured it calls `course-submit-reflection`.
+- `teacher/` summarizes exit tickets by lecture, average confidence, low-confidence count, next actions, and recent muddy points. With Supabase configured it calls `course-reflection-summary`.
+- `portfolio/` lets students export local learning evidence and optionally submit a portfolio record to Supabase through `course-submit-portfolio`.
+- `assessment/` imports portfolio JSON manually and can load submitted portfolio records through `course-portfolio-summary` with the teacher PIN.
+
+Deploy the new helper functions with the quiz functions:
+
+```powershell
+npx supabase functions deploy quiz-import-questions
+npx supabase functions deploy course-submit-reflection
+npx supabase functions deploy course-reflection-summary
+npx supabase functions deploy course-submit-portfolio
+npx supabase functions deploy course-portfolio-summary
+```
+
+The browser demo mode includes 10-question banks for the active lectures and bridge missions configured in `config.js`. Supabase mode uses question rows stored in the database, so import each lecture bank through `quiz/bank.html` before running a real classroom session.
+
+Question imports expect:
+
+```json
+[
+  {
+    "prompt": "Question text",
+    "explanation": "Shown after submission when explanations are enabled.",
+    "difficulty": "easy",
+    "topic": ["cia", "availability"],
+    "options": [
+      { "text": "Choice A", "is_correct": false },
+      { "text": "Choice B", "is_correct": true }
+    ]
+  }
+]
 ```
 
 ## Security Notes

@@ -60,6 +60,7 @@ Deno.serve(async (request) => {
 
       details.push({
         attempt_question_id: attemptQuestion.id,
+        prompt: question.prompt,
         correct: isCorrect,
         explanation: attempt.quiz_sessions?.show_explanations ? question.explanation : null
       });

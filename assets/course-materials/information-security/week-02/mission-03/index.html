@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mission 03 · Control The Door</title>
+<meta name="description" content="Interactive access control mission for TC2007B Information Security.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../week-01/mission-01/style.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="mission-shell">
+  <header class="mission-top">
+    <a href="../lecture-2/" class="back-link">Lecture</a>
+    <div>
+      <span class="eyebrow">TC2007B · Week 2</span>
+      <h1>Mission 03: Control The Door</h1>
+      <p class="lead">Decide who should access what, and defend the model behind that decision.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="scoreValue">0</strong>
+      <span>mission score</span>
+    </div>
+  </header>
+
+  <section class="mission-card">
+    <span class="eyebrow">Checkpoint 1</span>
+    <h2>Choose the access model</h2>
+    <p class="lead">Match each policy story to DAC, MAC, RBAC, or ABAC.</p>
+    <div class="challenge-list" id="modelChallenge"></div>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Checkpoint 2</span>
+    <h2>Least-privilege matrix</h2>
+    <p class="lead">Grant the smallest set of permissions that still lets each person do their job.</p>
+    <div class="matrix" id="permissionMatrix"></div>
+    <div class="actions">
+      <button class="btn" id="checkMatrixBtn" type="button">Check matrix</button>
+      <span class="status" id="matrixStatus"></span>
+    </div>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Checkpoint 3</span>
+    <h2>Policy vs mechanism</h2>
+    <p class="lead">Write the policy goal, then choose the technical mechanism that enforces it.</p>
+    <div class="threat-grid">
+      <label class="field">
+        <span>Policy goal</span>
+        <select id="policySelect">
+          <option value="">Choose policy</option>
+          <option value="Only teaching staff can change grades">Only teaching staff can change grades</option>
+          <option value="Students can see only their own records">Students can see only their own records</option>
+          <option value="Admins need MFA for privileged actions">Admins need MFA for privileged actions</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Mechanism</span>
+        <select id="mechanismSelect">
+          <option value="">Choose mechanism</option>
+          <option value="role checks on grade update endpoint">role checks on grade update endpoint</option>
+          <option value="row-level access filter by student id">row-level access filter by student id</option>
+          <option value="step-up authentication before admin action">step-up authentication before admin action</option>
+        </select>
+      </label>
+    </div>
+    <button class="btn" id="checkPolicyBtn" type="button">Check pairing</button>
+    <div class="model-output" id="policyOutput"></div>
+  </section>
+
+  <section class="completion-panel">
+    <span class="eyebrow">Debrief</span>
+    <h2>Access control is where policy becomes real</h2>
+    <p id="debriefText">Complete the checkpoints to practice turning rules into enforcement.</p>
+    <div class="actions">
+      <a class="btn" href="../lecture-2/">Return to lecture</a>
+      <a class="btn btn-secondary" href="../../progress/">My progress</a>
+    </div>
+  </section>
+</main>
+<script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B - Concept Map</title>
+<meta name="description" content="Interactive TC2007B Information Security concept map and confidence tracker.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../week-01/mission-01/style.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="mission-shell concept-shell">
+  <header class="mission-top">
+    <a href="/teaching/information-security/" class="back-link">Course</a>
+    <div>
+      <span class="eyebrow">TC2007B · Course storyline</span>
+      <h1>Concept Map</h1>
+      <p class="lead">Trace how security ideas connect from risk and identity to crypto, networks, malware, and detection.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="mapScore">0%</strong>
+      <span>ready</span>
+    </div>
+  </header>
+
+  <section class="mission-card">
+    <div class="map-toolbar" role="group" aria-label="Concept filters">
+      <button class="filter-btn is-active" type="button" data-filter="all">All</button>
+      <button class="filter-btn" type="button" data-filter="foundation">Foundation</button>
+      <button class="filter-btn" type="button" data-filter="software">Software</button>
+      <button class="filter-btn" type="button" data-filter="crypto">Crypto</button>
+      <button class="filter-btn" type="button" data-filter="operations">Operations</button>
+      <button class="btn btn-secondary" id="resetMapBtn" type="button">Reset</button>
+      <span class="status" id="mapStatus" aria-live="polite"></span>
+    </div>
+  </section>
+
+  <section class="concept-layout">
+    <article class="mission-card">
+      <span class="eyebrow">Learning graph</span>
+      <h2>Security concepts</h2>
+      <div class="concept-grid" id="conceptGrid"></div>
+    </article>
+
+    <aside class="mission-card detail-panel">
+      <span class="eyebrow" id="selectedWeek">Week 1</span>
+      <h2 id="selectedTitle">Security problem</h2>
+      <p id="selectedBody"></p>
+      <div class="dependency-list" id="dependencyList"></div>
+      <div class="explain-box">
+        <strong>Explain check</strong>
+        <p id="explainPrompt"></p>
+        <button class="btn btn-secondary" id="revealAnswerBtn" type="button">Reveal answer</button>
+        <p class="model-answer" id="modelAnswer"></p>
+      </div>
+      <div class="confidence-panel">
+        <strong>Confidence</strong>
+        <div class="confidence-buttons" id="confidenceButtons"></div>
+      </div>
+      <div class="link-list" id="conceptLinks"></div>
+    </aside>
+  </section>
+
+  <section class="concept-bottom">
+    <article class="mission-card">
+      <span class="eyebrow">Next review</span>
+      <h2>Recommended concepts</h2>
+      <div class="mini-list" id="recommendationList"></div>
+    </article>
+
+    <article class="mission-card">
+      <span class="eyebrow">Readiness</span>
+      <h2>Map summary</h2>
+      <div class="stat-grid">
+        <div><strong id="readyStat">0</strong><span>ready</span></div>
+        <div><strong id="averageStat">0</strong><span>avg confidence</span></div>
+        <div><strong id="weakStat">0</strong><span>review</span></div>
+      </div>
+    </article>
+  </section>
+</main>
+<script src="script.js"></script>
+</body>
+</html>

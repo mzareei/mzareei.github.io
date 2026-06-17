@@ -1,0 +1,136 @@
+.review-shell {
+  width: min(1180px, 100%);
+}
+
+.review-grid {
+  display: grid;
+  grid-template-columns: minmax(360px, 1.15fr) minmax(280px, 0.85fr);
+  gap: 1rem;
+}
+
+.review-grid--lower {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.coach-card {
+  min-height: 460px;
+}
+
+.coach-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: start;
+}
+
+.card-count {
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.35rem 0.65rem;
+  color: var(--teal);
+  background: var(--panel-2);
+  font-weight: 900;
+}
+
+.card-prompt {
+  color: var(--ink);
+  font-size: clamp(1.35rem, 3vw, 2.15rem);
+  line-height: 1.2;
+}
+
+.answer-panel {
+  display: none;
+  margin: 1rem 0;
+  border-left: 4px solid var(--good);
+  padding: 0.85rem 1rem;
+  background: rgba(95, 224, 138, 0.09);
+}
+
+.answer-panel.is-visible {
+  display: block;
+}
+
+.answer-panel strong,
+.answer-panel p {
+  margin: 0;
+}
+
+.answer-panel p {
+  margin-top: 0.35rem;
+  color: var(--muted);
+}
+
+.signal-list,
+.mini-card-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.signal-item,
+.mini-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.85rem;
+  background: var(--panel-2);
+}
+
+.signal-item strong,
+.signal-item span,
+.mini-card strong,
+.mini-card span {
+  display: block;
+}
+
+.signal-item span,
+.mini-card span {
+  margin-top: 0.25rem;
+  color: var(--muted);
+}
+
+.mini-card.is-current {
+  border-color: var(--accent);
+}
+
+.mini-card.is-done {
+  border-color: rgba(95, 224, 138, 0.48);
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.stat-row div {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.85rem;
+  background: var(--panel-2);
+}
+
+.stat-row strong {
+  display: block;
+  font-size: clamp(1.8rem, 5vw, 2.6rem);
+  line-height: 1;
+}
+
+.stat-row span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.review-actions {
+  margin-top: 1rem;
+}
+
+@media (max-width: 900px) {
+  .review-grid,
+  .review-grid--lower,
+  .stat-row {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,53 @@
+.matrix {
+  display: grid;
+  gap: 0.5rem;
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+
+.matrix-row {
+  display: grid;
+  grid-template-columns: 170px repeat(4, minmax(92px, 1fr));
+  gap: 0.5rem;
+  min-width: 660px;
+}
+
+.matrix-cell {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.65rem;
+  background: var(--panel-2);
+  color: var(--ink);
+  font-weight: 800;
+  text-align: center;
+}
+
+.matrix-cell--head {
+  color: var(--muted);
+  background: var(--panel);
+}
+
+.matrix-check {
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel-2);
+  cursor: pointer;
+}
+
+.matrix-check input {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.matrix-check.is-correct {
+  border-color: var(--good);
+  box-shadow: 0 0 0 3px rgba(95, 224, 138, 0.14);
+}
+
+.matrix-check.is-wrong {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px rgba(255, 109, 109, 0.14);
+}

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mission 04 · Break The App Safely</title>
+<meta name="description" content="Interactive database and application security mission for TC2007B Information Security.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../week-01/mission-01/style.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="mission-shell">
+  <header class="mission-top">
+    <a href="../lecture/" class="back-link">Lecture</a>
+    <div>
+      <span class="eyebrow">TC2007B · Week 3</span>
+      <h1>Mission 04: Break The App Safely</h1>
+      <p class="lead">Use attacker thinking on a fake app, then choose defenses that actually hold.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="scoreValue">0</strong>
+      <span>mission score</span>
+    </div>
+  </header>
+
+  <section class="mission-card">
+    <span class="eyebrow">Checkpoint 1</span>
+    <h2>SQL injection simulator</h2>
+    <p class="lead">Pick a login attempt, inspect the unsafe query, and decide whether it can bypass the password check.</p>
+    <div class="payload-grid" id="payloadGrid"></div>
+    <div class="lab-grid">
+      <div class="query-panel">
+        <span class="panel-label">Unsafe string-built query</span>
+        <pre id="unsafeQuery"></pre>
+      </div>
+      <div class="query-panel query-panel--safe">
+        <span class="panel-label">Parameterized query</span>
+        <pre id="safeQuery"></pre>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="bypassYesBtn" type="button">Can bypass</button>
+      <button class="btn btn-secondary" id="bypassNoBtn" type="button">Still blocked</button>
+      <span class="status" id="sqliStatus" aria-live="polite"></span>
+    </div>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Checkpoint 2</span>
+    <h2>Patch the login</h2>
+    <p class="lead">Choose the defenses that reduce the real risk. Some choices are useful, but not enough by themselves.</p>
+    <div class="fix-list" id="fixList"></div>
+    <div class="actions">
+      <button class="btn" id="checkFixesBtn" type="button">Check defenses</button>
+      <span class="status" id="fixStatus" aria-live="polite"></span>
+    </div>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Checkpoint 3</span>
+    <h2>XSS rendering choice</h2>
+    <p class="lead">A student comment contains code-shaped text. Choose how the application should render it.</p>
+    <div class="xss-lab">
+      <div class="query-panel">
+        <span class="panel-label">Untrusted comment</span>
+        <pre id="xssPayload"></pre>
+      </div>
+      <div class="challenge">
+        <h3>Safest plain-text rendering method?</h3>
+        <div class="choice-row" id="xssChoices"></div>
+        <p class="feedback" id="xssFeedback" aria-live="polite"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Checkpoint 4</span>
+    <h2>Trust boundary call</h2>
+    <p class="lead">Where should a production app enforce validation for a grade update?</p>
+    <div class="choice-row" id="boundaryChoices"></div>
+    <p class="feedback" id="boundaryFeedback" aria-live="polite"></p>
+  </section>
+
+  <section class="completion-panel">
+    <span class="eyebrow">Debrief</span>
+    <h2>Great app security is boring in production</h2>
+    <p id="debriefText">Complete the checkpoints to connect attack behavior with defensive design.</p>
+    <div class="actions">
+      <a class="btn" href="../lecture/">Return to lecture</a>
+      <a class="btn btn-secondary" href="../../progress/">My progress</a>
+    </div>
+  </section>
+</main>
+<script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mission 05 · Exchange The Secret</title>
+<meta name="description" content="Interactive asymmetric cryptography mission for TC2007B Information Security.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../week-01/mission-01/style.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="mission-shell">
+  <header class="mission-top">
+    <a href="../lecture/" class="back-link">Lecture</a>
+    <div>
+      <span class="eyebrow">TC2007B · Week 5</span>
+      <h1>Mission 05: Exchange The Secret</h1>
+      <p class="lead">Use tiny numbers to practice the ideas behind public-key crypto, Diffie-Hellman, and signatures.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="scoreValue">0</strong>
+      <span>mission score</span>
+    </div>
+  </header>
+
+  <section class="mission-card">
+    <span class="eyebrow">Checkpoint 1</span>
+    <h2>Modular arithmetic warm-up</h2>
+    <p class="lead">Compute the remainder: <span class="mono">5^3 mod 23</span>.</p>
+    <div class="choice-row" id="modChoices"></div>
+    <p class="feedback" id="modFeedback" aria-live="polite"></p>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Checkpoint 2</span>
+    <h2>Public key or private key?</h2>
+    <p class="lead">Choose which key should be used for each action.</p>
+    <div class="challenge-list" id="keyChallenge"></div>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Checkpoint 3</span>
+    <h2>Diffie-Hellman toy exchange</h2>
+    <p class="lead">Public values: <span class="mono">p = 23</span>, <span class="mono">g = 5</span>. Alice private value: <span class="mono">a = 6</span>. Bob sends public value <span class="mono">B = 19</span>.</p>
+    <div class="crypto-panel">
+      <span class="panel-label">Compute</span>
+      <pre>shared key = B^a mod p = 19^6 mod 23</pre>
+    </div>
+    <div class="choice-row" id="dhChoices"></div>
+    <p class="feedback" id="dhFeedback" aria-live="polite"></p>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Checkpoint 4</span>
+    <h2>Design decision</h2>
+    <p class="lead">Pick the safest design for sending a confidential signed message to a classmate.</p>
+    <div class="choice-row" id="designChoices"></div>
+    <p class="feedback" id="designFeedback" aria-live="polite"></p>
+  </section>
+
+  <section class="completion-panel">
+    <span class="eyebrow">Debrief</span>
+    <h2>Public-key crypto separates sharing from secrecy</h2>
+    <p id="debriefText">Complete the checkpoints to connect the math to the security goal.</p>
+    <div class="actions">
+      <a class="btn" href="../lecture/">Return to lecture</a>
+      <a class="btn btn-secondary" href="../../progress/">My progress</a>
+    </div>
+  </section>
+</main>
+<script src="script.js"></script>
+</body>
+</html>

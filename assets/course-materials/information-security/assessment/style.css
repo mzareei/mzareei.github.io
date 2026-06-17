@@ -1,0 +1,187 @@
+.assessment-shell {
+  width: min(1180px, 100%);
+}
+
+.assessment-inputs {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.7fr) minmax(320px, 1.3fr);
+  gap: 1rem;
+  align-items: end;
+}
+
+.field-wide,
+.assessment-actions {
+  grid-column: 1 / -1;
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.7rem 0.8rem;
+  color: var(--ink);
+  background: var(--panel-2);
+  outline: none;
+}
+
+.field input {
+  min-height: 44px;
+}
+
+.field textarea {
+  min-height: 132px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.88rem;
+  resize: vertical;
+}
+
+.field input:focus,
+.field textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(72, 163, 255, 0.16);
+}
+
+.assessment-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.mini-meta {
+  color: var(--muted);
+}
+
+.signal-card h2 {
+  color: var(--teal);
+}
+
+.report-table-wrap {
+  overflow-x: auto;
+}
+
+.report-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+}
+
+.report-table th,
+.report-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.report-table th {
+  color: var(--teal);
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.report-table td {
+  color: var(--muted);
+}
+
+.report-table td strong {
+  color: var(--ink);
+}
+
+.mini-list,
+.link-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.gap-item,
+.link-grid a {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.85rem;
+  background: var(--panel-2);
+}
+
+.gap-item strong,
+.gap-item span {
+  display: block;
+}
+
+.gap-item span {
+  margin-top: 0.25rem;
+  color: var(--muted);
+}
+
+.link-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.link-grid a {
+  color: var(--ink);
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.link-grid a:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.portfolio-summary-controls {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.7fr) auto minmax(220px, 1fr);
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.submission-stats,
+.portfolio-submissions {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.submission-stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.submission-stats div,
+.submission-row {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.85rem;
+  background: var(--panel-2);
+}
+
+.submission-stats strong {
+  display: block;
+  font-size: clamp(1.5rem, 4vw, 2.1rem);
+}
+
+.submission-stats span,
+.submission-row span {
+  color: var(--muted);
+}
+
+.submission-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) repeat(4, minmax(90px, 0.35fr));
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.submission-row strong {
+  color: var(--ink);
+}
+
+@media (max-width: 900px) {
+  .assessment-inputs,
+  .assessment-grid,
+  .link-grid,
+  .portfolio-summary-controls,
+  .submission-stats,
+  .submission-row {
+    grid-template-columns: 1fr;
+  }
+}

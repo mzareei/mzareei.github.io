@@ -153,6 +153,9 @@
       case "o": case "O": toggleOverview(); break;
       case "l": case "L": toggleLang(); break;
       case "t": case "T": toggleTheme(); break;
+      case "m": case "M": window.location.href = "../mission-02/"; break;
+      case "q": case "Q": window.location.href = "../../week-01/lecture/quiz/teacher.html?lecture=tc2007b-w2-l1"; break;
+      case "e": case "E": window.location.href = "../../exit-ticket/?lecture=tc2007b-w2-l1"; break;
       case "?": toggleHelp(); break;
       case "Escape": closeOverlays(); break;
       default: if (/^[0-9]$/.test(e.key)) handleNumeric(e.key);

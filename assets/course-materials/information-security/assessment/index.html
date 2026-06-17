@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B - Assessment Studio</title>
+<meta name="description" content="Teacher assessment studio for TC2007B portfolio evidence and grading signals.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../week-01/mission-01/style.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="mission-shell assessment-shell">
+  <header class="mission-top">
+    <a href="/teaching/information-security/" class="back-link">Course</a>
+    <div>
+      <span class="eyebrow">TC2007B · Teacher evaluation</span>
+      <h1>Assessment Studio</h1>
+      <p class="lead">Turn portfolio exports into a weighted evidence grade, missing-evidence list, and next teaching signal.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="finalGrade">0%</strong>
+      <span>evidence grade</span>
+    </div>
+  </header>
+
+  <section class="mission-card">
+    <div class="assessment-inputs">
+      <label class="field">
+        <span>Portfolio JSON file</span>
+        <input id="portfolioFile" type="file" accept="application/json,.json">
+      </label>
+      <label class="field field-wide">
+        <span>Portfolio JSON</span>
+        <textarea id="portfolioJson" rows="6" spellcheck="false" placeholder='{"student":{"name":"..."},"rows":[...]} '></textarea>
+      </label>
+      <div class="actions assessment-actions">
+        <button class="btn" id="analyzeBtn" type="button">Analyze</button>
+        <button class="btn btn-secondary" id="demoBtn" type="button">Load demo</button>
+        <button class="btn btn-secondary" id="clearBtn" type="button">Clear</button>
+        <span class="status" id="assessmentStatus" aria-live="polite"></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="assessment-grid">
+    <article class="mission-card">
+      <span class="eyebrow">Student</span>
+      <h2 id="studentName">No portfolio loaded</h2>
+      <div class="mini-meta" id="studentMeta">Import one JSON export to begin.</div>
+    </article>
+
+    <article class="mission-card">
+      <span class="eyebrow">Coverage</span>
+      <h2 id="coverageValue">0%</h2>
+      <div class="mini-meta" id="coverageMeta">0 evidence rows counted.</div>
+    </article>
+
+    <article class="mission-card signal-card">
+      <span class="eyebrow">Teaching signal</span>
+      <h2 id="signalTitle">Waiting for evidence</h2>
+      <div class="mini-meta" id="signalText">The strongest signal appears after analysis.</div>
+    </article>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Rubric</span>
+    <h2>Weighted evidence model</h2>
+    <div class="report-table-wrap">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Evidence</th>
+            <th>Weight</th>
+            <th>Score</th>
+            <th>Contribution</th>
+          </tr>
+        </thead>
+        <tbody id="rubricRows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="assessment-grid">
+    <article class="mission-card">
+      <span class="eyebrow">Gaps</span>
+      <h2>Missing or weak evidence</h2>
+      <div class="mini-list" id="gapList"></div>
+    </article>
+
+    <article class="mission-card">
+      <span class="eyebrow">Launchpad</span>
+      <h2>Teacher links</h2>
+      <div class="link-grid">
+        <a href="../teacher/">Teacher Insights</a>
+        <a href="../classroom/">Classroom Mode</a>
+        <a href="../portfolio/">Student Portfolio</a>
+        <a href="../progress/">Student Progress</a>
+        <a href="../week-01/lecture/quiz/teacher.html">Quiz Console</a>
+        <a href="../week-01/lecture/quiz/bank.html">Question Bank</a>
+      </div>
+    </article>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Supabase records</span>
+    <h2>Portfolio submissions</h2>
+    <div class="portfolio-summary-controls">
+      <label class="field">
+        <span>Teacher PIN</span>
+        <input id="portfolioTeacherPin" type="password" autocomplete="current-password" placeholder="Required for Supabase">
+      </label>
+      <button class="btn" id="loadPortfolioSummaryBtn" type="button">Load submissions</button>
+      <span class="status" id="portfolioSummaryStatus" aria-live="polite"></span>
+    </div>
+    <div class="submission-stats" id="submissionStats"></div>
+    <div class="portfolio-submissions" id="portfolioSubmissions"></div>
+  </section>
+</main>
+<script src="../week-01/lecture/quiz/config.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

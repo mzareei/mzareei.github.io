@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Learning Portfolio</title>
+<meta name="description" content="Local learning portfolio for TC2007B Information Security activities, quizzes, reflections, and review evidence.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../week-01/mission-01/style.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="mission-shell portfolio-shell">
+  <header class="mission-top">
+    <a href="/teaching/information-security/" class="back-link">Course</a>
+    <div>
+      <span class="eyebrow">TC2007B · Evidence of learning</span>
+      <h1>Learning Portfolio</h1>
+      <p class="lead">A local summary of missions, quizzes, case files, attack-chain work, review practice, and reflections from this browser.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="portfolioScore">0%</strong>
+      <span>portfolio</span>
+    </div>
+  </header>
+
+  <section class="mission-card">
+    <div class="identity-grid">
+      <label class="field">
+        <span>Name</span>
+        <input id="studentName" type="text" autocomplete="name" placeholder="Student name">
+      </label>
+      <label class="field">
+        <span>Student ID</span>
+        <input id="studentId" type="text" autocomplete="off" placeholder="Student ID">
+      </label>
+      <div class="actions portfolio-actions">
+        <button class="btn" id="printBtn" type="button">Print report</button>
+        <button class="btn btn-secondary" id="csvBtn" type="button">Download CSV</button>
+        <button class="btn btn-secondary" id="jsonBtn" type="button">Download JSON</button>
+        <button class="btn btn-secondary" id="submitPortfolioBtn" type="button">Submit record</button>
+        <span class="status" id="portfolioStatus" aria-live="polite"></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="portfolio-grid">
+    <article class="mission-card">
+      <span class="eyebrow">Summary</span>
+      <h2>Learning evidence</h2>
+      <div class="stat-grid">
+        <div><strong id="missionStat">0</strong><span>Mission avg</span></div>
+        <div><strong id="quizStat">0</strong><span>Quiz avg</span></div>
+        <div><strong id="caseStat">0</strong><span>Cases done</span></div>
+        <div><strong id="reviewStat">0</strong><span>Review cards</span></div>
+      </div>
+    </article>
+
+    <article class="mission-card">
+      <span class="eyebrow">Next action</span>
+      <h2>Portfolio note</h2>
+      <div class="portfolio-note" id="portfolioNote"></div>
+    </article>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Activity report</span>
+    <h2>Local records</h2>
+    <div class="report-table-wrap">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Area</th>
+            <th>Item</th>
+            <th>Result</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="reportRows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Reflection evidence</span>
+    <h2>Recent exit tickets</h2>
+    <div class="reflection-evidence" id="reflectionEvidence"></div>
+  </section>
+</main>
+<script src="../week-01/lecture/quiz/config.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

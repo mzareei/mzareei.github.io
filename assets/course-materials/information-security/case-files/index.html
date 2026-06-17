@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Security Case Files</title>
+<meta name="description" content="Scenario-based security case files for TC2007B Information Security.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../week-01/mission-01/style.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="mission-shell case-shell">
+  <header class="mission-top">
+    <a href="/teaching/information-security/" class="back-link">Course</a>
+    <div>
+      <span class="eyebrow">TC2007B · Scenario practice</span>
+      <h1>Security Case Files</h1>
+      <p class="lead">Practice the kind of judgment real security work needs: classify evidence, choose a first move, and explain the control.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="caseScore">0%</strong>
+      <span>case progress</span>
+    </div>
+  </header>
+
+  <section class="case-layout">
+    <aside class="mission-card case-sidebar">
+      <span class="eyebrow">Open file</span>
+      <h2>Incidents</h2>
+      <div class="case-list" id="caseList"></div>
+    </aside>
+
+    <section class="mission-card case-main" id="casePanel">
+      <div class="case-kicker" id="caseKicker"></div>
+      <h2 id="caseTitle">Case file</h2>
+      <p class="lead" id="caseSummary"></p>
+      <div class="evidence-grid" id="evidenceGrid"></div>
+      <div class="decision-stack" id="decisionStack"></div>
+      <div class="actions">
+        <button class="btn" id="checkCaseBtn" type="button">Check decisions</button>
+        <button class="btn btn-secondary" id="resetCaseBtn" type="button">Reset this case</button>
+        <a class="btn btn-secondary" href="../attack-chain/">Attack chain</a>
+        <a class="btn btn-secondary" href="../review-coach/">Review coach</a>
+        <a class="btn btn-secondary" href="../portfolio/">Portfolio</a>
+        <span class="status" id="caseStatus" aria-live="polite"></span>
+      </div>
+      <section class="completion-panel case-debrief" id="caseDebrief">
+        <span class="eyebrow">Debrief</span>
+        <h2 id="debriefTitle">Make your decisions</h2>
+        <p id="debriefText">Choose one option for each decision, then check the case.</p>
+      </section>
+    </section>
+  </section>
+</main>
+<script src="script.js"></script>
+</body>
+</html>

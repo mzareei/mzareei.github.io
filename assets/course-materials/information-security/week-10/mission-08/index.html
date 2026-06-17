@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mission 08 · Build The Perimeter</title>
+<meta name="description" content="Interactive firewall and network defense mission for TC2007B Information Security.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../week-01/mission-01/style.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="mission-shell">
+  <header class="mission-top">
+    <a href="../lecture/" class="back-link">Lecture</a>
+    <div>
+      <span class="eyebrow">TC2007B · Week 10</span>
+      <h1>Mission 08: Build The Perimeter</h1>
+      <p class="lead">Turn network policy into firewall decisions and place defenses where they belong.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="scoreValue">0</strong>
+      <span>mission score</span>
+    </div>
+  </header>
+
+  <section class="mission-card">
+    <span class="eyebrow">Checkpoint 1</span>
+    <h2>Packet filter decisions</h2>
+    <div class="challenge-list" id="packetChallenge"></div>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Checkpoint 2</span>
+    <h2>Which firewall?</h2>
+    <div class="challenge-list" id="firewallChallenge"></div>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Checkpoint 3</span>
+    <h2>DMZ placement</h2>
+    <div class="choice-row" id="dmzChoices"></div>
+    <p class="feedback" id="dmzFeedback" aria-live="polite"></p>
+  </section>
+
+  <section class="completion-panel">
+    <span class="eyebrow">Debrief</span>
+    <h2>Firewalls enforce policy at boundaries</h2>
+    <p id="debriefText">Complete the checkpoints to practice translating policy into traffic decisions.</p>
+    <div class="actions">
+      <a class="btn" href="../lecture/">Return to lecture</a>
+      <a class="btn btn-secondary" href="../../progress/">My progress</a>
+    </div>
+  </section>
+</main>
+<script src="script.js"></script>
+</body>
+</html>

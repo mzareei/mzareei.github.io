@@ -13,11 +13,16 @@
 <main class="shell">
   <div class="topline">
     <div class="brand">
-      <span class="eyebrow">TC2007B · Week 1 · Lecture 1</span>
+      <span class="eyebrow">TC2007B · Teacher Tool</span>
       <h1>Quiz Console</h1>
-      <p class="muted">Introduction to cybersecurity</p>
+      <p class="muted">Start a live QR quiz for any active lecture or bridge mission.</p>
     </div>
-    <a class="back-link" href="../index.html">Lecture</a>
+    <div class="top-actions">
+      <a class="back-link" href="../../../teacher/">Course insights</a>
+      <a class="back-link" href="bank.html">Question bank</a>
+      <a class="back-link" href="index.html">Student quiz</a>
+      <a class="back-link" href="/teaching/information-security/">Course</a>
+    </div>
   </div>
 
   <section class="layout layout--teacher">
@@ -27,6 +32,10 @@
           <h2>Session</h2>
           <p class="muted" id="modeText"></p>
         </div>
+        <label class="field">
+          <span>Lecture</span>
+          <select class="input" id="lectureId" name="lecture_id"></select>
+        </label>
         <label class="field">
           <span>Session code</span>
           <input class="input mono" id="sessionCode" name="session_code" maxlength="8" placeholder="Auto">
@@ -44,6 +53,10 @@
         <label class="field">
           <span>Teacher PIN</span>
           <input class="input" id="teacherPin" name="teacher_pin" type="password" autocomplete="current-password">
+        </label>
+        <label class="check-field">
+          <input id="showExplanations" name="show_explanations" type="checkbox">
+          <span>Show explanations after students submit</span>
         </label>
         <div class="actions">
           <button class="btn" type="submit">Start</button>
@@ -92,6 +105,13 @@
         </table>
       </div>
       <div class="empty" id="emptyResults">No attempts yet.</div>
+      <section class="insight-panel">
+        <div>
+          <span class="eyebrow">After-class pulse</span>
+          <h2>Most Missed Concepts</h2>
+        </div>
+        <div class="insight-list" id="questionStats"></div>
+      </section>
     </section>
   </section>
 </main>

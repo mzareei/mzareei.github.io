@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 6 Bridge Mission · Protect The Data</title>
+<meta name="description" content="Interactive symmetric encryption and key-management bridge mission for TC2007B Information Security.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../week-01/mission-01/style.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="mission-shell">
+  <header class="mission-top">
+    <a href="/teaching/information-security/" class="back-link">Course</a>
+    <div>
+      <span class="eyebrow">TC2007B &middot; Week 6 Bridge</span>
+      <h1>Protect The Data</h1>
+      <p class="lead">Choose encryption modes, protect keys, and spot the mistakes that turn strong crypto into weak systems.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="scoreValue">0</strong>
+      <span>bridge score</span>
+    </div>
+  </header>
+
+  <section class="mission-card">
+    <span class="eyebrow">Checkpoint 1</span>
+    <h2>Crypto tool match</h2>
+    <p class="lead">Pick the tool that fits each data-protection job.</p>
+    <div class="challenge-list" id="modeChallenge"></div>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Checkpoint 2</span>
+    <h2>Key handling choices</h2>
+    <p class="lead">Decide whether each key decision protects the system or quietly weakens it.</p>
+    <div class="challenge-list" id="keyChallenge"></div>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Checkpoint 3</span>
+    <h2>Nonce incident</h2>
+    <p class="lead">Two files were encrypted with the same stream-cipher key and nonce. What is the safest response?</p>
+    <div class="nonce-panel">
+      <code>key = K_2026_A</code>
+      <code>nonce = 00000001</code>
+      <code>file_a and file_b share both values</code>
+    </div>
+    <div class="choice-row" id="nonceChoices"></div>
+    <p class="feedback" id="nonceFeedback" aria-live="polite"></p>
+  </section>
+
+  <section class="completion-panel">
+    <span class="eyebrow">Debrief</span>
+    <h2>Crypto fails at the edges</h2>
+    <p id="debriefText">Complete the checkpoints to connect algorithm choice, mode choice, and key-management discipline.</p>
+    <div class="actions">
+      <a class="btn" href="../../week-01/lecture/quiz/teacher.html?lecture=tc2007b-w6-bridge">Teacher quiz</a>
+      <a class="btn btn-secondary" href="../../exit-ticket/?lecture=tc2007b-w6-bridge">Exit ticket</a>
+      <a class="btn btn-secondary" href="../../progress/">My progress</a>
+    </div>
+  </section>
+</main>
+<script src="script.js"></script>
+</body>
+</html>

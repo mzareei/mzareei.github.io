@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mission 02 · Prove Who You Are</title>
+<meta name="description" content="Interactive Week 2 authentication mission for TC2007B Information Security.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../week-01/mission-01/style.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="mission-shell">
+  <header class="mission-top">
+    <a href="../lecture/" class="back-link">Lecture</a>
+    <div>
+      <span class="eyebrow">TC2007B · Week 2</span>
+      <h1>Mission 02: Prove Who You Are</h1>
+      <p class="lead">Compare authentication choices, password risk, storage mistakes, and MFA tradeoffs.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="scoreValue">0</strong>
+      <span>mission score</span>
+    </div>
+  </header>
+
+  <section class="mission-card">
+    <div class="section-head">
+      <span class="eyebrow">Checkpoint 1</span>
+      <h2>Password search space</h2>
+      <p>Change the assumptions and watch the rough brute-force estimate move.</p>
+    </div>
+    <div class="password-lab">
+      <label class="field">
+        <span>Password length</span>
+        <input id="lengthInput" type="range" min="6" max="20" value="10">
+      </label>
+      <label class="field">
+        <span>Character set</span>
+        <select id="charsetSelect">
+          <option value="26">lowercase only</option>
+          <option value="52">upper/lowercase</option>
+          <option value="62">letters and digits</option>
+          <option value="94">printable symbols</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Guesses per second</span>
+        <select id="rateSelect">
+          <option value="1000000">1 million</option>
+          <option value="1000000000">1 billion</option>
+          <option value="100000000000">100 billion</option>
+        </select>
+      </label>
+    </div>
+    <div class="model-output" id="passwordOutput"></div>
+  </section>
+
+  <section class="mission-card">
+    <div class="section-head">
+      <span class="eyebrow">Checkpoint 2</span>
+      <h2>Storage decision</h2>
+      <p>Pick the safest design for a site storing student passwords.</p>
+    </div>
+    <div class="challenge">
+      <h3>Which design should survive a database leak best?</h3>
+      <div class="choice-row" id="storageChoices"></div>
+      <p class="feedback" id="storageFeedback" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <section class="mission-card">
+    <div class="section-head">
+      <span class="eyebrow">Checkpoint 3</span>
+      <h2>MFA triage</h2>
+      <p>Choose the strongest practical extra factor for each situation.</p>
+    </div>
+    <div class="challenge-list" id="mfaChallenge"></div>
+  </section>
+
+  <section class="completion-panel">
+    <span class="eyebrow">Debrief</span>
+    <h2>Authentication is a system, not a password rule</h2>
+    <p id="debriefText">Complete the checkpoints to build a stronger design argument.</p>
+    <div class="actions">
+      <a class="btn" href="../lecture/">Return to lecture</a>
+      <a class="btn btn-secondary" href="../../week-01/mission-01/">Review Mission 01</a>
+    </div>
+  </section>
+</main>
+<script src="script.js"></script>
+</body>
+</html>

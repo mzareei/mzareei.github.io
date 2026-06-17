@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B - Teaching Playbook</title>
+<meta name="description" content="Lecture run sheets and teaching moves for TC2007B Information Security.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../week-01/mission-01/style.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="mission-shell playbook-shell">
+  <header class="mission-top">
+    <a href="/teaching/information-security/" class="back-link">Course</a>
+    <div>
+      <span class="eyebrow">TC2007B · Instructor rhythm</span>
+      <h1>Teaching Playbook</h1>
+      <p class="lead">A lecture run sheet with timed moments for explanation, quiz pulses, practice, debrief, and exit tickets.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="minuteStat">75</strong>
+      <span>minutes</span>
+    </div>
+  </header>
+
+  <section class="mission-card">
+    <div class="playbook-controls">
+      <label class="field">
+        <span>Lecture</span>
+        <select id="lectureId"></select>
+      </label>
+      <div class="actions">
+        <button class="btn" id="copyRunSheetBtn" type="button">Copy run sheet</button>
+        <a class="btn btn-secondary" href="../classroom/">Classroom Mode</a>
+        <a class="btn btn-secondary" href="../teacher/">Teacher Insights</a>
+        <span class="status" id="playbookStatus" aria-live="polite"></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="playbook-grid">
+    <article class="mission-card">
+      <span class="eyebrow">Lecture goal</span>
+      <h2 id="goalTitle">Select a lecture</h2>
+      <p id="goalText"></p>
+      <div class="focus-list" id="focusList"></div>
+    </article>
+
+    <article class="mission-card">
+      <span class="eyebrow">Launch links</span>
+      <h2>Classroom tools</h2>
+      <div class="link-grid" id="toolLinks"></div>
+    </article>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Run sheet</span>
+    <h2>Lecture flow</h2>
+    <div class="timeline" id="runSheet"></div>
+  </section>
+
+  <section class="playbook-grid">
+    <article class="mission-card">
+      <span class="eyebrow">Pivots</span>
+      <h2>If the room feels stuck</h2>
+      <div class="mini-list" id="pivotList"></div>
+    </article>
+
+    <article class="mission-card">
+      <span class="eyebrow">Debrief</span>
+      <h2>Closing move</h2>
+      <p class="closing-note" id="closingNote"></p>
+    </article>
+  </section>
+</main>
+<script src="../week-01/lecture/quiz/config.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

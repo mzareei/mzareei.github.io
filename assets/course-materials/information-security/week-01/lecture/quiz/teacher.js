@@ -1,10 +1,12 @@
 import { attemptMetrics, createSession, isConfigured, normalizeCode, sessionSummary, studentLinkFor } from "./quiz-api.js";
 
 const form = document.getElementById("sessionForm");
+const lectureId = document.getElementById("lectureId");
 const sessionCode = document.getElementById("sessionCode");
 const questionCount = document.getElementById("questionCount");
 const durationMinutes = document.getElementById("durationMinutes");
 const teacherPin = document.getElementById("teacherPin");
+const showExplanations = document.getElementById("showExplanations");
 const status = document.getElementById("sessionStatus");
 const modeText = document.getElementById("modeText");
 const sessionCodeDisplay = document.getElementById("sessionCodeDisplay");
@@ -17,6 +19,7 @@ const averageGradeStat = document.getElementById("averageGradeStat");
 const averageAScoreStat = document.getElementById("averageAScoreStat");
 const tableBody = document.querySelector("#resultsTable tbody");
 const emptyResults = document.getElementById("emptyResults");
+const questionStats = document.getElementById("questionStats");
 const qrCanvas = document.getElementById("qrCanvas");
 const qrBox = document.getElementById("qrBox");
 
@@ -27,6 +30,8 @@ let autoRefreshTimer = null;
 modeText.textContent = isConfigured()
   ? "Connected to Supabase."
   : "Demo mode on this browser until Supabase keys are added.";
+
+populateLectures();
 
 sessionCode.addEventListener("input", () => {
   sessionCode.value = normalizeCode(sessionCode.value);
@@ -40,10 +45,11 @@ form.addEventListener("submit", async (event) => {
   try {
     const session = await createSession({
       session_code: sessionCode.value,
-      lecture_id: window.QUIZ_CONFIG?.lectureId,
-      title: "Week 1 Lecture 1 Quiz",
+      lecture_id: lectureId.value,
+      title: lectureTitle(lectureId.value),
       question_count: Number(questionCount.value),
       duration_minutes: Number(durationMinutes.value),
+      show_explanations: showExplanations.checked,
       teacher_pin: teacherPin.value
     });
     activeCode = session.session_code;
@@ -114,7 +120,7 @@ async function refreshSummary() {
     });
     lastSummary = normalizeSummary(summary);
     updateLink(activeCode);
-    renderSummary(lastSummary);
+  renderSummary(lastSummary);
     setStatus(`Updated ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`, "good");
   } catch (error) {
     setStatus(error.message, "danger");
@@ -140,6 +146,23 @@ function updateLink(code) {
     image.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(link)}`;
     qrBox.appendChild(image);
   }
+}
+
+function populateLectures() {
+  const lectures = window.QUIZ_CONFIG?.lectures || { [window.QUIZ_CONFIG?.lectureId || "tc2007b-w1-l1"]: "Week 1 Lecture 1 · Introduction to Cybersecurity" };
+  lectureId.innerHTML = "";
+  Object.entries(lectures).forEach(([id, title]) => {
+    const option = document.createElement("option");
+    option.value = id;
+    option.textContent = title;
+    lectureId.appendChild(option);
+  });
+  const requested = new URLSearchParams(window.location.search).get("lecture");
+  lectureId.value = lectures[requested] ? requested : (window.QUIZ_CONFIG?.lectureId || Object.keys(lectures)[0]);
+}
+
+function lectureTitle(id) {
+  return window.QUIZ_CONFIG?.lectures?.[id] || "Quick Quiz";
 }
 
 function renderSummary(summary) {
@@ -175,6 +198,32 @@ function renderSummary(summary) {
     tableBody.appendChild(tr);
   });
   emptyResults.classList.toggle("hidden", attempts.length > 0);
+  renderQuestionStats(summary.question_stats || []);
+}
+
+function renderQuestionStats(stats) {
+  questionStats.innerHTML = "";
+  const missed = stats
+    .filter((item) => Number(item.attempts || 0) > 0)
+    .sort((a, b) => Number(b.missed || 0) - Number(a.missed || 0))
+    .slice(0, 4);
+
+  if (!missed.length) {
+    questionStats.innerHTML = `<div class="empty">No submitted answers yet.</div>`;
+    return;
+  }
+
+  missed.forEach((item) => {
+    const row = document.createElement("article");
+    row.className = "insight-item";
+    row.innerHTML = `
+      <strong></strong>
+      <span></span>
+    `;
+    row.querySelector("strong").textContent = item.prompt || "Question";
+    row.querySelector("span").textContent = `${item.correct}/${item.attempts} correct · ${Math.round(Number(item.correct_percent || 0))}%`;
+    questionStats.appendChild(row);
+  });
 }
 
 function normalizeSummary(summary) {

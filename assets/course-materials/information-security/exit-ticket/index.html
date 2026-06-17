@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Exit Ticket</title>
+<meta name="description" content="Short reflection form for TC2007B Information Security lectures.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../week-01/mission-01/style.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="mission-shell">
+  <header class="mission-top">
+    <a href="/teaching/information-security/" class="back-link">Course</a>
+    <div>
+      <span class="eyebrow">TC2007B · Learning loop</span>
+      <h1>Exit Ticket</h1>
+      <p class="lead">A two-minute reflection after lecture: what landed, what is still unclear, and what you will do next.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="ticketCount">0</strong>
+      <span>saved</span>
+    </div>
+  </header>
+
+  <section class="mission-card">
+    <form class="ticket-form" id="ticketForm">
+      <label class="field">
+        <span>Lecture</span>
+        <select id="lectureId" required>
+          <option value="tc2007b-w1-l1">Week 1 Lecture 1 · Introduction to Cybersecurity</option>
+          <option value="tc2007b-w1-l2">Week 1 Lecture 2 · Legal and Ethical Aspects</option>
+          <option value="tc2007b-w2-l1">Week 2 Lecture 1 · Authentication</option>
+          <option value="tc2007b-w2-l2">Week 2 Lecture 2 · Access Control</option>
+          <option value="tc2007b-w3-l1">Week 3 Lecture 1 · Database and Application Security</option>
+          <option value="tc2007b-w4-bridge">Week 4 Bridge · Secure Coding and Release Risk</option>
+          <option value="tc2007b-w5-l1">Week 5 Lecture 1 · Asymmetric Encryption</option>
+          <option value="tc2007b-w6-bridge">Week 6 Bridge · Symmetric Crypto and Key Handling</option>
+          <option value="tc2007b-w7-l1">Week 7 · Security Protocols and Hash Functions</option>
+          <option value="tc2007b-w8-bridge">Week 8 Bridge · TLS and Secure Channels</option>
+          <option value="tc2007b-w9-l1">Week 9 · Malicious Code</option>
+          <option value="tc2007b-w10-l1">Week 10 Lecture 1 · Firewalls</option>
+          <option value="tc2007b-w11-l1">Week 11 · Intrusion Detection</option>
+        </select>
+      </label>
+
+      <div class="ticket-grid">
+        <label class="field">
+          <span>Name</span>
+          <input id="studentName" type="text" maxlength="120" autocomplete="name" placeholder="Your name">
+        </label>
+        <label class="field">
+          <span>Student ID</span>
+          <input id="studentIdentifier" type="text" maxlength="80" autocomplete="off" placeholder="A0...">
+        </label>
+      </div>
+
+      <label class="field">
+        <span>Confidence after this lecture: <strong id="confidenceLabel">3</strong> / 5</span>
+        <input id="confidence" type="range" min="1" max="5" value="3">
+      </label>
+
+      <label class="field">
+        <span>One idea that clicked</span>
+        <textarea id="oneThing" maxlength="500" required placeholder="Example: Least privilege means giving only the permissions required for the task."></textarea>
+      </label>
+
+      <label class="field">
+        <span>One question or muddy point</span>
+        <textarea id="muddyPoint" maxlength="500" required placeholder="Example: I still confuse authentication and authorization in some examples."></textarea>
+      </label>
+
+      <label class="field">
+        <span>Next action</span>
+        <select id="nextAction">
+          <option value="review_mission">Review the mission</option>
+          <option value="take_quiz">Take or retake the quiz</option>
+          <option value="ask_question">Ask a question next class</option>
+          <option value="explain_peer">Explain the idea to a classmate</option>
+        </select>
+      </label>
+
+      <div class="actions">
+        <button class="btn" type="submit">Save ticket</button>
+        <a class="btn btn-secondary" href="../progress/">My progress</a>
+        <span class="status" id="ticketStatus" aria-live="polite"></span>
+      </div>
+    </form>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Recent</span>
+    <h2>Your saved tickets</h2>
+    <div class="ticket-list" id="ticketList"></div>
+  </section>
+</main>
+<script src="../week-01/lecture/quiz/config.js"></script>
+<script type="module" src="script.js"></script>
+</body>
+</html>

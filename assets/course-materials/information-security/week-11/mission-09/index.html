@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mission 09 · Tune The Detector</title>
+<meta name="description" content="Interactive IDS and intrusion detection mission for TC2007B Information Security.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../week-01/mission-01/style.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="mission-shell">
+  <header class="mission-top">
+    <a href="../lecture/" class="back-link">Lecture</a>
+    <div>
+      <span class="eyebrow">TC2007B · Week 11</span>
+      <h1>Mission 09: Tune The Detector</h1>
+      <p class="lead">Classify alerts, compare IDS approaches, and see why base rates make detection hard.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="scoreValue">0</strong>
+      <span>mission score</span>
+    </div>
+  </header>
+
+  <section class="mission-card">
+    <span class="eyebrow">Checkpoint 1</span>
+    <h2>Alert outcome</h2>
+    <div class="challenge-list" id="alertChallenge"></div>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Checkpoint 2</span>
+    <h2>Detection approach</h2>
+    <div class="challenge-list" id="approachChallenge"></div>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Checkpoint 3</span>
+    <h2>Base-rate warning</h2>
+    <p class="lead">In a large network, even a small false-positive rate can overwhelm analysts. What should the SOC do?</p>
+    <div class="choice-row" id="baseRateChoices"></div>
+    <p class="feedback" id="baseRateFeedback" aria-live="polite"></p>
+  </section>
+
+  <section class="completion-panel">
+    <span class="eyebrow">Debrief</span>
+    <h2>Detection is a prioritization problem</h2>
+    <p id="debriefText">Complete the checkpoints to reason about alerts, accuracy, and analyst workload.</p>
+    <div class="actions">
+      <a class="btn" href="../lecture/">Return to lecture</a>
+      <a class="btn btn-secondary" href="../../progress/">My progress</a>
+    </div>
+  </section>
+</main>
+<script src="script.js"></script>
+</body>
+</html>

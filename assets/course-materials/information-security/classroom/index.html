@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Classroom Mode</title>
+<meta name="description" content="Teacher classroom control room for TC2007B live lecture pulses, QR links, timers, and class flow.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../week-01/mission-01/style.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="mission-shell classroom-shell">
+  <header class="mission-top">
+    <a href="/teaching/information-security/" class="back-link">Course</a>
+    <div>
+      <span class="eyebrow">TC2007B · Teacher live mode</span>
+      <h1>Classroom Mode</h1>
+      <p class="lead">Run a lecture as a sequence of short pulses: explain, ask, scan, answer, debrief.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="timerValue">05:00</strong>
+      <span>pulse timer</span>
+    </div>
+  </header>
+
+  <section class="mission-card">
+    <div class="classroom-controls">
+      <label class="field">
+        <span>Lecture</span>
+        <select id="lectureId"></select>
+      </label>
+      <label class="field">
+        <span>Session code</span>
+        <input id="sessionCode" type="text" maxlength="8" placeholder="Optional quiz code">
+      </label>
+      <div class="actions">
+        <button class="btn" id="copyStudentLinkBtn" type="button">Copy student link</button>
+        <button class="btn btn-secondary" id="copyTeacherLinkBtn" type="button">Copy teacher link</button>
+        <span class="status" id="classroomStatus" aria-live="polite"></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="classroom-grid">
+    <article class="mission-card qr-card">
+      <span class="eyebrow">Student scan</span>
+      <h2 id="qrTitle">Student link</h2>
+      <div class="qr-frame">
+        <canvas id="qrCanvas" width="260" height="260" aria-label="Student QR code"></canvas>
+      </div>
+      <p class="mono qr-link" id="studentLink"></p>
+      <div class="quick-link-grid" id="quickLinks"></div>
+    </article>
+
+    <article class="mission-card pulse-card">
+      <div class="pulse-head">
+        <div>
+          <span class="eyebrow">Live pulse</span>
+          <h2 id="pulseTitle">Prompt</h2>
+        </div>
+        <span class="pulse-count" id="pulseCount">1 / 1</span>
+      </div>
+      <p class="pulse-prompt" id="pulsePrompt"></p>
+      <div class="choice-bank" id="pulseChoices"></div>
+      <div class="actions">
+        <button class="btn" id="prevPulseBtn" type="button">Previous</button>
+        <button class="btn" id="nextPulseBtn" type="button">Next</button>
+        <button class="btn btn-secondary" id="revealBtn" type="button">Reveal</button>
+      </div>
+      <p class="feedback" id="pulseDebrief" aria-live="polite"></p>
+    </article>
+  </section>
+
+  <section class="classroom-grid classroom-grid--lower">
+    <article class="mission-card">
+      <span class="eyebrow">Timer</span>
+      <h2>Keep the lecture moving</h2>
+      <div class="timer-buttons">
+        <button class="btn btn-secondary" data-minutes="2" type="button">2 min</button>
+        <button class="btn btn-secondary" data-minutes="5" type="button">5 min</button>
+        <button class="btn btn-secondary" data-minutes="8" type="button">8 min</button>
+        <button class="btn btn-secondary" data-minutes="12" type="button">12 min</button>
+      </div>
+      <div class="actions">
+        <button class="btn" id="startTimerBtn" type="button">Start</button>
+        <button class="btn btn-secondary" id="pauseTimerBtn" type="button">Pause</button>
+        <button class="btn btn-secondary" id="resetTimerBtn" type="button">Reset</button>
+      </div>
+    </article>
+
+    <article class="mission-card">
+      <span class="eyebrow">Run rhythm</span>
+      <h2>Suggested class loop</h2>
+      <ol class="run-loop">
+        <li><strong>Frame:</strong> one risk story or attack question.</li>
+        <li><strong>Pulse:</strong> ask students to decide before explaining.</li>
+        <li><strong>Quiz:</strong> run a QR check when the concept lands.</li>
+        <li><strong>Mission:</strong> give 5-8 minutes for a micro decision task.</li>
+        <li><strong>Debrief:</strong> collect the exit ticket and review muddy points.</li>
+      </ol>
+    </article>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+<script src="../week-01/lecture/quiz/config.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

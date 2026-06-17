@@ -58,6 +58,13 @@ select {
   margin-bottom: 1.4rem;
 }
 
+.top-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  justify-content: flex-end;
+}
+
 .brand {
   display: grid;
   gap: 0.2rem;
@@ -165,6 +172,20 @@ h3 {
   font-weight: 700;
 }
 
+.check-field {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.55rem;
+  align-items: start;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.check-field input {
+  margin-top: 0.25rem;
+}
+
 .input,
 .select {
   width: 100%;
@@ -175,6 +196,13 @@ h3 {
   color: var(--ink);
   background: var(--panel-2);
   outline: none;
+}
+
+.bank-textarea {
+  min-height: 460px;
+  resize: vertical;
+  line-height: 1.45;
+  white-space: pre;
 }
 
 .input:focus,
@@ -441,6 +469,59 @@ h3 {
   font-size: clamp(2.4rem, 9vw, 4.4rem);
   font-weight: 900;
   line-height: 1;
+}
+
+.review-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.review-item {
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--warn);
+  border-radius: 0 10px 10px 0;
+  padding: 0.85rem 0.95rem;
+  background: var(--panel-2);
+}
+
+.review-item--good {
+  border-left-color: var(--good);
+}
+
+.review-item h3 {
+  margin-bottom: 0.25rem;
+}
+
+.review-item p {
+  margin-bottom: 0;
+  color: var(--muted);
+}
+
+.insight-panel {
+  display: grid;
+  gap: 0.8rem;
+  border-top: 1px solid var(--line);
+  padding-top: 1rem;
+}
+
+.insight-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.insight-item {
+  display: grid;
+  gap: 0.25rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.75rem 0.85rem;
+  background: var(--panel-2);
+}
+
+.insight-item span {
+  color: var(--muted);
+  font-size: 0.88rem;
 }
 
 .table-wrap {

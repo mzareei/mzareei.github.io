@@ -49,10 +49,12 @@ Deno.serve(async (request) => {
       ? submitted.reduce((sum, attempt) => sum + Number(attempt.a_score || 0), 0) / submitted.length
       : 0;
     const total = submitted[0]?.total || session.question_count;
+    const questionStats = await loadQuestionStats(db, session.id);
 
     return json({
       session,
       attempts: enrichedAttempts,
+      question_stats: questionStats,
       stats: {
         started: enrichedAttempts.length,
         submitted: submitted.length,
@@ -117,4 +119,65 @@ function compareAttempts(a: Record<string, unknown>, b: Record<string, unknown>)
 
 function round1(value: number) {
   return Math.round(Number(value || 0) * 10) / 10;
+}
+
+async function loadQuestionStats(db: ReturnType<typeof adminClient>, sessionId: string) {
+  const { data: attempts, error: attemptError } = await db
+    .from("quiz_attempts")
+    .select("id")
+    .eq("session_id", sessionId)
+    .not("submitted_at", "is", null);
+  if (attemptError) throw attemptError;
+  const attemptIds = (attempts || []).map((attempt) => attempt.id);
+  if (!attemptIds.length) return [];
+
+  const { data: attemptQuestions, error: aqError } = await db
+    .from("quiz_attempt_questions")
+    .select("id, question_id")
+    .in("attempt_id", attemptIds);
+  if (aqError) throw aqError;
+  const attemptQuestionIds = (attemptQuestions || []).map((row) => row.id);
+  if (!attemptQuestionIds.length) return [];
+
+  const { data: answers, error: answerError } = await db
+    .from("quiz_answers")
+    .select("attempt_question_id, is_correct")
+    .in("attempt_question_id", attemptQuestionIds);
+  if (answerError) throw answerError;
+
+  const questionIds = Array.from(new Set((attemptQuestions || []).map((row) => row.question_id)));
+  const { data: questions, error: questionError } = await db
+    .from("quiz_questions")
+    .select("id, prompt, topic, difficulty")
+    .in("id", questionIds);
+  if (questionError) throw questionError;
+
+  const questionById = new Map((questions || []).map((question) => [question.id, question]));
+  const answerByAttemptQuestion = new Map((answers || []).map((answer) => [answer.attempt_question_id, answer]));
+  const stats = new Map();
+  for (const attemptQuestion of attemptQuestions || []) {
+    const question = questionById.get(attemptQuestion.question_id);
+    if (!question) continue;
+    if (!stats.has(question.id)) {
+      stats.set(question.id, {
+        question_id: question.id,
+        prompt: question.prompt,
+        topic: question.topic || [],
+        difficulty: question.difficulty,
+        attempts: 0,
+        correct: 0,
+        missed: 0,
+        correct_percent: 0
+      });
+    }
+    const row = stats.get(question.id);
+    const answer = answerByAttemptQuestion.get(attemptQuestion.id);
+    const correct = Boolean(answer?.is_correct);
+    row.attempts += 1;
+    row.correct += correct ? 1 : 0;
+    row.missed += correct ? 0 : 1;
+    row.correct_percent = row.attempts ? round1((row.correct / row.attempts) * 100) : 0;
+  }
+
+  return Array.from(stats.values()).sort((a, b) => b.missed - a.missed);
 }

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Teacher Insights</title>
+<meta name="description" content="Teacher reflection and quiz insights dashboard for TC2007B Information Security.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../week-01/mission-01/style.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="mission-shell">
+  <header class="mission-top">
+    <a href="/teaching/information-security/" class="back-link">Course</a>
+    <div>
+      <span class="eyebrow">TC2007B · Teacher view</span>
+      <h1>Course Insights</h1>
+      <p class="lead">Use exit tickets and quiz pulses to decide what to revisit in the next lecture.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="ticketStat">0</strong>
+      <span>tickets</span>
+    </div>
+  </header>
+
+  <section class="mission-card">
+    <div class="teacher-controls">
+      <label class="field">
+        <span>Lecture</span>
+        <select id="lectureId">
+          <option value="">All active lectures</option>
+          <option value="tc2007b-w1-l1">Week 1 Lecture 1 · Introduction to Cybersecurity</option>
+          <option value="tc2007b-w1-l2">Week 1 Lecture 2 · Legal and Ethical Aspects</option>
+          <option value="tc2007b-w2-l1">Week 2 Lecture 1 · Authentication</option>
+          <option value="tc2007b-w2-l2">Week 2 Lecture 2 · Access Control</option>
+          <option value="tc2007b-w3-l1">Week 3 Lecture 1 · Database and Application Security</option>
+          <option value="tc2007b-w4-bridge">Week 4 Bridge · Secure Coding and Release Risk</option>
+          <option value="tc2007b-w5-l1">Week 5 Lecture 1 · Asymmetric Encryption</option>
+          <option value="tc2007b-w6-bridge">Week 6 Bridge · Symmetric Crypto and Key Handling</option>
+          <option value="tc2007b-w7-l1">Week 7 · Security Protocols and Hash Functions</option>
+          <option value="tc2007b-w8-bridge">Week 8 Bridge · TLS and Secure Channels</option>
+          <option value="tc2007b-w9-l1">Week 9 · Malicious Code</option>
+          <option value="tc2007b-w10-l1">Week 10 Lecture 1 · Firewalls</option>
+          <option value="tc2007b-w11-l1">Week 11 · Intrusion Detection</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Teacher PIN</span>
+        <input id="teacherPin" type="password" autocomplete="current-password" placeholder="Required for Supabase">
+      </label>
+      <div class="actions">
+        <button class="btn" id="loadBtn" type="button">Load insights</button>
+        <a class="btn btn-secondary" href="../classroom/">Classroom mode</a>
+        <a class="btn btn-secondary" href="../week-01/lecture/quiz/teacher.html">Quiz console</a>
+        <a class="btn btn-secondary" href="../week-01/lecture/quiz/bank.html">Question bank</a>
+        <a class="btn btn-secondary" href="../concept-map/">Concept map</a>
+        <a class="btn btn-secondary" href="../playbook/">Teaching playbook</a>
+        <a class="btn btn-secondary" href="../assessment/">Assessment studio</a>
+        <span class="status" id="insightStatus" aria-live="polite"></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="insight-grid">
+    <article class="mission-card">
+      <span class="eyebrow">Pulse</span>
+      <h2>Reflection stats</h2>
+      <div class="stat-row">
+        <div><strong id="avgConfidence">0</strong><span>Avg confidence</span></div>
+        <div><strong id="lowConfidence">0</strong><span>Low confidence</span></div>
+      </div>
+    </article>
+    <article class="mission-card">
+      <span class="eyebrow">Next class</span>
+      <h2>Student actions</h2>
+      <div class="mini-list" id="actionList"></div>
+    </article>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Muddy points</span>
+    <h2>What students want clarified</h2>
+    <div class="insight-list" id="muddyList"></div>
+  </section>
+
+      <section class="mission-card">
+    <span class="eyebrow">Run sheet</span>
+    <h2>Lecture launchpad</h2>
+    <div class="run-grid">
+      <article class="run-card">
+        <h3>Classroom Mode</h3>
+        <p>Live pulse prompts, QR links, timer, quiz console, mission launch, and exit ticket flow.</p>
+        <div class="run-actions">
+          <a href="../classroom/">Open</a>
+          <a href="../case-files/">Case files</a>
+          <a href="../attack-chain/">Attack chain</a>
+          <a href="../concept-map/">Concept map</a>
+          <a href="../playbook/">Playbook</a>
+          <a href="../review-coach/">Review</a>
+          <a href="../portfolio/">Portfolio</a>
+          <a href="../assessment/">Assessment</a>
+          <a href="../progress/">Progress</a>
+        </div>
+      </article>
+      <article class="run-card">
+        <h3>Week 1 · Intro</h3>
+        <p>Security mindset, CIA triad, risk, and design principles.</p>
+        <div class="run-actions">
+          <a href="../week-01/lecture/">Deck</a>
+          <a href="../week-01/mission-01/">Mission</a>
+          <a href="../week-01/lecture/quiz/teacher.html?lecture=tc2007b-w1-l1">Quiz</a>
+          <a href="../exit-ticket/?lecture=tc2007b-w1-l1">Exit</a>
+        </div>
+      </article>
+      <article class="run-card">
+        <h3>Week 1 · Legal</h3>
+        <p>Ethics, authorization, privacy, scope, and responsible disclosure.</p>
+        <div class="run-actions">
+          <a href="../week-01/lecture-2/">Deck</a>
+          <a href="../week-01/lecture/quiz/teacher.html?lecture=tc2007b-w1-l2">Quiz</a>
+          <a href="../exit-ticket/?lecture=tc2007b-w1-l2">Exit</a>
+        </div>
+      </article>
+      <article class="run-card">
+        <h3>Week 2 · Authentication</h3>
+        <p>Passwords, storage, biometrics, MFA, and usability.</p>
+        <div class="run-actions">
+          <a href="../week-02/lecture/">Deck</a>
+          <a href="../week-02/mission-02/">Mission</a>
+          <a href="../week-01/lecture/quiz/teacher.html?lecture=tc2007b-w2-l1">Quiz</a>
+          <a href="../exit-ticket/?lecture=tc2007b-w2-l1">Exit</a>
+        </div>
+      </article>
+      <article class="run-card">
+        <h3>Week 2 · Access</h3>
+        <p>ACLs, DAC, MAC, RBAC, ABAC, and least privilege.</p>
+        <div class="run-actions">
+          <a href="../week-02/lecture-2/">Deck</a>
+          <a href="../week-02/mission-03/">Mission</a>
+          <a href="../week-01/lecture/quiz/teacher.html?lecture=tc2007b-w2-l2">Quiz</a>
+          <a href="../exit-ticket/?lecture=tc2007b-w2-l2">Exit</a>
+        </div>
+      </article>
+      <article class="run-card">
+        <h3>Week 3 · App Security</h3>
+        <p>SQL injection, XSS, trust boundaries, validation, and OWASP.</p>
+        <div class="run-actions">
+          <a href="../week-03/lecture/">Deck</a>
+          <a href="../week-03/mission-04/">Mission</a>
+          <a href="../week-01/lecture/quiz/teacher.html?lecture=tc2007b-w3-l1">Quiz</a>
+          <a href="../exit-ticket/?lecture=tc2007b-w3-l1">Exit</a>
+        </div>
+      </article>
+      <article class="run-card">
+        <h3>Week 4 · Secure Release</h3>
+        <p>Secure coding controls, release risk, and deployment gates.</p>
+        <div class="run-actions">
+          <a href="../week-04/mission-bridge/">Mission</a>
+          <a href="../week-01/lecture/quiz/teacher.html?lecture=tc2007b-w4-bridge">Quiz</a>
+          <a href="../exit-ticket/?lecture=tc2007b-w4-bridge">Exit</a>
+        </div>
+      </article>
+      <article class="run-card">
+        <h3>Week 5 · Public Key</h3>
+        <p>Modular arithmetic, Diffie-Hellman, RSA, ECC, and signatures.</p>
+        <div class="run-actions">
+          <a href="../week-05/lecture/">Deck</a>
+          <a href="../week-05/mission-05/">Mission</a>
+          <a href="../week-01/lecture/quiz/teacher.html?lecture=tc2007b-w5-l1">Quiz</a>
+          <a href="../exit-ticket/?lecture=tc2007b-w5-l1">Exit</a>
+        </div>
+      </article>
+      <article class="run-card">
+        <h3>Week 6 · Data Protection</h3>
+        <p>Authenticated encryption, password hashing, keys, and nonce mistakes.</p>
+        <div class="run-actions">
+          <a href="../week-06/mission-bridge/">Mission</a>
+          <a href="../week-01/lecture/quiz/teacher.html?lecture=tc2007b-w6-bridge">Quiz</a>
+          <a href="../exit-ticket/?lecture=tc2007b-w6-bridge">Exit</a>
+        </div>
+      </article>
+      <article class="run-card">
+        <h3>Week 7 · Protocols</h3>
+        <p>Mutual authentication, Kerberos, hashes, HMAC, and collisions.</p>
+        <div class="run-actions">
+          <a href="../week-07/lecture/">Deck</a>
+          <a href="../week-07/mission-06/">Mission</a>
+          <a href="../week-01/lecture/quiz/teacher.html?lecture=tc2007b-w7-l1">Quiz</a>
+          <a href="../exit-ticket/?lecture=tc2007b-w7-l1">Exit</a>
+        </div>
+      </article>
+      <article class="run-card">
+        <h3>Week 8 · Secure Channels</h3>
+        <p>TLS, certificate trust, HTTPS-only behavior, and downgrade attacks.</p>
+        <div class="run-actions">
+          <a href="../week-08/mission-bridge/">Mission</a>
+          <a href="../week-01/lecture/quiz/teacher.html?lecture=tc2007b-w8-bridge">Quiz</a>
+          <a href="../exit-ticket/?lecture=tc2007b-w8-bridge">Exit</a>
+        </div>
+      </article>
+      <article class="run-card">
+        <h3>Week 9 · Malware</h3>
+        <p>Malware families, ransomware, APTs, countermeasures, and analysis.</p>
+        <div class="run-actions">
+          <a href="../week-09/lecture/">Deck</a>
+          <a href="../week-09/mission-07/">Mission</a>
+          <a href="../week-01/lecture/quiz/teacher.html?lecture=tc2007b-w9-l1">Quiz</a>
+          <a href="../exit-ticket/?lecture=tc2007b-w9-l1">Exit</a>
+        </div>
+      </article>
+      <article class="run-card">
+        <h3>Week 10 · Firewalls</h3>
+        <p>Packet filtering, stateful inspection, WAFs, host firewalls, and DMZs.</p>
+        <div class="run-actions">
+          <a href="../week-10/lecture/">Deck</a>
+          <a href="../week-10/mission-08/">Mission</a>
+          <a href="../week-01/lecture/quiz/teacher.html?lecture=tc2007b-w10-l1">Quiz</a>
+          <a href="../exit-ticket/?lecture=tc2007b-w10-l1">Exit</a>
+        </div>
+      </article>
+      <article class="run-card">
+        <h3>Week 11 · IDS</h3>
+        <p>Anomaly detection, signatures, honeypots, IPS, and alert triage.</p>
+        <div class="run-actions">
+          <a href="../week-11/lecture/">Deck</a>
+          <a href="../week-11/mission-09/">Mission</a>
+          <a href="../week-01/lecture/quiz/teacher.html?lecture=tc2007b-w11-l1">Quiz</a>
+          <a href="../exit-ticket/?lecture=tc2007b-w11-l1">Exit</a>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Recent tickets</span>
+    <h2>Latest reflections</h2>
+    <div class="insight-list" id="ticketList"></div>
+  </section>
+</main>
+<script src="../week-01/lecture/quiz/config.js"></script>
+<script type="module" src="script.js"></script>
+</body>
+</html>

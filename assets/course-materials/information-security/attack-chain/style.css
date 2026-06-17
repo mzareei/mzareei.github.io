@@ -1,0 +1,159 @@
+.chain-shell {
+  width: min(1220px, 100%);
+}
+
+.chain-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.35fr) minmax(0, 0.65fr);
+  gap: 1rem;
+}
+
+.chain-sidebar {
+  align-self: start;
+  position: sticky;
+  top: 1rem;
+}
+
+.stage-list,
+.evidence-grid,
+.decision-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.stage-button {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.85rem;
+  color: var(--ink);
+  background: var(--panel-2);
+  cursor: pointer;
+  text-align: left;
+}
+
+.stage-button:hover,
+.stage-button.is-active {
+  border-color: var(--accent);
+}
+
+.stage-button.is-complete {
+  border-color: rgba(95, 224, 138, 0.48);
+}
+
+.stage-button strong,
+.stage-button span {
+  display: block;
+}
+
+.stage-button span {
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.stage-button em {
+  display: inline-flex;
+  margin-top: 0.45rem;
+  border-radius: 999px;
+  padding: 0.16rem 0.5rem;
+  color: #06111f;
+  background: var(--good);
+  font-style: normal;
+  font-weight: 900;
+}
+
+.chain-side-actions {
+  margin-top: 1rem;
+}
+
+.chain-stage-kicker {
+  color: var(--teal);
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.evidence-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 1rem 0;
+}
+
+.evidence-card,
+.decision-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.9rem;
+  background: var(--panel-2);
+}
+
+.evidence-card strong,
+.evidence-card span {
+  display: block;
+}
+
+.evidence-card span {
+  margin-top: 0.35rem;
+  color: var(--muted);
+}
+
+.decision-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.decision-card h3 {
+  margin-bottom: 0.65rem;
+  font-size: 1rem;
+}
+
+.chain-option {
+  display: block;
+  width: 100%;
+  margin-top: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  color: var(--ink);
+  background: var(--panel);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  font-weight: 800;
+}
+
+.chain-option:hover,
+.chain-option.is-selected {
+  border-color: var(--accent);
+}
+
+.chain-option.is-correct {
+  color: #06111f;
+  background: var(--good);
+  border-color: transparent;
+}
+
+.chain-option.is-wrong {
+  color: #06111f;
+  background: var(--danger);
+  border-color: transparent;
+}
+
+.chain-debrief {
+  display: none;
+}
+
+.chain-debrief.is-visible {
+  display: block;
+}
+
+@media (max-width: 960px) {
+  .chain-layout,
+  .evidence-grid,
+  .decision-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .chain-sidebar {
+    position: static;
+  }
+}

@@ -1,0 +1,238 @@
+.concept-shell {
+  width: min(1240px, 100%);
+}
+
+.map-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.filter-btn {
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.45rem 0.8rem;
+  color: var(--ink);
+  background: var(--panel-2);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.filter-btn:hover,
+.filter-btn.is-active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.concept-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.concept-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.8rem;
+}
+
+.concept-node {
+  display: grid;
+  min-height: 150px;
+  gap: 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.9rem;
+  color: var(--ink);
+  background: var(--panel-2);
+  text-align: left;
+  cursor: pointer;
+}
+
+.concept-node:hover,
+.concept-node.is-selected {
+  border-color: var(--accent);
+}
+
+.concept-node.is-ready {
+  border-color: rgba(48, 207, 145, 0.72);
+}
+
+.concept-node.is-weak {
+  border-color: rgba(255, 193, 7, 0.72);
+}
+
+.concept-node span,
+.concept-node small {
+  color: var(--muted);
+}
+
+.concept-node strong {
+  font-size: 1rem;
+}
+
+.node-meter {
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.node-meter i {
+  display: block;
+  height: 100%;
+  width: var(--level);
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--teal));
+}
+
+.detail-panel {
+  position: sticky;
+  top: 1rem;
+  display: grid;
+  gap: 0.95rem;
+}
+
+.detail-panel p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.dependency-list,
+.link-list,
+.mini-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.dependency-pill,
+.link-list a,
+.recommendation-item {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.7rem;
+  background: var(--panel-2);
+}
+
+.dependency-pill {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--muted);
+}
+
+.dependency-pill strong {
+  color: var(--ink);
+}
+
+.explain-box,
+.confidence-panel {
+  display: grid;
+  gap: 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.85rem;
+  background: var(--panel-2);
+}
+
+.model-answer {
+  display: none;
+}
+
+.model-answer.is-visible {
+  display: block;
+}
+
+.confidence-buttons {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.confidence-buttons button {
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+  background: var(--panel);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.confidence-buttons button.is-selected {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+.link-list a {
+  color: var(--ink);
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.link-list a:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.concept-bottom {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.65fr);
+  gap: 1rem;
+}
+
+.recommendation-item {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.recommendation-item strong {
+  color: var(--ink);
+}
+
+.recommendation-item span {
+  color: var(--muted);
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.stat-grid div {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.85rem;
+  background: var(--panel-2);
+}
+
+.stat-grid strong {
+  display: block;
+  font-size: clamp(1.7rem, 5vw, 2.4rem);
+  line-height: 1;
+}
+
+.stat-grid span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 960px) {
+  .concept-layout,
+  .concept-bottom,
+  .stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-panel {
+    position: static;
+  }
+}

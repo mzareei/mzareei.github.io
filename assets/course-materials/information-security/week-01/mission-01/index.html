@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mission 01 · Think Like an Attacker</title>
+<meta name="description" content="Interactive Week 1 mission for TC2007B Information Security.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="mission-shell">
+  <header class="mission-top">
+    <a href="../lecture/" class="back-link">Lecture</a>
+    <div>
+      <span class="eyebrow">TC2007B · Week 1</span>
+      <h1>Mission 01: Think Like an Attacker</h1>
+      <p class="lead">Decide what breaks, why it matters, and how defenders should respond.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="scoreValue">0</strong>
+      <span>mission score</span>
+    </div>
+  </header>
+
+  <section class="mission-map" aria-label="Mission progress">
+    <a href="#cia" class="map-step is-active" data-step-link="cia"><span>1</span>CIA triad</a>
+    <a href="#attacks" class="map-step" data-step-link="attacks"><span>2</span>Attack style</a>
+    <a href="#model" class="map-step" data-step-link="model"><span>3</span>Threat model</a>
+    <a href="#response" class="map-step" data-step-link="response"><span>4</span>Defense response</a>
+  </section>
+
+  <section class="mission-card" id="cia" data-step="cia">
+    <div class="section-head">
+      <span class="eyebrow">Checkpoint 1</span>
+      <h2>CIA triad rapid triage</h2>
+      <p>Choose the security property most directly harmed by each incident.</p>
+    </div>
+    <div class="challenge-list" id="ciaChallenge"></div>
+  </section>
+
+  <section class="mission-card" id="attacks" data-step="attacks">
+    <div class="section-head">
+      <span class="eyebrow">Checkpoint 2</span>
+      <h2>Phishing or spoofing?</h2>
+      <p>Identify whether the attacker is mainly tricking the person or disguising the source.</p>
+    </div>
+    <div class="challenge-list" id="attackChallenge"></div>
+  </section>
+
+  <section class="mission-card" id="model" data-step="model">
+    <div class="section-head">
+      <span class="eyebrow">Checkpoint 3</span>
+      <h2>Build a threat model</h2>
+      <p>Use the lecture rule: valuable asset plus plausible harm equals a security problem.</p>
+    </div>
+    <div class="threat-grid">
+      <label class="field">
+        <span>Asset</span>
+        <select id="assetSelect">
+          <option value="">Choose asset</option>
+          <option value="student records">Student records</option>
+          <option value="course LMS accounts">Course LMS accounts</option>
+          <option value="campus Wi-Fi">Campus Wi-Fi</option>
+          <option value="exam question bank">Exam question bank</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Threat</span>
+        <select id="threatSelect">
+          <option value="">Choose threat</option>
+          <option value="phishing campaign">Phishing campaign</option>
+          <option value="credential stuffing">Credential stuffing</option>
+          <option value="ransomware">Ransomware</option>
+          <option value="insider misuse">Insider misuse</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Likely CIA impact</span>
+        <select id="impactSelect">
+          <option value="">Choose impact</option>
+          <option value="confidentiality">Confidentiality</option>
+          <option value="integrity">Integrity</option>
+          <option value="availability">Availability</option>
+        </select>
+      </label>
+    </div>
+    <button class="btn" id="buildModelBtn" type="button">Build model</button>
+    <div class="model-output" id="modelOutput" aria-live="polite"></div>
+  </section>
+
+  <section class="mission-card" id="response" data-step="response">
+    <div class="section-head">
+      <span class="eyebrow">Checkpoint 4</span>
+      <h2>Arrange the defender playbook</h2>
+      <p>Select the four actions in the order defenders usually want them.</p>
+    </div>
+    <div class="response-board" id="responseBoard"></div>
+    <div class="actions">
+      <button class="btn" id="checkResponseBtn" type="button">Check order</button>
+      <button class="btn btn-secondary" id="resetMissionBtn" type="button">Reset</button>
+      <span class="status" id="responseStatus" aria-live="polite"></span>
+    </div>
+  </section>
+
+  <section class="completion-panel" id="completionPanel" aria-live="polite">
+    <span class="eyebrow">Debrief</span>
+    <h2>Mission progress saved on this device</h2>
+    <p id="debriefText">Complete the checkpoints to unlock your debrief.</p>
+    <div class="actions">
+      <a class="btn" href="../lecture/quiz/index.html">Take quiz</a>
+      <a class="btn btn-secondary" href="../lecture/">Return to lecture</a>
+    </div>
+  </section>
+</main>
+<script src="script.js"></script>
+</body>
+</html>

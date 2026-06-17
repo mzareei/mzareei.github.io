@@ -1,0 +1,22 @@
+.scenario-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 1rem 0;
+}
+
+.scenario-strip span {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.75rem;
+  color: var(--ink);
+  background: var(--panel-2);
+  font-weight: 900;
+  text-align: center;
+}
+
+@media (max-width: 700px) {
+  .scenario-strip {
+    grid-template-columns: 1fr;
+  }
+}

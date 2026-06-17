@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · My Security Progress</title>
+<meta name="description" content="Student review dashboard for TC2007B Information Security missions and quizzes.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../week-01/mission-01/style.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="mission-shell">
+  <header class="mission-top">
+    <a href="/teaching/information-security/" class="back-link">Course</a>
+    <div>
+      <span class="eyebrow">TC2007B · Student Review</span>
+      <h1>My Security Progress</h1>
+      <p class="lead">A local review dashboard for missions, quiz practice, and next concepts to revisit.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="overallScore">0%</strong>
+      <span>progress</span>
+    </div>
+  </header>
+
+  <section class="progress-grid">
+    <article class="mission-card">
+      <span class="eyebrow">Mission progress</span>
+      <h2>Active missions</h2>
+      <div class="progress-list" id="missionList"></div>
+    </article>
+
+    <article class="mission-card">
+      <span class="eyebrow">Quiz practice</span>
+      <h2>Recent local quiz</h2>
+      <div class="progress-list" id="quizList"></div>
+    </article>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Scenario practice</span>
+    <h2>Security case files</h2>
+    <div class="progress-list" id="caseFileList"></div>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Cross-week lab</span>
+    <h2>Attack chain</h2>
+    <div class="progress-list" id="attackChainList"></div>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Concept graph</span>
+    <h2>Concept map</h2>
+    <div class="progress-list" id="conceptMapList"></div>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Review coach</span>
+    <h2>Daily sprint</h2>
+    <div class="progress-list" id="reviewCoachList"></div>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Portfolio</span>
+    <h2>Evidence summary</h2>
+    <div class="progress-list" id="portfolioList"></div>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Milestones</span>
+    <h2>Badges earned</h2>
+    <div class="badge-shelf" id="badgeShelf"></div>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Review plan</span>
+    <h2>What to revisit next</h2>
+    <div class="review-plan" id="reviewPlan"></div>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Learning journal</span>
+    <h2>Recent exit tickets</h2>
+    <div class="progress-list" id="reflectionList"></div>
+  </section>
+
+  <section class="completion-panel">
+    <span class="eyebrow">Learning loop</span>
+    <h2>Use this after each class</h2>
+    <p>Complete the mission, take the quiz, then use this page to decide what to review before the next lecture.</p>
+    <div class="actions">
+      <a class="btn" href="../week-01/mission-01/">Mission 01</a>
+      <a class="btn" href="../week-02/mission-02/">Mission 02</a>
+      <a class="btn" href="../week-02/mission-03/">Mission 03</a>
+      <a class="btn" href="../week-03/mission-04/">Mission 04</a>
+      <a class="btn" href="../week-04/mission-bridge/">Week 4 Bridge</a>
+      <a class="btn" href="../week-05/mission-05/">Mission 05</a>
+      <a class="btn" href="../week-06/mission-bridge/">Week 6 Bridge</a>
+      <a class="btn" href="../week-07/mission-06/">Mission 06</a>
+      <a class="btn" href="../week-08/mission-bridge/">Week 8 Bridge</a>
+      <a class="btn" href="../week-09/mission-07/">Mission 07</a>
+      <a class="btn" href="../week-10/mission-08/">Mission 08</a>
+      <a class="btn" href="../week-11/mission-09/">Mission 09</a>
+      <a class="btn" href="../case-files/">Case Files</a>
+      <a class="btn" href="../attack-chain/">Attack Chain</a>
+      <a class="btn" href="../concept-map/">Concept Map</a>
+      <a class="btn" href="../review-coach/">Review Coach</a>
+      <a class="btn" href="../portfolio/">Portfolio</a>
+      <a class="btn btn-secondary" href="../exit-ticket/">Exit ticket</a>
+      <a class="btn btn-secondary" href="../week-01/lecture/quiz/">Week 1 quiz</a>
+    </div>
+  </section>
+</main>
+<script src="script.js"></script>
+</body>
+</html>

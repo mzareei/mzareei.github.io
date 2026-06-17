@@ -17,6 +17,7 @@ const questionList = document.getElementById("questionList");
 const quizActionBtn = document.getElementById("quizActionBtn");
 const scoreText = document.getElementById("scoreText");
 const resultMeta = document.getElementById("resultMeta");
+const reviewList = document.getElementById("reviewList");
 
 let currentAttempt = null;
 let currentQuestionIndex = 0;
@@ -151,11 +152,47 @@ async function submitCurrentAttempt(fromTimer) {
       : Math.round((Number(result.score) / Number(result.total)) * 100);
     scoreText.textContent = `${result.score}/${result.total}`;
     resultMeta.textContent = `${percentage}%`;
+    renderReview(result);
   } catch (error) {
     submitting = false;
     setStatus(quizStatus, error.message, "danger");
     quizActionBtn.disabled = false;
   }
+}
+
+function renderReview(result) {
+  const missed = (result.details || []).filter((item) => !item.correct);
+  reviewList.innerHTML = "";
+  if (!missed.length) {
+    reviewList.innerHTML = `
+      <section class="review-item review-item--good">
+        <h3>Clean run</h3>
+        <p>You answered every question correctly. Use the lecture summary to lock in the vocabulary.</p>
+      </section>
+    `;
+    return;
+  }
+
+  const intro = document.createElement("section");
+  intro.className = "review-item";
+  intro.innerHTML = `
+    <h3>Review focus</h3>
+    <p></p>
+  `;
+  intro.querySelector("p").textContent = `Revisit ${missed.length} question${missed.length === 1 ? "" : "s"} before the next class.`;
+  reviewList.appendChild(intro);
+
+  missed.slice(0, 4).forEach((item) => {
+    const section = document.createElement("section");
+    section.className = "review-item";
+    section.innerHTML = `
+      <h3></h3>
+      <p></p>
+    `;
+    section.querySelector("h3").textContent = item.prompt || "Missed concept";
+    section.querySelector("p").textContent = item.explanation || "Review the lecture section connected to this concept.";
+    reviewList.appendChild(section);
+  });
 }
 
 function startTimer() {

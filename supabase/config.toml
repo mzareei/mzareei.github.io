@@ -9,3 +9,18 @@ verify_jwt = false
 
 [functions.quiz-session-summary]
 verify_jwt = false
+
+[functions.quiz-import-questions]
+verify_jwt = false
+
+[functions.course-submit-reflection]
+verify_jwt = false
+
+[functions.course-reflection-summary]
+verify_jwt = false
+
+[functions.course-submit-portfolio]
+verify_jwt = false
+
+[functions.course-portfolio-summary]
+verify_jwt = false

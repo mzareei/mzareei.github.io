@@ -1,0 +1,126 @@
+.payload-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.payload-card {
+  min-height: 116px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.85rem;
+  color: var(--ink);
+  background: var(--panel-2);
+  cursor: pointer;
+  text-align: left;
+}
+
+.payload-card:hover,
+.payload-card.is-active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(72, 163, 255, 0.14);
+}
+
+.payload-card strong {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.payload-card code {
+  display: block;
+  color: var(--warn);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.82rem;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.lab-grid,
+.xss-lab {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.query-panel {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.85rem;
+  background: #101a26;
+}
+
+.query-panel--safe {
+  border-color: rgba(95, 224, 138, 0.38);
+}
+
+.panel-label {
+  display: inline-block;
+  margin-bottom: 0.55rem;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+pre {
+  min-height: 92px;
+  margin: 0;
+  color: var(--ink);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.86rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.fix-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 1rem 0;
+}
+
+.fix-option {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.8rem;
+  background: var(--panel-2);
+  cursor: pointer;
+}
+
+.fix-option input {
+  margin-top: 0.25rem;
+}
+
+.fix-option strong {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.fix-option span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.fix-option.is-correct {
+  border-color: var(--good);
+}
+
+.fix-option.is-wrong {
+  border-color: var(--danger);
+}
+
+@media (max-width: 860px) {
+  .payload-grid,
+  .lab-grid,
+  .xss-lab,
+  .fix-list {
+    grid-template-columns: 1fr;
+  }
+}

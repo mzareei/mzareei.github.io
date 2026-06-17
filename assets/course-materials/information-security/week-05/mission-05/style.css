@@ -1,0 +1,29 @@
+.mono {
+  font-family: "JetBrains Mono", monospace;
+}
+
+.crypto-panel {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.9rem;
+  margin: 1rem 0;
+  background: #101a26;
+}
+
+.panel-label {
+  display: inline-block;
+  margin-bottom: 0.45rem;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+pre {
+  margin: 0;
+  color: var(--ink);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.95rem;
+  white-space: pre-wrap;
+}

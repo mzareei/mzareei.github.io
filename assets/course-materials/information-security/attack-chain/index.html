@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Attack Chain Lab</title>
+<meta name="description" content="Cross-week attack chain and defense mapping lab for TC2007B Information Security.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../week-01/mission-01/style.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="mission-shell chain-shell">
+  <header class="mission-top">
+    <a href="/teaching/information-security/" class="back-link">Course</a>
+    <div>
+      <span class="eyebrow">TC2007B · Cross-week lab</span>
+      <h1>Attack Chain Lab</h1>
+      <p class="lead">Follow one incident from phishing to detection. At each step, identify the weak point, the best control, and the signal defenders should watch.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="chainScore">0%</strong>
+      <span>chain score</span>
+    </div>
+  </header>
+
+  <section class="chain-layout">
+    <aside class="mission-card chain-sidebar">
+      <span class="eyebrow">Incident path</span>
+      <h2>Stages</h2>
+      <div class="stage-list" id="stageList"></div>
+      <div class="actions chain-side-actions">
+        <button class="btn btn-secondary" id="resetLabBtn" type="button">Reset lab</button>
+        <a class="btn btn-secondary" href="../case-files/">Case files</a>
+      </div>
+    </aside>
+
+    <section class="mission-card chain-main">
+      <div class="chain-stage-kicker" id="stageKicker"></div>
+      <h2 id="stageTitle">Stage</h2>
+      <p class="lead" id="stageStory"></p>
+
+      <div class="evidence-grid" id="evidenceGrid"></div>
+
+      <div class="decision-grid" id="decisionGrid"></div>
+
+      <div class="actions">
+        <button class="btn" id="checkStageBtn" type="button">Check stage</button>
+        <button class="btn btn-secondary" id="nextStageBtn" type="button">Next stage</button>
+        <a class="btn btn-secondary" href="../portfolio/">Portfolio</a>
+        <span class="status" id="stageStatus" aria-live="polite"></span>
+      </div>
+
+      <section class="completion-panel chain-debrief" id="stageDebrief">
+        <span class="eyebrow">Debrief</span>
+        <h2 id="debriefTitle">Map the stage</h2>
+        <p id="debriefText">Choose one answer in each column, then check the stage.</p>
+      </section>
+    </section>
+  </section>
+</main>
+<script src="script.js"></script>
+</body>
+</html>

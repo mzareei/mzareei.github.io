@@ -1,0 +1,23 @@
+.fix-list {
+  display: grid;
+  gap: 0.65rem;
+  margin: 1rem 0;
+}
+
+.fix-option {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.8rem;
+  background: var(--panel-2);
+  cursor: pointer;
+}
+
+.fix-option input {
+  margin-top: 0.25rem;
+}
+
+.fix-option.is-correct { border-color: var(--good); }
+.fix-option.is-wrong { border-color: var(--danger); }

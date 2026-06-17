@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Question Bank Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="quiz.css">
+</head>
+<body>
+<main class="shell">
+  <div class="topline">
+    <div class="brand">
+      <span class="eyebrow">TC2007B · Teacher Tool</span>
+      <h1>Question Bank Studio</h1>
+      <p class="muted">Import reusable questions into Supabase by lecture.</p>
+    </div>
+    <a class="back-link" href="teacher.html">Console</a>
+  </div>
+
+  <section class="layout layout--teacher">
+    <form class="panel stack" id="bankForm">
+      <div>
+        <h2>Import</h2>
+        <p class="muted">Use one correct answer per question. The answer key stays in Supabase.</p>
+      </div>
+      <label class="field">
+        <span>Lecture ID</span>
+        <select class="input" id="lectureId" required></select>
+      </label>
+      <label class="field">
+        <span>Teacher PIN</span>
+        <input class="input" id="teacherPin" type="password" autocomplete="current-password" required>
+      </label>
+      <label class="field">
+        <span>Questions JSON</span>
+        <textarea class="input bank-textarea mono" id="questionJson" spellcheck="false" required></textarea>
+      </label>
+      <div class="actions">
+        <button class="btn" type="submit">Import questions</button>
+        <button class="btn btn--secondary" id="sampleBtn" type="button">Reset sample</button>
+        <span class="status" id="bankStatus"></span>
+      </div>
+    </form>
+
+    <section class="panel stack">
+      <div>
+        <h2>Format</h2>
+        <p class="muted">Each item needs a prompt, explanation, difficulty, topic tags, and options.</p>
+      </div>
+      <div class="review-item">
+        <h3>Difficulty</h3>
+        <p>Use <span class="mono">easy</span>, <span class="mono">medium</span>, or <span class="mono">hard</span>.</p>
+      </div>
+      <div class="review-item">
+        <h3>Topics</h3>
+        <p>Tags such as <span class="mono">cia</span>, <span class="mono">phishing</span>, <span class="mono">authentication</span>, or <span class="mono">risk</span> will support analytics later.</p>
+      </div>
+      <div class="review-item">
+        <h3>Correct answer</h3>
+        <p>Exactly one option must have <span class="mono">"is_correct": true</span>.</p>
+      </div>
+    </section>
+  </section>
+</main>
+<script src="config.js"></script>
+<script type="module" src="bank.js"></script>
+</body>
+</html>

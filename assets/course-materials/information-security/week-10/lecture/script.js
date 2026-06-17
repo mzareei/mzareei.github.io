@@ -151,6 +151,9 @@
       case "End":  e.preventDefault(); show(total - 1, "back"); break;
       case "f": case "F": toggleFullscreen(); break;
       case "o": case "O": toggleOverview(); break;
+      case "m": case "M": window.location.href = "../mission-08/"; break;
+      case "q": case "Q": window.location.href = "../../week-01/lecture/quiz/teacher.html?lecture=tc2007b-w10-l1"; break;
+      case "e": case "E": window.location.href = "../../exit-ticket/?lecture=tc2007b-w10-l1"; break;
       case "l": case "L": toggleLang(); break;
       case "t": case "T": toggleTheme(); break;
       case "?": toggleHelp(); break;
