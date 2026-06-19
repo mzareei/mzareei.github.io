@@ -17,6 +17,7 @@ const exportBtn = document.getElementById("exportBtn");
 const participantStat = document.getElementById("participantStat");
 const averageGradeStat = document.getElementById("averageGradeStat");
 const averageAScoreStat = document.getElementById("averageAScoreStat");
+const refreshMeta = document.getElementById("refreshMeta");
 const tableBody = document.querySelector("#resultsTable tbody");
 const emptyResults = document.getElementById("emptyResults");
 const questionStats = document.getElementById("questionStats");
@@ -26,6 +27,8 @@ const qrBox = document.getElementById("qrBox");
 let activeCode = "";
 let lastSummary = null;
 let autoRefreshTimer = null;
+let refreshTicker = null;
+let nextRefreshAt = null;
 
 modeText.textContent = isConfigured()
   ? "Connected to Supabase."
@@ -35,7 +38,10 @@ populateLectures();
 
 sessionCode.addEventListener("input", () => {
   sessionCode.value = normalizeCode(sessionCode.value);
+  updateRefreshMeta();
 });
+
+teacherPin.addEventListener("input", updateRefreshMeta);
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -120,7 +126,8 @@ async function refreshSummary() {
     });
     lastSummary = normalizeSummary(summary);
     updateLink(activeCode);
-  renderSummary(lastSummary);
+    renderSummary(lastSummary);
+    scheduleNextRefresh();
     setStatus(`Updated ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`, "good");
   } catch (error) {
     setStatus(error.message, "danger");
@@ -260,12 +267,41 @@ function normalizeSummary(summary) {
 }
 
 function ensureAutoRefresh() {
-  if (autoRefreshTimer) return;
-  autoRefreshTimer = window.setInterval(() => {
-    if (!normalizeCode(sessionCode.value || activeCode)) return;
-    if (isConfigured() && !teacherPin.value) return;
-    refreshSummary();
-  }, 10000);
+  if (!autoRefreshTimer) {
+    autoRefreshTimer = window.setInterval(() => {
+      if (!normalizeCode(sessionCode.value || activeCode)) return;
+      if (isConfigured() && !teacherPin.value) return;
+      refreshSummary();
+    }, 10000);
+  }
+  if (!refreshTicker) {
+    refreshTicker = window.setInterval(updateRefreshMeta, 1000);
+  }
+  updateRefreshMeta();
+}
+
+function scheduleNextRefresh() {
+  nextRefreshAt = Date.now() + 10000;
+  updateRefreshMeta();
+}
+
+function updateRefreshMeta() {
+  if (!refreshMeta) return;
+  const code = normalizeCode(sessionCode.value || activeCode);
+  if (!code) {
+    refreshMeta.textContent = "Auto-refresh starts after a session code.";
+    return;
+  }
+  if (isConfigured() && !teacherPin.value) {
+    refreshMeta.textContent = "Enter the teacher PIN to auto-refresh Supabase results.";
+    return;
+  }
+  if (!nextRefreshAt) {
+    refreshMeta.textContent = "Auto-refresh checks live results every 10 seconds.";
+    return;
+  }
+  const seconds = Math.max(0, Math.ceil((nextRefreshAt - Date.now()) / 1000));
+  refreshMeta.textContent = `Auto-refresh in ${seconds}s.`;
 }
 
 function setStatus(message, tone) {
