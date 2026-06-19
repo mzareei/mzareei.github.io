@@ -10,8 +10,12 @@
   const portfolioList = document.getElementById("portfolioList");
   const badgeShelf = document.getElementById("badgeShelf");
   const reviewPlan = document.getElementById("reviewPlan");
+  const studyPlan = document.getElementById("studyPlan");
+  const copyStudyPlanBtn = document.getElementById("copyStudyPlanBtn");
+  const studyPlanStatus = document.getElementById("studyPlanStatus");
   const reflectionList = document.getElementById("reflectionList");
   const overallScore = document.getElementById("overallScore");
+  let studyPlanText = "";
 
   const missions = [
     {
@@ -258,7 +262,9 @@
   const reflections = renderReflections();
   renderPortfolio(missionRows, caseRows, attackChain, conceptMap, reviewCoach, reflections);
   renderBadges(missionRows, quizRows, reflections, caseRows, attackChain, conceptMap, reviewCoach);
-  renderReview(missionRows, caseRows, attackChain, conceptMap, reviewCoach);
+  const reviewNotes = renderReview(missionRows, caseRows, attackChain, conceptMap, reviewCoach);
+  renderStudyPlan({ missionRows, quizRows, reflections, caseRows, attackChain, conceptMap, reviewCoach, reviewNotes });
+  copyStudyPlanBtn.addEventListener("click", copyStudyPlan);
 
   const progressRows = missionRows.concat(caseRows, attackChain, conceptMap);
   const average = progressRows.length
@@ -531,7 +537,7 @@
         good: true,
         href: "../week-01/lecture/quiz/"
       }));
-      return;
+      return [];
     }
     notes.slice(0, 5).forEach((item) => {
       reviewPlan.appendChild(progressItem({
@@ -542,6 +548,86 @@
         href: item.href
       }));
     });
+    return notes;
+  }
+
+  function renderStudyPlan({ missionRows, quizRows, reflections, caseRows, attackChain, conceptMap, reviewCoach, reviewNotes }) {
+    studyPlan.innerHTML = "";
+    const weakestMission = missionRows
+      .slice()
+      .sort((a, b) => a.percent - b.percent)
+      .find((row) => row.percent < 80);
+    const incompleteCase = caseRows.find((row) => !row.completed || row.percent < 80);
+    const latestQuiz = quizRows[0];
+    const latestQuizPercent = latestQuiz?.total ? Math.round((Number(latestQuiz.score || 0) / Number(latestQuiz.total || 1)) * 100) : null;
+    const lowReflection = reflections.find((ticket) => Number(ticket.confidence || 0) <= 2);
+
+    const quickWin = reviewCoach.total < 5
+      ? ["Quick win", "Run a five-card Review Coach sprint and mark each card honestly.", "../review-coach/"]
+      : reviewNotes[0]
+        ? ["Quick win", reviewNotes[0].note, reviewNotes[0].href]
+        : ["Quick win", "Take a fresh quiz pulse or explain one concept to a classmate.", "../week-01/lecture/quiz/"];
+    const deepPractice = incompleteCase
+      ? ["Deep practice", `Work through ${incompleteCase.title} and write the first response decision.`, "../case-files/"]
+      : weakestMission
+        ? ["Deep practice", `Revisit ${weakestMission.title}; it is currently at ${weakestMission.percent}%.`, weakestMission.href]
+        : ["Deep practice", "Open the Attack Chain Lab and connect one incident across all stages.", "../attack-chain/"];
+    const conceptRepair = conceptMap.percent < 70
+      ? ["Concept repair", `Raise concept-map readiness above 70%; ${conceptMap.weak} concepts are marked weak.`, "../concept-map/"]
+      : latestQuizPercent != null && latestQuizPercent < 80
+        ? ["Concept repair", `Retake or review the latest quiz attempt; it is currently ${latestQuizPercent}%.`, "../week-01/lecture/quiz/"]
+        : ["Concept repair", "Pick one strong concept and connect it to a weaker later concept.", "../concept-map/"];
+    const evidenceAction = reflections.length < 2 || lowReflection
+      ? ["Evidence action", "Submit an exit ticket that names one clear idea, one muddy point, and one next action.", "../exit-ticket/"]
+      : ["Evidence action", "Open your Learning Portfolio and export or submit your current evidence.", "../portfolio/"];
+
+    const cards = [quickWin, deepPractice, conceptRepair, evidenceAction];
+    cards.forEach(([title, body, href], index) => {
+      studyPlan.appendChild(studyCard({ day: index + 1, title, body, href }));
+    });
+
+    const week = [
+      ["Day 1", quickWin[1], quickWin[2]],
+      ["Day 2", deepPractice[1], deepPractice[2]],
+      ["Day 3", conceptRepair[1], conceptRepair[2]],
+      ["Day 4", "Run Review Coach again and mark anything uncertain as Review again.", "../review-coach/"],
+      ["Day 5", "Complete one quiz or case-file retry, then check the Progress page.", "../progress/"],
+      ["Day 6", evidenceAction[1], evidenceAction[2]],
+      ["Day 7", "Write a two-minute summary: what changed, what remains fragile, and what you will ask next class.", "../exit-ticket/"]
+    ];
+    studyPlanText = ["TC2007B 7-day study plan"]
+      .concat(week.map(([day, body]) => `${day}: ${body}`))
+      .join("\n");
+  }
+
+  function studyCard({ day, title, body, href }) {
+    const item = document.createElement("a");
+    item.className = "study-card";
+    item.href = href;
+    item.innerHTML = `
+      <strong></strong>
+      <span></span>
+      <p></p>
+    `;
+    item.querySelector("strong").textContent = `Step ${day}`;
+    item.querySelector("span").textContent = title;
+    item.querySelector("p").textContent = body;
+    return item;
+  }
+
+  async function copyStudyPlan() {
+    try {
+      await navigator.clipboard.writeText(studyPlanText);
+      setStudyStatus("Study plan copied.", "good");
+    } catch (_error) {
+      setStudyStatus(studyPlanText, "warn");
+    }
+  }
+
+  function setStudyStatus(message, tone) {
+    studyPlanStatus.textContent = message;
+    if (tone) studyPlanStatus.dataset.tone = tone;
+    else studyPlanStatus.removeAttribute("data-tone");
   }
 
   function progressItem({ title, body, badge, good, empty, href }) {
