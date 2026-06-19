@@ -37,6 +37,8 @@ project a QR code, run a two-minute decision pulse, then debrief the reasoning
 before students return to the main explanation.
 
 <div class="mission-actions" markdown="1">
+[Teacher Guide →](/assets/course-materials/information-security/teacher-guide/){:.btn}
+[Student Guide →](/assets/course-materials/information-security/student-guide/){:.btn}
 [Start Week 1 Mission →](/assets/course-materials/information-security/week-01/mission-01/){:.btn}
 [Open Week 1 Lecture →](/assets/course-materials/information-security/week-01/lecture/){:.btn .btn--outline}
 [Classroom Mode →](/assets/course-materials/information-security/classroom/){:.btn .btn--outline}
