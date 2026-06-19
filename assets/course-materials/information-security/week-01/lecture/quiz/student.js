@@ -24,13 +24,20 @@ let currentQuestionIndex = 0;
 let answersByQuestion = new Map();
 let timerId = null;
 let submitting = false;
+const identity = readIdentity();
 
 const params = new URLSearchParams(window.location.search);
 const codeFromUrl = normalizeCode(params.get("session"));
 if (codeFromUrl) sessionCode.value = codeFromUrl;
+studentName.value = identity.student_name || "";
+studentId.value = identity.student_id || "";
 
 sessionCode.addEventListener("input", () => {
   sessionCode.value = normalizeCode(sessionCode.value);
+});
+
+studentId.addEventListener("input", () => {
+  studentId.value = normalizeStudentId(studentId.value);
 });
 
 joinForm.addEventListener("submit", async (event) => {
@@ -43,8 +50,9 @@ joinForm.addEventListener("submit", async (event) => {
     currentAttempt = await startAttempt({
       session_code: sessionCode.value,
       student_name: studentName.value.trim(),
-      student_identifier: studentId.value.trim()
+      student_identifier: normalizeStudentId(studentId.value)
     });
+    saveIdentity(studentName.value, studentId.value);
     renderAttempt(currentAttempt);
     joinForm.classList.add("hidden");
     quizForm.classList.remove("hidden");
@@ -219,4 +227,27 @@ function setStatus(element, message, tone) {
   element.textContent = message;
   if (tone) element.dataset.tone = tone;
   else element.removeAttribute("data-tone");
+}
+
+function normalizeStudentId(value) {
+  return String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9._-]/g, "")
+    .slice(0, 40);
+}
+
+function readIdentity() {
+  try {
+    return JSON.parse(localStorage.getItem("tc2007b-student-identity")) || {};
+  } catch (_error) {
+    return {};
+  }
+}
+
+function saveIdentity(name, id) {
+  localStorage.setItem("tc2007b-student-identity", JSON.stringify({
+    student_name: String(name || "").trim(),
+    student_id: normalizeStudentId(id)
+  }));
 }

@@ -30,6 +30,7 @@ const reflectionPrompts = {
   "tc2007b-w10-l1": ["Which traffic should be allowed, denied, or isolated?", "Start with: My default rule would be... except..."],
   "tc2007b-w11-l1": ["Which alert would you escalate first, and what evidence would you need?", "Start with: I would escalate... if I also saw..."]
 };
+const identity = readIdentity();
 
 populateLectures();
 
@@ -37,6 +38,8 @@ const params = new URLSearchParams(window.location.search);
 if (params.get("lecture") && lectures[params.get("lecture")]) {
   lectureId.value = params.get("lecture");
 }
+studentName.value = identity.student_name || "";
+studentIdentifier.value = identity.student_id || "";
 renderReflectionPrompt();
 
 confidence.addEventListener("input", () => {
@@ -44,6 +47,9 @@ confidence.addEventListener("input", () => {
 });
 
 lectureId.addEventListener("change", renderReflectionPrompt);
+studentIdentifier.addEventListener("input", () => {
+  studentIdentifier.value = normalizeStudentId(studentIdentifier.value);
+});
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -54,12 +60,13 @@ form.addEventListener("submit", async (event) => {
     const result = await submitExitTicket({
       lecture_id: lectureId.value,
       student_name: studentName.value,
-      student_identifier: studentIdentifier.value,
+      student_identifier: normalizeStudentId(studentIdentifier.value),
       confidence: Number(confidence.value),
       one_thing: oneThing.value,
       muddy_point: muddyPoint.value,
       next_action: nextAction.value
     });
+    saveIdentity(studentName.value, studentIdentifier.value);
     setStatus(result.mode === "supabase" ? "Saved for your teacher." : "Saved locally on this browser.", "good");
     oneThing.value = "";
     muddyPoint.value = "";
@@ -122,4 +129,27 @@ function setStatus(message, tone) {
   ticketStatus.textContent = message;
   if (tone) ticketStatus.dataset.tone = tone;
   else ticketStatus.removeAttribute("data-tone");
+}
+
+function normalizeStudentId(value) {
+  return String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9._-]/g, "")
+    .slice(0, 40);
+}
+
+function readIdentity() {
+  try {
+    return JSON.parse(localStorage.getItem("tc2007b-student-identity")) || {};
+  } catch (_error) {
+    return {};
+  }
+}
+
+function saveIdentity(name, id) {
+  localStorage.setItem("tc2007b-student-identity", JSON.stringify({
+    student_name: String(name || "").trim(),
+    student_id: normalizeStudentId(id)
+  }));
 }

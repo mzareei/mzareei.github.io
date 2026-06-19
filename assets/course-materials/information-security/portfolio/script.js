@@ -2,7 +2,7 @@
   "use strict";
 
   const CONFIG = window.QUIZ_CONFIG || {};
-  const IDENTITY_KEY = "tc2007b-portfolio-identity";
+  const IDENTITY_KEY = "tc2007b-student-identity";
   const portfolioScore = document.getElementById("portfolioScore");
   const studentName = document.getElementById("studentName");
   const studentId = document.getElementById("studentId");
@@ -47,7 +47,11 @@
   ];
   const CONCEPT_TOTAL = 15;
 
-  [studentName, studentId].forEach((field) => field.addEventListener("input", saveIdentity));
+  studentName.addEventListener("input", saveIdentity);
+  studentId.addEventListener("input", () => {
+    studentId.value = normalizeStudentId(studentId.value);
+    saveIdentity();
+  });
   printBtn.addEventListener("click", () => window.print());
   csvBtn.addEventListener("click", () => downloadText("tc2007b-portfolio.csv", toCsv(buildPortfolio().rows), "text/csv"));
   jsonBtn.addEventListener("click", () => downloadText("tc2007b-portfolio.json", JSON.stringify(buildPortfolio(), null, 2), "application/json"));
@@ -122,7 +126,7 @@
       generated_at: new Date().toISOString(),
       student: {
         name: studentName.value.trim(),
-        id: studentId.value.trim()
+        id: normalizeStudentId(studentId.value)
       },
       summary: {
         overall_percent: overallPercent,
@@ -274,8 +278,16 @@
   function saveIdentity() {
     localStorage.setItem(IDENTITY_KEY, JSON.stringify({
       student_name: studentName.value.trim(),
-      student_id: studentId.value.trim()
+      student_id: normalizeStudentId(studentId.value)
     }));
+  }
+
+  function normalizeStudentId(value) {
+    return String(value || "")
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9._-]/g, "")
+      .slice(0, 40);
   }
 
   function setStatus(message, tone) {

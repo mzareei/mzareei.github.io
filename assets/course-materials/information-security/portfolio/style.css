@@ -25,6 +25,14 @@
   box-shadow: 0 0 0 3px rgba(72, 163, 255, 0.16);
 }
 
+.field-hint {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
 .portfolio-actions {
   justify-content: flex-start;
 }

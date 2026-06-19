@@ -453,6 +453,14 @@ h3 {
   margin-top: 0.25rem;
 }
 
+.field-hint {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
 .result {
   display: none;
   border: 1px solid rgba(95, 224, 138, 0.4);
