@@ -59,6 +59,8 @@
         <a class="btn btn-secondary" href="../concept-map/">Concept map</a>
         <a class="btn btn-secondary" href="../playbook/">Teaching playbook</a>
         <a class="btn btn-secondary" href="../assessment/">Assessment studio</a>
+        <button class="btn btn-secondary" id="loadParticipationBtn" type="button">Load semester</button>
+        <button class="btn btn-secondary" id="exportParticipationBtn" type="button">Export semester CSV</button>
         <span class="status" id="insightStatus" aria-live="polite"></span>
       </div>
     </div>
@@ -84,6 +86,28 @@
     <span class="eyebrow">Muddy points</span>
     <h2>What students want clarified</h2>
     <div class="insight-list" id="muddyList"></div>
+  </section>
+
+  <section class="mission-card">
+    <span class="eyebrow">Semester view</span>
+    <h2>Participation signals</h2>
+    <div class="semester-stats" id="semesterStats"></div>
+    <div class="semester-table-wrap">
+      <table class="semester-table">
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>ID</th>
+            <th>Quiz</th>
+            <th>Reflections</th>
+            <th>Portfolio</th>
+            <th>Signal</th>
+            <th>Last activity</th>
+          </tr>
+        </thead>
+        <tbody id="participationRows"></tbody>
+      </table>
+    </div>
   </section>
 
       <section class="mission-card">

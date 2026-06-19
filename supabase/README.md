@@ -43,6 +43,7 @@ npx supabase functions deploy course-submit-reflection
 npx supabase functions deploy course-reflection-summary
 npx supabase functions deploy course-submit-portfolio
 npx supabase functions deploy course-portfolio-summary
+npx supabase functions deploy course-participation-summary
 ```
 
 The browser demo mode includes 10-question banks for the active lectures and bridge missions configured in `config.js`. Supabase mode uses question rows stored in the database. For a fast classroom pilot, run `seed/tc2007b_demo_question_bank.sql`; for custom or private banks, import each lecture bank through `quiz/bank.html`.

@@ -7,6 +7,7 @@ const courseRoot = path.join(root, "assets", "course-materials", "information-se
 const quizApiPath = path.join(courseRoot, "week-01", "lecture", "quiz", "quiz-api.js");
 const configPath = path.join(courseRoot, "week-01", "lecture", "quiz", "config.js");
 const fullSeedPath = path.join(root, "supabase", "seed", "tc2007b_demo_question_bank.sql");
+const supabaseRoot = path.join(root, "supabase");
 
 const failures = [];
 
@@ -163,10 +164,43 @@ function verifyPublicSecretSafety() {
   return publicFiles.length;
 }
 
+function verifySupabaseFunctions() {
+  const functionsDir = path.join(supabaseRoot, "functions");
+  const config = read(path.join(supabaseRoot, "config.toml"));
+  const readme = read(path.join(supabaseRoot, "README.md"));
+  const functionNames = fs.readdirSync(functionsDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && !entry.name.startsWith("_"))
+    .map((entry) => entry.name)
+    .sort();
+
+  functionNames.forEach((name) => {
+    const indexPath = path.join(functionsDir, name, "index.ts");
+    if (!fs.existsSync(indexPath)) {
+      fail(`Supabase function ${name} is missing index.ts.`);
+    }
+    if (!config.includes(`[functions.${name}]`)) {
+      fail(`Supabase function ${name} is missing from supabase/config.toml.`);
+    }
+    if (!readme.includes(`functions deploy ${name}`)) {
+      fail(`Supabase function ${name} is missing from supabase/README.md deploy commands.`);
+    }
+  });
+
+  const configured = Array.from(config.matchAll(/\[functions\.([^\]]+)\]/g)).map((match) => match[1]);
+  configured.forEach((name) => {
+    if (!functionNames.includes(name)) {
+      fail(`supabase/config.toml references missing function ${name}.`);
+    }
+  });
+
+  return functionNames.length;
+}
+
 const bankStats = verifyQuestionBanks();
 const syntaxCount = verifyJavaScriptSyntax();
 const htmlCount = verifyLocalLinks();
 const publicCount = verifyPublicSecretSafety();
+const functionCount = verifySupabaseFunctions();
 
 if (failures.length) {
   console.error("Course platform verification failed:");
@@ -181,3 +215,4 @@ console.log(`- ${bankStats.lectures} lecture banks, ${bankStats.questions} quest
 console.log(`- ${syntaxCount} JavaScript files checked`);
 console.log(`- ${htmlCount} HTML files checked for local links`);
 console.log(`- ${publicCount} public files scanned for server-secret references`);
+console.log(`- ${functionCount} Supabase functions checked`);

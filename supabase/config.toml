@@ -24,3 +24,6 @@ verify_jwt = false
 
 [functions.course-portfolio-summary]
 verify_jwt = false
+
+[functions.course-participation-summary]
+verify_jwt = false

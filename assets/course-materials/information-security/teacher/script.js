@@ -1,8 +1,11 @@
 import { isConfigured, lectures, reflectionSummary } from "../exit-ticket/reflection-api.js";
 
+const CONFIG = window.QUIZ_CONFIG || {};
 const lectureId = document.getElementById("lectureId");
 const teacherPin = document.getElementById("teacherPin");
 const loadBtn = document.getElementById("loadBtn");
+const loadParticipationBtn = document.getElementById("loadParticipationBtn");
+const exportParticipationBtn = document.getElementById("exportParticipationBtn");
 const insightStatus = document.getElementById("insightStatus");
 const ticketStat = document.getElementById("ticketStat");
 const avgConfidence = document.getElementById("avgConfidence");
@@ -10,10 +13,17 @@ const lowConfidence = document.getElementById("lowConfidence");
 const actionList = document.getElementById("actionList");
 const muddyList = document.getElementById("muddyList");
 const ticketList = document.getElementById("ticketList");
+const semesterStats = document.getElementById("semesterStats");
+const participationRows = document.getElementById("participationRows");
+
+let lastParticipationSummary = null;
 
 populateLectures();
+renderParticipationEmpty();
 
 loadBtn.addEventListener("click", loadInsights);
+loadParticipationBtn.addEventListener("click", loadParticipation);
+exportParticipationBtn.addEventListener("click", exportParticipationCsv);
 loadInsights();
 
 async function loadInsights() {
@@ -47,6 +57,109 @@ function renderSummary(summary) {
   renderCounts(actionList, summary.action_counts || [], "No action data yet.");
   renderMuddy(summary.muddy_points || []);
   renderTickets(tickets);
+}
+
+async function loadParticipation() {
+  if (!isConfigured()) {
+    setStatus("Supabase is required for semester participation.", "warn");
+    return;
+  }
+  if (!teacherPin.value) {
+    setStatus("Enter the teacher PIN to load semester participation.", "warn");
+    return;
+  }
+  loadParticipationBtn.disabled = true;
+  setStatus("Loading semester summary...", "");
+  try {
+    const summary = await callFunction("course-participation-summary", {
+      teacher_pin: teacherPin.value
+    });
+    lastParticipationSummary = summary;
+    renderParticipation(summary);
+    setStatus("Semester summary loaded.", "good");
+  } catch (error) {
+    setStatus(error.message || "Unable to load semester summary.", "danger");
+  } finally {
+    loadParticipationBtn.disabled = false;
+  }
+}
+
+function renderParticipation(summary) {
+  const stats = summary.stats || {};
+  semesterStats.innerHTML = "";
+  [
+    ["Students", stats.students || 0],
+    ["Quiz avg", `${stats.average_quiz_percent || 0}%`],
+    ["Portfolio avg", `${stats.average_portfolio_percent || 0}%`],
+    ["Needs attention", stats.needs_attention || 0]
+  ].forEach(([label, value]) => {
+    const card = document.createElement("div");
+    card.innerHTML = "<strong></strong><span></span>";
+    card.querySelector("strong").textContent = value;
+    card.querySelector("span").textContent = label;
+    semesterStats.appendChild(card);
+  });
+
+  const students = summary.students || [];
+  participationRows.innerHTML = "";
+  if (!students.length) {
+    participationRows.innerHTML = `<tr><td colspan="7">No semester records found yet.</td></tr>`;
+    return;
+  }
+  students.slice(0, 120).forEach((student) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = "<td></td><td></td><td></td><td></td><td></td><td><strong></strong></td><td></td>";
+    tr.children[0].textContent = student.student_name || "Unnamed";
+    tr.children[1].textContent = student.student_identifier || "";
+    tr.children[2].textContent = `${student.quiz_average || 0}% · ${student.quiz_submissions || 0}/${student.quiz_attempts || 0}`;
+    tr.children[3].textContent = `${student.reflections || 0} · conf ${student.average_confidence || 0}/5`;
+    tr.children[4].textContent = `${student.portfolio_overall || 0}%`;
+    tr.querySelector("strong").textContent = student.participation_signal || "Needs attention";
+    tr.children[6].textContent = readableDate(student.last_activity);
+    participationRows.appendChild(tr);
+  });
+}
+
+function renderParticipationEmpty() {
+  semesterStats.innerHTML = "";
+  participationRows.innerHTML = `<tr><td colspan="7">Load semester participation after students submit quizzes, reflections, or portfolios.</td></tr>`;
+}
+
+function exportParticipationCsv() {
+  const students = lastParticipationSummary?.students || [];
+  if (!students.length) {
+    setStatus("Load semester participation before exporting.", "warn");
+    return;
+  }
+  const rows = [
+    ["student_name", "student_identifier", "quiz_attempts", "quiz_submissions", "quiz_average", "reflections", "average_confidence", "low_confidence", "portfolio_overall", "portfolio_mission_average", "portfolio_quiz_average", "portfolio_cases", "participation_score", "participation_signal", "last_activity"],
+    ...students.map((student) => [
+      student.student_name || "",
+      student.student_identifier || "",
+      student.quiz_attempts || 0,
+      student.quiz_submissions || 0,
+      student.quiz_average || 0,
+      student.reflections || 0,
+      student.average_confidence || 0,
+      student.low_confidence || 0,
+      student.portfolio_overall || 0,
+      student.portfolio_mission_average || 0,
+      student.portfolio_quiz_average || 0,
+      student.portfolio_cases || 0,
+      student.participation_score || 0,
+      student.participation_signal || "",
+      student.last_activity || ""
+    ])
+  ];
+  const csv = rows.map((row) => row.map(csvCell).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `tc2007b-semester-participation-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+  setStatus("Semester CSV exported.", "good");
 }
 
 function populateLectures() {
@@ -138,4 +251,32 @@ function setStatus(message, tone) {
   insightStatus.textContent = message;
   if (tone) insightStatus.dataset.tone = tone;
   else insightStatus.removeAttribute("data-tone");
+}
+
+async function callFunction(name, payload) {
+  const base = CONFIG.supabaseUrl.replace(/\/$/, "");
+  const response = await fetch(`${base}/functions/v1/${name}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: CONFIG.supabaseAnonKey,
+      Authorization: `Bearer ${CONFIG.supabaseAnonKey}`
+    },
+    body: JSON.stringify(payload)
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.error || `Request failed with status ${response.status}.`);
+  return body;
+}
+
+function readableDate(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toLocaleString();
+}
+
+function csvCell(value) {
+  const text = String(value ?? "");
+  if (/[",\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
+  return text;
 }
