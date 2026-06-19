@@ -46,6 +46,22 @@
     ["chain", "Control Mapping", "At each attack stage, what three questions should a defender ask?", "What failed, what control would reduce it, and what signal should reveal it.", "../attack-chain/"]
   ].map(([tag, title, prompt, answer, href], index) => ({ id: `card-${index + 1}`, tag, title, prompt, answer, href }));
 
+  const quizLectureTags = {
+    "tc2007b-w1-l1": ["cia", "risk"],
+    "tc2007b-w1-l2": ["risk", "access"],
+    "tc2007b-w2-l1": ["auth", "passwords"],
+    "tc2007b-w2-l2": ["access", "least-privilege"],
+    "tc2007b-w3-l1": ["appsec", "xss"],
+    "tc2007b-w4-bridge": ["release", "appsec"],
+    "tc2007b-w5-l1": ["crypto"],
+    "tc2007b-w6-bridge": ["symmetric", "keys"],
+    "tc2007b-w7-l1": ["protocols", "hashing"],
+    "tc2007b-w8-bridge": ["tls", "channels"],
+    "tc2007b-w9-l1": ["malware"],
+    "tc2007b-w10-l1": ["firewall"],
+    "tc2007b-w11-l1": ["ids"]
+  };
+
   const signals = collectSignals();
   const sprint = buildSprint();
   let currentIndex = Math.min(state.currentIndex || 0, sprint.length - 1);
@@ -191,6 +207,22 @@
         tags: ["risk", "appsec", "protocols"]
       });
     }
+
+    const quizState = read("tc2007b-quiz-pilot");
+    Object.values(quizState.attempts || {})
+      .filter((attempt) => attempt.submitted_at && Number(attempt.total || 0) > 0)
+      .slice(0, 5)
+      .forEach((attempt) => {
+        const percent = Math.round((Number(attempt.score || 0) / Number(attempt.total || 1)) * 100);
+        if (percent >= 80) return;
+        const session = quizState.sessions?.[attempt.session_code] || {};
+        const lectureId = session.lecture_id || "";
+        rows.unshift({
+          title: "Quiz review signal",
+          body: `${session.title || attempt.session_code || "Recent quiz"} scored ${percent}%; this sprint will revisit connected concepts.`,
+          tags: quizLectureTags[lectureId] || ["risk", "appsec", "ids"]
+        });
+      });
 
     const cases = read("tc2007b-case-files");
     const completedCases = Object.values(cases.results || {}).filter((result) => result.completed).length;
