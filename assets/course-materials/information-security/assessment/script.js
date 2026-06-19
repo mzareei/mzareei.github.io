@@ -19,9 +19,11 @@
   const gapList = document.getElementById("gapList");
   const portfolioTeacherPin = document.getElementById("portfolioTeacherPin");
   const loadPortfolioSummaryBtn = document.getElementById("loadPortfolioSummaryBtn");
+  const exportPortfolioSummaryBtn = document.getElementById("exportPortfolioSummaryBtn");
   const portfolioSummaryStatus = document.getElementById("portfolioSummaryStatus");
   const submissionStats = document.getElementById("submissionStats");
   const portfolioSubmissions = document.getElementById("portfolioSubmissions");
+  let lastPortfolioSummary = null;
 
   const RUBRIC = [
     {
@@ -89,6 +91,7 @@
     setStatus("Cleared.", "");
   });
   loadPortfolioSummaryBtn.addEventListener("click", loadPortfolioSummary);
+  exportPortfolioSummaryBtn.addEventListener("click", exportPortfolioSummary);
 
   renderEmpty();
   renderPortfolioSummaryEmpty();
@@ -274,6 +277,7 @@
       const summary = await callFunction("course-portfolio-summary", {
         teacher_pin: portfolioTeacherPin.value
       });
+      lastPortfolioSummary = summary;
       renderPortfolioSummary(summary);
       setPortfolioSummaryStatus("Portfolio summary loaded.", "good");
     } catch (error) {
@@ -321,6 +325,39 @@
     portfolioSubmissions.innerHTML = `<article class="submission-row"><strong>No portfolio submissions loaded</strong><span>Use the teacher PIN to load Supabase records.</span></article>`;
   }
 
+  function exportPortfolioSummary() {
+    const submissions = lastPortfolioSummary?.submissions || [];
+    if (!submissions.length) {
+      setPortfolioSummaryStatus("Load submissions before exporting.", "warn");
+      return;
+    }
+    const rows = [
+      ["student_name", "student_identifier", "overall_percent", "mission_average", "quiz_average", "case_completed", "attack_chain_percent", "concept_map_percent", "review_cards", "reflections", "created_at"],
+      ...submissions.map((submission) => [
+        submission.student_name || "",
+        submission.student_identifier || "",
+        submission.overall_percent ?? "",
+        submission.mission_average ?? "",
+        submission.quiz_average ?? "",
+        submission.case_completed ?? "",
+        submission.attack_chain_percent ?? "",
+        submission.concept_map_percent ?? "",
+        submission.review_cards ?? "",
+        submission.reflections ?? "",
+        submission.created_at || ""
+      ])
+    ];
+    const csv = rows.map((row) => row.map(csvCell).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `tc2007b-portfolio-submissions-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setPortfolioSummaryStatus("CSV exported.", "good");
+  }
+
   function isConfigured() {
     return Boolean(CONFIG.supabaseUrl && CONFIG.supabaseAnonKey);
   }
@@ -347,6 +384,12 @@
     portfolioSummaryStatus.textContent = message;
     if (tone) portfolioSummaryStatus.dataset.tone = tone;
     else portfolioSummaryStatus.removeAttribute("data-tone");
+  }
+
+  function csvCell(value) {
+    const text = String(value ?? "");
+    if (/[",\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
+    return text;
   }
 
   window.calculateWeightedGrade = calculateWeightedGrade;

@@ -35,6 +35,22 @@
   box-shadow: 0 0 0 3px rgba(72, 163, 255, 0.16);
 }
 
+.reflection-focus {
+  border: 1px solid rgba(56, 214, 192, 0.35);
+  border-radius: 14px;
+  padding: 1rem;
+  background: rgba(56, 214, 192, 0.08);
+}
+
+.reflection-focus h2 {
+  margin: 0.3rem 0 0.35rem;
+}
+
+.reflection-focus p {
+  margin: 0;
+  color: var(--muted);
+}
+
 .ticket-list {
   display: grid;
   gap: 0.75rem;

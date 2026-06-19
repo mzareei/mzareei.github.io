@@ -15,6 +15,8 @@
   const pulseChoices = document.getElementById("pulseChoices");
   const pulseCount = document.getElementById("pulseCount");
   const pulseDebrief = document.getElementById("pulseDebrief");
+  const pairMove = document.getElementById("pairMove");
+  const collectSignal = document.getElementById("collectSignal");
   const prevPulseBtn = document.getElementById("prevPulseBtn");
   const nextPulseBtn = document.getElementById("nextPulseBtn");
   const revealBtn = document.getElementById("revealBtn");
@@ -107,6 +109,22 @@
       ["Detection type", "Which approach catches known byte patterns?", ["Signature detection", "Anomaly detection", "Certificate validation"], 0, "Signature systems compare events to known patterns."],
       ["SOC triage", "Why prioritize alerts?", ["High false-positive rates can overwhelm analysts", "Every alert is equally urgent", "Logs have no value"], 0, "A SOC must correlate and prioritize to avoid overload."]
     ]
+  };
+
+  const activityMoves = {
+    "tc2007b-w1-l1": ["Ask pairs to name the protected asset before choosing CIA.", "Collect one example of value plus risk from the room."],
+    "tc2007b-w1-l2": ["Ask pairs to separate ability, permission, and harm.", "Collect one boundary students would not cross."],
+    "tc2007b-w2-l1": ["Ask pairs to identify the factor type before judging strength.", "Collect one usability cost of the stronger answer."],
+    "tc2007b-w2-l2": ["Ask pairs to write the policy sentence and the enforcement mechanism.", "Collect one permission that should be removed."],
+    "tc2007b-w3-l1": ["Ask pairs to mark the trust boundary before choosing the fix.", "Collect one input that must be validated server-side."],
+    "tc2007b-w4-bridge": ["Ask pairs to decide: block release, monitor, or accept.", "Collect one risk that needs evidence before release."],
+    "tc2007b-w5-l1": ["Ask pairs to draw sender, receiver, and which key is used.", "Collect one private-key mistake that would break the system."],
+    "tc2007b-w6-bridge": ["Ask pairs to identify what must be unique, secret, or rotated.", "Collect one key-handling rule students would enforce."],
+    "tc2007b-w7-l1": ["Ask pairs to label freshness, identity, and direction in the message.", "Collect one replay clue the protocol should reject."],
+    "tc2007b-w8-bridge": ["Ask pairs to decide whether the channel or identity check failed.", "Collect one browser signal students should never ignore."],
+    "tc2007b-w9-l1": ["Ask pairs to choose contain, eradicate, or recover first.", "Collect one action that preserves evidence."],
+    "tc2007b-w10-l1": ["Ask pairs to write the firewall intent before the rule.", "Collect one traffic flow that belongs in the DMZ."],
+    "tc2007b-w11-l1": ["Ask pairs to label the alert outcome before prioritizing.", "Collect one context clue that changes severity."]
   };
 
   let currentPulseIndex = 0;
@@ -214,9 +232,12 @@
     const pulses = pulseBank[lectureId.value] || [["Discuss", "What is the most important security decision in this lecture?", ["Prevent", "Detect", "Respond"], 0, "Use the student answers to decide where to slow down."]];
     if (currentPulseIndex >= pulses.length) currentPulseIndex = 0;
     const [title, prompt, choices, answerIndex, debrief] = pulses[currentPulseIndex];
+    const [pair, collect] = activityMoves[lectureId.value] || ["Ask pairs to defend their answer with one reason.", "Collect one uncertainty before revealing."];
     pulseTitle.textContent = title;
     pulsePrompt.textContent = prompt;
     pulseCount.textContent = `${currentPulseIndex + 1} / ${pulses.length}`;
+    pairMove.textContent = pair;
+    collectSignal.textContent = collect;
     pulseChoices.innerHTML = "";
     choices.forEach((choice, index) => {
       const item = document.createElement("div");

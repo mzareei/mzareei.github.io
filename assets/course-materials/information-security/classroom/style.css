@@ -126,6 +126,34 @@
   border-color: transparent;
 }
 
+.activity-move {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 0.9rem 0;
+}
+
+.activity-move > div {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.75rem;
+  background: rgba(72, 163, 255, 0.08);
+}
+
+.activity-move span {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.activity-move strong {
+  color: var(--ink);
+  line-height: 1.35;
+}
+
 .timer-buttons {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -150,7 +178,8 @@
   .classroom-grid,
   .classroom-grid--lower,
   .quick-link-grid,
-  .timer-buttons {
+  .timer-buttons,
+  .activity-move {
     grid-template-columns: 1fr;
   }
 }
