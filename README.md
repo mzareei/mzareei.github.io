@@ -33,6 +33,19 @@ bundle exec jekyll serve --livereload
 
 (Changes to `_config.yml` require restarting the server.)
 
+### Optional: verify the TC2007B course platform
+
+The interactive course materials include lecture quizzes, QR classroom tools,
+Supabase functions, progress views, and teacher dashboards. Before pushing
+course-platform changes, run:
+
+```bash
+node tools/verify-course-platform.js
+```
+
+The verifier checks question-bank coverage, answer-key shape, JavaScript syntax,
+local course links, and accidental server-secret references in public files.
+
 ---
 
 ## 2. First things to edit

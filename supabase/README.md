@@ -6,7 +6,7 @@ This folder contains the Supabase backend for the TC2007B live quiz, question-ba
 
 1. Create a Supabase project.
 2. Run `migrations/0001_quiz_pilot.sql`, `migrations/0002_exit_tickets.sql`, and `migrations/0003_portfolio_submissions.sql` in the Supabase SQL editor.
-3. For a non-sensitive starter bank, run `seed/week01_lecture01_demo.sql`.
+3. For the non-sensitive course pilot bank, run `seed/tc2007b_demo_question_bank.sql`. It currently covers all active lecture quizzes and bridge sessions.
 4. Set the teacher PIN function secret:
 
 ```text
@@ -31,9 +31,13 @@ assets/course-materials/information-security/week-01/lecture/quiz/config.js
 - `portfolio/` lets students export local learning evidence and optionally submit a portfolio record to Supabase through `course-submit-portfolio`.
 - `assessment/` imports portfolio JSON manually and can load submitted portfolio records through `course-portfolio-summary` with the teacher PIN.
 
-Deploy the new helper functions with the quiz functions:
+Deploy all Edge Functions:
 
 ```powershell
+npx supabase functions deploy quiz-create-session
+npx supabase functions deploy quiz-start-attempt
+npx supabase functions deploy quiz-submit-attempt
+npx supabase functions deploy quiz-session-summary
 npx supabase functions deploy quiz-import-questions
 npx supabase functions deploy course-submit-reflection
 npx supabase functions deploy course-reflection-summary
@@ -41,7 +45,7 @@ npx supabase functions deploy course-submit-portfolio
 npx supabase functions deploy course-portfolio-summary
 ```
 
-The browser demo mode includes 10-question banks for the active lectures and bridge missions configured in `config.js`. Supabase mode uses question rows stored in the database, so import each lecture bank through `quiz/bank.html` before running a real classroom session.
+The browser demo mode includes 10-question banks for the active lectures and bridge missions configured in `config.js`. Supabase mode uses question rows stored in the database. For a fast classroom pilot, run `seed/tc2007b_demo_question_bank.sql`; for custom or private banks, import each lecture bank through `quiz/bank.html`.
 
 Question imports expect:
 
@@ -65,3 +69,13 @@ Question imports expect:
 The browser never receives correct answers in the Supabase version. Questions are selected, shuffled, and graded in Edge Functions using Supabase's built-in server-side credentials.
 
 Do not put high-stakes exam question banks or answer keys in this public repository. Use the demo seed only for a classroom pilot or low-stakes checks.
+
+## Local Verification
+
+Run this before pushing course-platform changes:
+
+```powershell
+node tools/verify-course-platform.js
+```
+
+It checks lecture question-bank coverage, malformed answer keys, local course links, JavaScript syntax, and accidental server-secret references in public files.
