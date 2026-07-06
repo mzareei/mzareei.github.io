@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Section Management</title>
+<meta name="description" content="Instructor section setup for authenticated TC2007B course operations.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../week-01/mission-01/style.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<main class="mission-shell app-shell">
+  <header class="mission-top">
+    <a href="./" class="back-link">Course App</a>
+    <div>
+      <span class="eyebrow">TC2007B · Teacher setup</span>
+      <h1>Course Sections</h1>
+      <p class="lead">Create and maintain the sections used by roster imports, class sessions, releases, and grade exports.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="sectionCount">0</strong>
+      <span>sections</span>
+    </div>
+  </header>
+
+  <section class="mission-card app-panel">
+    <div class="button-row gradebook-actions">
+      <button class="app-button" id="refreshSectionsBtn" type="button">Refresh sections</button>
+      <button class="app-button secondary" id="newSectionBtn" type="button">New section</button>
+      <a class="app-button secondary" href="./">Course App</a>
+      <a class="app-button secondary" href="roster.html">Roster Import</a>
+    </div>
+    <p class="status-line" id="sectionStatus" aria-live="polite"></p>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Section details</span>
+    <h2 id="selectedSection">New section</h2>
+    <div class="auth-grid">
+      <label class="field-stack">
+        Section code
+        <input id="sectionCodeInput" type="text" maxlength="40" placeholder="A">
+      </label>
+      <label class="field-stack">
+        Section name
+        <input id="sectionNameInput" type="text" maxlength="120" placeholder="Morning section">
+      </label>
+      <label class="field-stack">
+        Meeting pattern
+        <input id="sectionMeetingPatternInput" type="text" maxlength="160" placeholder="Mon/Wed 10:00">
+      </label>
+      <label class="field-stack">
+        Campus
+        <input id="sectionCampusInput" type="text" maxlength="120" placeholder="Campus">
+      </label>
+      <label class="field-stack">
+        Status
+        <select id="sectionStatusSelect">
+          <option value="active">Active</option>
+          <option value="planned">Planned</option>
+          <option value="completed">Completed</option>
+          <option value="archived">Archived</option>
+        </select>
+      </label>
+      <div class="field-stack">
+        <span>&nbsp;</span>
+        <button class="app-button" id="saveSectionBtn" type="button">Save section</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Current setup</span>
+    <h2>Course sections</h2>
+    <div class="release-table-wrap">
+      <table class="release-table gradebook-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Meeting</th>
+            <th>Campus</th>
+            <th>Status</th>
+            <th>Updated</th>
+          </tr>
+        </thead>
+        <tbody id="sectionRows"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../platform-config.js"></script>
+<script type="module" src="sections.js"></script>
+</body>
+</html>

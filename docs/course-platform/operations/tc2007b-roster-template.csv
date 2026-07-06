@@ -1,0 +1,6 @@
+institutional_email,full_name,student_identifier,section_code,role
+student.test.001@example.tec.mx,Test Student One,A00000001,A,student
+student.test.002@example.tec.mx,Test Student Two,A00000002,B,student
+ta.test.001@example.tec.mx,Test Teaching Assistant,T00000001,A,teaching_assistant
+instructor.test.001@example.tec.mx,Test Instructor,I00000001,A,instructor
+observer.test.001@example.tec.mx,Test Observer,O00000001,B,observer

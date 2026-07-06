@@ -33,12 +33,13 @@ function walk(dir, predicate = () => true, results = []) {
 }
 
 function parseObjectAfter(fileText, marker, endMarker) {
-  const start = fileText.indexOf(marker);
-  const end = fileText.indexOf(endMarker, start);
+  const normalized = fileText.replace(/\r\n/g, "\n");
+  const start = normalized.indexOf(marker);
+  const end = normalized.indexOf(endMarker, start);
   if (start < 0 || end < 0) {
     throw new Error(`Could not parse ${marker.trim()}`);
   }
-  const objectSource = fileText.slice(start + marker.length, end).trim().replace(/;$/, "");
+  const objectSource = normalized.slice(start + marker.length, end).trim().replace(/;$/, "");
   return Function(`return (${objectSource});`)();
 }
 

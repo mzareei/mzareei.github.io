@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Content Library</title>
+<meta name="description" content="Instructor content library for authenticated TC2007B course material.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../week-01/mission-01/style.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<main class="mission-shell app-shell">
+  <header class="mission-top">
+    <a href="./" class="back-link">Course App</a>
+    <div>
+      <span class="eyebrow">TC2007B · Content Library</span>
+      <h1>Content Library</h1>
+      <p class="lead">Prepare lecture, activity, and assessment records before releasing them to a section.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="contentItemCount">0</strong>
+      <span>items</span>
+    </div>
+  </header>
+
+  <section class="mission-card app-panel">
+    <div class="button-row">
+      <button class="app-button" id="refreshContentLibraryBtn" type="button">Refresh content</button>
+      <button class="app-button secondary" id="newContentItemBtn" type="button">New item</button>
+      <a class="app-button secondary" href="releases.html">Release Console</a>
+      <a class="app-button secondary" href="./">Course App</a>
+    </div>
+    <p class="status-line" id="contentLibraryStatus" aria-live="polite"></p>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Selected content</span>
+    <h2 id="selectedContentItem">New content item</h2>
+    <div class="auth-grid">
+      <label class="field-stack">
+        Title
+        <input id="contentTitleInput" type="text" maxlength="180" placeholder="Week 3 threat modeling pulse">
+      </label>
+      <label class="field-stack">
+        Slug
+        <input id="contentSlugInput" type="text" maxlength="160" placeholder="week-03-threat-modeling-pulse">
+      </label>
+      <label class="field-stack">
+        Type
+        <select id="contentTypeSelect">
+          <option value="lecture">Lecture</option>
+          <option value="mission">Mission</option>
+          <option value="quiz_bank">Quiz bank</option>
+          <option value="activity">Activity</option>
+          <option value="exit_ticket">Exit ticket</option>
+          <option value="portfolio">Portfolio</option>
+          <option value="resource">Resource</option>
+          <option value="case_file">Case file</option>
+        </select>
+      </label>
+      <label class="field-stack">
+        Source kind
+        <select id="contentSourceKindSelect">
+          <option value="static_path">Static path</option>
+          <option value="supabase_record">Supabase record</option>
+          <option value="external_url">External URL</option>
+        </select>
+      </label>
+      <label class="field-stack">
+        Source reference
+        <input id="contentSourceRefInput" type="text" maxlength="500" placeholder="../week-03/lecture/">
+      </label>
+      <label class="field-stack">
+        Default points
+        <input id="contentDefaultPointsInput" type="number" min="0" step="0.1" value="0">
+      </label>
+    </div>
+    <label class="field-stack">
+      Summary
+      <textarea id="contentSummaryInput" rows="4" maxlength="1000" placeholder="Short teacher-facing description."></textarea>
+    </label>
+    <div class="button-row">
+      <label class="checkbox-line">
+        <input id="contentSensitiveInput" type="checkbox">
+        Sensitive or graded
+      </label>
+      <label class="checkbox-line">
+        <input id="createDraftReleaseInput" type="checkbox">
+        Create draft release
+      </label>
+    </div>
+    <div class="auth-grid">
+      <label class="field-stack">
+        Draft release section
+        <select id="draftReleaseSectionInput"></select>
+      </label>
+      <label class="field-stack">
+        Draft release session
+        <select id="draftReleaseSessionInput"></select>
+      </label>
+      <label class="field-stack">
+        Allowed attempts
+        <input id="draftReleaseAttemptsInput" type="number" min="1" max="20" step="1" value="1">
+      </label>
+      <div class="field-stack">
+        <span>&nbsp;</span>
+        <button class="app-button" id="saveContentItemBtn" type="button">Save content item</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Library</span>
+    <h2>Course content records</h2>
+    <div class="release-table-wrap">
+      <table class="release-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Type</th>
+            <th>Source</th>
+            <th>Sensitive</th>
+            <th>Drafts</th>
+            <th>Updated</th>
+          </tr>
+        </thead>
+        <tbody id="contentItemRows"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../platform-config.js"></script>
+<script type="module" src="content-library.js"></script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Roster Import</title>
+<meta name="description" content="Teacher roster import and validation for the authenticated TC2007B course app.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../week-01/mission-01/style.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<main class="mission-shell app-shell">
+  <header class="mission-top">
+    <a href="./" class="back-link">Course App</a>
+    <div>
+      <span class="eyebrow">TC2007B · Teacher roster controls</span>
+      <h1>Roster Import</h1>
+      <p class="lead">Preview institutional email rows, apply accepted students, and let sign-in claim the matching roster profile.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong>ID</strong>
+      <span>ready</span>
+    </div>
+  </header>
+
+  <section class="mission-card app-panel">
+    <div class="auth-grid">
+      <label class="field-stack">
+        Allowed domains
+        <input id="allowedDomainsInput" type="text" value="tec.mx, itesm.mx">
+      </label>
+      <label class="field-stack">
+        Source name
+        <input id="sourceFilenameInput" type="text" value="pasted-roster.csv">
+      </label>
+    </div>
+    <label class="field-stack portfolio-evidence-field">
+      CSV roster
+      <textarea id="rosterCsvInput" rows="10" spellcheck="false">institutional_email,full_name,student_identifier,section_code,role
+student.name@tec.mx,Student Name,A01234567,A,student</textarea>
+    </label>
+    <div class="button-row gradebook-actions">
+      <button class="app-button" id="previewRosterBtn" type="button">Preview roster</button>
+      <button class="app-button" id="applyRosterBtn" type="button">Apply accepted rows</button>
+      <button class="app-button secondary" id="refreshRosterBtn" type="button">Refresh current roster</button>
+      <a class="app-button secondary" href="./">Course App</a>
+    </div>
+    <p class="status-line" id="rosterStatus" aria-live="polite"></p>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Import preview</span>
+    <h2>Accepted and rejected rows</h2>
+    <div class="gradebook-summary" id="rosterSummary"></div>
+    <div class="release-table-wrap">
+      <table class="release-table gradebook-table">
+        <thead>
+          <tr>
+            <th>Row</th>
+            <th>Email</th>
+            <th>Name</th>
+            <th>Section</th>
+            <th>Role</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="rosterRows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Current roster</span>
+    <h2>Linked course identities</h2>
+    <div class="release-table-wrap">
+      <table class="release-table gradebook-table">
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Email</th>
+            <th>Sections</th>
+            <th>Course role</th>
+            <th>Claimed</th>
+          </tr>
+        </thead>
+        <tbody id="currentRosterRows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Roster correction</span>
+    <h2 id="selectedRosterProfile">No roster profile selected</h2>
+    <div class="auth-grid">
+      <label class="field-stack">
+        Email
+        <input id="correctionEmailInput" type="email">
+      </label>
+      <label class="field-stack">
+        Name
+        <input id="correctionNameInput" type="text">
+      </label>
+      <label class="field-stack">
+        Student ID
+        <input id="correctionStudentIdInput" type="text">
+      </label>
+      <label class="field-stack">
+        Status
+        <select id="correctionStatusSelect">
+          <option value="invited">Invited</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="merged">Merged</option>
+        </select>
+      </label>
+    </div>
+    <label class="field-stack portfolio-evidence-field">
+      Correction reason
+      <input id="correctionReasonInput" type="text" placeholder="Wrong email on official roster">
+    </label>
+    <div class="button-row gradebook-actions">
+      <button class="app-button" id="saveRosterCorrectionBtn" type="button">Save correction</button>
+    </div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Profile merge</span>
+    <h2>Merge duplicate identity</h2>
+    <div class="auth-grid">
+      <label class="field-stack">
+        Source profile ID
+        <input id="mergeSourceProfileInput" type="text" readonly>
+      </label>
+      <label class="field-stack">
+        Target profile ID
+        <input id="mergeTargetProfileInput" type="text" placeholder="Paste the profile_id to keep">
+      </label>
+    </div>
+    <div class="button-row gradebook-actions">
+      <button class="app-button secondary" id="mergeRosterProfileBtn" type="button">Merge selected profile</button>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../platform-config.js"></script>
+<script type="module" src="roster.js"></script>
+</body>
+</html>

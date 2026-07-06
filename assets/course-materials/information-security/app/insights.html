@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Learning Insights</title>
+<meta name="description" content="Authenticated teacher learning insights for TC2007B.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../week-01/mission-01/style.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<main class="mission-shell app-shell">
+  <header class="mission-top">
+    <a href="./" class="back-link">Course App</a>
+    <div>
+      <span class="eyebrow">TC2007B · Teacher learning loop</span>
+      <h1>Learning Insights</h1>
+      <p class="lead">Review section, topic, activity, student, and exit-ticket signals before deciding what to revisit next.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="insightSignalCount">0</strong>
+      <span>signals</span>
+    </div>
+  </header>
+
+  <section class="mission-card app-panel">
+    <div class="button-row">
+      <button class="app-button" id="refreshInsightsBtn" type="button">Refresh insights</button>
+      <a class="app-button secondary" href="./">Course App</a>
+      <a class="app-button secondary" href="gradebook.html">Gradebook</a>
+    </div>
+    <p class="status-line" id="insightStatus" aria-live="polite"></p>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Recommendations</span>
+    <h2>Teach next</h2>
+    <div class="progress-card-list" id="recommendationRows"></div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Sections</span>
+    <h2>Section summaries</h2>
+    <div class="release-table-wrap">
+      <table class="release-table">
+        <thead><tr><th>Section</th><th>Records</th><th>Average</th><th>Needs review</th></tr></thead>
+        <tbody id="sectionSummaryRows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Topics</span>
+    <h2>Missed concept tags</h2>
+    <div class="release-table-wrap">
+      <table class="release-table">
+        <thead><tr><th>Topic</th><th>Missed responses</th></tr></thead>
+        <tbody id="topicSummaryRows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Activities</span>
+    <h2>Activity summaries</h2>
+    <div class="release-table-wrap">
+      <table class="release-table">
+        <thead><tr><th>Activity</th><th>Category</th><th>Records</th><th>Average</th><th>Needs review</th></tr></thead>
+        <tbody id="activitySummaryRows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Students</span>
+    <h2>Students needing attention</h2>
+    <div class="release-table-wrap">
+      <table class="release-table">
+        <thead><tr><th>Student</th><th>Section</th><th>Records</th><th>Average</th><th>Needs review</th></tr></thead>
+        <tbody id="studentSummaryRows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Exit tickets</span>
+    <h2>Reflection trends</h2>
+    <div class="release-table-wrap">
+      <table class="release-table">
+        <thead><tr><th>Lecture</th><th>Tickets</th><th>Average confidence</th><th>Low confidence</th><th>Latest muddy point</th></tr></thead>
+        <tbody id="exitTicketTrendRows"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../platform-config.js"></script>
+<script type="module" src="insights.js"></script>
+</body>
+</html>

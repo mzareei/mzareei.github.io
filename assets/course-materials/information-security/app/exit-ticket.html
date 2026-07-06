@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Exit Ticket</title>
+<meta name="description" content="Authenticated TC2007B exit ticket for signed-in students.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../week-01/mission-01/style.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<main class="mission-shell app-shell">
+  <header class="mission-top">
+    <a href="./" class="back-link">Course App</a>
+    <div>
+      <span class="eyebrow">TC2007B · Authenticated reflection</span>
+      <h1>Exit Ticket</h1>
+      <p class="lead">Save a short signed-in reflection tied to your roster identity and section.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="exitConfidenceLabel">3</strong>
+      <span>confidence</span>
+    </div>
+  </header>
+
+  <section class="mission-card app-panel">
+    <div class="auth-grid">
+      <label class="field-stack">
+        Section
+        <select id="exitSectionSelect"></select>
+      </label>
+      <label class="field-stack">
+        Class session
+        <select id="exitSessionSelect"></select>
+      </label>
+      <label class="field-stack">
+        Confidence
+        <input id="exitConfidenceInput" type="range" min="1" max="5" value="3">
+      </label>
+    </div>
+    <label class="field-stack portfolio-evidence-field">
+      One idea that clicked
+      <textarea id="exitOneThingInput" maxlength="500" rows="4" placeholder="What is one idea that makes more sense now?"></textarea>
+    </label>
+    <label class="field-stack portfolio-evidence-field">
+      One question or muddy point
+      <textarea id="exitMuddyPointInput" maxlength="500" rows="4" placeholder="What is still unclear or fragile?"></textarea>
+    </label>
+    <label class="field-stack">
+      Next action
+      <select id="exitNextActionSelect">
+        <option value="review_mission">Review mission</option>
+        <option value="practice_quiz">Practice quiz</option>
+        <option value="ask_question">Ask a question</option>
+        <option value="office_hours">Office hours</option>
+      </select>
+    </label>
+    <div class="button-row gradebook-actions">
+      <button class="app-button" id="submitExitTicketBtn" type="button">Submit exit ticket</button>
+      <button class="app-button secondary" id="refreshExitTicketsBtn" type="button">Refresh</button>
+      <a class="app-button secondary" href="./">Course App</a>
+    </div>
+    <p class="status-line" id="exitTicketStatus" aria-live="polite"></p>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Recent reflections</span>
+    <h2>My exit tickets</h2>
+    <div class="release-table-wrap">
+      <table class="release-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Confidence</th>
+            <th>One thing</th>
+            <th>Muddy point</th>
+            <th>Next action</th>
+          </tr>
+        </thead>
+        <tbody id="exitTicketRows"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../platform-config.js"></script>
+<script type="module" src="exit-ticket.js"></script>
+</body>
+</html>

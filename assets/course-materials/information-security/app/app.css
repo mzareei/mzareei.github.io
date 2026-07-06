@@ -1,0 +1,388 @@
+:root {
+  --app-ink: #182124;
+  --app-muted: #5e6c70;
+  --app-line: #d9e1dd;
+  --app-panel: #ffffff;
+  --app-soft: #eef6f2;
+  --app-accent: #0b6b5b;
+  --app-accent-strong: #084c44;
+  --app-warn: #8a5a00;
+  --app-danger: #a83232;
+  --app-good: #17643d;
+}
+
+body {
+  background:
+    linear-gradient(135deg, rgba(226, 243, 235, 0.9), rgba(246, 248, 242, 0.9)),
+    radial-gradient(circle at top left, rgba(16, 107, 91, 0.12), transparent 34rem);
+  color: var(--app-ink);
+}
+
+.app-shell {
+  max-width: 1180px;
+}
+
+.app-panel {
+  background: var(--app-panel);
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  box-shadow: 0 18px 50px rgba(24, 33, 36, 0.08);
+}
+
+.auth-grid,
+.dashboard-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.auth-card,
+.context-card {
+  padding: 1.2rem;
+}
+
+.field-stack {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.field-stack label {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--app-muted);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.field-stack input,
+.field-stack select,
+.field-stack textarea {
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  color: var(--app-ink);
+  font: inherit;
+  padding: 0.75rem 0.85rem;
+}
+
+.field-stack textarea {
+  min-height: 180px;
+  resize: vertical;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.checkbox-line {
+  align-items: center;
+  color: var(--app-muted);
+  display: inline-flex;
+  font-weight: 800;
+  gap: 0.45rem;
+  min-height: 42px;
+}
+
+.app-button {
+  align-items: center;
+  background: var(--app-accent);
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0.7rem 1rem;
+}
+
+.app-button.secondary {
+  background: var(--app-soft);
+  color: var(--app-accent-strong);
+}
+
+.app-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.status-line {
+  color: var(--app-muted);
+  font-weight: 800;
+  min-height: 1.4rem;
+}
+
+.status-line[data-tone="good"] {
+  color: var(--app-good);
+}
+
+.status-line[data-tone="warn"] {
+  color: var(--app-warn);
+}
+
+.status-line[data-tone="danger"] {
+  color: var(--app-danger);
+}
+
+.context-list {
+  display: grid;
+  gap: 0.55rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.context-list li {
+  background: var(--app-soft);
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.context-list .empty {
+  color: var(--app-muted);
+}
+
+.identity-summary p {
+  margin: 0.35rem 0;
+}
+
+.teacher-context-panel {
+  grid-column: 1 / -1;
+}
+
+.teacher-context-grid {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.teacher-context-grid label {
+  color: var(--app-muted);
+  display: grid;
+  font-size: 0.78rem;
+  font-weight: 900;
+  gap: 0.35rem;
+  text-transform: uppercase;
+}
+
+.teacher-context-grid select {
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  color: var(--app-ink);
+  font: inherit;
+  padding: 0.72rem 0.8rem;
+  text-transform: none;
+}
+
+.teacher-context-links {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  margin-top: 0.8rem;
+}
+
+.release-table-wrap {
+  overflow-x: auto;
+}
+
+.release-table {
+  border-collapse: collapse;
+  min-width: 920px;
+  width: 100%;
+}
+
+.release-table th,
+.release-table td {
+  border-bottom: 1px solid var(--app-line);
+  padding: 0.8rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.release-table tr {
+  cursor: pointer;
+}
+
+.release-table tr.selected {
+  background: var(--app-soft);
+  outline: 2px solid rgba(11, 107, 91, 0.25);
+}
+
+.session-release-list {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.session-release-option {
+  align-items: center;
+  background: var(--app-soft);
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  display: flex;
+  gap: 0.65rem;
+  padding: 0.75rem;
+}
+
+.session-release-option span {
+  color: var(--app-muted);
+  font-weight: 700;
+}
+
+.session-release-option strong {
+  color: var(--app-accent-strong);
+}
+
+.activity-launch-grid {
+  align-items: center;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 240px 1fr;
+  margin-top: 1rem;
+}
+
+.qr-box {
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  min-height: 240px;
+  padding: 0.7rem;
+}
+
+.qr-box canvas,
+.qr-box img {
+  height: 220px;
+  width: 220px;
+}
+
+.gradebook-actions {
+  margin-top: 1rem;
+}
+
+.gradebook-summary {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin-bottom: 1rem;
+}
+
+.gradebook-stat {
+  background: var(--app-soft);
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  padding: 0.9rem;
+}
+
+.gradebook-stat span {
+  color: var(--app-muted);
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.gradebook-stat strong {
+  color: var(--app-accent-strong);
+  display: block;
+  font-size: 1.4rem;
+  margin-top: 0.25rem;
+}
+
+.gradebook-table {
+  min-width: 1080px;
+}
+
+.gradebook-table small {
+  color: var(--app-muted);
+  font-weight: 700;
+}
+
+.progress-card-list {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+
+.progress-card {
+  background: var(--app-soft);
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  color: var(--app-ink);
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.9rem;
+  text-decoration: none;
+}
+
+.progress-card strong {
+  color: var(--app-accent-strong);
+}
+
+.progress-card span {
+  color: var(--app-muted);
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.portfolio-evidence-field {
+  margin-top: 1rem;
+}
+
+.portfolio-evidence-field textarea {
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  color: var(--app-ink);
+  font: inherit;
+  padding: 0.75rem 0.85rem;
+  resize: vertical;
+}
+
+.activity-question-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.activity-question {
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.activity-question h3 {
+  font-size: 1rem;
+  margin-top: 0;
+}
+
+.activity-options {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.activity-options label {
+  align-items: center;
+  background: var(--app-soft);
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  display: flex;
+  gap: 0.65rem;
+  padding: 0.75rem;
+}
+
+@media (max-width: 720px) {
+  .button-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .app-button {
+    width: 100%;
+  }
+
+  .activity-launch-grid {
+    grid-template-columns: 1fr;
+  }
+}

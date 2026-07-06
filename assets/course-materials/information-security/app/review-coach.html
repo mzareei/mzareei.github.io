@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Review Coach</title>
+<meta name="description" content="Authenticated TC2007B review coach based on released work and student progress.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../week-01/mission-01/style.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<main class="mission-shell app-shell">
+  <header class="mission-top">
+    <a href="./" class="back-link">Course App</a>
+    <div>
+      <span class="eyebrow">TC2007B · Review Coach</span>
+      <h1>Review Coach</h1>
+      <p class="lead">Use your signed-in course record to decide what to practice next.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="coachFocusCount">0</strong>
+      <span>focus topics</span>
+    </div>
+  </header>
+
+  <section class="mission-card app-panel">
+    <div class="button-row">
+      <button class="app-button" id="refreshCoachBtn" type="button">Refresh coach</button>
+      <a class="app-button secondary" href="progress.html">My Progress</a>
+      <a class="app-button secondary" href="./">Course App</a>
+    </div>
+    <p class="status-line" id="coachStatus" aria-live="polite"></p>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Snapshot</span>
+    <h2>What the coach can see</h2>
+    <div class="gradebook-summary" id="coachSummary"></div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Focus</span>
+    <h2>Weak topics</h2>
+    <div class="progress-card-list" id="weakTopicRows"></div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Next actions</span>
+    <h2>Recommended practice</h2>
+    <div class="progress-card-list" id="coachRecommendationRows"></div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Released material</span>
+    <h2>Available now</h2>
+    <div class="progress-card-list" id="coachPracticeRows"></div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../platform-config.js"></script>
+<script type="module" src="review-coach.js"></script>
+</body>
+</html>

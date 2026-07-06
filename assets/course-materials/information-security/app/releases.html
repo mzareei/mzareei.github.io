@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Release Console</title>
+<meta name="description" content="Teacher release controls for the authenticated TC2007B course app.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../week-01/mission-01/style.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<main class="mission-shell app-shell">
+  <header class="mission-top">
+    <a href="./" class="back-link">Course App</a>
+    <div>
+      <span class="eyebrow">TC2007B · Teacher release controls</span>
+      <h1>Release Console</h1>
+      <p class="lead">Open, pause, close, and archive released course items for authenticated sections.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong>Live</strong>
+      <span>control</span>
+    </div>
+  </header>
+
+  <section class="mission-card app-panel">
+    <div class="button-row">
+      <button class="app-button" id="refreshReleasesBtn" type="button">Refresh releases</button>
+      <a class="app-button secondary" href="./">Course App</a>
+    </div>
+    <p class="status-line" id="releaseStatus" aria-live="polite"></p>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Selected release</span>
+    <h2 id="selectedRelease">No release selected</h2>
+    <div class="auth-grid">
+      <label class="field-stack">
+        Next state
+        <select id="releaseStateSelect"></select>
+      </label>
+      <label class="field-stack">
+        Reason
+        <input id="releaseReasonInput" type="text" placeholder="Required when reopening closed work">
+      </label>
+      <div class="field-stack">
+        <span>&nbsp;</span>
+        <button class="app-button" id="updateReleaseBtn" type="button">Update release</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Content releases</span>
+    <h2>Current release states</h2>
+    <div class="release-table-wrap">
+      <table class="release-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Type</th>
+            <th>Scope</th>
+            <th>Session</th>
+            <th>State</th>
+            <th>Opens</th>
+            <th>Closes</th>
+          </tr>
+        </thead>
+        <tbody id="releaseRows"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../platform-config.js"></script>
+<script type="module" src="releases.js"></script>
+</body>
+</html>

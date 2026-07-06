@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Activity Player</title>
+<meta name="description" content="Authenticated TC2007B activity player for signed-in student attempts.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../week-01/mission-01/style.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<main class="mission-shell app-shell">
+  <header class="mission-top">
+    <a href="./" class="back-link">Course App</a>
+    <div>
+      <span class="eyebrow">TC2007B · Authenticated activity</span>
+      <h1>Activity Player</h1>
+      <p class="lead">Start an assigned activity, answer the server-selected questions, and submit your attempt.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="activityScore">--</strong>
+      <span>score</span>
+    </div>
+  </header>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Activity instance</span>
+    <h2>Load activity</h2>
+    <div class="auth-grid">
+      <label class="field-stack">
+        Activity instance id
+        <input id="activityInstanceInput" type="text" placeholder="Paste activity_instance_id or use ?activity=">
+      </label>
+      <div class="field-stack">
+        <span>&nbsp;</span>
+        <button class="app-button" id="loadActivityBtn" type="button">Load activity</button>
+      </div>
+    </div>
+    <p class="status-line" id="activityStatus" aria-live="polite"></p>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Attempt</span>
+    <h2>Current attempt</h2>
+    <p class="status-line" id="activityTimer" aria-live="polite">Time remaining: --</p>
+    <div class="identity-summary" id="attemptMeta"></div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Questions</span>
+    <h2>Respond</h2>
+    <div class="activity-question-list" id="questionList"></div>
+    <div class="button-row">
+      <button class="app-button" id="submitActivityBtn" type="button" disabled>Submit activity</button>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../platform-config.js"></script>
+<script type="module" src="activity-player.js"></script>
+</body>
+</html>

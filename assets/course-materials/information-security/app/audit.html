@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Audit Log</title>
+<meta name="description" content="Instructor audit log for sensitive TC2007B course operations.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../week-01/mission-01/style.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<main class="mission-shell app-shell">
+  <header class="mission-top">
+    <a href="./" class="back-link">Course App</a>
+    <div>
+      <span class="eyebrow">TC2007B · Teacher audit</span>
+      <h1>Audit Log</h1>
+      <p class="lead">Review sensitive course changes for roster, grading, activities, releases, and recovery work.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="auditEventCount">0</strong>
+      <span>events</span>
+    </div>
+  </header>
+
+  <section class="mission-card app-panel">
+    <div class="auth-grid">
+      <label class="field-stack">
+        Target type
+        <select id="targetTypeFilter"></select>
+      </label>
+      <label class="field-stack">
+        Action
+        <select id="actionFilter"></select>
+      </label>
+      <label class="field-stack">
+        Limit
+        <input id="auditLimitInput" type="number" min="10" max="500" step="10" value="100">
+      </label>
+      <div class="field-stack">
+        <span>&nbsp;</span>
+        <button class="app-button" id="refreshAuditBtn" type="button">Refresh</button>
+      </div>
+    </div>
+    <p class="status-line" id="auditStatus" aria-live="polite"></p>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Course evidence</span>
+    <h2>Recent audit events</h2>
+    <div class="release-table-wrap">
+      <table class="release-table gradebook-table">
+        <thead>
+          <tr>
+            <th>Created</th>
+            <th>Actor</th>
+            <th>Action</th>
+            <th>Target</th>
+            <th>Metadata</th>
+          </tr>
+        </thead>
+        <tbody id="auditRows"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../platform-config.js"></script>
+<script type="module" src="audit.js"></script>
+</body>
+</html>
