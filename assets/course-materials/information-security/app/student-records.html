@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Student Records</title>
+<meta name="description" content="Authenticated teacher student-record view for TC2007B.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../week-01/mission-01/style.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<main class="mission-shell app-shell">
+  <header class="mission-top">
+    <a href="./" class="back-link">Course App</a>
+    <div>
+      <span class="eyebrow">TC2007B · Teacher records</span>
+      <h1>Student Records</h1>
+      <p class="lead">Inspect a student-level record across official scores, activity attempts, exit tickets, and portfolio evidence.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="studentRecordAverage">--</strong>
+      <span>average</span>
+    </div>
+  </header>
+
+  <section class="mission-card app-panel">
+    <div class="auth-grid">
+      <label class="field-stack">
+        Student
+        <select id="studentSelect"></select>
+      </label>
+      <div class="field-stack">
+        <span>&nbsp;</span>
+        <button class="app-button" id="refreshStudentRecordsBtn" type="button">Refresh</button>
+      </div>
+    </div>
+    <p class="status-line" id="studentRecordStatus" aria-live="polite"></p>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Summary</span>
+    <h2 id="studentRecordTitle">No student selected</h2>
+    <div class="gradebook-summary" id="studentRecordSummary"></div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Official scores</span>
+    <h2>Gradebook Evidence</h2>
+    <div class="release-table-wrap">
+      <table class="release-table gradebook-table">
+        <thead>
+          <tr>
+            <th>Activity</th>
+            <th>Category</th>
+            <th>Raw</th>
+            <th>Percent</th>
+            <th>Final</th>
+            <th>Status</th>
+            <th>Updated</th>
+          </tr>
+        </thead>
+        <tbody id="studentScoreRows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Activity attempts</span>
+    <h2>Submission Evidence</h2>
+    <div class="release-table-wrap">
+      <table class="release-table">
+        <thead>
+          <tr>
+            <th>Activity</th>
+            <th>Attempt</th>
+            <th>Status</th>
+            <th>Final</th>
+            <th>Submitted</th>
+          </tr>
+        </thead>
+        <tbody id="studentAttemptRows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Exit tickets</span>
+    <h2>Reflection Evidence</h2>
+    <div class="release-table-wrap">
+      <table class="release-table">
+        <thead>
+          <tr>
+            <th>Confidence</th>
+            <th>One thing</th>
+            <th>Muddy point</th>
+            <th>Next action</th>
+            <th>Submitted</th>
+          </tr>
+        </thead>
+        <tbody id="studentExitTicketRows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Portfolio</span>
+    <h2>Portfolio Evidence</h2>
+    <div class="release-table-wrap">
+      <table class="release-table">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Visibility</th>
+            <th>Evidence</th>
+            <th>Updated</th>
+          </tr>
+        </thead>
+        <tbody id="studentPortfolioRows"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../platform-config.js"></script>
+<script type="module" src="student-records.js"></script>
+</body>
+</html>

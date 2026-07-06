@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Released Content</title>
+<meta name="description" content="Authenticated TC2007B released content gate.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../week-01/mission-01/style.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<main class="mission-shell app-shell">
+  <header class="mission-top">
+    <a href="./" class="back-link">Course App</a>
+    <div>
+      <span class="eyebrow">TC2007B · Authenticated content</span>
+      <h1 id="contentTitle">Released Content</h1>
+      <p class="lead" id="contentSummary">Checking whether this material is released for your section.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="contentState">--</strong>
+      <span>access</span>
+    </div>
+  </header>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Access check</span>
+    <h2>Open material</h2>
+    <p class="status-line" id="contentStatus" aria-live="polite">Checking access...</p>
+    <div class="button-row">
+      <a class="app-button" id="contentLaunch" href="./" target="_blank" rel="noopener" hidden>Open released material</a>
+      <a class="app-button secondary" href="./">Back to Course App</a>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../platform-config.js"></script>
+<script type="module" src="content.js"></script>
+</body>
+</html>

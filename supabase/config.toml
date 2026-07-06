@@ -27,3 +27,60 @@ verify_jwt = false
 
 [functions.course-participation-summary]
 verify_jwt = false
+
+[functions.course-auth-context]
+verify_jwt = false
+
+[functions.course-identity-confirmation]
+verify_jwt = false
+
+[functions.course-section-management]
+verify_jwt = false
+
+[functions.course-roster-management]
+verify_jwt = false
+
+[functions.course-content-library]
+verify_jwt = false
+
+[functions.course-release-management]
+verify_jwt = false
+
+[functions.course-release-maintenance]
+verify_jwt = false
+
+[functions.course-session-management]
+verify_jwt = false
+
+[functions.course-content-access]
+verify_jwt = false
+
+[functions.course-activity-attempt]
+verify_jwt = false
+
+[functions.course-quiz-compatibility]
+verify_jwt = false
+
+[functions.course-gradebook-summary]
+verify_jwt = false
+
+[functions.course-student-records]
+verify_jwt = false
+
+[functions.course-student-progress]
+verify_jwt = false
+
+[functions.course-learning-insights]
+verify_jwt = false
+
+[functions.course-participation-events]
+verify_jwt = false
+
+[functions.course-exit-ticket]
+verify_jwt = false
+
+[functions.course-portfolio-entry]
+verify_jwt = false
+
+[functions.course-audit-log]
+verify_jwt = false

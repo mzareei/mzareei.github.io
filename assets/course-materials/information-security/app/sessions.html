@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Session Console</title>
+<meta name="description" content="Teacher class session controls for paused and continued TC2007B meetings.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../week-01/mission-01/style.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<main class="mission-shell app-shell">
+  <header class="mission-top">
+    <a href="./" class="back-link">Course App</a>
+    <div>
+      <span class="eyebrow">TC2007B · Teacher session controls</span>
+      <h1>Session Console</h1>
+      <p class="lead">Pause unfinished meetings, continue them later, and carry selected releases into the next class.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong>Class</strong>
+      <span>pace</span>
+    </div>
+  </header>
+
+  <section class="mission-card app-panel">
+    <div class="button-row">
+      <button class="app-button" id="refreshSessionsBtn" type="button">Refresh sessions</button>
+      <a class="app-button secondary" href="./">Course App</a>
+      <a class="app-button secondary" href="releases.html">Release Console</a>
+    </div>
+    <p class="status-line" id="sessionStatus" aria-live="polite"></p>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Selected session</span>
+    <h2 id="selectedSession">No session selected</h2>
+    <div class="auth-grid">
+      <label class="field-stack">
+        Next state
+        <select id="sessionStateSelect"></select>
+      </label>
+      <label class="field-stack">
+        Reason or note
+        <input id="sessionReasonInput" type="text" placeholder="Required when continuing a closed session">
+      </label>
+      <div class="field-stack">
+        <span>&nbsp;</span>
+        <button class="app-button" id="updateSessionBtn" type="button">Update session</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Continuation</span>
+    <h2>Carry unfinished work forward</h2>
+    <div class="auth-grid">
+      <label class="field-stack">
+        Continuation title
+        <input id="continuationTitleInput" type="text" placeholder="Week 3 continuation">
+      </label>
+      <label class="field-stack">
+        Planned date
+        <input id="continuationDateInput" type="date">
+      </label>
+      <label class="field-stack">
+        Teacher notes
+        <input id="continuationNotesInput" type="text" placeholder="What remains for next class">
+      </label>
+    </div>
+    <div class="session-release-list" id="releaseCarryList"></div>
+    <div class="button-row gradebook-actions">
+      <button class="app-button" id="continueSessionBtn" type="button">Create continuation</button>
+    </div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Live activity launch</span>
+    <h2>Student QR link</h2>
+    <div class="auth-grid">
+      <label class="field-stack">
+        Activity
+        <select id="liveActivitySelect"></select>
+      </label>
+      <label class="field-stack">
+        Activity state
+        <select id="activityStateSelect"></select>
+      </label>
+      <label class="field-stack">
+        Extend minutes
+        <input id="extendActivityMinutesInput" type="number" min="1" max="180" step="1" value="5">
+      </label>
+      <div class="field-stack">
+        <span>&nbsp;</span>
+        <button class="app-button secondary" id="copyActivityLinkBtn" type="button">Copy student link</button>
+      </div>
+    </div>
+    <p class="status-line" id="selectedActivityInstance">No activity selected</p>
+    <div class="button-row gradebook-actions">
+      <button class="app-button" id="updateActivityStateBtn" type="button">Update activity state</button>
+      <button class="app-button secondary" id="extendActivityWindowBtn" type="button">Extend activity</button>
+    </div>
+    <div class="activity-launch-grid">
+      <div class="qr-box">
+        <canvas id="activityQrCanvas" width="220" height="220" aria-label="Authenticated activity QR code"></canvas>
+      </div>
+      <p class="status-line mono" id="activityJoinLink"></p>
+    </div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Section sessions</span>
+    <h2>Current class pacing</h2>
+    <div class="release-table-wrap">
+      <table class="release-table">
+        <thead>
+          <tr>
+            <th>Section</th>
+            <th>Session</th>
+            <th>Date</th>
+            <th>State</th>
+            <th>Continues</th>
+            <th>Releases</th>
+          </tr>
+        </thead>
+        <tbody id="sessionRows"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+<script src="../platform-config.js"></script>
+<script type="module" src="sessions.js"></script>
+</body>
+</html>

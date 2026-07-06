@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Gradebook</title>
+<meta name="description" content="Authenticated teacher gradebook review for TC2007B.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../week-01/mission-01/style.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<main class="mission-shell app-shell">
+  <header class="mission-top">
+    <a href="./" class="back-link">Course App</a>
+    <div>
+      <span class="eyebrow">TC2007B · Teacher gradebook</span>
+      <h1>Gradebook</h1>
+      <p class="lead">Review official scores, adjustments, and locked records for authenticated course activities.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong>CSV</strong>
+      <span>export</span>
+    </div>
+  </header>
+
+  <section class="mission-card app-panel">
+    <div class="auth-grid">
+      <label class="field-stack">
+        Section
+        <select id="sectionFilter"></select>
+      </label>
+      <label class="field-stack">
+        Category
+        <select id="categoryFilter"></select>
+      </label>
+      <label class="field-stack">
+        Activity
+        <select id="itemFilter"></select>
+      </label>
+    </div>
+    <div class="button-row gradebook-actions">
+      <button class="app-button" id="refreshGradebookBtn" type="button">Refresh</button>
+      <button class="app-button secondary" id="exportCsvBtn" type="button">Export CSV</button>
+      <a class="app-button secondary" href="./">Course App</a>
+    </div>
+    <p class="status-line" id="gradebookStatus" aria-live="polite"></p>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Grade policy</span>
+    <h2>Category settings</h2>
+    <div class="auth-grid">
+      <label class="field-stack">
+        Category name
+        <input id="categoryNameInput" type="text" maxlength="120" placeholder="Quizzes">
+      </label>
+      <label class="field-stack">
+        Weight %
+        <input id="categoryWeightInput" type="number" min="0" max="100" step="0.1" placeholder="20">
+      </label>
+      <label class="field-stack">
+        Drop lowest
+        <input id="categoryDropLowestInput" type="number" min="0" max="50" step="1" value="0">
+      </label>
+      <label class="field-stack">
+        Status
+        <select id="categoryStatusSelect">
+          <option value="active">Active</option>
+          <option value="draft">Draft</option>
+          <option value="archived">Archived</option>
+        </select>
+      </label>
+    </div>
+    <div class="button-row">
+      <button class="app-button" id="saveCategoryBtn" type="button">Save category</button>
+      <button class="app-button secondary" id="newCategoryBtn" type="button">New category</button>
+    </div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <div class="gradebook-summary" id="gradebookSummary"></div>
+    <div class="release-table-wrap">
+      <table class="release-table gradebook-table">
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Section</th>
+            <th>Activity</th>
+            <th>Category</th>
+            <th>Raw</th>
+            <th>Percent</th>
+            <th>Final</th>
+            <th>Status</th>
+            <th>Adjustments</th>
+            <th>Locked</th>
+          </tr>
+        </thead>
+        <tbody id="gradebookRows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Selected score</span>
+    <h2 id="selectedScore">No score selected</h2>
+    <div class="auth-grid">
+      <label class="field-stack">
+        Final score
+        <input id="adjustedScoreInput" type="number" min="0" max="100" step="0.1" placeholder="0-100">
+      </label>
+      <label class="field-stack">
+        Reason
+        <input id="adjustmentReasonInput" type="text" placeholder="Required">
+      </label>
+      <div class="field-stack">
+        <span>&nbsp;</span>
+        <button class="app-button" id="applyAdjustmentBtn" type="button">Apply adjustment</button>
+      </div>
+      <div class="field-stack">
+        <span>&nbsp;</span>
+        <button class="app-button secondary" id="lockScoreBtn" type="button">Lock score</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Manual status</span>
+    <h2>Missing or excused record</h2>
+    <div class="auth-grid">
+      <label class="field-stack">
+        Activity
+        <select id="manualStatusItemSelect"></select>
+      </label>
+      <label class="field-stack">
+        Student
+        <select id="manualStatusStudentSelect"></select>
+      </label>
+      <label class="field-stack">
+        Status
+        <select id="manualStatusSelect">
+          <option value="missing">Missing</option>
+          <option value="excused">Excused</option>
+          <option value="posted">Posted manual score</option>
+        </select>
+      </label>
+      <label class="field-stack">
+        Final score
+        <input id="manualStatusScoreInput" type="number" min="0" max="100" step="0.1" value="0">
+      </label>
+    </div>
+    <label class="field-stack">
+      Reason
+      <input id="manualStatusReasonInput" type="text" placeholder="Required">
+    </label>
+    <div class="button-row">
+      <button class="app-button" id="applyStatusBtn" type="button">Apply status record</button>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../platform-config.js"></script>
+<script type="module" src="gradebook.js"></script>
+</body>
+</html>

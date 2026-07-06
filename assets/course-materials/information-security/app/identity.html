@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Identity Confirmation</title>
+<meta name="description" content="Confirm your authenticated TC2007B roster identity.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../week-01/mission-01/style.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<main class="mission-shell app-shell">
+  <header class="mission-top">
+    <a href="./" class="back-link">Course App</a>
+    <div>
+      <span class="eyebrow">TC2007B · Identity Confirmation</span>
+      <h1>Confirm Identity</h1>
+      <p class="lead">Confirm that your roster name, email, student ID, and section are correct before grade-bearing work.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="identityState">Pending</strong>
+      <span>identity</span>
+    </div>
+  </header>
+
+  <section class="mission-card app-panel">
+    <div class="button-row">
+      <button class="app-button" id="refreshIdentityBtn" type="button">Refresh identity</button>
+      <a class="app-button secondary" href="./">Course App</a>
+    </div>
+    <p class="status-line" id="identityStatus" aria-live="polite"></p>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Roster profile</span>
+    <h2>Signed-in identity</h2>
+    <div class="gradebook-summary" id="identityProfileSummary"></div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Enrollment</span>
+    <h2>Active sections</h2>
+    <div class="release-table-wrap">
+      <table class="release-table">
+        <thead>
+          <tr>
+            <th>Section</th>
+            <th>Name</th>
+            <th>Meeting</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="identitySectionRows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Confirmation</span>
+    <h2>Confirm or report an issue</h2>
+    <label class="field-stack">
+      Issue note
+      <textarea id="identityIssueNoteInput" rows="4" maxlength="1000" placeholder="Use this only if your name, email, student ID, or section is wrong."></textarea>
+    </label>
+    <div class="button-row">
+      <button class="app-button" id="confirmIdentityBtn" type="button">Confirm identity</button>
+      <button class="app-button secondary" id="reportIdentityIssueBtn" type="button">Report identity issue</button>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../platform-config.js"></script>
+<script type="module" src="identity.js"></script>
+</body>
+</html>

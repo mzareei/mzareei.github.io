@@ -1,0 +1,23 @@
+window.TC2007B_PLATFORM_CONFIG = {
+  courseId: "tc2007b",
+  supabaseUrl: "https://ojmbupftdikwmlqvibwt.supabase.co",
+  supabaseAnonKey: "",
+  allowedInstitutionalDomains: ["tec.mx", "itesm.mx"],
+  authContextFunction: "course-auth-context",
+  identityConfirmationFunction: "course-identity-confirmation",
+  sectionManagementFunction: "course-section-management",
+  rosterManagementFunction: "course-roster-management",
+  contentLibraryFunction: "course-content-library",
+  releaseManagementFunction: "course-release-management",
+  sessionManagementFunction: "course-session-management",
+  contentAccessFunction: "course-content-access",
+  activityAttemptFunction: "course-activity-attempt",
+  gradebookSummaryFunction: "course-gradebook-summary",
+  studentRecordsFunction: "course-student-records",
+  studentProgressFunction: "course-student-progress",
+  learningInsightsFunction: "course-learning-insights",
+  participationEventsFunction: "course-participation-events",
+  exitTicketFunction: "course-exit-ticket",
+  portfolioEntryFunction: "course-portfolio-entry",
+  auditLogFunction: "course-audit-log"
+};

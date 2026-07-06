@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · My Portfolio</title>
+<meta name="description" content="Authenticated student portfolio evidence for TC2007B.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../week-01/mission-01/style.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<main class="mission-shell app-shell">
+  <header class="mission-top">
+    <a href="./" class="back-link">Course App</a>
+    <div>
+      <span class="eyebrow">TC2007B · Portfolio evidence</span>
+      <h1>My Portfolio</h1>
+      <p class="lead">Save learning evidence linked to official gradebook categories and released course material.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="portfolioEntryCount">0</strong>
+      <span>entries</span>
+    </div>
+  </header>
+
+  <section class="mission-card app-panel">
+    <div class="button-row">
+      <button class="app-button" id="refreshPortfolioBtn" type="button">Refresh entries</button>
+      <button class="app-button secondary" id="exportPortfolioBtn" type="button">Export portfolio</button>
+      <a class="app-button secondary" href="progress.html">My Progress</a>
+      <a class="app-button secondary" href="./">Course App</a>
+    </div>
+    <p class="status-line" id="portfolioStatus" aria-live="polite"></p>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">New evidence</span>
+    <h2>Add portfolio entry</h2>
+    <div class="auth-grid">
+      <label class="field-stack">
+        Title
+        <input id="portfolioTitleInput" type="text" maxlength="160" placeholder="What did you learn or build?">
+      </label>
+      <label class="field-stack">
+        Type
+        <select id="portfolioTypeSelect">
+          <option value="mission_evidence">Mission evidence</option>
+          <option value="case_file">Case file</option>
+          <option value="reflection">Reflection</option>
+          <option value="project_artifact">Project artifact</option>
+          <option value="review_plan">Review plan</option>
+          <option value="other">Other</option>
+        </select>
+      </label>
+      <label class="field-stack">
+        Gradebook category
+        <select id="portfolioCategorySelect"></select>
+      </label>
+      <label class="field-stack">
+        Related content
+        <select id="portfolioContentSelect"></select>
+      </label>
+    </div>
+    <label class="field-stack portfolio-evidence-field">
+      Evidence
+      <textarea id="portfolioEvidenceInput" rows="6" maxlength="4000" placeholder="Summarize the evidence, link, result, or reflection."></textarea>
+    </label>
+    <div class="button-row">
+      <button class="app-button" id="submitPortfolioEntryBtn" type="button">Submit evidence</button>
+    </div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Saved evidence</span>
+    <h2>Portfolio entries</h2>
+    <div class="release-table-wrap">
+      <table class="release-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Type</th>
+            <th>Category</th>
+            <th>Visibility</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody id="portfolioEntryRows"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../platform-config.js"></script>
+<script type="module" src="portfolio.js"></script>
+</body>
+</html>

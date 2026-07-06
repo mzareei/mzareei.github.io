@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Participation</title>
+<meta name="description" content="Teacher participation recorder for authenticated TC2007B course evidence.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../week-01/mission-01/style.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<main class="mission-shell app-shell">
+  <header class="mission-top">
+    <a href="./" class="back-link">Course App</a>
+    <div>
+      <span class="eyebrow">TC2007B · Participation</span>
+      <h1>Participation</h1>
+      <p class="lead">Record low-stakes classroom evidence for rostered students, sections, and sessions.</p>
+    </div>
+    <div class="mission-score" aria-live="polite">
+      <strong id="participationCount">0</strong>
+      <span>recent</span>
+    </div>
+  </header>
+
+  <section class="mission-card app-panel">
+    <div class="button-row">
+      <button class="app-button" id="refreshParticipationBtn" type="button">Refresh context</button>
+      <a class="app-button secondary" href="student-records.html">Student Records</a>
+      <a class="app-button secondary" href="./">Course App</a>
+    </div>
+    <p class="status-line" id="participationStatus" aria-live="polite"></p>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Quick record</span>
+    <h2>Record participation evidence</h2>
+    <div class="auth-grid">
+      <label class="field-stack">
+        Section
+        <select id="participationSectionInput"></select>
+      </label>
+      <label class="field-stack">
+        Class session
+        <select id="participationSessionInput"></select>
+      </label>
+      <label class="field-stack">
+        Student
+        <select id="participationStudentInput"></select>
+      </label>
+      <label class="field-stack">
+        Type
+        <select id="participationTypeSelect">
+          <option value="attendance">Attendance</option>
+          <option value="pulse_response">Pulse response</option>
+          <option value="class_contribution">Class contribution</option>
+          <option value="device_exception">Device exception</option>
+          <option value="makeup_credit">Makeup credit</option>
+          <option value="other">Other</option>
+        </select>
+      </label>
+      <label class="field-stack">
+        Points
+        <input id="participationPointsInput" type="number" min="0" max="100" step="0.1" value="1">
+      </label>
+    </div>
+    <label class="field-stack">
+      Note
+      <textarea id="participationNoteInput" rows="4" maxlength="500" placeholder="Short reason or classroom context."></textarea>
+    </label>
+    <div class="button-row">
+      <button class="app-button" id="recordParticipationBtn" type="button">Record participation</button>
+    </div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Evidence</span>
+    <h2>Recent participation events</h2>
+    <div class="release-table-wrap">
+      <table class="release-table">
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Type</th>
+            <th>Points</th>
+            <th>Session</th>
+            <th>Note</th>
+            <th>Recorded</th>
+          </tr>
+        </thead>
+        <tbody id="participationEventRows"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../platform-config.js"></script>
+<script type="module" src="participation.js"></script>
+</body>
+</html>

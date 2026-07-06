@@ -1,0 +1,80 @@
+{
+  "name": "TC2007B authenticated course platform deployment manifest",
+  "course_code": "TC2007B",
+  "purpose": "Single source of truth for the migrations, seeds, Edge Functions, configuration files, and live checks needed before using the authenticated platform for grade-bearing classroom work.",
+  "migrations": [
+    "0001_quiz_pilot.sql",
+    "0002_exit_tickets.sql",
+    "0003_portfolio_submissions.sql",
+    "0004_authenticated_course_platform.sql",
+    "0005_authenticated_activity_storage.sql",
+    "0006_gradebook_foundation.sql",
+    "0007_portfolio_entries.sql",
+    "0008_authenticated_exit_tickets.sql",
+    "0009_activity_attempt_limits.sql",
+    "0010_profile_identity_confirmations.sql"
+  ],
+  "seeds": [
+    "tc2007b_auth_foundation_demo.sql",
+    "tc2007b_auth_activity_demo.sql",
+    "tc2007b_demo_question_bank.sql"
+  ],
+  "edge_functions": [
+    "quiz-create-session",
+    "quiz-start-attempt",
+    "quiz-submit-attempt",
+    "quiz-session-summary",
+    "quiz-import-questions",
+    "course-submit-reflection",
+    "course-reflection-summary",
+    "course-submit-portfolio",
+    "course-portfolio-summary",
+    "course-participation-summary",
+    "course-auth-context",
+    "course-identity-confirmation",
+    "course-section-management",
+    "course-roster-management",
+    "course-content-library",
+    "course-release-management",
+    "course-release-maintenance",
+    "course-session-management",
+    "course-content-access",
+    "course-activity-attempt",
+    "course-quiz-compatibility",
+    "course-gradebook-summary",
+    "course-student-records",
+    "course-student-progress",
+    "course-learning-insights",
+    "course-participation-events",
+    "course-exit-ticket",
+    "course-portfolio-entry",
+    "course-audit-log"
+  ],
+  "browser_configuration_files": [
+    "assets/course-materials/information-security/platform-config.js",
+    "assets/course-materials/information-security/week-01/lecture/quiz/config.js"
+  ],
+  "required_secrets": [
+    "QUIZ_TEACHER_PIN",
+    "COURSE_MAINTENANCE_SECRET"
+  ],
+  "auth_configuration": [
+    "Supabase Auth email OTP",
+    "approved institutional email domain",
+    "approved site URL",
+    "approved redirect URLs"
+  ],
+  "live_sql_checks": [
+    "supabase/tests/rls_auth_platform_checks.sql"
+  ],
+  "live_smoke_tests": [
+    "teacher account sign-in",
+    "rostered student account sign-in",
+    "student identity confirmation",
+    "section-specific released content access",
+    "direct unreleased URL access denied",
+    "QR scan to gradebook export",
+    "backup/export location confirmed"
+  ],
+  "launch_checklist": "docs/course-platform/operations/supabase-launch-checklist.md"
+}
