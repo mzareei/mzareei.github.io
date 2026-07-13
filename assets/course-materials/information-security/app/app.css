@@ -33,7 +33,7 @@
   /* Text */
   --text: #12203a;
   --text-muted: #55637a;
-  --text-subtle: #7a879d;
+  --text-subtle: #5d6b81; /* AA (>=4.5:1) on white/surface-1 */
   --text-onfill: #ffffff;
 
   /* Brand */
@@ -42,7 +42,7 @@
   --primary-ink: #ffffff;
   --primary-soft: #e9f0fe;
   --primary-soft-border: #cfe0fd;
-  --accent: #0d8f82;
+  --accent: #0a6f65; /* AA (>=4.5:1) for the small-caps eyebrow on white */
   --accent-soft: #e2f5f2;
 
   /* Status */
@@ -528,7 +528,7 @@ textarea { min-height: 160px; resize: vertical; line-height: 1.5; }
 }
 .context-list li a:hover { background: var(--primary-soft); text-decoration: none; }
 .context-list .empty {
-  color: var(--text-subtle);
+  color: var(--text-muted);
   background: transparent;
   border-style: dashed;
   font-weight: 500;
@@ -619,7 +619,7 @@ textarea { min-height: 160px; resize: vertical; line-height: 1.5; }
 }
 .gradebook-stat span {
   display: block;
-  color: var(--text-subtle);
+  color: var(--text-muted);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -746,6 +746,7 @@ a.progress-card:hover {
   gap: 0.9rem;
   align-items: start;
 }
+.auth-step__body { min-width: 0; }
 .auth-step__num {
   display: grid;
   place-items: center;
@@ -816,6 +817,7 @@ a.progress-card:hover {
 .app-theme-toggle:hover { color: var(--primary); border-color: var(--primary-soft-border); }
 .app-theme-toggle:active { transform: translateY(1px); }
 .app-theme-toggle .app-theme-toggle__icon { font-size: 1rem; line-height: 1; }
+.app-theme-toggle .app-theme-toggle__label { font-weight: 600; }
 
 /* -------------------------------------------------------------- Responsive */
 @media (max-width: 760px) {

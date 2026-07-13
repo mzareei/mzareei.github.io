@@ -117,6 +117,9 @@ applies for the current page.
   progress pages — and iterated until coherent.
 - **Regression:** the full local suite (`node tools/verify-*.js`, 50 scripts)
   passes after the change.
+- **Contrast:** after an independent audit, the light-mode accent (eyebrow) and
+  subtle-text tokens were darkened until all body/label text clears WCAG AA
+  (≥4.5:1); light and dark pairs were re-checked programmatically (5.0–6.0:1).
 - Live Supabase behavior is unaffected and its launch gates
   (see `supabase-launch-checklist.md`) are unchanged by this redesign.
 
