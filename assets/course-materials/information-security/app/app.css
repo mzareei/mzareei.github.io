@@ -600,8 +600,21 @@ textarea { min-height: 160px; resize: vertical; line-height: 1.5; }
   box-shadow: inset 3px 0 0 var(--primary);
 }
 .release-table small { color: var(--text-subtle); font-weight: 500; }
-.release-table tbody:empty::after,
-.release-table tbody tr.empty td { color: var(--text-subtle); }
+.release-table tbody tr.empty td { color: var(--text-muted); }
+
+/* Pre-load / empty state for data tables. Rendered only while the tbody is
+   truly empty (no rows), and removed the instant the page script inserts a row
+   or its own empty-row — so it never double-renders with real data. Requires
+   the empty <tbody> to carry no whitespace, which the markup guarantees. */
+.release-table-wrap:has(tbody:empty)::after {
+  content: "No records to show yet.";
+  display: block;
+  padding: 1.05rem 0.9rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  border-top: 1px solid var(--border);
+}
 
 /* ---------------------------------------------------------------- Stat tiles */
 .gradebook-summary {
