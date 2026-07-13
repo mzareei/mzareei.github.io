@@ -1,6 +1,6 @@
 window.QUIZ_CONFIG = {
   supabaseUrl: "https://ojmbupftdikwmlqvibwt.supabase.co",
-  supabaseAnonKey: "",
+  supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qbWJ1cGZ0ZGlrd21scXZpYnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2Mzk3MzUsImV4cCI6MjA5NzIxNTczNX0.X05-dMgmvXTiqha_NLnwjPg7UWvd5xoByYmKq29B4M4",
   lectureId: "tc2007b-w1-l1",
   lectures: {
     "tc2007b-w1-l1": "Week 1 Lecture 1 · Introduction to Cybersecurity",

@@ -1,7 +1,7 @@
 window.TC2007B_PLATFORM_CONFIG = {
   courseId: "tc2007b",
   supabaseUrl: "https://ojmbupftdikwmlqvibwt.supabase.co",
-  supabaseAnonKey: "",
+  supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qbWJ1cGZ0ZGlrd21scXZpYnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2Mzk3MzUsImV4cCI6MjA5NzIxNTczNX0.X05-dMgmvXTiqha_NLnwjPg7UWvd5xoByYmKq29B4M4",
   allowedInstitutionalDomains: ["tec.mx", "itesm.mx"],
   authContextFunction: "course-auth-context",
   identityConfirmationFunction: "course-identity-confirmation",
