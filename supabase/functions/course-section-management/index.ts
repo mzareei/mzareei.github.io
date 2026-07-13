@@ -61,7 +61,7 @@ function cleanCourseId(value: unknown) {
 function cleanOptionalUuid(value: unknown) {
   const text = String(value || "").trim();
   if (!text) return "";
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i.test(text)) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text)) {
     throw new Error("A valid section id is required.");
   }
   return text;
