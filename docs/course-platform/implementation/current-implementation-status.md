@@ -27,6 +27,7 @@ This status file separates what is implemented in the repository from what still
 - Teacher tools honor selected course, section, and session context from dashboard links.
 - Student links for progress, portfolio, exit ticket, and activity player.
 - Teacher links for content library, roster import, sessions, releases, insights, classroom mode, and gradebook.
+- Self-contained app design system with first-class light/dark theming and an accessible theme toggle, decoupled from the dark lecture-deck stylesheet. Rationale and details in `docs/course-platform/implementation/app-ui-redesign.md`.
 
 ### Release And Session Control
 
