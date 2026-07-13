@@ -56,12 +56,12 @@ For each live check below, write the result in the evidence packet. Keep complet
 
 ## 2. Auth And Email
 
-1. Enable Supabase Auth email OTP.
+1. Enable Supabase Auth passwordless email.
 2. Configure the approved institutional email domain, for example `tec.mx` and `itesm.mx`.
 3. Configure the public site URL for the GitHub Pages course site.
 4. Configure approved redirect URLs for the authenticated app pages.
 5. Test one teacher account and one rostered student account before class.
-6. Allow institutional email OTP sign-in only with the app's roster gate in place: unrostered users may create an Auth identity, but they must not enter grade-bearing course areas.
+6. Allow institutional passwordless email sign-in only with the app's roster gate in place: unrostered users may create an Auth identity, but they must not enter grade-bearing course areas.
 7. Record the Auth and redirect results in the evidence packet.
 
 ## 3. Database Migrations

@@ -20,11 +20,19 @@ export function client() {
   return window.__TC2007B_SUPABASE_CLIENT__;
 }
 
+function courseAppRedirectUrl() {
+  const url = new URL(window.location.href);
+  url.hash = "";
+  url.search = "";
+  return url.href;
+}
+
 export async function sendOtp(email) {
   const { error } = await client().auth.signInWithOtp({
     email,
     options: {
-      shouldCreateUser: true
+      shouldCreateUser: true,
+      emailRedirectTo: courseAppRedirectUrl()
     }
   });
   if (error) throw error;

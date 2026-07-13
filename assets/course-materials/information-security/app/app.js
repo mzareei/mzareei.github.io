@@ -37,9 +37,9 @@ els.sendCode.addEventListener("click", async () => {
     setStatus("Use your approved institutional email for this course.", "warn");
     return;
   }
-  await run("Sending code...", async () => {
+  await run("Sending sign-in email...", async () => {
     await sendOtp(email);
-    setStatus("Code sent. Check your institutional email.", "good");
+    setStatus("Sign-in email sent. Click the link in your email, or enter the code here if one is shown.", "good");
   });
 });
 
@@ -47,7 +47,7 @@ els.verifyCode.addEventListener("click", async () => {
   const email = cleanEmail(els.email.value);
   const token = els.otp.value.trim();
   if (!email || !token) {
-    setStatus("Enter your email and the six digit code.", "warn");
+    setStatus("Enter your email and the six digit code if your email includes one.", "warn");
     return;
   }
   if (!isAllowedInstitutionalEmail(email)) {

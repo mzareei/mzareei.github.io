@@ -36,6 +36,8 @@ if (exists("assets/course-materials/information-security/app/index.html")) {
     'id="sendCodeBtn"',
     'id="otpInput"',
     'id="verifyCodeBtn"',
+    'Send sign-in email',
+    'Optional one-time code',
     'id="signedInPanel"',
     'id="releasedItems"',
     'platform-config.js',
@@ -59,7 +61,7 @@ if (exists("assets/course-materials/information-security/platform-config.js")) {
 
 if (exists("assets/course-materials/information-security/app/auth-api.js")) {
   const api = read("assets/course-materials/information-security/app/auth-api.js");
-  const requiredApi = ["signInWithOtp", "shouldCreateUser: true", "verifyOtp", "getSession", "signOut", "course-auth-context"];
+  const requiredApi = ["signInWithOtp", "shouldCreateUser: true", "emailRedirectTo", "verifyOtp", "getSession", "signOut", "course-auth-context"];
   for (const marker of requiredApi) {
     if (!api.includes(marker)) fail(`Auth API missing: ${marker}`);
   }

@@ -89,7 +89,7 @@ The live importer may reject a row with these messages:
 
 1. Refresh the current roster table.
 2. Confirm each test student appears in the expected section.
-3. Ask one test student account to sign in with institutional email OTP.
+3. Ask one test student account to sign in with the institutional email link or code.
 4. Confirm the student reaches the correct dashboard.
 5. Confirm an unrostered or wrong-domain email cannot access grade-bearing areas.
 6. Use roster correction only with a written reason.

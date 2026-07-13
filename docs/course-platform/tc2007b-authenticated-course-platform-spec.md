@@ -148,8 +148,8 @@ should be explicit, not inferred from email alone.
 
 ## 6. Student Identity
 
-The preferred sign-in model is institutional email with Supabase email OTP.
-Students enter their institutional email, receive a one-time code, and sign in.
+The preferred sign-in model is institutional email with Supabase passwordless email.
+Students enter their institutional email, receive a sign-in link by default, and may enter a one-time code if the Supabase email template is later configured to send codes.
 
 Identity rules:
 

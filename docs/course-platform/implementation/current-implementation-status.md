@@ -20,8 +20,8 @@ This status file separates what is implemented in the repository from what still
 
 ### Authenticated Course App
 
-- Student/teacher app shell with OTP sign-in support.
-- Supabase Auth users can be created by institutional email OTP, while course access remains blocked unless the email matches an active roster profile.
+- Student/teacher app shell with passwordless email sign-in support.
+- Supabase Auth users can be created by institutional email link or code, while course access remains blocked unless the email matches an active roster profile.
 - Role-aware dashboard links.
 - Teacher dashboard includes course, section, and session switchers for classroom context.
 - Teacher tools honor selected course, section, and session context from dashboard links.
@@ -158,7 +158,7 @@ These steps cannot be proven by repository files alone:
 
 1. Apply all migrations through `0010_profile_identity_confirmations.sql`.
 2. Run safe seed files for the course structure and practice activity.
-3. Configure Supabase Auth email OTP and approved redirect URLs.
+3. Configure Supabase Auth passwordless email and approved redirect URLs.
 4. Add the public Supabase anon key to `platform-config.js`.
 5. Deploy all listed Edge Functions from `supabase/README.md`.
 6. Run `supabase/tests/rls_auth_platform_checks.sql` in the Supabase SQL editor.

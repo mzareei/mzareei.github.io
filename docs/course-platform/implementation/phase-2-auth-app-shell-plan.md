@@ -4,7 +4,7 @@
 
 **Goal:** Add the first authenticated course app shell for roster-aware student and teacher entry.
 
-**Architecture:** Keep GitHub Pages as the public shell, add a static authenticated app entry page, use Supabase Auth in the browser for email OTP, and call a trusted Edge Function to load the signed-in user's profile, roles, sections, and released content context.
+**Architecture:** Keep GitHub Pages as the public shell, add a static authenticated app entry page, use Supabase Auth in the browser for passwordless email sign-in, and call a trusted Edge Function to load the signed-in user's profile, roles, sections, and released content context.
 
 **Tech Stack:** Static HTML/CSS/JavaScript, Supabase JS v2 in browser, Supabase Edge Functions, existing `window.QUIZ_CONFIG`-style configuration.
 
@@ -73,7 +73,7 @@ Include sections for identity, course roles, section enrollments, released items
 
 - [x] **Step 3: Wire Supabase browser auth**
 
-Use Supabase email OTP with `shouldCreateUser: true`, verify the code, load session, and sign out. Course access remains roster-gated by `course-auth-context`, so a newly created Auth user cannot enter grade-bearing course areas unless their institutional email matches an active roster profile.
+Use Supabase passwordless email with `shouldCreateUser: true` and `emailRedirectTo`, load the redirected session, keep optional code verification for projects that later customize the email template, and sign out. Course access remains roster-gated by `course-auth-context`, so a newly created Auth user cannot enter grade-bearing course areas unless their institutional email matches an active roster profile.
 
 - [x] **Step 4: Load course context**
 
