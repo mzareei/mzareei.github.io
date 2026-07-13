@@ -24,7 +24,7 @@ export async function sendOtp(email) {
   const { error } = await client().auth.signInWithOtp({
     email,
     options: {
-      shouldCreateUser: false
+      shouldCreateUser: true
     }
   });
   if (error) throw error;

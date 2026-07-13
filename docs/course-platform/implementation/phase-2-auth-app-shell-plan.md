@@ -73,7 +73,7 @@ Include sections for identity, course roles, section enrollments, released items
 
 - [x] **Step 3: Wire Supabase browser auth**
 
-Use Supabase email OTP with `shouldCreateUser: false`, verify the code, load session, and sign out.
+Use Supabase email OTP with `shouldCreateUser: true`, verify the code, load session, and sign out. Course access remains roster-gated by `course-auth-context`, so a newly created Auth user cannot enter grade-bearing course areas unless their institutional email matches an active roster profile.
 
 - [x] **Step 4: Load course context**
 

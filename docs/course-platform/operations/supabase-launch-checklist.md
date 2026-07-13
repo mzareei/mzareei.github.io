@@ -61,7 +61,7 @@ For each live check below, write the result in the evidence packet. Keep complet
 3. Configure the public site URL for the GitHub Pages course site.
 4. Configure approved redirect URLs for the authenticated app pages.
 5. Test one teacher account and one rostered student account before class.
-6. Disable or avoid open self-signup behavior for grade-bearing courses unless the roster workflow still blocks unrostered users.
+6. Allow institutional email OTP sign-in only with the app's roster gate in place: unrostered users may create an Auth identity, but they must not enter grade-bearing course areas.
 7. Record the Auth and redirect results in the evidence packet.
 
 ## 3. Database Migrations

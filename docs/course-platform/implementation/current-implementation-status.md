@@ -21,6 +21,7 @@ This status file separates what is implemented in the repository from what still
 ### Authenticated Course App
 
 - Student/teacher app shell with OTP sign-in support.
+- Supabase Auth users can be created by institutional email OTP, while course access remains blocked unless the email matches an active roster profile.
 - Role-aware dashboard links.
 - Teacher dashboard includes course, section, and session switchers for classroom context.
 - Teacher tools honor selected course, section, and session context from dashboard links.
