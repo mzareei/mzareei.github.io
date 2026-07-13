@@ -26,6 +26,10 @@ const els = {
 let currentSession = null;
 let currentContext = null;
 const teacherContextStorageKey = "tc2007b.teacher-context";
+const sendCooldownSeconds = 60;
+const sendCooldownStorageKey = "tc2007b.auth-send-cooldown";
+let sendCooldownTimer = null;
+let appBusy = false;
 
 els.sendCode.addEventListener("click", async () => {
   const email = cleanEmail(els.email.value);
@@ -37,8 +41,13 @@ els.sendCode.addEventListener("click", async () => {
     setStatus("Use your approved institutional email for this course.", "warn");
     return;
   }
+  if (sendCooldownRemaining() > 0) {
+    updateSendCodeCooldown();
+    return;
+  }
   await run("Sending sign-in email...", async () => {
     await sendOtp(email);
+    startSendCooldown(sendCooldownSeconds);
     setStatus("Sign-in email sent. Click the link in your email, or enter the code here if one is shown.", "good");
   });
 });
@@ -117,9 +126,15 @@ async function run(workingMessage, action) {
   try {
     await action();
   } catch (error) {
-    setStatus(error.message || "Something went wrong.", "danger");
+    if (isRateLimitError(error)) {
+      startSendCooldown(sendCooldownSeconds);
+      setStatus("Rate limit reached. Wait about 60 seconds, then request one new sign-in email.", "warn");
+    } else {
+      setStatus(error.message || "Something went wrong.", "danger");
+    }
   } finally {
     setBusy(false);
+    updateSendCodeCooldown();
   }
 }
 
@@ -135,6 +150,40 @@ function renderSignedOut() {
   els.studentActions.innerHTML = "";
   els.teacherActions.innerHTML = "";
   els.teacherContextLinks.innerHTML = "";
+  updateSendCodeCooldown();
+}
+
+function startSendCooldown(seconds) {
+  const until = Date.now() + seconds * 1000;
+  localStorage.setItem(sendCooldownStorageKey, String(until));
+  updateSendCodeCooldown();
+}
+
+function sendCooldownRemaining() {
+  const until = Number(localStorage.getItem(sendCooldownStorageKey) || 0);
+  const remainingMs = Math.max(0, until - Date.now());
+  if (!remainingMs && until) localStorage.removeItem(sendCooldownStorageKey);
+  return Math.ceil(remainingMs / 1000);
+}
+
+function updateSendCodeCooldown() {
+  const remaining = sendCooldownRemaining();
+  if (sendCooldownTimer) {
+    clearTimeout(sendCooldownTimer);
+    sendCooldownTimer = null;
+  }
+  if (remaining > 0) {
+    els.sendCode.disabled = true;
+    els.sendCode.textContent = `Try again in ${remaining}s`;
+    sendCooldownTimer = setTimeout(updateSendCodeCooldown, 1000);
+    return;
+  }
+  els.sendCode.disabled = appBusy;
+  els.sendCode.textContent = "Send sign-in email";
+}
+
+function isRateLimitError(error) {
+  return /rate limit|too many|email rate/i.test(error?.message || "");
 }
 
 function renderContext(context) {
@@ -425,9 +474,15 @@ function row(label, value) {
 }
 
 function setBusy(isBusy) {
-  [els.sendCode, els.verifyCode, els.signOut, els.refresh].forEach((button) => {
+  appBusy = isBusy;
+  [els.verifyCode, els.signOut, els.refresh].forEach((button) => {
     button.disabled = isBusy;
   });
+  if (isBusy) {
+    els.sendCode.disabled = true;
+  } else {
+    updateSendCodeCooldown();
+  }
 }
 
 function setStatus(message, tone) {

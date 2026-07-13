@@ -67,6 +67,14 @@ if (exists("assets/course-materials/information-security/app/auth-api.js")) {
   }
 }
 
+if (exists("assets/course-materials/information-security/app/app.js")) {
+  const app = read("assets/course-materials/information-security/app/app.js");
+  const requiredCooldownMarkers = ["sendCooldownSeconds", "auth-send-cooldown", "Rate limit", "updateSendCodeCooldown"];
+  for (const marker of requiredCooldownMarkers) {
+    if (!app.includes(marker)) fail(`Auth app missing send cooldown marker: ${marker}`);
+  }
+}
+
 if (exists("supabase/functions/course-auth-context/index.ts")) {
   const fn = read("supabase/functions/course-auth-context/index.ts");
   const requiredFunctionMarkers = [
