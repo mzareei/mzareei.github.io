@@ -64,7 +64,7 @@ materials, the graded end-of-class quizzes, and personal progress and grades.
 | 3 | Database &amp; application security | [Deck](/assets/course-materials/information-security/week-03/lecture/) | [Mission 04](/assets/course-materials/information-security/week-03/mission-04/) |
 | 4 | Secure coding &amp; release risk | — | [Bridge mission](/assets/course-materials/information-security/week-04/mission-bridge/) |
 | 5 | Cryptography — asymmetric encryption | [Deck](/assets/course-materials/information-security/week-05/lecture/) | [Mission 05](/assets/course-materials/information-security/week-05/mission-05/) |
-| 6 | Symmetric crypto &amp; key handling | — | [Bridge mission](/assets/course-materials/information-security/week-06/mission-bridge/) |
+| 6 | Symmetric encryption — DES, AES &amp; cipher modes | [Deck](/assets/course-materials/information-security/week-06/lecture/) | [Bridge mission](/assets/course-materials/information-security/week-06/mission-bridge/) |
 | 7 | Security protocols &amp; hash functions | [Deck](/assets/course-materials/information-security/week-07/lecture/) | [Mission 06](/assets/course-materials/information-security/week-07/mission-06/) |
 | 8 | TLS, certificates &amp; secure channels | — | [Bridge mission](/assets/course-materials/information-security/week-08/mission-bridge/) |
 | 9 | Malicious code | [Deck](/assets/course-materials/information-security/week-09/lecture/) | [Mission 07](/assets/course-materials/information-security/week-09/mission-07/) |
