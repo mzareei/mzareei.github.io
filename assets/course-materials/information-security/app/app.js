@@ -280,22 +280,49 @@ function renderStudentActions(context) {
 }
 
 function renderTeacherActions(context, canTeach) {
-  const actions = canTeach ? [
-    { label: "Manage Course Sections", href: "sections.html" },
-    { label: "Manage Content Library", href: "content-library.html" },
-    { label: "Import Course Roster", href: "roster.html" },
-    { label: "Open Learning Insights", href: "insights.html" },
-    { label: "Record Participation", href: "participation.html" },
-    { label: "Review Student Records", href: "student-records.html" },
-    { label: "Open Teacher Insights", href: "../teacher/" },
-    { label: "Open Classroom Mode", href: "../classroom/" },
-    { label: "Manage Class Sessions", href: "sessions.html" },
-    { label: "Prepare Release Controls", href: "releases.html" },
-    { label: "Review Gradebook", href: "gradebook.html" }
-  ] : [];
+  els.teacherActions.innerHTML = "";
+  if (!canTeach) {
+    const empty = document.createElement("li");
+    empty.className = "empty";
+    empty.textContent = "Teacher actions appear here for instructor roles.";
+    els.teacherActions.append(empty);
+    return;
+  }
+
   const canAudit = (context.memberships || []).some((membership) => ["platform_owner", "instructor"].includes(membership.role));
-  if (canAudit) actions.push({ label: "Review Audit Log", href: "audit.html" });
-  renderActionList(els.teacherActions, actions, "Teacher actions appear here for instructor roles.");
+  const groups = [
+    { label: "Set up", items: [
+      { label: "Manage Course Sections", href: "sections.html" },
+      { label: "Import Course Roster", href: "roster.html" },
+      { label: "Manage Content Library", href: "content-library.html" }
+    ] },
+    { label: "Teach", items: [
+      { label: "Manage Class Sessions", href: "sessions.html" },
+      { label: "Prepare Release Controls", href: "releases.html" },
+      { label: "Record Participation", href: "participation.html" }
+    ] },
+    { label: "Review", items: [
+      { label: "Review Gradebook", href: "gradebook.html" },
+      { label: "Review Student Records", href: "student-records.html" },
+      { label: "Open Learning Insights", href: "insights.html" }
+    ] }
+  ];
+  if (canAudit) groups[2].items.push({ label: "Review Audit Log", href: "audit.html" });
+
+  groups.forEach((group) => {
+    const labelItem = document.createElement("li");
+    labelItem.textContent = group.label;
+    labelItem.style.cssText = "list-style:none; margin:0.85rem 0 0.35rem; font-size:0.7rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; opacity:0.55;";
+    els.teacherActions.append(labelItem);
+    group.items.forEach((action) => {
+      const item = document.createElement("li");
+      const link = document.createElement("a");
+      link.href = action.href;
+      link.textContent = action.label;
+      item.append(link);
+      els.teacherActions.append(item);
+    });
+  });
 }
 
 function renderTeacherContextSwitchers(context, canTeach) {
