@@ -90,6 +90,57 @@ sup, sub { font-size: .68em; }
 .inv-pill { display:inline-block; font-family:var(--mono); background:var(--bg-3); border:1px solid var(--line); border-radius:8px; padding:.15rem .55rem; margin:.15rem; font-size:.9em; }
 .inv-pill.no { color:var(--danger); border-color:var(--danger); }
 .inv-pill.yes { color:var(--good); border-color:var(--good); }
+
+/* ---- ADDED: Diffie-Hellman color-mixing interactive (pk- prefixed) ---- */
+.pk-dh-mixer { display:flex; flex-direction:column; gap:1.1rem; margin-top:1.3rem; }
+.pk-dh-public {
+  display:flex; align-items:center; justify-content:center; gap:.9rem; flex-wrap:wrap; text-align:center;
+  background:rgba(255,196,20,.08); border:1px solid var(--warn,#ffb454);
+  border-radius:var(--radius,16px); padding:.8rem 1.1rem; font-size:var(--fs-small,.95rem); color:var(--ink-soft,#aebfd6);
+}
+.pk-dh-cols { display:grid; grid-template-columns:1fr 1fr; gap:1.1rem; }
+.pk-dh-col {
+  background:var(--bg-2,#122036); border:2px solid var(--line,#2c3f5e);
+  border-radius:var(--radius,16px); padding:1rem 1.2rem;
+}
+.pk-dh-col.alice { border-color:var(--accent,#4ea1ff); }
+.pk-dh-col.bob   { border-color:var(--accent-2,#38d6c0); }
+.pk-dh-col h3 { font-size:var(--fs-lead,1.3rem); margin-bottom:.4rem; }
+.pk-dh-col.alice h3 { color:var(--accent,#4ea1ff); }
+.pk-dh-col.bob   h3 { color:var(--accent-2,#38d6c0); }
+.pk-dh-row {
+  display:flex; align-items:center; gap:.7rem; margin-top:.65rem;
+  font-size:var(--fs-small,.95rem); color:var(--ink-soft,#aebfd6);
+}
+.pk-dh-row.pk-dh-final { margin-top:.9rem; padding-top:.8rem; border-top:1px dashed var(--line,#2c3f5e); font-weight:700; }
+.pk-dh-lbl { flex:1; }
+.pk-dh-tag-priv { color:var(--danger,#ff6b6b); font-weight:800; text-transform:uppercase; font-size:.78em; letter-spacing:.04em; }
+.pk-dh-tag-pub  { color:var(--good,#5fe08a); font-weight:800; text-transform:uppercase; font-size:.78em; letter-spacing:.04em; }
+.pk-dh-swatch {
+  flex:none; width:2.3rem; height:2.3rem; border-radius:8px; border:2px dashed var(--line,#2c3f5e);
+  display:grid; place-items:center; font-weight:800; color:var(--ink-soft,#aebfd6);
+  background:var(--bg-3,#1b2c47); font-size:1rem; line-height:1;
+}
+.pk-dh-swatch.pk-filled { border-style:solid; border-color:rgba(0,0,0,.15); color:transparent; }
+.pk-dh-controls { display:flex; flex-wrap:wrap; gap:.6rem; margin-top:.3rem; }
+.pk-dh-btn {
+  font:inherit; font-weight:700; font-size:var(--fs-small,.95rem); padding:.55rem 1.1rem;
+  border-radius:999px; border:2px solid var(--accent,#4ea1ff); background:transparent;
+  color:var(--accent,#4ea1ff); cursor:pointer; transition:filter .15s ease, transform .15s ease, opacity .15s ease;
+}
+.pk-dh-btn:hover:not([disabled]) { filter:brightness(1.25); transform:translateY(-1px); }
+.pk-dh-btn[disabled] { opacity:.35; cursor:not-allowed; }
+.pk-dh-btn.pk-dh-reset { border-color:var(--ink-soft,#aebfd6); color:var(--ink-soft,#aebfd6); }
+.pk-dh-match {
+  text-align:center; font-weight:700; padding:.8rem 1.1rem; border-radius:var(--radius,16px);
+  border:1px solid var(--line,#2c3f5e); background:var(--bg-3,#1b2c47); color:var(--ink-soft,#aebfd6);
+  opacity:.5; transition:opacity .2s ease, border-color .2s ease, color .2s ease;
+}
+.pk-dh-match.pk-show { opacity:1; border-color:var(--good,#5fe08a); color:var(--good,#5fe08a); }
+.callout.pk-dh-eve { align-items:flex-start; }
+.pk-dh-eve-row { display:flex; align-items:center; gap:.6rem; margin-top:.6rem; flex-wrap:wrap; }
+.pk-dh-eve-row .pk-dh-lbl { flex:none; font-size:var(--fs-small,.95rem); }
+@media (max-width:760px){ .pk-dh-cols { grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
@@ -373,6 +424,79 @@ sup, sub { font-size: .68em; }
         <li data-es="Se usa en innumerables productos comerciales; su seguridad descansa en la dificultad del <strong>logaritmo discreto</strong>.">Used in countless commercial products; its security rests on the difficulty of the <strong>discrete logarithm</strong>.</li>
       </ul>
       <div class="callout note"><span class="tag" data-es="Analogía">Analogy</span><p data-es="Imagina mezclar pinturas. Tú y yo acordamos públicamente un color base (amarillo). Cada uno añade en secreto su propio color y mezclamos. Intercambiamos las mezclas públicamente. Cada uno añade de nuevo su color secreto — y ambos llegamos a la <em>misma</em> mezcla final. Un espía vio las mezclas, pero «separar» pintura mezclada es prohibitivamente difícil.">Picture mixing paints. You and I publicly agree on a base color (yellow). Each of us secretly adds our own color and mixes. We publicly swap the mixtures. Each of us adds our secret color again — and we both reach the <em>same</em> final mix. An eavesdropper saw the mixtures, but "un-mixing" paint is prohibitively hard.</p></div>
+    </div>
+  </section>
+
+  <!-- S18b — Interactive: Diffie-Hellman color-mixing key exchange (ADDED) -->
+  <section class="slide" data-section="Diffie-Hellman" data-section-es="Diffie-Hellman">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Pruébalo tú mismo"><span class="dot"></span>Try it yourself</span>
+      <h2 data-es="Mezcla de pinturas: Diffie-Hellman, paso a paso">Paint mixing: Diffie-Hellman, step by step</h2>
+      <p class="lead" style="max-width:58ch" data-es="Sigue los pasos en orden. Alice y Bob nunca envían su color secreto — solo mezclas públicas. Aun así, ambos terminan con exactamente el mismo color final.">Follow the steps in order. Alice and Bob never send their secret color — only public mixes. Yet they both end up with exactly the same final color.</p>
+
+      <div class="pk-dh-mixer">
+        <div class="pk-dh-public">
+          <span data-es="Pintura pública — todos la ven, incluida Eve">Public paint — everyone sees this, including Eve</span>
+          <span class="pk-dh-swatch" data-role="public">?</span>
+        </div>
+
+        <div class="pk-dh-cols">
+          <div class="pk-dh-col alice">
+            <h3 data-es="Alice">Alice</h3>
+            <div class="pk-dh-row">
+              <span class="pk-dh-lbl"><span class="pk-dh-tag-priv" data-es="Secreto">Secret</span></span>
+              <span class="pk-dh-swatch" data-role="a-secret">?</span>
+            </div>
+            <div class="pk-dh-row">
+              <span class="pk-dh-lbl"><span class="pk-dh-tag-pub" data-es="Mezcla enviada a Bob →">Mix sent to Bob →</span></span>
+              <span class="pk-dh-swatch" data-role="a-mix">?</span>
+            </div>
+            <div class="pk-dh-row pk-dh-final">
+              <span class="pk-dh-lbl" data-es="Secreto compartido final">Final shared secret</span>
+              <span class="pk-dh-swatch" data-role="a-final">?</span>
+            </div>
+          </div>
+          <div class="pk-dh-col bob">
+            <h3 data-es="Bob">Bob</h3>
+            <div class="pk-dh-row">
+              <span class="pk-dh-lbl"><span class="pk-dh-tag-priv" data-es="Secreto">Secret</span></span>
+              <span class="pk-dh-swatch" data-role="b-secret">?</span>
+            </div>
+            <div class="pk-dh-row">
+              <span class="pk-dh-lbl"><span class="pk-dh-tag-pub" data-es="← Mezcla enviada a Alice">← Mix sent to Alice</span></span>
+              <span class="pk-dh-swatch" data-role="b-mix">?</span>
+            </div>
+            <div class="pk-dh-row pk-dh-final">
+              <span class="pk-dh-lbl" data-es="Secreto compartido final">Final shared secret</span>
+              <span class="pk-dh-swatch" data-role="b-final">?</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="pk-dh-controls">
+          <button type="button" class="pk-dh-btn" data-step="1" data-es="1. Elegir colores secretos">1. Pick secret colors</button>
+          <button type="button" class="pk-dh-btn" data-step="2" disabled data-es="2. Intercambiar mezclas públicas">2. Exchange public mixes</button>
+          <button type="button" class="pk-dh-btn" data-step="3" disabled data-es="3. Combinar para el secreto compartido">3. Combine for shared secret</button>
+          <button type="button" class="pk-dh-btn pk-dh-reset" data-es="↻ Reiniciar">↻ Reset</button>
+        </div>
+
+        <div class="pk-dh-match" data-es="✓ ¡Idénticos! Alice y Bob calcularon el mismo secreto compartido sin enviarlo nunca por la red.">✓ Identical! Alice and Bob computed the same shared secret without ever sending it over the network.</div>
+
+        <div class="callout note pk-dh-eve">
+          <span class="tag" data-es="Vista de Eve (la espía)">Eve's view (the eavesdropper)</span>
+          <div>
+            <p data-es="Eve intercepta todo lo público: el color base y las dos mezclas. Nunca ve un secreto ni el color final compartido.">Eve intercepts everything public: the base color and both mixes. She never sees a secret or the final shared color.</p>
+            <div class="pk-dh-eve-row">
+              <span class="pk-dh-lbl" data-es="Público">Public</span><span class="pk-dh-swatch" data-role="eve-public">?</span>
+              <span class="pk-dh-lbl" data-es="Mezcla de Alice">Alice's mix</span><span class="pk-dh-swatch" data-role="eve-a-mix">?</span>
+              <span class="pk-dh-lbl" data-es="Mezcla de Bob">Bob's mix</span><span class="pk-dh-swatch" data-role="eve-b-mix">?</span>
+              <span class="pk-dh-lbl"><span class="pk-dh-tag-priv" data-es="Secreto compartido: ???">Shared secret: ???</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="figure-note" data-es="Metáfora visual simplificada para desarrollar la intuición (mezcla = promedio de valores RGB en JavaScript). La seguridad real de Diffie-Hellman no depende de lo difícil que sea «desmezclar» colores — descansa en el problema del logaritmo discreto con números de cientos de dígitos.">Simplified visual metaphor to build intuition (mixing = averaging RGB values in JavaScript). Diffie-Hellman's real security doesn't depend on how hard it is to "unmix" colors — it rests on the discrete logarithm problem with numbers hundreds of digits long.</p>
     </div>
   </section>
 
@@ -830,5 +954,123 @@ sup, sub { font-size: .68em; }
 </div>
 
 <script src="script.js"></script>
+<script>
+  /* Added interactive: Diffie-Hellman color-mixing key exchange (pk- prefixed) */
+  (function () {
+    var mixer = document.querySelector('.pk-dh-mixer');
+    if (!mixer) return;
+
+    var PUBLIC = { r: 255, g: 196, b: 20 };
+
+    function hslToRgb(h, s, l) {
+      s /= 100; l /= 100;
+      function k(n) { return (n + h / 30) % 12; }
+      var a = s * Math.min(l, 1 - l);
+      function f(n) { return l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1))); }
+      return { r: Math.round(255 * f(0)), g: Math.round(255 * f(8)), b: Math.round(255 * f(4)) };
+    }
+    function randColor() { return hslToRgb(Math.floor(Math.random() * 360), 75, 52); }
+    function mix2(c1, c2) {
+      return {
+        r: Math.round((c1.r + c2.r) / 2),
+        g: Math.round((c1.g + c2.g) / 2),
+        b: Math.round((c1.b + c2.b) / 2)
+      };
+    }
+    function mix3(c1, c2, c3) {
+      return {
+        r: Math.round((c1.r + c2.r + c3.r) / 3),
+        g: Math.round((c1.g + c2.g + c3.g) / 3),
+        b: Math.round((c1.b + c2.b + c3.b) / 3)
+      };
+    }
+    function css(c) { return 'rgb(' + c.r + ',' + c.g + ',' + c.b + ')'; }
+
+    function paint(el, color) {
+      if (!el) return;
+      el.style.background = css(color);
+      el.textContent = '';
+      el.classList.add('pk-filled');
+    }
+    function clear(el) {
+      if (!el) return;
+      el.style.background = '';
+      el.textContent = '?';
+      el.classList.remove('pk-filled');
+    }
+
+    var q = function (role) { return mixer.querySelector('[data-role="' + role + '"]'); };
+    var publicSwatch = q('public');
+    var evePublicSwatch = q('eve-public');
+    var aSecretSwatch = q('a-secret');
+    var bSecretSwatch = q('b-secret');
+    var aMixSwatch = q('a-mix');
+    var bMixSwatch = q('b-mix');
+    var aFinalSwatch = q('a-final');
+    var bFinalSwatch = q('b-final');
+    var eveAMixSwatch = q('eve-a-mix');
+    var eveBMixSwatch = q('eve-b-mix');
+    var matchBox = mixer.querySelector('.pk-dh-match');
+
+    var btn1 = mixer.querySelector('[data-step="1"]');
+    var btn2 = mixer.querySelector('[data-step="2"]');
+    var btn3 = mixer.querySelector('[data-step="3"]');
+    var btnReset = mixer.querySelector('.pk-dh-reset');
+
+    var aliceSecret = null, bobSecret = null;
+
+    paint(publicSwatch, PUBLIC);
+    paint(evePublicSwatch, PUBLIC);
+
+    function doStep1(e) {
+      if (e) e.stopPropagation();
+      aliceSecret = randColor();
+      bobSecret = randColor();
+      paint(aSecretSwatch, aliceSecret);
+      paint(bSecretSwatch, bobSecret);
+      if (btn1) btn1.disabled = true;
+      if (btn2) btn2.disabled = false;
+    }
+    function doStep2(e) {
+      if (e) e.stopPropagation();
+      if (!aliceSecret || !bobSecret) return;
+      var aMix = mix2(PUBLIC, aliceSecret);
+      var bMix = mix2(PUBLIC, bobSecret);
+      paint(aMixSwatch, aMix);
+      paint(bMixSwatch, bMix);
+      paint(eveAMixSwatch, aMix);
+      paint(eveBMixSwatch, bMix);
+      if (btn2) btn2.disabled = true;
+      if (btn3) btn3.disabled = false;
+    }
+    function doStep3(e) {
+      if (e) e.stopPropagation();
+      if (!aliceSecret || !bobSecret) return;
+      var shared = mix3(PUBLIC, aliceSecret, bobSecret);
+      paint(aFinalSwatch, shared);
+      paint(bFinalSwatch, shared);
+      if (btn3) btn3.disabled = true;
+      if (matchBox) matchBox.classList.add('pk-show');
+    }
+    function doReset(e) {
+      if (e) e.stopPropagation();
+      aliceSecret = null;
+      bobSecret = null;
+      clear(aSecretSwatch); clear(bSecretSwatch);
+      clear(aMixSwatch); clear(bMixSwatch);
+      clear(aFinalSwatch); clear(bFinalSwatch);
+      clear(eveAMixSwatch); clear(eveBMixSwatch);
+      if (matchBox) matchBox.classList.remove('pk-show');
+      if (btn1) btn1.disabled = false;
+      if (btn2) btn2.disabled = true;
+      if (btn3) btn3.disabled = true;
+    }
+
+    if (btn1) btn1.addEventListener('click', doStep1);
+    if (btn2) btn2.addEventListener('click', doStep2);
+    if (btn3) btn3.addEventListener('click', doStep3);
+    if (btnReset) btnReset.addEventListener('click', doReset);
+  })();
+</script>
 </body>
 </html>
