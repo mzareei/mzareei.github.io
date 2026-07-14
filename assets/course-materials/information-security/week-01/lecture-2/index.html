@@ -9,6 +9,42 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<style>
+  /* Added interactive: legal & ethical scenario sorter (self-contained, theme-aware) */
+  .legal-sorter{margin-top:1.4rem}
+  .legal-progress{display:flex;align-items:center;gap:.6rem;margin-bottom:.9rem;font-size:.72rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted,#aebfd6)}
+  .legal-prog-count{font-variant-numeric:tabular-nums}
+  .legal-dots{display:inline-flex;gap:.35rem;margin-left:.3rem}
+  .legal-dot{width:.5rem;height:.5rem;border-radius:50%;background:var(--line,#2a3a54);display:inline-block;transition:background .15s ease,transform .15s ease}
+  .legal-dot.legal-dot-current{background:var(--accent,#4ea1ff);transform:scale(1.3)}
+  .legal-dot.legal-dot-done{background:var(--good,#5fe08a)}
+  .legal-card{border:1px solid var(--line,#2a3a54);border-radius:16px;background:var(--card,#122036);padding:1.3rem 1.4rem}
+  .legal-scenario{display:none}
+  .legal-scenario.legal-active{display:block}
+  .legal-scenario-text{font-size:1.12rem;font-weight:700;color:var(--text,#eef4ff);line-height:1.5;margin:0 0 1.1rem}
+  .legal-choices{display:flex;gap:.8rem;flex-wrap:wrap}
+  .legal-choice{flex:1 1 190px;border:2px solid var(--line,#2a3a54);background:transparent;color:var(--text,#eef4ff);border-radius:12px;padding:.7rem 1rem;font:inherit;font-weight:700;cursor:pointer;transition:transform .12s ease,border-color .12s ease,background .12s ease}
+  .legal-choice:hover{transform:translateY(-2px)}
+  .legal-choice.legal-correct{border-color:var(--good,#5fe08a);background:rgba(95,224,138,.14)}
+  .legal-choice.legal-correct::after{content:" \2713";color:var(--good,#5fe08a)}
+  .legal-choice.legal-incorrect{border-color:var(--danger,#ff6b6b);background:rgba(255,107,107,.14)}
+  .legal-choice.legal-incorrect::after{content:" \2717";color:var(--danger,#ff6b6b)}
+  .legal-choice[disabled]{cursor:default}
+  .legal-choice[disabled]:hover{transform:none}
+  .legal-verdict{margin-top:1.1rem;padding-top:1rem;border-top:1px dashed var(--line,#2a3a54)}
+  .legal-verdict[hidden]{display:none}
+  .legal-verdict-tag{display:inline-block;font-size:.7rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:.28rem .7rem;border-radius:999px;border:1px solid currentColor;margin-bottom:.55rem}
+  .legal-verdict-tag.legal-tag-ok{color:var(--good,#5fe08a)}
+  .legal-verdict-tag.legal-tag-bad{color:var(--danger,#ff6b6b)}
+  .legal-reason{font-size:.95rem;color:var(--muted,#aebfd6);line-height:1.55;margin:0}
+  .legal-kw{color:var(--accent,#4ea1ff);font-weight:700}
+  .legal-nav{display:flex;justify-content:space-between;gap:.8rem;margin-top:1.1rem}
+  .legal-nav-btn{border:1px solid var(--line,#2a3a54);background:var(--card,#122036);color:var(--text,#eef4ff);border-radius:10px;padding:.55rem 1.15rem;font:inherit;font-weight:700;cursor:pointer}
+  .legal-nav-btn:hover{border-color:var(--accent,#4ea1ff);color:var(--accent,#4ea1ff)}
+  .legal-nav-btn[disabled]{opacity:.4;cursor:default}
+  .legal-nav-btn[disabled]:hover{border-color:var(--line,#2a3a54);color:var(--text,#eef4ff)}
+  @media(max-width:640px){.legal-choices{flex-direction:column}.legal-choice{flex:1 1 auto}}
+</style>
 </head>
 <body>
 
@@ -196,6 +232,10 @@
         <blockquote data-es="“La Ley Federal de Derechos de Autor protege los derechos de autores y creadores contra la reproducción o distribución no autorizada, incluidas las obras digitales.”">“The Ley Federal de Derechos de Autor protects the rights of authors and creators against unauthorized reproduction or distribution, including digital works.”</blockquote>
       </div>
       <p class="muted" style="margin-top:1rem" data-es="En software y ciberseguridad abarca: derechos de autor, autoría, licenciamiento de software, infracción en línea y sus sanciones.">In software &amp; cybersecurity it covers: copyright protection, authorship, software licensing, online infringement, and penalties.</p>
+      <div class="callout note" style="margin-top:1.1rem">
+        <span class="tag" data-es="Analogía cotidiana">Everyday analogy</span>
+        <p data-es="Piensa en un contrato de arrendamiento frente a una escritura de propiedad. La mayoría de las licencias de software (EULA) te dan un <strong>arrendamiento</strong> — el derecho a usar el programa — no una <strong>escritura</strong> que te haga dueño de él. Copiarlo y dárselo a un compañero “para ayudarlo” sigue siendo distribución no autorizada bajo la LFDA, sin importar cuán buena sea la intención.">Think of it like a lease versus a deed. Most software licenses (EULAs) give you a <strong>lease</strong> — the right to use the program — not a <strong>deed</strong> that makes you its owner. Copying it and handing it to a classmate “to help them out” is still unauthorized distribution under the LFDA, no matter how good the intention.</p>
+      </div>
     </div>
   </section>
 
@@ -462,6 +502,10 @@
       <h2 data-es="La privacidad también importa para las organizaciones">Privacy matters for organizations too</h2>
       <p class="lead" style="max-width:54ch" data-es="Universidades, hospitales y organizaciones benéficas necesitan privacidad — deben proteger los datos de las personas a las que sirven o emplean.">Universities, hospitals, and charities require privacy — they must protect the data of the people they serve or employ.</p>
       <div class="callout discuss" style="margin-top:1.2rem"><span class="tag" data-es="Piensa">Think</span><p data-es="Una fuga en un hospital o una universidad daña a miles de personas que nunca eligieron correr ese riesgo.">A leak at a hospital or university harms thousands of people who never chose to take that risk.</p></div>
+      <div class="callout note" style="margin-top:1rem">
+        <span class="tag" data-es="Analogía">Analogy</span>
+        <p data-es="Es como la bóveda de un banco: nadie afuera es “dueño” de la bóveda, pero todos — cuentahabientes, empleados, reguladores — confían en que quien la administra la mantenga cerrada. Una universidad o un hospital cumple ese mismo papel de custodio para los datos que recopila.">It’s like a bank vault: no one outside “owns” the vault, but everyone — account holders, employees, regulators — trusts whoever runs it to keep it locked. A university or hospital plays that same custodian role for the data it collects.</p>
+      </div>
     </div>
   </section>
 
@@ -535,6 +579,97 @@
     </div>
   </section>
 
+  <!-- S33b — Interactive: legal & ethical scenario sorter (ADDED) -->
+  <section class="slide activity" data-section="Wrap-up" data-section-es="Cierre">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Actividad · Clasifica el escenario">◆ Activity · Sort the scenario</span>
+      <h2 style="margin-top:1rem" data-es="Autorizado o no: clasifica cinco escenarios reales">Authorized or not? Sort five real-world scenarios</h2>
+      <p class="lead" style="max-width:58ch" data-es="Para cada escenario decide: ¿es una acción <strong>autorizada (legal)</strong> o <strong>no autorizada (ilegal)</strong>? Toca tu respuesta y revisa el razonamiento.">For each scenario, decide: is this an <strong>authorized (legal)</strong> action, or an <strong>unauthorized (illegal)</strong> one? Tap your answer, then check the reasoning.</p>
+
+      <div class="legal-sorter" id="legalSorter">
+        <div class="legal-progress">
+          <span data-es="Escenario">Scenario</span>
+          <span class="legal-prog-count"><span id="legalIdx">1</span>&nbsp;/&nbsp;<span id="legalTotal">5</span></span>
+          <span class="legal-dots" id="legalDots"></span>
+        </div>
+
+        <div class="legal-card">
+
+          <div class="legal-scenario legal-active" data-correct="bad">
+            <p class="legal-scenario-text" data-es="Escaneas los puertos de los servidores de una empresa sin permiso.">You port-scan a company’s servers without permission.</p>
+            <div class="legal-choices">
+              <button type="button" class="legal-choice legal-choice-ok" data-choice="ok" data-es="✅ Autorizado / Legal">✅ Authorized / Legal</button>
+              <button type="button" class="legal-choice legal-choice-bad" data-choice="bad" data-es="⛔ No autorizado / Ilegal">⛔ Unauthorized / Illegal</button>
+            </div>
+            <div class="legal-verdict" hidden>
+              <span class="legal-verdict-tag legal-tag-bad" data-es="Veredicto: no autorizado / ilegal">Verdict: unauthorized / illegal</span>
+              <p class="legal-reason" data-es="Sin <span class='legal-kw'>autorización</span> — escanear sistemas que no posees ni tienes permiso explícito para probar es acceso no autorizado, sin importar la intención.">No <span class="legal-kw">authorization</span> — scanning systems you don’t own or have explicit permission to test is unauthorized access, regardless of intent.</p>
+            </div>
+          </div>
+
+          <div class="legal-scenario" data-correct="ok" hidden>
+            <p class="legal-scenario-text" data-es="Encuentras un error (bug) y lo reportas en privado al fabricante.">You find a bug and report it privately to the vendor.</p>
+            <div class="legal-choices">
+              <button type="button" class="legal-choice legal-choice-ok" data-choice="ok" data-es="✅ Autorizado / Legal">✅ Authorized / Legal</button>
+              <button type="button" class="legal-choice legal-choice-bad" data-choice="bad" data-es="⛔ No autorizado / Ilegal">⛔ Unauthorized / Illegal</button>
+            </div>
+            <div class="legal-verdict" hidden>
+              <span class="legal-verdict-tag legal-tag-ok" data-es="Veredicto: autorizado / legal">Verdict: authorized / legal</span>
+              <p class="legal-reason" data-es="La <span class='legal-kw'>divulgación</span> privada y de buena fe al fabricante es la norma de la divulgación responsable — respeta su oportunidad de corregirlo antes de que alguien más lo descubra.">Private, good-faith <span class="legal-kw">disclosure</span> to the vendor is the responsible-disclosure norm — it respects their chance to fix it before anyone else finds out.</p>
+            </div>
+          </div>
+
+          <div class="legal-scenario" data-correct="bad" hidden>
+            <p class="legal-scenario-text" data-es="Accedes a datos que puedes ver, pero para los que nunca te autorizaron.">You access data you can see but were never authorized to view.</p>
+            <div class="legal-choices">
+              <button type="button" class="legal-choice legal-choice-ok" data-choice="ok" data-es="✅ Autorizado / Legal">✅ Authorized / Legal</button>
+              <button type="button" class="legal-choice legal-choice-bad" data-choice="bad" data-es="⛔ No autorizado / Ilegal">⛔ Unauthorized / Illegal</button>
+            </div>
+            <div class="legal-verdict" hidden>
+              <span class="legal-verdict-tag legal-tag-bad" data-es="Veredicto: no autorizado / ilegal">Verdict: unauthorized / illegal</span>
+              <p class="legal-reason" data-es="Poder verlo no es lo mismo que estar dentro del <span class='legal-kw'>alcance</span> autorizado para acceder a ello — la visibilidad suele ser solo una mala configuración, no un permiso.">Being able to see it isn’t the same as being in authorized <span class="legal-kw">scope</span> to access it — visibility is often just a misconfiguration, not permission.</p>
+            </div>
+          </div>
+
+          <div class="legal-scenario" data-correct="ok" hidden>
+            <p class="legal-scenario-text" data-es="Pruebas tu propio sitio web en busca de vulnerabilidades.">You test your own website for vulnerabilities.</p>
+            <div class="legal-choices">
+              <button type="button" class="legal-choice legal-choice-ok" data-choice="ok" data-es="✅ Autorizado / Legal">✅ Authorized / Legal</button>
+              <button type="button" class="legal-choice legal-choice-bad" data-choice="bad" data-es="⛔ No autorizado / Ilegal">⛔ Unauthorized / Illegal</button>
+            </div>
+            <div class="legal-verdict" hidden>
+              <span class="legal-verdict-tag legal-tag-ok" data-es="Veredicto: autorizado / legal">Verdict: authorized / legal</span>
+              <p class="legal-reason" data-es="Eres dueño del sistema, así que eres quien puede dar <span class='legal-kw'>autorización</span> para probarlo — es justo el tipo de prueba de seguridad que leyes como la LFDA contemplan como excepción.">You own the system, so you’re the one who can grant <span class="legal-kw">authorization</span> to test it — this is exactly the kind of security testing laws like the LFDA carve out as an exception.</p>
+            </div>
+          </div>
+
+          <div class="legal-scenario" data-correct="bad" hidden>
+            <p class="legal-scenario-text" data-es="Compartes la contraseña de un colega “solo para ayudar”.">You share a colleague’s password “just to help.”</p>
+            <div class="legal-choices">
+              <button type="button" class="legal-choice legal-choice-ok" data-choice="ok" data-es="✅ Autorizado / Legal">✅ Authorized / Legal</button>
+              <button type="button" class="legal-choice legal-choice-bad" data-choice="bad" data-es="⛔ No autorizado / Ilegal">⛔ Unauthorized / Illegal</button>
+            </div>
+            <div class="legal-verdict" hidden>
+              <span class="legal-verdict-tag legal-tag-bad" data-es="Veredicto: no autorizado / ilegal">Verdict: unauthorized / illegal</span>
+              <p class="legal-reason" data-es="Las buenas intenciones no crean <span class='legal-kw'>consentimiento</span> — el dueño de la cuenta nunca lo aprobó, y esto rompe la rendición de cuentas (¿quién hizo qué?) para todos los que usan ese acceso.">Good intentions don’t create <span class="legal-kw">consent</span> — the account owner never agreed to it, and it breaks accountability (who did what?) for everyone who uses that login.</p>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="legal-nav">
+          <button type="button" class="legal-nav-btn" id="legalPrev" data-es="‹ Anterior">‹ Prev</button>
+          <button type="button" class="legal-nav-btn" id="legalNext" data-es="Siguiente ›">Next ›</button>
+        </div>
+      </div>
+
+      <div class="callout note" style="margin-top:1.2rem">
+        <span class="tag" data-es="El patrón">The pattern</span>
+        <p data-es="Casi toda esta unidad se reduce a cuatro palabras: <strong>autorización, consentimiento, alcance y divulgación</strong>. Si falta una, probablemente estás del lado equivocado de la línea.">Almost this whole unit boils down to four words: <strong>authorization, consent, scope, and disclosure</strong>. If one is missing, you’re probably on the wrong side of the line.</p>
+      </div>
+    </div>
+  </section>
+
   <!-- S34 — Closing / references -->
   <section class="slide" data-section="Wrap-up" data-section-es="Cierre">
     <div class="slide-inner">
@@ -596,5 +731,78 @@
 </div>
 
 <script src="script.js"></script>
+<script>
+  /* Added interactive: legal & ethical scenario sorter — click-through scenarios, engine handles i18n/theme */
+  (function () {
+    var root = document.getElementById('legalSorter');
+    if (!root) return;
+    var scenarios = Array.prototype.slice.call(root.querySelectorAll('.legal-scenario'));
+    var dotsWrap = document.getElementById('legalDots');
+    var idxEl = document.getElementById('legalIdx');
+    var prevBtn = document.getElementById('legalPrev');
+    var nextBtn = document.getElementById('legalNext');
+    if (!scenarios.length || !dotsWrap || !idxEl || !prevBtn || !nextBtn) return;
+
+    var current = 0;
+    var answered = scenarios.map(function () { return false; });
+
+    scenarios.forEach(function () {
+      var dot = document.createElement('span');
+      dot.className = 'legal-dot';
+      dotsWrap.appendChild(dot);
+    });
+    var dots = Array.prototype.slice.call(dotsWrap.children);
+
+    function renderDots() {
+      dots.forEach(function (d, i) {
+        d.classList.toggle('legal-dot-current', i === current);
+        d.classList.toggle('legal-dot-done', answered[i] && i !== current);
+      });
+    }
+
+    function render() {
+      scenarios.forEach(function (s, i) {
+        s.classList.toggle('legal-active', i === current);
+        s.hidden = (i !== current);
+      });
+      idxEl.textContent = String(current + 1);
+      prevBtn.disabled = (current === 0);
+      nextBtn.disabled = (current === scenarios.length - 1);
+      renderDots();
+    }
+
+    function goTo(i) {
+      current = Math.max(0, Math.min(scenarios.length - 1, i));
+      render();
+    }
+
+    scenarios.forEach(function (scenario, i) {
+      var correct = scenario.getAttribute('data-correct');
+      var choices = Array.prototype.slice.call(scenario.querySelectorAll('.legal-choice'));
+      var verdict = scenario.querySelector('.legal-verdict');
+      choices.forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (scenario.classList.contains('legal-answered')) return;
+          scenario.classList.add('legal-answered');
+          var pick = btn.getAttribute('data-choice');
+          choices.forEach(function (b) {
+            b.disabled = true;
+            if (b.getAttribute('data-choice') === correct) b.classList.add('legal-correct');
+            else if (b === btn) b.classList.add('legal-incorrect');
+          });
+          if (verdict) verdict.hidden = false;
+          answered[i] = true;
+          renderDots();
+        });
+      });
+    });
+
+    prevBtn.addEventListener('click', function (e) { e.stopPropagation(); goTo(current - 1); });
+    nextBtn.addEventListener('click', function (e) { e.stopPropagation(); goTo(current + 1); });
+
+    render();
+  })();
+</script>
 </body>
 </html>
