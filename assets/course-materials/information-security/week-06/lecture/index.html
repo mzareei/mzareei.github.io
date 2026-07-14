@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC2007B · Week 6 · Symmetric Encryption</title>
+<meta name="description" content="Symmetric encryption: confusion &amp; diffusion, block ciphers, DES, Triple DES, AES (Rijndael), cipher modes for large messages (ECB/CBC), and message integrity. Week 6, Lecture 1 of TC2007B.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+/* ---- Lecture-local additions (Week 6 — Symmetric Encryption) ---- */
+
+/* Math / formula blocks (algebraic notation) */
+.math-block{background:var(--bg-3);border:1px solid var(--line);border-radius:14px;padding:1.1rem 1.5rem;font-family:var(--mono);font-size:clamp(.82rem,1.6vw,1.2rem);margin-top:1.2rem;line-height:1.9;text-align:center}
+.math-block.left{text-align:left}
+.mb-kw{color:var(--accent);font-weight:700}
+.mb-var{color:var(--accent-2);font-weight:700}
+.mb-res{color:var(--good);font-weight:700}
+.mb-op{color:var(--ink-soft)}
+
+/* Frequency bar chart */
+.freq-chart{display:flex;align-items:flex-end;gap:.28rem;height:140px;margin-top:1.2rem;border-bottom:2px solid var(--line);padding-bottom:.4rem}
+.freq-bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0}
+.freq-bar .bar{width:100%;background:linear-gradient(180deg,var(--accent),var(--accent-2));border-radius:4px 4px 0 0}
+.freq-bar .ltr{font-family:var(--mono);font-size:.62rem;color:var(--ink-soft);margin-top:.25rem;font-weight:700}
+.freq-bar.hi .bar{background:linear-gradient(180deg,var(--warn),var(--danger))}
+.freq-bar.hi .ltr{color:var(--warn)}
+
+/* Monoalphabetic substitution/permutation rows */
+.mono-block{margin-top:1.1rem;display:flex;flex-direction:column;gap:.75rem}
+.mono-line{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.mono-line .m-lbl{flex:0 0 130px;font-size:var(--fs-small);font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft)}
+.mono-row{display:flex;gap:.7rem;flex-wrap:wrap}
+.mono-row .word{display:flex;gap:.26rem}
+.mono-row .lb{width:1.85rem;height:1.85rem;display:grid;place-items:center;font-family:var(--mono);font-weight:800;border-radius:7px;border:2px solid var(--line);background:var(--bg-2);font-size:.92rem}
+.mono-line.plain .lb{color:var(--ink)}
+.mono-line.sub .lb{border-color:var(--warn);color:var(--warn)}
+.mono-line.perm .lb{border-color:var(--accent-2);color:var(--accent-2)}
+
+/* Byte grid (AES State-array visuals) */
+.byte-grid-row{display:flex;gap:1.5rem;flex-wrap:wrap;align-items:center;margin-top:1rem}
+.byte-grid-col{display:flex;flex-direction:column;align-items:center;gap:.5rem}
+.byte-grid-col .bg-cap{font-size:var(--fs-small);color:var(--ink-soft);font-weight:700;text-align:center}
+.byte-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.4rem;width:196px}
+.byte-cell{aspect-ratio:1;display:grid;place-items:center;background:var(--bg-2);border:2px solid var(--line);border-radius:8px;font-family:var(--mono);font-weight:700;font-size:clamp(.6rem,1.3vw,.82rem);text-align:center}
+.byte-cell.hl{border-color:var(--warn);color:var(--warn);background:rgba(255,180,84,.14)}
+.bg-op{font-size:1.6rem;color:var(--accent);flex:none}
+
+/* Feistel SVG (theme-aware via classes, not inline hex) */
+.feistel-rect{fill:var(--bg-2);stroke:var(--line);stroke-width:2}
+.feistel-rect.hl{stroke:var(--accent)}
+.feistel-rect.f{stroke:var(--violet)}
+.feistel-text{fill:var(--ink);font-weight:700}
+.feistel-sub{fill:var(--ink-soft);font-size:11px}
+.feistel-line{stroke:var(--accent);stroke-width:2.4;fill:none}
+.feistel-line.alt{stroke:var(--accent-2)}
+.feistel-xor{fill:var(--bg-3);stroke:var(--warn);stroke-width:2.4}
+.feistel-xor-text{fill:var(--warn);font-weight:800}
+
+/* Mode diagrams (ECB / CBC, static) */
+.mode-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1.2rem}
+.mode-lane{display:flex;flex-direction:column;align-items:center;gap:.4rem}
+.mode-pill{padding:.45rem .9rem;border-radius:999px;font-family:var(--mono);font-weight:700;font-size:var(--fs-small);border:2px solid var(--line);background:var(--bg-2);text-align:center;width:100%}
+.mode-pill.p{border-color:var(--ink-soft)}
+.mode-pill.e{border-color:var(--accent);color:var(--accent)}
+.mode-pill.c{border-color:var(--good);color:var(--good)}
+.mode-arrow-d{color:var(--accent);font-size:1.25rem;text-align:center}
+.mode-chain{display:flex;justify-content:center;gap:.3rem;color:var(--warn);font-size:1rem;font-weight:700}
+@media (max-width:900px){.mode-grid{grid-template-columns:1fr}}
+
+/* ---- ADDED interactive: ECB vs CBC pattern-leak visual (sym- prefixed) ---- */
+.sym-ecbcbc{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;margin-top:1.3rem;align-items:start}
+.sym-col{display:flex;flex-direction:column;align-items:center;gap:.55rem;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius);padding:.9rem}
+.sym-label{font-size:var(--fs-small);font-weight:800;text-align:center;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.03em}
+.sym-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;width:100%;max-width:210px;aspect-ratio:8/6}
+.sym-cell{border-radius:3px;border:1px solid var(--line);background:var(--bg-3);transition:background .25s ease}
+.sym-verdict{font-size:var(--fs-small);text-align:center;margin:0;font-weight:700}
+.sym-verdict.sym-bad{color:var(--danger)}
+.sym-verdict.sym-good{color:var(--good)}
+.sym-btn-row{text-align:center;margin-top:1.1rem}
+.sym-btn{font:inherit;font-weight:700;font-size:var(--fs-small);padding:.6rem 1.3rem;border-radius:999px;border:2px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;transition:filter .15s ease, transform .15s ease}
+.sym-btn:hover{filter:brightness(1.3);transform:translateY(-1px)}
+@media (max-width:820px){.sym-ecbcbc{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="fill" id="progress"></div></div>
+
+<div class="controls">
+  <a href="/teaching/information-security/" class="ui-btn" title="Back to course / Volver al curso" style="text-decoration:none">⌂</a>
+  <a href="../mission-bridge/" class="ui-btn" id="missionBtn" title="Bridge mission / Misión puente" style="text-decoration:none">Mission</a>
+  <a href="../../week-01/lecture/quiz/teacher.html?lecture=tc2007b-w6-l1" class="ui-btn" id="quizBtn" title="Quiz console / Consola de quiz" style="text-decoration:none">Quiz</a>
+  <a href="../../exit-ticket/?lecture=tc2007b-w6-l1" class="ui-btn" title="Exit ticket / Boleto de salida" style="text-decoration:none">Exit</a>
+  <button class="ui-btn" id="langBtn" title="Español / English">ES</button>
+  <button class="ui-btn" id="themeBtn" title="Light / Dark">☀</button>
+</div>
+
+<main class="deck" id="deck">
+
+  <!-- ============================ 0. ORIENTATION ============================ -->
+
+  <!-- S1 — Title -->
+  <section class="slide title-slide active" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>TC2007B · Semana 6 · Clase 1"><span class="dot"></span>TC2007B · Week 6 · Lecture 1</span>
+      <h1 data-es="Cifrado Simétrico">Symmetric Encryption</h1>
+      <div class="title-rule"></div>
+      <p class="lead" data-es="Cómo un puñado de operaciones simples — sustituir y permutar, repetidas en rondas — construyen DES y AES, y cómo usarlos para cifrar mensajes grandes con integridad.">How a handful of simple operations — substitute and permute, repeated in rounds — build DES and AES, and how to use them to encrypt large messages with integrity.</p>
+      <div class="title-meta">
+        <span class="pill" data-es="Profesor: Mahdi Zareei">Instructor: Mahdi Zareei</span>
+        <span class="pill" data-es="Confusión · difusión · DES · AES · modos de cifrado">Confusion · diffusion · DES · AES · cipher modes</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- S2 — Agenda / roadmap -->
+  <section class="slide" data-section="Orientation" data-section-es="Orientación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Hacia dónde vamos hoy"><span class="dot"></span>Where we’re headed today</span>
+      <h2 data-es="Seis paradas en el cifrado simétrico">Six stops through symmetric encryption</h2>
+      <div class="grid cols-3">
+        <div class="card accent-top"><span class="ico">🧩</span><h3 data-es="Primitivas de bloque">Block-cipher primitives</h3><p data-es="Confusión, difusión y por qué necesitamos rondas.">Confusion, diffusion, and why we need rounds.</p></div>
+        <div class="card warn-top"><span class="ico">🔐</span><h3 data-es="DES">DES</h3><p data-es="El estándar clásico: red de Feistel, clave de 56 bits.">The classic standard: Feistel network, 56-bit key.</p></div>
+        <div class="card good-top"><span class="ico">🛡️</span><h3 data-es="AES">AES</h3><p data-es="Rijndael: el estándar moderno que usamos hoy.">Rijndael: the modern standard we use today.</p></div>
+        <div class="card teal-top"><span class="ico">📦</span><h3 data-es="Cifrar mensajes grandes">Encrypting large messages</h3><p data-es="Modos de cifrado: ECB y CBC.">Cipher modes: ECB and CBC.</p></div>
+        <div class="card violet-top"><span class="ico">✅</span><h3 data-es="Integridad del mensaje">Message integrity</h3><p data-es="Usar CBC para detectar manipulación, no solo ocultar datos.">Using CBC to detect tampering, not just hide data.</p></div>
+        <div class="card danger-top"><span class="ico">🎯</span><h3 data-es="Introducción">Introduction</h3><p data-es="Empezamos rompiendo un cifrado a mano.">We start by breaking a cipher by hand.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ 1. WARM-UP ============================ -->
+
+  <!-- S3 — Section divider -->
+  <section class="slide section" data-section="Warm-up: frequency analysis" data-section-es="Calentamiento: análisis de frecuencia">
+    <div class="slide-inner">
+      <div class="num">01</div>
+      <h1 data-es="Rompe este cifrado tú mismo">Break this cipher yourself</h1>
+      <p class="lead" data-es="Antes de construir cifrados fuertes, veamos por qué uno débil se cae.">Before we build strong ciphers, let’s see why a weak one falls apart.</p>
+    </div>
+  </section>
+
+  <!-- S4 — Activity: frequency puzzle -->
+  <section class="slide activity" data-section="Warm-up: frequency analysis" data-section-es="Calentamiento: análisis de frecuencia">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Actividad · ¿Cuál es el texto plano?">◆ Activity · What is the plaintext?</span>
+      <h2 style="margin-top:1rem" data-es="Un cifrado monoalfabético — y su huella de frecuencias">A monoalphabetic cipher — and its frequency fingerprint</h2>
+      <div class="definition">
+        <blockquote class="mono" style="font-size:var(--fs-body)">IQ IFCC VQQR FB RDQ VFLLCQ NA RDQ CFJWHWZ HR BNNB HCC HWWHBSQVQBRE HWQ VHLQ</blockquote>
+      </div>
+      <div class="freq-chart">
+        <div class="freq-bar"><div class="bar" style="height:10%"></div><span class="ltr">A</span></div>
+        <div class="freq-bar"><div class="bar" style="height:50%"></div><span class="ltr">B</span></div>
+        <div class="freq-bar"><div class="bar" style="height:60%"></div><span class="ltr">C</span></div>
+        <div class="freq-bar"><div class="bar" style="height:20%"></div><span class="ltr">D</span></div>
+        <div class="freq-bar"><div class="bar" style="height:10%"></div><span class="ltr">E</span></div>
+        <div class="freq-bar"><div class="bar" style="height:40%"></div><span class="ltr">F</span></div>
+        <div class="freq-bar"><div class="bar" style="height:0%"></div><span class="ltr">G</span></div>
+        <div class="freq-bar"><div class="bar" style="height:70%"></div><span class="ltr">H</span></div>
+        <div class="freq-bar"><div class="bar" style="height:20%"></div><span class="ltr">I</span></div>
+        <div class="freq-bar"><div class="bar" style="height:10%"></div><span class="ltr">J</span></div>
+        <div class="freq-bar"><div class="bar" style="height:0%"></div><span class="ltr">K</span></div>
+        <div class="freq-bar"><div class="bar" style="height:30%"></div><span class="ltr">L</span></div>
+        <div class="freq-bar"><div class="bar" style="height:0%"></div><span class="ltr">M</span></div>
+        <div class="freq-bar"><div class="bar" style="height:30%"></div><span class="ltr">N</span></div>
+        <div class="freq-bar"><div class="bar" style="height:0%"></div><span class="ltr">O</span></div>
+        <div class="freq-bar"><div class="bar" style="height:0%"></div><span class="ltr">P</span></div>
+        <div class="freq-bar hi"><div class="bar" style="height:100%"></div><span class="ltr">Q</span></div>
+        <div class="freq-bar"><div class="bar" style="height:50%"></div><span class="ltr">R</span></div>
+        <div class="freq-bar"><div class="bar" style="height:10%"></div><span class="ltr">S</span></div>
+        <div class="freq-bar"><div class="bar" style="height:0%"></div><span class="ltr">T</span></div>
+        <div class="freq-bar"><div class="bar" style="height:0%"></div><span class="ltr">U</span></div>
+        <div class="freq-bar"><div class="bar" style="height:40%"></div><span class="ltr">V</span></div>
+        <div class="freq-bar"><div class="bar" style="height:50%"></div><span class="ltr">W</span></div>
+        <div class="freq-bar"><div class="bar" style="height:0%"></div><span class="ltr">X</span></div>
+        <div class="freq-bar"><div class="bar" style="height:0%"></div><span class="ltr">Y</span></div>
+        <div class="freq-bar"><div class="bar" style="height:10%"></div><span class="ltr">Z</span></div>
+      </div>
+      <p class="muted" style="margin-top:.7rem" data-es="Letter frequency de este texto cifrado. ¿Qué letra del texto plano crees que se esconde detrás de la <strong class='warn'>Q</strong>, la más frecuente?">Letter frequency of this ciphertext. Which plaintext letter do you think hides behind the most frequent letter, <strong class="warn">Q</strong>?</p>
+    </div>
+  </section>
+
+  <!-- S5 — Reveal solution -->
+  <section class="slide" data-section="Warm-up: frequency analysis" data-section-es="Calentamiento: análisis de frecuencia">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Cómo se rompe"><span class="dot"></span>How it breaks</span>
+      <h2 data-es="La frecuencia de letras delata la clave">Letter frequency gives away the key</h2>
+      <p class="lead" style="max-width:56ch" data-es="Podemos usar la distribución de frecuencias para analizar el texto cifrado y encontrar el mapeo de letras — es decir, la clave — y así descifrarlo.">We can use the frequency distribution to analyze the ciphertext and find the letter mapping — the key — and decrypt it.</p>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Texto plano">Plaintext</span>
+        <p class="mono" style="font-size:var(--fs-body)">WE WILL MEET IN THE MIDDLE OF THE LIBRARY AT NOON ALL ARRANGEMENTS ARE MADE</p>
+      </div>
+      <div class="callout note fragment">
+        <span class="tag" data-es="Un paso más">One step further</span>
+        <p data-es="En la práctica, también se toma en cuenta la frecuencia de <strong>pares y tríos de letras</strong> (digramas y trigramas), no solo letras sueltas — eso acelera aún más el ataque.">In practice, also consider the frequency of <strong>letter pairs and triples</strong> (digrams and trigrams), not just single letters — that speeds up the attack even further.</p>
+      </div>
+      <p class="muted fragment" style="margin-top:.8rem" data-es="Simple sustitución de letras se rompe con estadística de segundo grado. Necesitamos algo más fuerte — sigamos.">Simple letter substitution breaks under second-grade statistics. We need something stronger — let’s go.</p>
+    </div>
+  </section>
+
+  <!-- ============================ 2. BLOCK CIPHER FOUNDATIONS ============================ -->
+
+  <!-- S6 — Section divider -->
+  <section class="slide section" data-section="Block cipher foundations" data-section-es="Fundamentos del cifrado por bloques">
+    <div class="slide-inner">
+      <div class="num">02</div>
+      <h1 data-es="Primitivas del cifrado por bloques">Block cipher primitives</h1>
+      <p class="lead" data-es="Los bloques de construcción que hacen falta antes de llegar a DES y AES.">The building blocks we need before we get to DES and AES.</p>
+    </div>
+  </section>
+
+  <!-- S7 — Block cipher scheme -->
+  <section class="slide" data-section="Block cipher foundations" data-section-es="Fundamentos del cifrado por bloques">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La forma general"><span class="dot"></span>The general shape</span>
+      <h2 data-es="El esquema de un cifrado por bloques">The block-cipher scheme</h2>
+      <p class="lead" style="max-width:54ch" data-es="La mayoría de los cifrados simétricos son <strong>cifrados por bloques</strong>: toman un bloque de texto plano de longitud fija como entrada. Más adelante veremos cómo cifrar texto de longitud arbitraria con ellos.">Most symmetric encryption schemes are <strong>block ciphers</strong>: they take a fixed-length plaintext block as input. Later we’ll see how to use them to encrypt input text of arbitrary length.</p>
+      <div class="flow">
+        <div class="node breach"><span class="n-label accent" data-es="Texto plano (n bits)">Plaintext (n bits)</span><span class="n-sub" data-es="+ clave secreta k">+ secret key k</span></div>
+        <div class="arrow">→</div>
+        <div class="node attack"><span class="n-label" style="color:var(--violet)" data-es="Cifrado por bloques">Block cipher</span><span class="n-sub" data-es="función de cifrado">encryption function</span></div>
+        <div class="arrow">→</div>
+        <div class="node good-node"><span class="n-label good" data-es="Texto cifrado (n bits)">Ciphertext (n bits)</span><span class="n-sub" data-es="misma longitud">same length</span></div>
+      </div>
+      <div class="callout note">
+        <span class="tag" data-es="Simétrico">Symmetric</span>
+        <p data-es="La <strong>misma clave</strong> k se usa para descifrar el texto cifrado y recuperar el texto plano — de ahí el nombre “cifrado simétrico”.">The <strong>same key</strong> k is used to decrypt the ciphertext back to plaintext — hence “symmetric” encryption.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S8 — Confusion & diffusion -->
+  <section class="slide" data-section="Block cipher foundations" data-section-es="Fundamentos del cifrado por bloques">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Dos principios"><span class="dot"></span>Two principles</span>
+      <h2 data-es="Confusión y difusión">Confusion and diffusion</h2>
+      <p class="lead" style="max-width:56ch" data-es="Siempre asumimos que el atacante puede ver el texto cifrado — por ejemplo, porque viaja por la red y puede capturar el paquete. No queremos que pueda aprender nada del texto plano a partir de él.">We always assume the attacker can see the ciphertext — for example, because it travels over the network and the attacker can capture the packet. We don’t want them to learn anything about the plaintext from it.</p>
+      <div class="split" style="margin-top:1.4rem">
+        <div class="card accent-top"><span class="ico">🎭</span><h3 data-es="Confusión">Confusion</h3><p data-es="Una operación de cifrado donde la relación entre la <strong>clave y el texto cifrado</strong> queda oscurecida.">An encryption operation where the relationship between the <strong>key and the ciphertext</strong> is obscured.</p><p class="muted" style="margin-top:.5rem" data-es="Se logra con <strong>sustitución</strong> — como los cifrados de sustitución generalizada donde cada letra puede mapear a cualquier otra.">Achieved with <strong>substitution</strong> — think generalized substitution ciphers where each letter can map to any other.</p></div>
+        <div class="card teal-top"><span class="ico">🌊</span><h3 data-es="Difusión">Diffusion</h3><p data-es="Una operación de cifrado donde la influencia de <strong>un bit del texto plano</strong> se esparce sobre <strong>muchos bits</strong> del texto cifrado, para ocultar las propiedades estadísticas del texto plano.">An encryption operation where the influence of <strong>one plaintext bit</strong> is spread over <strong>many ciphertext bits</strong>, hiding the statistical properties of the plaintext.</p><p class="muted" style="margin-top:.5rem" data-es="Se logra con <strong>permutación</strong> — una letra no solo se mapea a otra letra, se reparte entre “partes” de varias letras de 8 bits.">Achieved with <strong>permutation</strong> — a letter isn’t just mapped to another letter, it’s spread across “parts” of many 8-bit letters.</p></div>
+      </div>
+      <p class="muted" style="margin-top:1rem" data-es="Confusión sola no basta — el análisis estadístico de letras seguiría funcionando. Necesitamos las dos.">Confusion alone isn’t enough — statistical analysis of letters would still work. We need both.</p>
+    </div>
+  </section>
+
+  <!-- S9 — Monoalphabetic example: substitution then permutation -->
+  <section class="slide" data-section="Block cipher foundations" data-section-es="Fundamentos del cifrado por bloques">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Viéndolo en acción"><span class="dot"></span>Seeing it happen</span>
+      <h2 data-es="Un ejemplo: sustitución y luego permutación">One example: substitution, then permutation</h2>
+      <div class="mono-block">
+        <div class="mono-line plain">
+          <span class="m-lbl" data-es="Texto plano">Plain text</span>
+          <div class="mono-row">
+            <span class="word"><span class="lb">T</span><span class="lb">H</span><span class="lb">I</span><span class="lb">S</span></span>
+            <span class="word"><span class="lb">I</span><span class="lb">S</span></span>
+            <span class="word"><span class="lb">T</span><span class="lb">H</span><span class="lb">E</span></span>
+            <span class="word"><span class="lb">E</span><span class="lb">N</span><span class="lb">D</span></span>
+          </div>
+        </div>
+        <div class="mono-line sub fragment">
+          <span class="m-lbl" data-es="↓ Sustitución">↓ Substitution</span>
+          <div class="mono-row">
+            <span class="word"><span class="lb">W</span><span class="lb">A</span><span class="lb">I</span><span class="lb">T</span></span>
+            <span class="word"><span class="lb">I</span><span class="lb">T</span></span>
+            <span class="word"><span class="lb">W</span><span class="lb">A</span><span class="lb">S</span></span>
+            <span class="word"><span class="lb">S</span><span class="lb">U</span><span class="lb">N</span></span>
+          </div>
+        </div>
+        <div class="mono-line perm fragment">
+          <span class="m-lbl" data-es="↓ Permutación">↓ Permutation</span>
+          <div class="mono-row">
+            <span class="word"><span class="lb">W</span><span class="lb">W</span><span class="lb">I</span><span class="lb">I</span></span>
+            <span class="word"><span class="lb">A</span><span class="lb">T</span></span>
+            <span class="word"><span class="lb">T</span><span class="lb">U</span><span class="lb">A</span></span>
+            <span class="word"><span class="lb">N</span><span class="lb">S</span><span class="lb">S</span></span>
+          </div>
+        </div>
+      </div>
+      <p class="muted fragment" style="margin-top:1rem" data-es="La sustitución (<span class='warn'>confusión</span>) cambia la identidad de cada letra. La permutación (<span style='color:var(--accent-2)'>difusión</span>) reordena esas letras — mismo conjunto de símbolos, otra posición. Nota que las filas 2 y 3 usan exactamente las mismas letras, solo en otro orden.">Substitution (<span class="warn">confusion</span>) changes each letter’s identity. Permutation (<span style="color:var(--accent-2)">diffusion</span>) reorders those letters — same set of symbols, different position. Notice rows 2 and 3 use exactly the same letters, just reordered.</p>
+    </div>
+  </section>
+
+  <!-- S10 — Rounds -->
+  <section class="slide" data-section="Block cipher foundations" data-section-es="Fundamentos del cifrado por bloques">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Por qué no basta una vez"><span class="dot"></span>Why once isn’t enough</span>
+      <h2 data-es="Rondas: repetir hasta que todo bit importe">Rounds: repeat until every bit matters</h2>
+      <p class="lead" style="max-width:56ch" data-es="Ni la confusión ni la difusión por sí solas dan seguridad suficiente. Necesitamos combinarlas — y hacerlo con la frecuencia necesaria para que un cambio en un solo bit termine afectando cada bit de salida.">Neither confusion nor diffusion alone provides strong enough security. We need to combine them — and do so often enough that a change in one bit ends up affecting every output bit.</p>
+      <div class="definition">
+        <blockquote data-es="<strong>Ronda</strong>: combinación de sustitución y permutación, repetida las veces necesarias para que un cambio de bit afecte cada bit de salida."><strong>Round</strong>: a combination of substitution and permutation, repeated as many times as needed so that a bit change affects every output bit.</blockquote>
+      </div>
+      <div class="callout note" style="margin-top:1.2rem">
+        <span class="tag" data-es="Cómo se acumula">How it builds up</span>
+        <p data-es="La primera ronda afecta solo algunas partes del texto cifrado; la siguiente propaga ese efecto a otras partes. Ronda tras ronda, eventualmente <strong>todos</strong> los bits del texto cifrado quedan afectados.">The first round affects only some parts of the ciphertext; the next round propagates that effect into other parts. Round after round, eventually <strong>every</strong> bit of the ciphertext is affected.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S11 — Concept check -->
+  <section class="slide" data-section="Block cipher foundations" data-section-es="Fundamentos del cifrado por bloques">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Repaso rápido"><span class="dot"></span>Quick check</span>
+      <h2 data-es="Antes de seguir">Before we move on</h2>
+      <div class="callout check">
+        <span class="tag" data-es="Con tu compañero">Turn to a neighbor</span>
+        <p data-es="En una frase cada uno: <strong>(1)</strong> ¿qué logra la confusión y con qué operación se consigue?, <strong>(2)</strong> ¿qué logra la difusión y con qué operación se consigue?, <strong>(3)</strong> ¿por qué necesitamos varias rondas?">In one sentence each: <strong>(1)</strong> what does confusion achieve and which operation gets it?, <strong>(2)</strong> what does diffusion achieve and which operation gets it?, <strong>(3)</strong> why do we need multiple rounds?</p>
+      </div>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Compáralo">Check yourself</span>
+        <p data-es="Confusión = <span class='warn'>sustitución</span>, oculta la relación clave↔texto cifrado. Difusión = <span style='color:var(--accent-2)'>permutación</span>, esparce un bit de entrada por muchos bits de salida. Rondas = repetir ambas para que <strong>todo</strong> bit de salida quede afectado.">Confusion = <span class="warn">substitution</span>, hides the key↔ciphertext relationship. Diffusion = <span style="color:var(--accent-2)">permutation</span>, spreads one input bit across many output bits. Rounds = repeat both so <strong>every</strong> output bit ends up affected.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ 3. DES ============================ -->
+
+  <!-- S12 — Section divider -->
+  <section class="slide section" data-section="DES — Data Encryption Standard" data-section-es="DES — Estándar de Cifrado de Datos">
+    <div class="slide-inner">
+      <div class="num">03</div>
+      <h1 data-es="DES — Estándar de Cifrado de Datos">DES — the Data Encryption Standard</h1>
+      <p class="lead" data-es="El esquema de cifrado más usado durante décadas — y el mejor lugar para ver confusión, difusión y rondas trabajando juntas.">The most widely used encryption scheme for decades — and the best place to see confusion, diffusion, and rounds working together.</p>
+    </div>
+  </section>
+
+  <!-- S13 — DES overview -->
+  <section class="slide" data-section="DES — Data Encryption Standard" data-section-es="DES — Estándar de Cifrado de Datos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El clásico"><span class="dot"></span>The classic</span>
+      <h2 data-es="DES en tres cifras">DES in three numbers</h2>
+      <p class="lead" style="max-width:56ch" data-es="El esquema de cifrado más usado se basa en el <strong>Data Encryption Standard (DES)</strong>, adoptado en 1977 por la National Bureau of Standards, hoy el <strong>National Institute of Standards and Technology (NIST)</strong>.">The most widely used encryption scheme is based on the <strong>Data Encryption Standard (DES)</strong>, adopted in 1977 by the National Bureau of Standards — now the <strong>National Institute of Standards and Technology (NIST)</strong>.</p>
+      <div class="stats">
+        <div class="stat"><span class="big">1977 / 1979</span><span class="lbl" data-es="publicado / estandarizado">published / standardized</span></div>
+        <div class="stat people"><span class="big">64 bit</span><span class="lbl" data-es="clave = 56-bit efectivos + 8-bit de paridad (cada 8.º bit)">key = 56-bit effective + 8-bit parity (every 8th bit)</span></div>
+        <div class="stat good-stat"><span class="big">64 → 64 bit</span><span class="lbl" data-es="entrada de 64 bits, salida de 64 bits">64-bit input, 64-bit output</span></div>
+      </div>
+      <p class="figure-note" data-es="Una clave DES ocupa 64 bits (8 bytes), pero solo 56 bits son material de clave real: el bit menos significativo de cada byte es de paridad, así que solo los 7 bits más significativos de cada byte son efectivos para la seguridad.">A DES key occupies 64 bits (8 bytes), but only 56 bits are real key material: the least-significant bit of each byte is a parity bit, so only the top 7 bits of each byte are effective for security.</p>
+    </div>
+  </section>
+
+  <!-- S14 — DES Feistel structure (SVG) -->
+  <section class="slide" data-section="DES — Data Encryption Standard" data-section-es="DES — Estándar de Cifrado de Datos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Una red de Feistel"><span class="dot"></span>A Feistel network</span>
+      <h2 data-es="Una ronda de DES, en detalle">One round of DES, in detail</h2>
+      <svg viewBox="0 0 640 400" role="img" aria-label="One round of a DES Feistel network: L and R halves, the F/Mangler function, XOR, and the swap" style="width:100%;max-width:520px;display:block;margin:1rem auto 0">
+        <defs>
+          <marker id="fArrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+            <path d="M0,0 L7,3 L0,6 Z" class="feistel-line" style="fill:var(--accent);stroke:none"/>
+          </marker>
+        </defs>
+        <rect class="feistel-rect" x="30" y="20" width="180" height="60" rx="10"/>
+        <text class="feistel-text" x="120" y="55" text-anchor="middle" font-size="16">Lᵢ₋₁</text>
+        <rect class="feistel-rect" x="430" y="20" width="180" height="60" rx="10"/>
+        <text class="feistel-text" x="520" y="55" text-anchor="middle" font-size="16">Rᵢ₋₁</text>
+        <rect class="feistel-rect f" x="430" y="146" width="180" height="66" rx="10"/>
+        <text class="feistel-text" x="520" y="172" text-anchor="middle" font-size="15">F</text>
+        <text class="feistel-sub" x="520" y="192" text-anchor="middle">Mangler(Rᵢ₋₁, Kᵢ)</text>
+        <circle class="feistel-xor" cx="520" cy="266" r="20"/>
+        <text class="feistel-xor-text" x="520" y="272" text-anchor="middle" font-size="16">⊕</text>
+        <rect class="feistel-rect hl" x="30" y="316" width="180" height="60" rx="10"/>
+        <text class="feistel-text" x="120" y="345" text-anchor="middle" font-size="13">Lᵢ = Rᵢ₋₁</text>
+        <rect class="feistel-rect hl" x="430" y="316" width="180" height="60" rx="10"/>
+        <text class="feistel-text" x="520" y="341" text-anchor="middle" font-size="12">Rᵢ = Lᵢ₋₁ ⊕ F(Rᵢ₋₁,Kᵢ)</text>
+        <path class="feistel-line" d="M120,80 L120,220 L498,262" marker-end="url(#fArrow)"/>
+        <path class="feistel-line" d="M520,80 L520,146" marker-end="url(#fArrow)"/>
+        <path class="feistel-line" d="M520,212 L520,246" marker-end="url(#fArrow)"/>
+        <path class="feistel-line" d="M520,286 L520,316" marker-end="url(#fArrow)"/>
+        <path class="feistel-line alt" d="M500,80 L120,316" marker-end="url(#fArrow)"/>
+      </svg>
+      <p class="muted" style="text-align:center;margin-top:.6rem" data-es="Esto se repite para i = 1…16; al final se hace un último intercambio para producir el texto cifrado de 64 bits.">This repeats for i = 1…16; a final swap then produces the 64-bit ciphertext.</p>
+      <div class="math-block fragment">
+        <span class="mb-var">Lᵢ</span> <span class="mb-op">=</span> <span class="mb-var">Rᵢ₋₁</span>
+        <span class="mb-var">Rᵢ</span> <span class="mb-op">=</span> <span class="mb-var">Lᵢ₋₁</span> <span class="mb-op">⊕</span> <span class="mb-kw">F</span>(<span class="mb-var">Rᵢ₋₁</span>, <span class="mb-var">Kᵢ</span>)
+      </div>
+      <div class="callout note fragment">
+        <span class="tag" data-es="¿Por qué 16 rondas?">Why 16 rounds?</span>
+        <p data-es="Con <strong>menos</strong> de 16 rondas, DES podría romperse con un ataque de texto plano conocido de forma más eficiente que por fuerza bruta. Con <strong>más</strong> de 16, es una cuestión de velocidad — más rondas, menos rendimiento.">With <strong>fewer</strong> than 16 rounds, DES could be broken by a known-plaintext attack more efficiently than by brute force. With <strong>more</strong> than 16, it’s a speed trade-off — more rounds, less throughput.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S15 — Mangler function -->
+  <section class="slide" data-section="DES — Data Encryption Standard" data-section-es="DES — Estándar de Cifrado de Datos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Dentro de F"><span class="dot"></span>Inside F</span>
+      <h2 data-es="La función Mangler">The Mangler function</h2>
+      <p class="lead" style="max-width:56ch" data-es="Divide la entrada de 32 bits en 8 fragmentos de 4 bits. Cada fragmento se expande a 6 bits, se combina con XOR con un fragmento de 6 bits de la clave, y luego 8 S-boxes sustituyen cada fragmento de 6 bits por uno de 4 bits.">Divide the 32-bit input into 8 chunks of 4 bits. Each chunk is expanded to 6 bits, XORed with a 6-bit key chunk, and then 8 S-boxes each substitute a 6-bit chunk with a 4-bit chunk.</p>
+      <div class="flow">
+        <div class="node breach"><span class="n-label accent" data-es="Rᵢ₋₁ (32 bits)">Rᵢ₋₁ (32 bits)</span><span class="n-sub" data-es="8 fragmentos de 4 bits">8 chunks of 4 bits</span></div>
+        <div class="arrow">→</div>
+        <div class="node attack"><span class="n-label" style="color:var(--violet)" data-es="Expansión E">Expansion E</span><span class="n-sub" data-es="32 → 48 bits (4→6 bit por fragmento)">32 → 48 bits (4→6 bit per chunk)</span></div>
+        <div class="arrow">→</div>
+        <div class="node vuln"><span class="n-label warn" data-es="⊕ clave de ronda Kᵢ">⊕ round key Kᵢ</span><span class="n-sub" data-es="48-bit XOR">48-bit XOR</span></div>
+        <div class="arrow">→</div>
+        <div class="node good-node"><span class="n-label good" data-es="8 × S-boxes">8 × S-boxes</span><span class="n-sub" data-es="6-bit → 4-bit cada una">6-bit → 4-bit each</span></div>
+      </div>
+      <p class="muted" style="margin-top:.9rem" data-es="Salida: 8 × 4 bits = 32 bits, listos para el XOR final con Lᵢ₋₁.">Output: 8 × 4 bits = 32 bits, ready for the final XOR with Lᵢ₋₁.</p>
+    </div>
+  </section>
+
+  <!-- S16 — Why XOR? -->
+  <section class="slide" data-section="DES — Data Encryption Standard" data-section-es="DES — Estándar de Cifrado de Datos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La herramienta favorita del cifrado"><span class="dot"></span>Encryption’s favorite tool</span>
+      <h2 data-es="¿Por qué XOR?">Why XOR?</h2>
+      <table class="compare">
+        <thead><tr><th data-es="Entrada A / B">Input A / B</th><th>OR</th><th>AND</th><th>XOR</th></tr></thead>
+        <tbody>
+          <tr><td data-es="Texto plano: ?,?,?,?,?<br>Clave: 0,1,0,1,1">Plaintext: ?,?,?,?,?<br>Key: 0,1,0,1,1</td><td class="mono">0,1,1,1,1</td><td class="mono">0,0,0,1,0</td><td class="mono">0,1,1,0,1</td></tr>
+        </tbody>
+      </table>
+      <div class="callout check" style="margin-top:1.2rem">
+        <span class="tag" data-es="Observa">Notice</span>
+        <p data-es="Con OR o AND, ver la salida filtra información sobre la entrada incluso sin conocer la clave. Con <strong>XOR</strong>, cada bit de salida es 50/50 sin conocer la clave — no filtra nada por sí solo, y es su propio inverso.">With OR or AND, seeing the output leaks information about the input even without knowing the key. With <strong>XOR</strong>, every output bit is 50/50 without knowing the key — it leaks nothing on its own, and it is its own inverse.</p>
+      </div>
+      <p class="lead" style="margin-top:1.1rem;max-width:52ch" data-es="Esa propiedad de “su propio inverso” también permite un truco clásico: <strong>intercambiar dos valores sin almacenamiento temporal</strong>.">That “own inverse” property also enables a classic trick: <strong>swapping two values without temporary storage</strong>.</p>
+      <div class="math-block left">
+        X := X <span class="mb-op">⊕</span> Y<br>
+        Y := Y <span class="mb-op">⊕</span> X<br>
+        X := X <span class="mb-op">⊕</span> Y
+      </div>
+    </div>
+  </section>
+
+  <!-- S17 — S-box concept -->
+  <section class="slide" data-section="DES — Data Encryption Standard" data-section-es="DES — Estándar de Cifrado de Datos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Sustituir y encoger"><span class="dot"></span>Substitute and shrink</span>
+      <h2 data-es="El S-box: sustituir y encoger">The S-box: substitute and shrink</h2>
+      <p class="lead" style="max-width:54ch" data-es="Un S-box sustituye un valor de 6 bits por uno de 4 bits usando una tabla predefinida. Los dos bits externos indexan la fila; los cuatro bits del medio indexan la columna; el valor en esa celda es la salida.">An S-box substitutes a 6-bit value with a 4-bit value using a predefined table. The outer two bits index the row; the middle four bits index the column; the value in that table entry is the output.</p>
+      <div class="flow">
+        <div class="node breach"><span class="n-label accent" data-es="Entrada de 6 bits">6-bit input</span><span class="n-sub" data-es="b₁ b₂ b₃ b₄ b₅ b₆">b₁ b₂ b₃ b₄ b₅ b₆</span></div>
+        <div class="arrow">→</div>
+        <div class="node attack"><span class="n-label" style="color:var(--violet)" data-es="Divide">Split</span><span class="n-sub" data-es="fila = b₁b₆ (0–3) · columna = b₂b₃b₄b₅ (0–15)">row = b₁b₆ (0–3) · column = b₂b₃b₄b₅ (0–15)</span></div>
+        <div class="arrow">→</div>
+        <div class="node vuln"><span class="n-label warn" data-es="Tabla del S-box">S-box table</span><span class="n-sub" data-es="definida en el estándar DES">defined by the DES standard</span></div>
+        <div class="arrow">→</div>
+        <div class="node good-node"><span class="n-label good" data-es="Salida de 4 bits">4-bit output</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S18 — S-box quiz -->
+  <section class="slide activity" data-section="DES — Data Encryption Standard" data-section-es="DES — Estándar de Cifrado de Datos">
+    <div class="slide-inner">
+      <span class="badge" data-es="◆ Quiz · S-box">◆ Quiz · S-box</span>
+      <h2 style="margin-top:1rem" data-es="Ahora te toca a ti">Now it’s your turn</h2>
+      <p class="lead" data-es="Para la entrada dada, determina la salida.">For the given input, determine the output.</p>
+      <div class="definition">
+        <blockquote class="mono" style="font-size:var(--fs-lead)" data-es="Entrada: 011011">Input: 011011</blockquote>
+      </div>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Solución">Solution</span>
+        <p data-es="Fila = <strong>01</strong> (1) · Columna = <strong>1101</strong> (13) → Salida = <strong class='good'>1001</strong>">Row = <strong>01</strong> (1) · Column = <strong>1101</strong> (13) → Output = <strong class="good">1001</strong></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S19 — DES decryption -->
+  <section class="slide" data-section="DES — Data Encryption Standard" data-section-es="DES — Estándar de Cifrado de Datos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>El mismo algoritmo, al revés"><span class="dot"></span>The same algorithm, in reverse</span>
+      <h2 data-es="Descifrado: solo se invierte el calendario de claves">Decryption: only the key schedule flips</h2>
+      <p class="lead" style="max-width:56ch" data-es="DES es una red de Feistel — cifrado y descifrado difieren <strong>únicamente</strong> en el orden de las claves de ronda. Se aplica la misma secuencia de operaciones con las claves en orden inverso.">DES is a Feistel network — encryption and decryption differ <strong>only</strong> in the round-key order. The same operation sequence is applied with the keys in reverse order.</p>
+      <table class="compare" style="margin-top:1.2rem">
+        <thead><tr><th data-es="Ronda de descifrado">Decryption round</th><th data-es="Usa la clave de la ronda de cifrado…">Uses the encryption round key…</th></tr></thead>
+        <tbody>
+          <tr><td class="map-from">1</td><td class="map-to">16</td></tr>
+          <tr><td class="map-from">2</td><td class="map-to">15</td></tr>
+          <tr><td class="map-from">…</td><td class="map-to">…</td></tr>
+          <tr><td class="map-from">16</td><td class="map-to">1</td></tr>
+        </tbody>
+      </table>
+      <p class="muted" style="margin-top:.9rem" data-es="En cada ronda, la entrada es Rₙ₊₁ | Lₙ₊₁ (por el intercambio al final de las rondas de cifrado). Con la misma álgebra puedes verificar que la salida es Rₙ|Lₙ — y el intercambio final produce el texto plano en el orden correcto.">At each round, the input is Rₙ₊₁ | Lₙ₊₁ (because of the swap at the end of the encryption rounds). The same algebra verifies the output is Rₙ|Lₙ — and the final swap produces plaintext in the correct order.</p>
+    </div>
+  </section>
+
+  <!-- S20 — Security of DES -->
+  <section class="slide" data-section="DES — Data Encryption Standard" data-section-es="DES — Estándar de Cifrado de Datos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La estructura no es el problema"><span class="dot"></span>The structure isn’t the problem</span>
+      <h2 data-es="Seguridad de DES">Security of DES</h2>
+      <p class="muted" data-es="Recordemos: las 16 rondas equilibran resistencia a ataques de texto plano conocido contra velocidad. Entonces, ¿dónde está la debilidad real de DES?">Recall: the 16 rounds balance resistance to known-plaintext attacks against speed. So where does DES actually break down?</p>
+      <div class="grid cols-3" style="margin-top:1rem">
+        <div class="card danger-top"><span class="ico">🔑</span><h3 data-es="El espacio de claves es muy pequeño">Key space is too small</h3><p data-es="2<sup>56</sup> claves posibles — una búsqueda exhaustiva es relativamente fácil con las computadoras de hoy.">2<sup>56</sup> possible keys — exhaustive key search is relatively easy with today’s computers.</p></div>
+        <div class="card warn-top"><span class="ico">🗝️</span><h3 data-es="Diseño de los S-boxes">S-box design</h3><p data-es="Los criterios de diseño de los S-boxes se mantuvieron en secreto.">The design criteria for the S-boxes were kept secret.</p></div>
+        <div class="card good-top"><span class="ico">🛡️</span><h3 data-es="Resistencia sostenida">Sustained resistance</h3><p data-es="Aun así, DES resultó muy resistente a técnicas de criptoanálisis publicadas años después.">Still, DES proved highly resistant to cryptanalysis techniques published years later.</p></div>
+      </div>
+      <div class="callout discuss" style="margin-top:1.1rem">
+        <span class="tag" data-es="Discusión">Discuss</span>
+        <p data-es="Los criterios de los S-boxes se mantuvieron en secreto durante años, y aun así DES resultó sólido frente a criptoanálisis posterior. ¿La <strong>seguridad por oscuridad</strong> es siempre mala idea, o este es un contraejemplo?">The S-box criteria stayed secret for years, and DES still proved sound against later cryptanalysis. Is <strong>security through obscurity</strong> always a bad idea, or is this a counterexample?</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S21 — Triple DES -->
+  <section class="slide" data-section="DES — Data Encryption Standard" data-section-es="DES — Estándar de Cifrado de Datos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Estirando la clave"><span class="dot"></span>Stretching the key</span>
+      <h2 data-es="Triple DES: correr DES tres veces">Triple DES: running DES three times</h2>
+      <p class="lead" style="max-width:54ch" data-es="Para superar el límite de 56 bits, corremos DES varias veces, cada una con una clave distinta.">To overcome the 56-bit limit, we run DES multiple times, each with a different key.</p>
+      <div class="flow">
+        <div class="node breach"><span class="n-label accent" data-es="Texto plano">Plaintext</span></div>
+        <div class="arrow">→</div>
+        <div class="node good-node"><span class="n-label good" data-es="Cifrar, K1">Encrypt, K1</span></div>
+        <div class="arrow">→</div>
+        <div class="node vuln"><span class="n-label warn" data-es="Descifrar, K2">Decrypt, K2</span></div>
+        <div class="arrow">→</div>
+        <div class="node good-node"><span class="n-label good" data-es="Cifrar, K3">Encrypt, K3</span></div>
+        <div class="arrow">→</div>
+        <div class="node attack"><span class="n-label" style="color:var(--violet)" data-es="Texto cifrado">Ciphertext</span></div>
+      </div>
+      <div class="stats" style="margin-top:1.2rem">
+        <div class="stat good-stat"><span class="big">112-bit</span><span class="lbl" data-es="K1 = K3 → DES equivalente a 112 bits, espacio de claves suficiente">K1 = K3 → an equivalent 112-bit DES, sufficient key space</span></div>
+        <div class="stat good-stat"><span class="big">168-bit</span><span class="lbl" data-es="K1, K2, K3 distintas → un DES aún más fuerte, de 168 bits">Distinct K1, K2, K3 → an even stronger 168-bit DES</span></div>
+        <div class="stat"><span class="big">K1 = K2</span><span class="lbl" data-es="puede correr como un DES sencillo — compatible hacia atrás">can run as a single DES — backward-compatible</span></div>
+      </div>
+      <p class="figure-note" data-es="La construcción estándar es Cifrar-Descifrar-Cifrar (EDE), como en NIST SP 800-67 — así un Triple DES con K1=K2=K3 se comporta como un DES sencillo.">The standard construction is Encrypt-Decrypt-Encrypt (EDE), per NIST SP 800-67 — so a Triple DES with K1=K2=K3 behaves like a single DES.</p>
+    </div>
+  </section>
+
+  <!-- S22 — Concept check -->
+  <section class="slide" data-section="DES — Data Encryption Standard" data-section-es="DES — Estándar de Cifrado de Datos">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Repaso rápido"><span class="dot"></span>Quick check</span>
+      <h2 data-es="DES, en tus palabras">DES, in your own words</h2>
+      <div class="callout check">
+        <span class="tag" data-es="Todos">Everyone</span>
+        <p data-es="Sin mirar atrás: <strong>(1)</strong> ¿cuántos bits tiene la clave efectiva de DES?, <strong>(2)</strong> ¿qué diferencia el cifrado del descifrado en una red de Feistel?, <strong>(3)</strong> ¿por qué Triple DES con K1=K2=K3 es compatible con DES sencillo?">Without looking back: <strong>(1)</strong> how many bits is DES’s effective key?, <strong>(2)</strong> what differs between encryption and decryption in a Feistel network?, <strong>(3)</strong> why is Triple DES with K1=K2=K3 backward-compatible with single DES?</p>
+      </div>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Respuestas">Answers</span>
+        <p data-es="<strong>(1)</strong> 56 bits. <strong>(2)</strong> Solo el orden de las claves de ronda. <strong>(3)</strong> Cifrar→Descifrar→Cifrar con la misma clave se cancela a sí mismo (Descifrar deshace al Cifrar), dejando un único paso de cifrado."><strong>(1)</strong> 56 bits. <strong>(2)</strong> Only the round-key order. <strong>(3)</strong> Encrypt→Decrypt→Encrypt with the same key cancels itself (Decrypt undoes Encrypt), leaving a single encryption pass.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ 4. AES ============================ -->
+
+  <!-- S23 — Section divider -->
+  <section class="slide section" data-section="AES — Advanced Encryption Standard" data-section-es="AES — Estándar de Cifrado Avanzado">
+    <div class="slide-inner">
+      <div class="num">04</div>
+      <h1 data-es="AES — Estándar de Cifrado Avanzado">AES — the Advanced Encryption Standard</h1>
+      <p class="lead" data-es="El reemplazo de DES — y el cifrado simétrico que probablemente protege tu tráfico ahora mismo.">DES’s replacement — and the symmetric cipher likely protecting your traffic right now.</p>
+    </div>
+  </section>
+
+  <!-- S24 — AES overview -->
+  <section class="slide" data-section="AES — Advanced Encryption Standard" data-section-es="AES — Estándar de Cifrado Avanzado">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Cómo llegamos aquí"><span class="dot"></span>How we got here</span>
+      <h2 data-es="De una convocatoria pública a un estándar">From a public call to a standard</h2>
+      <p class="lead" style="max-width:56ch" data-es="En 1997, el NIST lanzó una convocatoria pública para reemplazar a DES. Redujo la lista a cinco finalistas y finalmente eligió un algoritmo — <strong>Rijndael</strong> — que hoy conocemos como el <strong>Advanced Encryption Standard (AES)</strong>.">In 1997, NIST put out a public call for a replacement to DES. It narrowed the list to five finalists and ultimately chose an algorithm — <strong>Rijndael</strong> — now known as the <strong>Advanced Encryption Standard (AES)</strong>.</p>
+      <div class="stats">
+        <div class="stat"><span class="big">Nov 2001</span><span class="lbl" data-es="publicado como FIPS 197, reemplazando a DES">issued as FIPS 197, replacing DES</span></div>
+        <div class="stat people"><span class="big">128 bit</span><span class="lbl" data-es="tamaño de bloque, siempre">block size, always</span></div>
+        <div class="stat good-stat"><span class="big">128 / 192 / 256</span><span class="lbl" data-es="tamaños de clave posibles, en bits">possible key lengths, in bits</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S25 — Creators -->
+  <section class="slide" data-section="AES — Advanced Encryption Standard" data-section-es="AES — Estándar de Cifrado Avanzado">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Quién lo diseñó"><span class="dot"></span>Who designed it</span>
+      <h2 data-es="Joan Daemen y Vincent Rijmen">Joan Daemen and Vincent Rijmen</h2>
+      <div class="definition">
+        <blockquote data-es="Rijndael — el algoritmo elegido como AES — fue diseñado por los criptógrafos belgas <strong>Joan Daemen</strong> y <strong>Vincent Rijmen</strong>. El nombre “Rijndael” combina sus dos apellidos.">Rijndael — the algorithm chosen as AES — was designed by Belgian cryptographers <strong>Joan Daemen</strong> and <strong>Vincent Rijmen</strong>. The name “Rijndael” blends their two surnames.</blockquote>
+      </div>
+    </div>
+  </section>
+
+  <!-- S26 — AES rounds table -->
+  <section class="slide" data-section="AES — Advanced Encryption Standard" data-section-es="AES — Estándar de Cifrado Avanzado">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>No es una red de Feistel"><span class="dot"></span>Not a Feistel network</span>
+      <h2 data-es="Más clave, más rondas">More key, more rounds</h2>
+      <table class="compare">
+        <thead><tr><th data-es="Tamaño de clave">Key size</th><th data-es="Rondas de cifrado">Encryption rounds</th></tr></thead>
+        <tbody>
+          <tr><td class="map-from">128 bits</td><td class="map-to">10</td></tr>
+          <tr><td class="map-from">192 bits</td><td class="map-to">12</td></tr>
+          <tr><td class="map-from">256 bits</td><td class="map-to">14</td></tr>
+        </tbody>
+      </table>
+      <div class="callout note" style="margin-top:1.2rem">
+        <span class="tag" data-es="Diferencia estructural">Structural difference</span>
+        <p data-es="AES <strong>no</strong> usa una estructura de Feistel — no se divide el bloque en mitades donde una modifica a la otra. En su lugar, procesa el <strong>bloque completo en paralelo</strong> en cada ronda, con sustituciones y permutaciones.">AES does <strong>not</strong> use a Feistel structure — the block isn’t split into halves where one modifies the other. Instead, it processes the <strong>entire block in parallel</strong> each round, using substitutions and permutations.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S27 — AES round: four stages -->
+  <section class="slide" data-section="AES — Advanced Encryption Standard" data-section-es="AES — Estándar de Cifrado Avanzado">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Dentro de una ronda"><span class="dot"></span>Inside one round</span>
+      <h2 data-es="Cuatro etapas por ronda: una de permutación, tres de sustitución">Four stages per round: one permutation, three substitution</h2>
+      <p class="muted" data-es="La clave se expande en un arreglo de 44 palabras de 32 bits, w[i]; cuatro palabras (128 bits) sirven como clave de ronda para cada ronda.">The key is expanded into an array of forty-four 32-bit words, w[i]; four words (128 bits) serve as the round key for each round.</p>
+      <div class="flow" style="margin-top:1rem">
+        <div class="node breach fragment"><span class="n-label accent" data-es="SubBytes">SubBytes</span><span class="n-sub" data-es="sustitución byte a byte vía S-box">byte-by-byte substitution via S-box</span></div>
+        <div class="arrow fragment">→</div>
+        <div class="node attack fragment"><span class="n-label" style="color:var(--violet)" data-es="ShiftRows">ShiftRows</span><span class="n-sub" data-es="permutación simple, fila por fila">simple permutation, row by row</span></div>
+        <div class="arrow fragment">→</div>
+        <div class="node vuln fragment"><span class="n-label warn" data-es="MixColumns">MixColumns</span><span class="n-sub" data-es="sustitución que mezcla cada columna">substitution mixing each column</span></div>
+        <div class="arrow fragment">→</div>
+        <div class="node good-node fragment"><span class="n-label good" data-es="AddRoundKey">AddRoundKey</span><span class="n-sub" data-es="XOR bit a bit con la clave de ronda">bitwise XOR with the round key</span></div>
+      </div>
+      <p class="figure-note" data-es="Según FIPS 197, la ronda final omite MixColumns. La estructura es simple, y es la misma para cifrado y descifrado.">Per FIPS 197, the final round omits MixColumns. The structure is simple, and it’s the same for both encryption and decryption.</p>
+    </div>
+  </section>
+
+  <!-- S28 — Convert to state array -->
+  <section class="slide" data-section="AES — Advanced Encryption Standard" data-section-es="AES — Estándar de Cifrado Avanzado">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Cómo se organiza el bloque"><span class="dot"></span>How the block is laid out</span>
+      <h2 data-es="Convertir a arreglo de estado (State array)">Convert to the State array</h2>
+      <p class="muted" data-es="El bloque de entrada de 128 bits se copia en el arreglo <strong>State</strong>, una matriz cuadrada de bytes que se modifica en cada etapa. Los bytes se llenan por columnas.">The 128-bit input block is copied into the <strong>State</strong> array, a square matrix of bytes modified at each stage. Bytes fill in column-major order.</p>
+      <div class="byte-grid-row">
+        <div class="byte-grid-col">
+          <span class="bg-cap" data-es="Bloque de entrada (índices de byte)">Input block (byte indices)</span>
+          <div class="byte-grid">
+            <div class="byte-cell">0</div><div class="byte-cell">4</div><div class="byte-cell">8</div><div class="byte-cell">12</div>
+            <div class="byte-cell">1</div><div class="byte-cell">5</div><div class="byte-cell">9</div><div class="byte-cell">13</div>
+            <div class="byte-cell">2</div><div class="byte-cell">6</div><div class="byte-cell">10</div><div class="byte-cell">14</div>
+            <div class="byte-cell">3</div><div class="byte-cell">7</div><div class="byte-cell">11</div><div class="byte-cell">15</div>
+          </div>
+        </div>
+        <span class="bg-op">=</span>
+        <div class="byte-grid-col">
+          <span class="bg-cap" data-es="Arreglo State (S fila,columna)">State array (S row,col)</span>
+          <div class="byte-grid">
+            <div class="byte-cell">S0,0</div><div class="byte-cell">S0,1</div><div class="byte-cell">S0,2</div><div class="byte-cell">S0,3</div>
+            <div class="byte-cell">S1,0</div><div class="byte-cell">S1,1</div><div class="byte-cell">S1,2</div><div class="byte-cell">S1,3</div>
+            <div class="byte-cell">S2,0</div><div class="byte-cell">S2,1</div><div class="byte-cell">S2,2</div><div class="byte-cell">S2,3</div>
+            <div class="byte-cell">S3,0</div><div class="byte-cell">S3,1</div><div class="byte-cell">S3,2</div><div class="byte-cell">S3,3</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S29 — SubBytes -->
+  <section class="slide" data-section="AES — Advanced Encryption Standard" data-section-es="AES — Estándar de Cifrado Avanzado">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La única sustitución no lineal"><span class="dot"></span>The one non-linear substitution</span>
+      <h2 data-es="SubBytes: cada byte, vía S-box">SubBytes: every byte, through the S-box</h2>
+      <p class="lead" style="max-width:54ch" data-es="Reemplaza cada byte del arreglo State por su valor correspondiente en el S-box de AES.">Replace each byte in the State array with its corresponding value from the AES S-box.</p>
+      <div class="byte-grid-row">
+        <div class="byte-grid-col">
+          <span class="bg-cap" data-es="Entrada (valores de ejemplo)">Input (example values)</span>
+          <div class="byte-grid">
+            <div class="byte-cell">00</div><div class="byte-cell">44</div><div class="byte-cell">88</div><div class="byte-cell">CC</div>
+            <div class="byte-cell hl">11</div><div class="byte-cell">55</div><div class="byte-cell">99</div><div class="byte-cell">DD</div>
+            <div class="byte-cell">22</div><div class="byte-cell">66</div><div class="byte-cell">AA</div><div class="byte-cell">EE</div>
+            <div class="byte-cell">33</div><div class="byte-cell">77</div><div class="byte-cell">BB</div><div class="byte-cell">FF</div>
+          </div>
+        </div>
+        <span class="bg-op">→</span>
+        <div class="byte-grid-col">
+          <span class="bg-cap" data-es="Cada byte se sustituye vía S-box">Each byte is substituted via S-box</span>
+          <div class="card accent-top" style="max-width:196px"><p class="muted" style="margin:0" data-es="Igual que el S-box de DES: una tabla de sustitución fija — aquí definida por el estándar AES (FIPS 197), no la de DES.">Same idea as the DES S-box: a fixed substitution table — here defined by the AES standard (FIPS 197), not the DES one.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S30 — ShiftRows -->
+  <section class="slide" data-section="AES — Advanced Encryption Standard" data-section-es="AES — Estándar de Cifrado Avanzado">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La única permutación"><span class="dot"></span>The one permutation</span>
+      <h2 data-es="ShiftRows: las últimas tres filas rotan">ShiftRows: the last three rows rotate</h2>
+      <p class="lead" style="max-width:52ch" data-es="Las últimas tres filas se desplazan cíclicamente — cada una una cantidad distinta.">The last three rows are cyclically shifted — each by a different amount.</p>
+      <div class="byte-grid-row">
+        <div class="byte-grid-col">
+          <span class="bg-cap" data-es="Antes">Before</span>
+          <div class="byte-grid">
+            <div class="byte-cell">S0,0</div><div class="byte-cell">S0,1</div><div class="byte-cell">S0,2</div><div class="byte-cell">S0,3</div>
+            <div class="byte-cell">S1,0</div><div class="byte-cell">S1,1</div><div class="byte-cell">S1,2</div><div class="byte-cell">S1,3</div>
+            <div class="byte-cell">S2,0</div><div class="byte-cell">S2,1</div><div class="byte-cell">S2,2</div><div class="byte-cell">S2,3</div>
+            <div class="byte-cell">S3,0</div><div class="byte-cell">S3,1</div><div class="byte-cell">S3,2</div><div class="byte-cell">S3,3</div>
+          </div>
+        </div>
+        <span class="bg-op">→</span>
+        <div class="byte-grid-col">
+          <span class="bg-cap" data-es="Después (fila r rota r bytes)">After (row r shifts by r bytes)</span>
+          <div class="byte-grid">
+            <div class="byte-cell">S0,0</div><div class="byte-cell">S0,1</div><div class="byte-cell">S0,2</div><div class="byte-cell">S0,3</div>
+            <div class="byte-cell hl">S1,1</div><div class="byte-cell hl">S1,2</div><div class="byte-cell hl">S1,3</div><div class="byte-cell hl">S1,0</div>
+            <div class="byte-cell hl">S2,2</div><div class="byte-cell hl">S2,3</div><div class="byte-cell hl">S2,0</div><div class="byte-cell hl">S2,1</div>
+            <div class="byte-cell hl">S3,3</div><div class="byte-cell hl">S3,0</div><div class="byte-cell hl">S3,1</div><div class="byte-cell hl">S3,2</div>
+          </div>
+        </div>
+      </div>
+      <p class="figure-note" data-es="Cantidades de desplazamiento por fila (0, 1, 2, 3 bytes) según FIPS 197.">Per-row shift amounts (0, 1, 2, 3 bytes) per FIPS 197.</p>
+    </div>
+  </section>
+
+  <!-- S31 — MixColumns -->
+  <section class="slide" data-section="AES — Advanced Encryption Standard" data-section-es="AES — Estándar de Cifrado Avanzado">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Mezclar dentro de la columna"><span class="dot"></span>Mixing within the column</span>
+      <h2 data-es="MixColumns: cada byte, función de toda su columna">MixColumns: every byte, a function of its whole column</h2>
+      <p class="lead" style="max-width:54ch" data-es="Aplica la transformación MixColumn a cada columna del arreglo State — una sustitución que altera cada byte en función de todos los bytes de esa columna.">Apply the MixColumn transformation to each column of the State array — a substitution that alters each byte as a function of all the bytes in that column.</p>
+      <div class="math-block left">
+        S’0,c <span class="mb-op">=</span> ({02}•S0,c) <span class="mb-op">⊕</span> ({03}•S1,c) <span class="mb-op">⊕</span> S2,c <span class="mb-op">⊕</span> S3,c<br>
+        S’1,c <span class="mb-op">=</span> S0,c <span class="mb-op">⊕</span> ({02}•S1,c) <span class="mb-op">⊕</span> ({03}•S2,c) <span class="mb-op">⊕</span> S3,c<br>
+        S’2,c <span class="mb-op">=</span> S0,c <span class="mb-op">⊕</span> S1,c <span class="mb-op">⊕</span> ({02}•S2,c) <span class="mb-op">⊕</span> ({03}•S3,c)<br>
+        S’3,c <span class="mb-op">=</span> ({03}•S0,c) <span class="mb-op">⊕</span> S1,c <span class="mb-op">⊕</span> S2,c <span class="mb-op">⊕</span> ({02}•S3,c)
+      </div>
+      <p class="muted" style="margin-top:.8rem" data-es="c recorre cada columna (0–3); “•” es multiplicación en el campo finito de AES, no multiplicación normal.">c ranges over each column (0–3); “•” is multiplication in AES’s finite field, not ordinary multiplication.</p>
+    </div>
+  </section>
+
+  <!-- S32 — AddRoundKey -->
+  <section class="slide" data-section="AES — Advanced Encryption Standard" data-section-es="AES — Estándar de Cifrado Avanzado">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La única etapa que usa la clave"><span class="dot"></span>The only stage that touches the key</span>
+      <h2 data-es="AddRoundKey: XOR con la clave de ronda">AddRoundKey: XOR with the round key</h2>
+      <p class="lead" style="max-width:52ch" data-es="Combina con XOR cada byte de la clave de ronda con su byte correspondiente en el arreglo State.">XOR each byte of the round key with its corresponding byte in the State array.</p>
+      <div class="byte-grid-row">
+        <div class="byte-grid-col">
+          <span class="bg-cap" data-es="State">State</span>
+          <div class="byte-grid">
+            <div class="byte-cell">S0,0</div><div class="byte-cell">S0,1</div><div class="byte-cell">S0,2</div><div class="byte-cell">S0,3</div>
+            <div class="byte-cell">S1,0</div><div class="byte-cell">S1,1</div><div class="byte-cell">S1,2</div><div class="byte-cell">S1,3</div>
+            <div class="byte-cell">S2,0</div><div class="byte-cell">S2,1</div><div class="byte-cell">S2,2</div><div class="byte-cell">S2,3</div>
+            <div class="byte-cell">S3,0</div><div class="byte-cell">S3,1</div><div class="byte-cell">S3,2</div><div class="byte-cell">S3,3</div>
+          </div>
+        </div>
+        <span class="bg-op">⊕</span>
+        <div class="byte-grid-col">
+          <span class="bg-cap" data-es="Clave de ronda">Round key</span>
+          <div class="byte-grid">
+            <div class="byte-cell">R0,0</div><div class="byte-cell">R0,1</div><div class="byte-cell">R0,2</div><div class="byte-cell">R0,3</div>
+            <div class="byte-cell">R1,0</div><div class="byte-cell">R1,1</div><div class="byte-cell">R1,2</div><div class="byte-cell">R1,3</div>
+            <div class="byte-cell">R2,0</div><div class="byte-cell">R2,1</div><div class="byte-cell">R2,2</div><div class="byte-cell">R2,3</div>
+            <div class="byte-cell">R3,0</div><div class="byte-cell">R3,1</div><div class="byte-cell">R3,2</div><div class="byte-cell">R3,3</div>
+          </div>
+        </div>
+        <span class="bg-op">=</span>
+        <div class="byte-grid-col">
+          <span class="bg-cap" data-es="Nuevo State">New State</span>
+          <div class="byte-grid">
+            <div class="byte-cell hl">S’0,0</div><div class="byte-cell hl">S’0,1</div><div class="byte-cell hl">S’0,2</div><div class="byte-cell hl">S’0,3</div>
+            <div class="byte-cell hl">S’1,0</div><div class="byte-cell hl">S’1,1</div><div class="byte-cell hl">S’1,2</div><div class="byte-cell hl">S’1,3</div>
+            <div class="byte-cell hl">S’2,0</div><div class="byte-cell hl">S’2,1</div><div class="byte-cell hl">S’2,2</div><div class="byte-cell hl">S’2,3</div>
+            <div class="byte-cell hl">S’3,0</div><div class="byte-cell hl">S’3,1</div><div class="byte-cell hl">S’3,2</div><div class="byte-cell hl">S’3,3</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S33 — Keyspace comparison -->
+  <section class="slide" data-section="AES — Advanced Encryption Standard" data-section-es="AES — Estándar de Cifrado Avanzado">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Comparando espacios de claves"><span class="dot"></span>Comparing key spaces</span>
+      <h2 data-es="DES vs. Triple DES vs. AES, en una tabla">DES vs. Triple DES vs. AES, in one table</h2>
+      <table class="compare">
+        <thead><tr><th data-es="Algoritmo">Algorithm</th><th data-es="Tamaño de clave">Key size</th><th data-es="Espacio de claves">Key space</th></tr></thead>
+        <tbody>
+          <tr><td data-es="DES">DES</td><td>56 bit</td><td class="map-from">2<sup>56</sup></td></tr>
+          <tr><td data-es="Triple DES (K1=K3)">Triple DES (K1=K3)</td><td>112 bit</td><td class="map-to">2<sup>112</sup></td></tr>
+          <tr><td data-es="Triple DES (K1,K2,K3 distintas)">Triple DES (distinct K1,K2,K3)</td><td>168 bit</td><td class="map-to">2<sup>168</sup></td></tr>
+          <tr><td data-es="AES-128">AES-128</td><td>128 bit</td><td class="map-to">2<sup>128</sup></td></tr>
+          <tr><td data-es="AES-192">AES-192</td><td>192 bit</td><td class="map-to">2<sup>192</sup></td></tr>
+          <tr><td data-es="AES-256">AES-256</td><td>256 bit</td><td class="map-to">2<sup>256</sup></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- S34 — Further resources -->
+  <section class="slide" data-section="AES — Advanced Encryption Standard" data-section-es="AES — Estándar de Cifrado Avanzado">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Para profundizar"><span class="dot"></span>Going further</span>
+      <h2 data-es="Recursos adicionales sobre AES">Further resources on AES</h2>
+      <div class="grid cols-2">
+        <div class="card accent-top"><span class="ico">🎥</span><h3 data-es="Video explicativo de AES">AES walkthrough video</h3><p class="mono" style="font-size:.85rem;word-break:break-all">youtube.com/watch?v=gP4PqVGudtg</p></div>
+        <div class="card teal-top"><span class="ico">📖</span><h3 data-es="“A Stick Figure Guide to AES”">“A Stick Figure Guide to AES”</h3><p class="mono" style="font-size:.85rem;word-break:break-all">moserware.com/2009/09/stick-figure-guide-to-advanced.html</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S35 — Concept check -->
+  <section class="slide" data-section="AES — Advanced Encryption Standard" data-section-es="AES — Estándar de Cifrado Avanzado">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Repaso rápido"><span class="dot"></span>Quick check</span>
+      <h2 data-es="DES vs. AES, cara a cara">DES vs. AES, side by side</h2>
+      <div class="callout check">
+        <span class="tag" data-es="Rápido">Rapid fire</span>
+        <p data-es="¿Cuál usa una red de Feistel? ¿Cuál procesa el bloque completo en paralelo cada ronda? ¿Cuál tiene el espacio de claves más pequeño?">Which one uses a Feistel network? Which processes the whole block in parallel each round? Which has the smallest key space?</p>
+      </div>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Respuestas">Answers</span>
+        <p data-es="<span class='accent'>DES</span> usa Feistel · <span class='accent'>AES</span> procesa el bloque completo en paralelo · <span class='accent'>DES</span> tiene el espacio de claves más pequeño (2<sup>56</sup>).">
+        <span class="accent">DES</span> uses Feistel · <span class="accent">AES</span> processes the whole block in parallel · <span class="accent">DES</span> has the smallest key space (2<sup>56</sup>).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ 5. ENCRYPTING A LARGE MESSAGE ============================ -->
+
+  <!-- S36 — Section divider -->
+  <section class="slide section" data-section="Encrypting a large message" data-section-es="Cifrar un mensaje grande">
+    <div class="slide-inner">
+      <div class="num">05</div>
+      <h1 data-es="Cifrar un mensaje grande">Encrypting a large message</h1>
+      <p class="lead" data-es="Un cifrado por bloques cifra un bloque a la vez — entonces, ¿cómo ciframos un archivo de gigabytes?">A block cipher encrypts one block at a time — so how do we encrypt a gigabyte file?</p>
+    </div>
+  </section>
+
+  <!-- S37 — Intro: is that it? -->
+  <section class="slide" data-section="Encrypting a large message" data-section-es="Cifrar un mensaje grande">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La idea obvia"><span class="dot"></span>The obvious idea</span>
+      <h2 data-es="Partir en bloques y cifrar cada uno — ¿eso es todo?">Break into blocks and encrypt each — is that it?</h2>
+      <p class="lead" style="max-width:54ch" data-es="Hasta ahora hemos hablado de cifrados por bloques, que toman como entrada un bloque de longitud fija — 64 bits para DES, 128 bits para AES. ¿Qué pasa si queremos cifrar un mensaje más grande?">So far we’ve discussed block ciphers, which take a fixed-length data block as input — 64 bits for DES, 128 bits for AES. What if we want to encrypt a larger message?</p>
+      <ol class="clean" style="margin-top:1.3rem">
+        <li data-es="Partimos el mensaje en bloques.">We break the message into blocks.</li>
+        <li data-es="Aplicamos el cifrado por bloques a cada uno.">We apply the block cipher to each block.</li>
+      </ol>
+      <p class="lead fragment" style="margin-top:1.2rem;max-width:44ch" data-es="<strong>¿Eso es todo? </strong>No del todo — <em>cómo</em> combinamos los bloques importa mucho."><strong>Is that it?</strong> Not quite — <em>how</em> we combine the blocks matters a lot.</p>
+    </div>
+  </section>
+
+  <!-- S38 — ECB mode -->
+  <section class="slide" data-section="Encrypting a large message" data-section-es="Cifrar un mensaje grande">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>La forma más simple"><span class="dot"></span>The simplest way</span>
+      <h2 data-es="Modo ECB: cada bloque, por su cuenta">ECB mode: each block, on its own</h2>
+      <p class="lead" style="max-width:56ch" data-es="En el modo <strong>Electronic Codebook (ECB)</strong>, el texto plano se procesa b bits a la vez y cada bloque se cifra <strong>de forma independiente</strong> con la misma clave.">In <strong>Electronic Codebook (ECB)</strong> mode, plaintext is handled b bits at a time and each block is encrypted <strong>independently</strong> using the same key.</p>
+      <div class="mode-grid">
+        <div class="mode-lane"><div class="mode-pill p">P1</div><div class="mode-arrow-d">↓ E, K</div><div class="mode-pill c">C1</div></div>
+        <div class="mode-lane"><div class="mode-pill p">P2</div><div class="mode-arrow-d">↓ E, K</div><div class="mode-pill c">C2</div></div>
+        <div class="mode-lane"><div class="mode-pill p">P3</div><div class="mode-arrow-d">↓ E, K</div><div class="mode-pill c">C3</div></div>
+      </div>
+      <div class="callout note" style="margin-top:1.2rem">
+        <span class="tag" data-es="Por qué “codebook”">Why “codebook”</span>
+        <p data-es="Para una clave dada, hay un texto cifrado único para cada bloque de texto plano de b bits — como si existiera un enorme libro de códigos con una entrada por cada patrón posible de b bits.">For a given key, there’s a unique ciphertext for every b-bit plaintext block — as if a giant codebook existed with an entry for every possible b-bit pattern.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S39 — ECB problem #1: patterns leak -->
+  <section class="slide" data-section="Encrypting a large message" data-section-es="Cifrar un mensaje grande">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Problema #1 de ECB"><span class="dot"></span>ECB problem #1</span>
+      <h2 data-es="Bloques repetidos → texto cifrado repetido">Repeated blocks → repeated ciphertext</h2>
+      <p class="lead" style="max-width:56ch" data-es="Si el mismo bloque de b bits aparece más de una vez en el mensaje, <strong>siempre produce el mismo texto cifrado</strong>. En mensajes largos y estructurados, eso puede ser explotable.">If the same b-bit block appears more than once in the message, it <strong>always produces the same ciphertext</strong>. For long, structured messages, that can be exploitable.</p>
+      <div class="callout discuss">
+        <span class="tag" data-es="Cómo se explota">How it’s exploited</span>
+        <p data-es="Si se sabe que un mensaje siempre empieza con ciertos campos predefinidos, el criptoanalista ya tiene pares texto-plano/texto-cifrado conocidos. Si el mensaje tiene elementos repetitivos cada cierto número de bloques, esos elementos son identificables — lo que puede habilitar <strong>sustitución o reordenamiento de bloques</strong>.">If a message is known to always start with certain predefined fields, the cryptanalyst already has known plaintext-ciphertext pairs. If the message has repetitive elements every so many blocks, those elements are identifiable — which can enable <strong>substituting or rearranging blocks</strong>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S40 — ECB problem #2: no integrity -->
+  <section class="slide" data-section="Encrypting a large message" data-section-es="Cifrar un mensaje grande">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Problema #2 de ECB"><span class="dot"></span>ECB problem #2</span>
+      <h2 data-es="Sin protección de integridad entre bloques">No integrity protection across blocks</h2>
+      <p class="lead" style="max-width:54ch" data-es="ECB carece de la protección básica contra ataques de integridad sobre el texto cifrado a nivel de mensaje (es decir, entre múltiples bloques de cifrado).">ECB lacks basic protection against integrity attacks on the ciphertext at the message level (i.e., across multiple cipher blocks).</p>
+      <div class="grid cols-2" style="margin-top:1.1rem">
+        <div class="card danger-top"><span class="ico">🔀</span><h3 data-es="Sustitución y reordenamiento">Substitution &amp; rearrangement</h3><p data-es="Un atacante puede reusar un bloque de texto cifrado capturado antes para reemplazar uno actual, o reordenar los bloques.">An attacker can reuse a previously captured ciphertext block to swap out a current one, or reorder the blocks.</p></div>
+        <div class="card danger-top"><span class="ico">🧾</span><h3 data-es="Fabricación de información">Fabrication of information</h3><p data-es="El resultado es una violación de la integridad del mensaje — se puede fabricar información específica sin conocer la clave.">The result is a violation of message integrity — specific information can be fabricated without knowing the key.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S41 — CBC mode: encryption -->
+  <section class="slide" data-section="Encrypting a large message" data-section-es="Cifrar un mensaje grande">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Encadenar los bloques"><span class="dot"></span>Chaining the blocks</span>
+      <h2 data-es="Modo CBC: cada bloque depende del anterior">CBC mode: each block depends on the last</h2>
+      <p class="lead" style="max-width:56ch" data-es="En <strong>Cipher Block Chaining (CBC)</strong>, la entrada al cifrado es el XOR del bloque de texto plano actual con el bloque de texto cifrado <strong>anterior</strong>; para el primer bloque usamos un valor aleatorio, el <strong>Vector de Inicialización (IV)</strong>.">In <strong>Cipher Block Chaining (CBC)</strong>, the input to encryption is the XOR of the current plaintext block with the <strong>previous</strong> ciphertext block; for the first block we use a random value, the <strong>Initialization Vector (IV)</strong>.</p>
+      <div class="mode-grid">
+        <div class="mode-lane"><div class="mode-pill p">IV ⊕ P1</div><div class="mode-arrow-d">↓ E, K</div><div class="mode-pill c">C1</div></div>
+        <div class="mode-lane"><div class="mode-pill p">C1 ⊕ P2</div><div class="mode-arrow-d">↓ E, K</div><div class="mode-pill c">C2</div></div>
+        <div class="mode-lane"><div class="mode-pill p">C2 ⊕ P3</div><div class="mode-arrow-d">↓ E, K</div><div class="mode-pill c">C3</div></div>
+      </div>
+      <p class="muted" style="text-align:center;margin-top:.3rem" data-es="↳ cada Cᵢ₋₁ alimenta el bloque siguiente — la cadena que da nombre al modo.">↳ each Cᵢ₋₁ feeds the next block — the chain that gives the mode its name.</p>
+      <div class="callout note" style="margin-top:1rem">
+        <span class="tag" data-es="Por qué importa">Why it matters</span>
+        <p data-es="La entrada al cifrado de cada bloque incluye el bloque de texto cifrado anterior, no solo el bloque de texto plano actual — así que no hay forma de determinar el resultado de un bloque de forma aislada. Si dos bloques de texto plano se repiten, sus textos cifrados serán distintos.">The input to encryption for each block includes the previous ciphertext block, not just the current plaintext block — so there’s no way to determine one block’s result in isolation. If two plaintext blocks repeat, their ciphertext blocks will differ.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S42 — INTERACTIVE: ECB vs CBC pattern-leak -->
+  <section class="slide" data-section="Encrypting a large message" data-section-es="Cifrar un mensaje grande">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Compruébalo tú mismo"><span class="dot"></span>See it for yourself</span>
+      <h2 data-es="El mismo patrón, dos modos, dos resultados">The same pattern, two modes, two outcomes</h2>
+      <p class="lead" style="max-width:56ch" data-es="Un patrón de texto plano con bloques repetidos (piensa: una imagen con zonas de color parejo). Compara qué le pasa bajo ECB frente a CBC.">A plaintext pattern with repeated blocks (think: an image with flat-color regions). Compare what happens to it under ECB versus CBC.</p>
+      <div class="sym-ecbcbc">
+        <div class="sym-col">
+          <span class="sym-label" data-es="Patrón de texto plano">Plaintext pattern</span>
+          <div class="sym-grid" id="symPlain"></div>
+        </div>
+        <div class="sym-col">
+          <span class="sym-label" data-es="ECB — cada bloque solo">ECB — each block alone</span>
+          <div class="sym-grid" id="symEcb"></div>
+          <p class="sym-verdict sym-bad" data-es="El patrón sigue visible.">Pattern still visible.</p>
+        </div>
+        <div class="sym-col">
+          <span class="sym-label" data-es="CBC — bloques encadenados">CBC — chained blocks</span>
+          <div class="sym-grid" id="symCbc"></div>
+          <p class="sym-verdict sym-good" data-es="El patrón desapareció.">Pattern is gone.</p>
+        </div>
+      </div>
+      <div class="sym-btn-row">
+        <button type="button" class="sym-btn" id="symEncryptBtn" data-es="↻ Cifrar de nuevo (nuevo IV)">↻ Re-encrypt (new IV)</button>
+      </div>
+      <p class="figure-note" style="text-align:center" data-es="Analogía visual simplificada de la propiedad de ECB/CBC descrita en las notas de la fuente — no es aritmética real de AES/DES. Nota que ECB da el mismo resultado cada vez; CBC cambia porque usa un IV aleatorio nuevo.">Simplified visual analogy of the ECB/CBC property described in the source notes — not real AES/DES arithmetic. Notice ECB gives the same result every time; CBC changes because it uses a fresh random IV.</p>
+    </div>
+  </section>
+
+  <!-- S43 — CBC decryption -->
+  <section class="slide" data-section="Encrypting a large message" data-section-es="Cifrar un mensaje grande">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Deshacer la cadena"><span class="dot"></span>Undoing the chain</span>
+      <h2 data-es="Descifrado CBC — y por qué el IV debe protegerse">CBC decryption — and why the IV needs protecting</h2>
+      <p class="lead" style="max-width:56ch" data-es="Cada bloque de texto cifrado pasa por el algoritmo de descifrado; el resultado se combina con XOR con el bloque de texto cifrado anterior para producir el texto plano.">Each ciphertext block passes through the decryption algorithm; the result is XORed with the preceding ciphertext block to produce the plaintext block.</p>
+      <div class="math-block">
+        C<sub>j</sub> <span class="mb-op">=</span> <span class="mb-kw">E</span>(K, [C<sub>j−1</sub> <span class="mb-op">⊕</span> P<sub>j</sub>])
+      </div>
+      <div class="callout note" style="margin-top:1.1rem">
+        <span class="tag" data-es="El primer bloque">The first block</span>
+        <p data-es="Para producir el primer bloque de texto cifrado, el <strong>IV</strong> se combina con XOR con el primer bloque de texto plano; al descifrar, el IV se combina con XOR con la salida del algoritmo de descifrado para recuperar el primer bloque. El IV debe ser conocido por emisor y receptor — y protegido tan bien como la clave.">To produce the first ciphertext block, the <strong>IV</strong> is XORed with the first plaintext block; on decryption, the IV is XORed with the decryption output to recover the first block. The IV must be known to both sender and receiver — and protected as well as the key.</p>
+      </div>
+      <div class="callout discuss" style="margin-top:.9rem">
+        <span class="tag" data-es="Por qué protegerlo">Why protect it</span>
+        <p data-es="Si un atacante logra que el receptor use un IV distinto, puede invertir bits específicos del primer bloque de texto plano — una violación de integridad, sin necesitar la clave.">If an attacker can fool the receiver into using a different IV, they can invert specific bits of the first plaintext block — a violation of integrity, without needing the key.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S44 — CBC residue for integrity -->
+  <section class="slide" data-section="Encrypting a large message" data-section-es="Cifrar un mensaje grande">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Reusar CBC para otra cosa"><span class="dot"></span>Reusing CBC for something else</span>
+      <h2 data-es="Proteger la integridad del mensaje con el “residuo” de CBC">Protecting message integrity with the CBC “residue”</h2>
+      <p class="lead" style="max-width:56ch" data-es="Enviamos <strong>solo el último bloque</strong> de un cifrado CBC — el “residuo” — junto con el texto plano (sin cifrar).">We send <strong>only the last block</strong> of a CBC encryption — the “residue” — alongside the plaintext (unencrypted).</p>
+      <div class="callout check" style="margin-top:1.1rem">
+        <span class="tag" data-es="Cómo detecta manipulación">How it catches tampering</span>
+        <p data-es="Cualquier modificación en el texto plano hace que el residuo de CBC que calcule el receptor sea <strong>distinto</strong> del que envió el emisor — eso garantiza integridad, sin necesidad de enviar todos los bloques cifrados.">Any modification to the plaintext makes the CBC residue the receiver computes <strong>different</strong> from the one the sender sent — that ensures integrity, without needing to send every encrypted block.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- S45 — Confidentiality + integrity together -->
+  <section class="slide" data-section="Encrypting a large message" data-section-es="Cifrar un mensaje grande">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Combinando ambas metas"><span class="dot"></span>Combining both goals</span>
+      <h2 data-es="¿Y si queremos confidencialidad e integridad a la vez?">What if we want confidentiality and integrity together?</h2>
+      <div class="callout note">
+        <span class="tag" data-es="Lo que NO funciona">What does NOT work</span>
+        <p data-es="Simplemente enviar todos los bloques CBC (para confidencialidad) y además repetir el último bloque (para integridad) <strong>no funciona</strong> — repetir el mismo bloque no añade nada nuevo ni distinto.">Simply sending all the CBC blocks (for confidentiality) and also replicating the last block (for integrity) <strong>does not work</strong> — repeating the same block adds nothing new or different.</p>
+      </div>
+      <div class="grid cols-2" style="margin-top:1.1rem">
+        <div class="card good-top"><span class="ico">🔑🔑</span><h3 data-es="Dos claves separadas">Two separate keys</h3><p data-es="Una clave para generar los bloques CBC (confidencialidad) y otra distinta para generar el residuo (integridad) — dos pasadas de cifrado.">One key to generate the CBC blocks (confidentiality) and a different one to generate the residue (integrity) — two encryption passes.</p></div>
+        <div class="card teal-top"><span class="ico">🧬</span><h3 data-es="CBC(mensaje ‖ hash del mensaje)">CBC(message ‖ hash of message)</h3><p data-es="Calcular primero el hash del mensaje, concatenarlo con el mensaje, y aplicar CBC sobre todo el conjunto.">First compute the hash of the message, concatenate it with the message, and apply CBC over the whole thing.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S46 — Concept check -->
+  <section class="slide" data-section="Encrypting a large message" data-section-es="Cifrar un mensaje grande">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Repaso rápido"><span class="dot"></span>Quick check</span>
+      <h2 data-es="ECB vs. CBC">ECB vs. CBC</h2>
+      <div class="callout check">
+        <span class="tag" data-es="Rápido">Rapid fire</span>
+        <p data-es="¿Cuál modo filtra patrones repetidos? ¿Cuál usa un IV? ¿Cuál te permite construir un “residuo” para verificar integridad?">Which mode leaks repeated patterns? Which one uses an IV? Which one lets you build a “residue” to check integrity?</p>
+      </div>
+      <div class="reveal-answer fragment">
+        <span class="ra-tag" data-es="Respuestas">Answers</span>
+        <p data-es="<span class='accent'>ECB</span> filtra patrones · <span class='accent'>CBC</span> usa un IV · <span class='accent'>CBC</span> permite el residuo de integridad.">
+        <span class="accent">ECB</span> leaks patterns · <span class="accent">CBC</span> uses an IV · <span class="accent">CBC</span> enables the integrity residue.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ 6. WRAP-UP ============================ -->
+
+  <!-- S47 — Summary -->
+  <section class="slide" data-section="Wrap-up" data-section-es="Cierre">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Resumen de la clase"><span class="dot"></span>Lesson summary</span>
+      <h2 data-es="Cifrado simétrico, en una diapositiva">Symmetric encryption, in one slide</h2>
+      <ul class="clean">
+        <li data-es="Necesitamos <strong>confusión y difusión</strong> juntas — y suficientes <strong>rondas</strong> para que un bit afecte a todos los demás.">We need <strong>confusion and diffusion</strong> together — and enough <strong>rounds</strong> for one bit to affect every other bit.</li>
+        <li data-es="<strong>DES</strong>: entrada de 64 bits, clave de 56 bits; cifrado y descifrado son el mismo algoritmo con la secuencia de claves de ronda invertida.">
+        <strong>DES</strong>: 64-bit input, 56-bit key; encryption and decryption are the same algorithm with the round-key sequence reversed.</li>
+        <li data-es="<strong>AES</strong>: entrada de 128 bits, clave de 128/192/256 bits; el descifrado es el inverso de cada etapa, no una simple reversión de red de Feistel.">
+        <strong>AES</strong>: 128-bit input, 128/192/256-bit key; decryption is the inverse of each stage, not a simple Feistel-style reversal.</li>
+        <li data-es="Usa <strong>Cipher Block Chaining (CBC)</strong> para cifrar un mensaje grande — no solo repitas el cifrado por bloques (ECB) sin encadenar.">
+        Use <strong>Cipher Block Chaining (CBC)</strong> to encrypt a large message — don’t just repeat the block cipher unchained (ECB).</li>
+        <li data-es="El último bloque de CBC puede servir como <strong>código de integridad del mensaje (MIC)</strong>; usa claves distintas para integridad y confidencialidad.">
+        The last CBC block can serve as a <strong>message integrity code (MIC)</strong>; use different keys for integrity and confidentiality.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- S48 — Closing takeaway -->
+  <section class="slide section" data-section="Wrap-up" data-section-es="Cierre">
+    <div class="slide-inner">
+      <span class="kicker" style="justify-content:center" data-es="<span class='dot'></span>Una cosa para recordar"><span class="dot"></span>One thing to remember</span>
+      <h1 style="max-width:20ch" data-es="Confundir, difundir, repetir — y encadenar los bloques.">Confuse, diffuse, repeat — and chain the blocks.</h1>
+      <p class="lead" style="max-width:44ch;margin-inline:auto" data-es="La próxima vez: cifrado asimétrico y cómo dos partes acuerdan una clave sin haberse conocido antes.">Next time: asymmetric encryption, and how two parties agree on a key without ever having met.</p>
+      <div class="callout discuss" style="max-width:560px;margin:1.6rem auto 0"><span class="tag" data-es="Ahora">Now</span><p data-es="¿Preguntas? ¿Dudas? — o simplemente grita “¡AYUDA!”">Questions? Doubts? — or just yell “HELP!”</p></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Footer -->
+<footer class="footer">
+  <span class="course" data-es="TC2007B · S6 · C1 — Cifrado Simétrico">TC2007B · W6 · L1 — Symmetric Encryption</span>
+  <span class="right">
+    <span class="sec-name" id="secName">Orientation</span>
+    <span class="counter"><span id="cur">1</span> / <span id="total">48</span></span>
+  </span>
+</footer>
+
+<div class="frag-hint" id="fragHint"><span id="fragHintText">click to reveal</span><span class="chev">▾</span></div>
+
+<div class="nav-btns">
+  <button id="prevBtn" title="Previous (←)">‹</button>
+  <button id="ovBtn" title="Overview (O)">▦</button>
+  <button id="helpBtn" title="Help (?)">?</button>
+  <button id="fsBtn" title="Fullscreen (F)">⛶</button>
+  <button id="nextBtn" title="Next (→)">›</button>
+</div>
+
+<!-- Overview -->
+<div class="overview" id="overview">
+  <h2 id="ovTitle">Slide overview</h2>
+  <div class="ov-grid" id="ovGrid"></div>
+</div>
+
+<!-- Help -->
+<div class="help" id="help">
+  <div class="panel">
+    <h2 data-es="Navegación">Navigation</h2>
+    <table>
+      <tr><td><kbd>→</kbd> <kbd>Space</kbd> <kbd>PgDn</kbd></td><td data-es="Siguiente / revelar">Next / reveal</td></tr>
+      <tr><td><kbd>←</kbd> <kbd>PgUp</kbd></td><td data-es="Anterior">Previous</td></tr>
+      <tr><td><kbd>Home</kbd> / <kbd>End</kbd></td><td data-es="Primera / última">First / last slide</td></tr>
+      <tr><td><kbd>O</kbd></td><td data-es="Vista general">Slide overview grid</td></tr>
+      <tr><td><kbd>F</kbd></td><td data-es="Pantalla completa">Toggle fullscreen</td></tr>
+      <tr><td><kbd>L</kbd></td><td data-es="Idioma ES / EN">Language ES / EN</td></tr>
+      <tr><td><kbd>T</kbd></td><td data-es="Tema claro / oscuro">Light / dark theme</td></tr>
+      <tr><td><kbd>?</kbd></td><td>Help</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td data-es="Cerrar ventana">Close overlay</td></tr>
+    </table>
+    <p class="muted" style="margin-top:1rem;font-size:.9rem" data-es="Funciona con la mayoría de los controles de presentación (envían Av Pág / Re Pág) y admite deslizar en pantallas táctiles.">Works with most presenter remotes (they send Page Up / Page Down) and supports swipe on touch screens.</p>
+  </div>
+</div>
+
+<script src="script.js"></script>
+<script>
+  /* Added interactive: ECB vs CBC pattern-leak visual — namespaced "sym-".
+     Simplified analogy (not real AES/DES math): ECB colors each block only
+     from its own value, so a repeated plaintext pattern stays visible.
+     CBC colors each block from a running chain (value + position + IV),
+     so identical plaintext blocks produce different-looking output. */
+  (function () {
+    var plainWrap = document.getElementById('symPlain');
+    var ecbWrap   = document.getElementById('symEcb');
+    var cbcWrap   = document.getElementById('symCbc');
+    var btn       = document.getElementById('symEncryptBtn');
+    if (!plainWrap || !ecbWrap || !cbcWrap || !btn) return;
+
+    // 8x6 pattern of repeated block "values" (0/1) shaped like a cross —
+    // repetition is the point: it lets ECB's per-block independence show.
+    var pattern = [
+      [0,0,0,1,1,0,0,0],
+      [0,0,0,1,1,0,0,0],
+      [1,1,1,1,1,1,1,1],
+      [1,1,1,1,1,1,1,1],
+      [0,0,0,1,1,0,0,0],
+      [0,0,0,1,1,0,0,0]
+    ];
+
+    function buildGrid(wrap) {
+      wrap.innerHTML = '';
+      pattern.forEach(function (row) {
+        row.forEach(function () {
+          var c = document.createElement('div');
+          c.className = 'sym-cell';
+          wrap.appendChild(c);
+        });
+      });
+    }
+
+    function hsl(h) { return 'hsl(' + (((h % 360) + 360) % 360) + ',68%,52%)'; }
+
+    function paintPlain() {
+      var cells = plainWrap.querySelectorAll('.sym-cell');
+      var i = 0;
+      pattern.forEach(function (row) {
+        row.forEach(function (v) {
+          cells[i].style.background = v ? 'var(--accent)' : 'var(--bg-3)';
+          i++;
+        });
+      });
+    }
+
+    // ECB: color depends only on the block's own value -> identical blocks
+    // always render identically -> the cross pattern stays clearly visible.
+    function paintEcb() {
+      var cells = ecbWrap.querySelectorAll('.sym-cell');
+      var i = 0;
+      pattern.forEach(function (row) {
+        row.forEach(function (v) {
+          cells[i].style.background = hsl(v * 137 + 40);
+          i++;
+        });
+      });
+    }
+
+    // CBC: color depends on a running chain seeded by a fresh random IV ->
+    // identical blocks at different positions render differently -> the
+    // pattern disappears into what looks like noise.
+    function paintCbc() {
+      var cells = cbcWrap.querySelectorAll('.sym-cell');
+      var chain = Math.floor(Math.random() * 360); // random IV each run
+      var i = 0;
+      pattern.forEach(function (row) {
+        row.forEach(function (v) {
+          chain = (chain * 31 + v * 97 + i * 13) % 360;
+          cells[i].style.background = hsl(chain);
+          i++;
+        });
+      });
+    }
+
+    buildGrid(plainWrap);
+    buildGrid(ecbWrap);
+    buildGrid(cbcWrap);
+    paintPlain();
+    paintEcb();
+    paintCbc();
+
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      paintEcb();
+      paintCbc();
+    });
+  })();
+</script>
+</body>
+</html>
