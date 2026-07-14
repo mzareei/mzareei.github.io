@@ -10,6 +10,140 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../week-01/mission-01/style.css">
 <link rel="stylesheet" href="style.css">
+<style>
+  /* Risk matrix explorer widget (Checkpoint 1 companion) — namespaced w4viz- */
+  .w4viz-matrix {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+  }
+  .w4viz-axis-label {
+    display: block;
+    margin-bottom: 0.4rem;
+    color: var(--muted, #aebed0);
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .w4viz-btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .w4viz-btn {
+    border: 1px solid var(--line, #30465f);
+    border-radius: 999px;
+    padding: 0.45rem 0.85rem;
+    color: var(--ink, #f2f7ff);
+    background: var(--panel, #172331);
+    cursor: pointer;
+    font-weight: 800;
+    font: inherit;
+  }
+  .w4viz-btn:hover {
+    border-color: var(--accent, #48a3ff);
+  }
+  .w4viz-btn.is-active {
+    color: #06111f;
+    background: var(--accent, #48a3ff);
+    border-color: transparent;
+  }
+  .w4viz-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin: 1rem 0;
+  }
+  .w4viz-cell {
+    display: grid;
+    place-items: center;
+    min-height: 56px;
+    border: 1px solid var(--line, #30465f);
+    border-radius: 10px;
+    padding: 0.5rem;
+    color: var(--ink, #f2f7ff);
+    background: var(--panel-2, #203247);
+    font-weight: 800;
+    font-size: 0.85rem;
+    text-align: center;
+    opacity: 0.55;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+  .w4viz-cell[data-tone="good"] { box-shadow: inset 0 0 0 2px rgba(95, 224, 138, 0.4); }
+  .w4viz-cell[data-tone="warn"] { box-shadow: inset 0 0 0 2px rgba(255, 189, 90, 0.4); }
+  .w4viz-cell[data-tone="danger"] { box-shadow: inset 0 0 0 2px rgba(255, 109, 109, 0.4); }
+  .w4viz-cell.is-selected {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  .w4viz-cell.is-selected[data-tone="good"] { background: rgba(95, 224, 138, 0.18); }
+  .w4viz-cell.is-selected[data-tone="warn"] { background: rgba(255, 189, 90, 0.18); }
+  .w4viz-cell.is-selected[data-tone="danger"] { background: rgba(255, 109, 109, 0.18); }
+  .w4viz-result {
+    border-left: 4px solid var(--teal, #35d0bf);
+    padding: 0.75rem 0.9rem;
+    background: rgba(53, 208, 191, 0.08);
+    border-radius: 0 10px 10px 0;
+  }
+  .w4viz-verdict {
+    margin: 0 0 0.35rem;
+    font-weight: 900;
+  }
+  .w4viz-verdict[data-tone="good"] { color: var(--good, #5fe08a); }
+  .w4viz-verdict[data-tone="warn"] { color: var(--warn, #ffbd5a); }
+  .w4viz-verdict[data-tone="danger"] { color: var(--danger, #ff6d6d); }
+  .w4viz-explain {
+    margin: 0;
+    color: var(--muted, #aebed0);
+  }
+  @media (max-width: 700px) {
+    .w4viz-matrix { grid-template-columns: 1fr; }
+    .w4viz-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Real-world case callout (Checkpoint 3 companion) */
+  .case-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+    margin: 0.9rem 0;
+  }
+  .case-card {
+    border: 1px solid var(--line, #30465f);
+    border-radius: 12px;
+    padding: 0.95rem;
+    background: var(--panel-2, #203247);
+  }
+  .case-card h3 {
+    margin-bottom: 0.4rem;
+    font-size: 1.05rem;
+    color: var(--ink, #f2f7ff);
+  }
+  .case-body {
+    margin: 0 0 0.6rem;
+    color: var(--muted, #aebed0);
+  }
+  .case-lesson {
+    margin: 0;
+    border-left: 3px solid var(--warn, #ffbd5a);
+    padding-left: 0.65rem;
+    color: var(--ink, #f2f7ff);
+  }
+  .case-lesson strong {
+    color: var(--warn, #ffbd5a);
+  }
+  .case-tie {
+    margin-top: 0.9rem;
+    border-top: 1px dashed var(--line, #30465f);
+    padding-top: 0.85rem;
+    color: var(--muted, #aebed0);
+  }
+  @media (max-width: 700px) {
+    .case-grid { grid-template-columns: 1fr; }
+  }
+</style>
 </head>
 <body>
 <main class="mission-shell">
@@ -39,6 +173,34 @@
   </section>
 
   <section class="mission-card">
+    <span class="eyebrow">Interactive tool</span>
+    <h2>Risk matrix explorer</h2>
+    <p class="lead">Risk triage is not arbitrary — it comes from combining how likely a finding is to be exploited with how bad the impact would be. Pick a likelihood and an impact below to see the risk level and the triage action it maps to.</p>
+    <div class="w4viz-matrix">
+      <div class="w4viz-axis">
+        <span class="w4viz-axis-label">Likelihood of exploitation</span>
+        <div class="w4viz-btn-row" data-role="likelihood">
+          <button type="button" class="w4viz-btn" data-value="Low">Low</button>
+          <button type="button" class="w4viz-btn" data-value="Medium">Medium</button>
+          <button type="button" class="w4viz-btn" data-value="High">High</button>
+        </div>
+      </div>
+      <div class="w4viz-axis">
+        <span class="w4viz-axis-label">Impact if exploited</span>
+        <div class="w4viz-btn-row" data-role="impact">
+          <button type="button" class="w4viz-btn" data-value="Low">Low</button>
+          <button type="button" class="w4viz-btn" data-value="Medium">Medium</button>
+          <button type="button" class="w4viz-btn" data-value="High">High</button>
+        </div>
+      </div>
+    </div>
+    <div class="w4viz-grid" id="w4vizGrid" aria-hidden="true"></div>
+    <div class="w4viz-result" id="w4vizResult">
+      <p>Select a likelihood and impact to see the triage result.</p>
+    </div>
+  </section>
+
+  <section class="mission-card">
     <span class="eyebrow">Checkpoint 2</span>
     <h2>Choose the strongest control</h2>
     <p class="lead">Match each weakness to the control that most directly reduces the risk.</p>
@@ -53,6 +215,25 @@
     <p class="feedback" id="releaseFeedback" aria-live="polite"></p>
   </section>
 
+  <section class="mission-card">
+    <span class="eyebrow">This happened for real</span>
+    <h2>When an untested release goes global</h2>
+    <p class="lead">Two widely reported incidents show why a release gate is not paperwork — it is the last check before a bug becomes a headline.</p>
+    <div class="case-grid">
+      <article class="case-card">
+        <h3>CrowdStrike outage (2024)</h3>
+        <p class="case-body">A faulty content update to CrowdStrike's Falcon sensor was pushed straight to production and, as widely reported, crashed millions of Windows machines worldwide — grounding flights, disrupting hospitals, and knocking banks and broadcasters offline for days.</p>
+        <p class="case-lesson"><strong>Lesson:</strong> the update reportedly skipped a staged rollout and adequate pre-release validation. A release gate that requires canary deployment and rollback testing exists precisely to catch this before it reaches every machine at once.</p>
+      </article>
+      <article class="case-card">
+        <h3>Knight Capital (2012)</h3>
+        <p class="case-body">Knight Capital deployed new trading code to only some of its production servers, leaving old, repurposed test code active on the rest. In the roughly 45 minutes before the mismatch was caught, it reportedly cost the firm about $440 million and led to its collapse.</p>
+        <p class="case-lesson"><strong>Lesson:</strong> inconsistent deployment across servers is itself a release-gate failure — a gate should verify the deployed state matches the intended state everywhere, not just that the code compiled.</p>
+      </article>
+    </div>
+    <p class="case-tie">Tie-in: the same triage habit from Checkpoint 1 is what stood between these companies and the outage. Treat "no rollback plan" and "partial or unverified deployment" as Block-level findings, the same way you would an authentication bypass.</p>
+  </section>
+
   <section class="completion-panel">
     <span class="eyebrow">Debrief</span>
     <h2>Security is a release decision</h2>
@@ -65,5 +246,104 @@
   </section>
 </main>
 <script src="script.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var LEVELS = ["Low", "Medium", "High"];
+  var MATRIX = {
+    "Low|Low": "Monitor",
+    "Low|Medium": "Monitor",
+    "Low|High": "Fix soon",
+    "Medium|Low": "Monitor",
+    "Medium|Medium": "Fix soon",
+    "Medium|High": "Block",
+    "High|Low": "Fix soon",
+    "High|Medium": "Block",
+    "High|High": "Block"
+  };
+  var TONE = { "Monitor": "good", "Fix soon": "warn", "Block": "danger" };
+  var EXPLAIN = {
+    "Monitor": "Low combined risk. Track it, but it should not hold up tonight's release.",
+    "Fix soon": "Moderate combined risk. Schedule and verify a fix; it does not have to block release by itself.",
+    "Block": "High combined risk. This should block release until it is mitigated and the fix is retested."
+  };
+
+  var grid = document.getElementById("w4vizGrid");
+  var result = document.getElementById("w4vizResult");
+
+  if (grid && result) {
+    var selection = { likelihood: null, impact: null };
+
+    LEVELS.forEach(function (likelihood) {
+      LEVELS.forEach(function (impact) {
+        var action = MATRIX[likelihood + "|" + impact];
+        var cell = document.createElement("div");
+        cell.className = "w4viz-cell";
+        cell.dataset.likelihood = likelihood;
+        cell.dataset.impact = impact;
+        cell.dataset.tone = TONE[action];
+        cell.textContent = likelihood + " / " + impact + ": " + action;
+        grid.appendChild(cell);
+      });
+    });
+
+    var likelihoodRow = document.querySelector('.w4viz-btn-row[data-role="likelihood"]');
+    var impactRow = document.querySelector('.w4viz-btn-row[data-role="impact"]');
+
+    if (likelihoodRow) {
+      likelihoodRow.querySelectorAll(".w4viz-btn").forEach(function (button) {
+        button.addEventListener("click", function () {
+          selection.likelihood = button.dataset.value;
+          setActive(likelihoodRow, button);
+          renderResult();
+        });
+      });
+    }
+
+    if (impactRow) {
+      impactRow.querySelectorAll(".w4viz-btn").forEach(function (button) {
+        button.addEventListener("click", function () {
+          selection.impact = button.dataset.value;
+          setActive(impactRow, button);
+          renderResult();
+        });
+      });
+    }
+
+    function setActive(row, activeButton) {
+      row.querySelectorAll(".w4viz-btn").forEach(function (button) {
+        button.classList.toggle("is-active", button === activeButton);
+      });
+    }
+
+    function renderResult() {
+      grid.querySelectorAll(".w4viz-cell").forEach(function (cell) {
+        var isSelected = selection.likelihood && selection.impact &&
+          cell.dataset.likelihood === selection.likelihood &&
+          cell.dataset.impact === selection.impact;
+        cell.classList.toggle("is-selected", Boolean(isSelected));
+      });
+
+      if (selection.likelihood && selection.impact) {
+        var action = MATRIX[selection.likelihood + "|" + selection.impact];
+        var tone = TONE[action];
+        result.innerHTML = "";
+        var verdict = document.createElement("p");
+        verdict.className = "w4viz-verdict";
+        verdict.dataset.tone = tone;
+        verdict.textContent = "Likelihood: " + selection.likelihood + "  x  Impact: " + selection.impact + "  ->  " + action;
+        var explain = document.createElement("p");
+        explain.className = "w4viz-explain";
+        explain.textContent = EXPLAIN[action];
+        result.appendChild(verdict);
+        result.appendChild(explain);
+      } else {
+        result.innerHTML = "<p>Select a likelihood and impact to see the triage result.</p>";
+      }
+    }
+  }
+})();
+</script>
 </body>
 </html>

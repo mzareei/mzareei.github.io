@@ -9,14 +9,16 @@
   renderChallenge("riskChallenge", "risk", [
     ["Student records endpoint accepts unauthenticated requests.", "Block", "A data exposure with no authentication should block release until fixed."],
     ["The dependency scanner reports a medium issue in a chart library not exposed to users.", "Fix soon", "It matters, but the limited exposure makes a planned fix reasonable."],
-    ["Login page has missing autocomplete attributes but no credential exposure.", "Monitor", "This is worth improving, but it is not the main security blocker."]
+    ["Login page has missing autocomplete attributes but no credential exposure.", "Monitor", "This is worth improving, but it is not the main security blocker."],
+    ["Payment processing endpoint writes full credit card numbers to plaintext application logs.", "Block", "Logging full card numbers is a severe, ongoing data-exposure risk that should stop release until it is remediated."]
   ], ["Block", "Fix soon", "Monitor"]);
 
   renderChallenge("defenseChallenge", "defenses", [
     ["SQL query built by joining strings with form input.", "Parameterized query", "Parameters keep input as data instead of executable SQL."],
     ["Comment text is rendered with innerHTML.", "Output encoding", "Untrusted text should be encoded or rendered as text."],
     ["Admin action can be called by any logged-in user.", "Server-side authorization", "The server must verify permission before the action runs."],
-    ["Old package has a known remote-code-execution vulnerability.", "Patch or replace dependency", "Known dangerous dependencies should be updated, removed, or isolated."]
+    ["Old package has a known remote-code-execution vulnerability.", "Patch or replace dependency", "Known dangerous dependencies should be updated, removed, or isolated."],
+    ["File download endpoint lets any logged-in user fetch other students' submissions by changing the ID in the URL.", "Server-side authorization", "The server must check that the requesting user actually owns or is permitted to access that specific file."]
   ], ["Parameterized query", "Output encoding", "Server-side authorization", "Patch or replace dependency"]);
 
   renderChoiceSet("releaseChoices", "releaseCorrect", [
