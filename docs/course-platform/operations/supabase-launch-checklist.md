@@ -91,11 +91,9 @@ Use only safe, non-real-student seed files:
 
 ```text
 tc2007b_auth_foundation_demo.sql
-tc2007b_auth_activity_demo.sql
-tc2007b_demo_question_bank.sql
 ```
 
-The foundation seed creates the course shell, sample sections, content items, and releases. The activity seed creates a low-stakes authenticated practice activity. The demo question-bank seed is for classroom pilot content, not private high-stakes exams.
+The foundation seed creates the course shell, sample sections, and the content-item catalog. Graded question banks are authored in the app and stored server-side — never committed as seed files, so correct answers never live in the public repository.
 
 Real student rosters should be imported through the authenticated teacher roster page, not committed as seed files.
 
