@@ -57,6 +57,34 @@
 
 .legend { display: flex; gap: 1.2rem; flex-wrap: wrap; margin-top: .9rem; font-size: var(--fs-small); color: var(--ink-soft); }
 .legend span b { color: var(--ink); }
+
+/* ---- Added interactive: packet-filter firewall simulator (namespaced fw-sim-) ---- */
+.fw-sim-pkts { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.1rem; }
+.fw-sim-btn {
+  background: var(--bg-2, #122036); border: 1px solid var(--line, #2a3a54); color: var(--ink, #eef4ff);
+  border-radius: 999px; padding: .55rem 1.15rem; font: inherit; font-weight: 700;
+  font-size: clamp(.76rem, 1.3vw, .95rem); cursor: pointer;
+  transition: border-color .15s ease, transform .15s ease, background .15s ease, color .15s ease;
+}
+.fw-sim-btn:hover { border-color: var(--accent, #4ea1ff); transform: translateY(-2px); }
+.fw-sim-btn.fw-sim-active { border-color: var(--accent, #4ea1ff); background: rgba(78,161,255,.14); color: var(--accent, #4ea1ff); }
+.fw-table tbody tr.fw-sim-hit { background: rgba(78,161,255,.16); box-shadow: inset 3px 0 0 var(--accent, #4ea1ff); }
+.fw-sim-result {
+  margin-top: 1.1rem; border: 2px solid var(--line, #2a3a54); border-radius: 14px;
+  padding: 1rem 1.3rem; background: var(--bg-2, #122036); min-height: 4.6rem;
+  transition: border-color .2s ease;
+}
+.fw-sim-result.fw-sim-allow { border-color: var(--good, #5fe08a); }
+.fw-sim-result.fw-sim-deny  { border-color: var(--danger, #ff6b6b); }
+.fw-sim-verdict { font-weight: 900; font-size: 1.25rem; letter-spacing: .03em; color: var(--ink-soft, #aebfd6); }
+.fw-sim-result.fw-sim-allow .fw-sim-verdict { color: var(--good, #5fe08a); }
+.fw-sim-result.fw-sim-deny  .fw-sim-verdict { color: var(--danger, #ff6b6b); }
+.fw-sim-rule-tag {
+  margin-left: .7rem; font-size: .8rem; font-weight: 700; letter-spacing: .04em;
+  color: var(--ink-soft, #aebfd6); border: 1px solid var(--line, #2a3a54); border-radius: 999px; padding: .15rem .6rem;
+}
+.fw-sim-why { margin-top: .55rem; color: var(--ink-soft, #aebfd6); font-size: .95rem; line-height: 1.5; }
+@media (max-width: 620px) { .fw-sim-btn { flex: 1 1 auto; text-align: center; } }
 </style>
 </head>
 <body>
@@ -374,6 +402,41 @@
         <span class="ra-tag" data-es="Respuesta">Answer</span>
         <p data-es="Coincide con la <strong>Regla 1</strong> en la primera pasada → <strong>Permit</strong>. Es correo entrante hacia tu servidor SMTP. Como la primera coincidencia gana, nunca llega a la regla 5 (deny). Cambia el puerto a 23 (Telnet) y, en cambio, caería al default-deny.">Matches <strong>Rule 1</strong> on the first pass → <strong>Permit</strong>. It's inbound mail to your SMTP server. Because first-match wins, it never reaches rule 5 (deny). Change the port to 23 (Telnet) and it would instead fall through to the default-deny.</p>
       </div>
+    </div>
+  </section>
+
+  <!-- S17b — Interactive: packet-filter firewall simulator (ADDED) -->
+  <section class="slide" data-section="Packet Filtering" data-section-es="Filtrado de Paquetes">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Interactivo · pruébalo tú mismo"><span class="dot"></span>Interactive · try it yourself</span>
+      <h2 data-es="Simulador de firewall de filtrado de paquetes">Packet-filter firewall simulator</h2>
+      <p class="lead" style="max-width:62ch" data-es="Elige un paquete de abajo. El firewall lo compara con las reglas <strong>de arriba hacia abajo</strong> y se detiene en la <strong>primera coincidencia</strong> — así funciona una lista de reglas real.">Pick a packet below. The firewall checks it against the rules <strong>top to bottom</strong> and stops at the <strong>first match</strong> — this is how a real rule list behaves.</p>
+
+      <table class="fw-table" id="fwSimRules">
+        <thead><tr>
+          <th>#</th><th data-es="Protocolo">Proto</th><th data-es="Origen">Src</th><th data-es="Destino">Dest</th><th data-es="Acción">Action</th>
+        </tr></thead>
+        <tbody>
+          <tr data-action="allow"><td>1</td><td>TCP</td><td data-es="cualquiera">any</td><td>:443</td><td class="permit" data-es="PERMITIR">ALLOW</td></tr>
+          <tr data-action="allow"><td>2</td><td>TCP</td><td data-es="cualquiera">any</td><td>:80</td><td class="permit" data-es="PERMITIR">ALLOW</td></tr>
+          <tr data-action="deny"><td>3</td><td>TCP</td><td data-es="cualquiera">any</td><td>:22</td><td class="deny" data-es="DENEGAR">DENY</td></tr>
+          <tr data-action="deny"><td>4</td><td data-es="cualquiera">any</td><td data-es="cualquiera">any</td><td data-es="cualquiera">any</td><td class="deny" data-es="DENEGAR">DENY</td></tr>
+        </tbody>
+      </table>
+
+      <div class="fw-sim-pkts" id="fwSimPkts">
+        <button type="button" class="fw-sim-btn" data-proto="tcp" data-port="443" data-es="🔒 HTTPS al servidor web (:443)">🔒 HTTPS to the web server (:443)</button>
+        <button type="button" class="fw-sim-btn" data-proto="tcp" data-port="80" data-es="🌐 HTTP al servidor web (:80)">🌐 HTTP to the web server (:80)</button>
+        <button type="button" class="fw-sim-btn" data-proto="tcp" data-port="22" data-es="🔑 SSH desde Internet (:22)">🔑 SSH from the internet (:22)</button>
+        <button type="button" class="fw-sim-btn" data-proto="udp" data-port="3389" data-es="❓ UDP aleatorio a :3389">❓ Random UDP to :3389</button>
+      </div>
+
+      <div class="fw-sim-result" id="fwSimResult" aria-live="polite">
+        <span class="fw-sim-verdict" id="fwSimVerdict">Pick a packet above to evaluate it.</span><span class="fw-sim-rule-tag" id="fwSimRuleTag" hidden></span>
+        <p class="fw-sim-why" id="fwSimWhy"></p>
+      </div>
+
+      <div class="callout note" style="margin-top:.9rem"><span class="tag" data-es="Idea clave">Key idea</span><p data-es="Las reglas se revisan <strong>en orden, de arriba abajo</strong>, y la <strong>primera</strong> que coincide decide el destino del paquete — el resto ni se mira. Si nada coincide, gana la última regla, el <strong>default-deny</strong>.">Rules are checked <strong>in order, top to bottom</strong>, and the <strong>first</strong> one that matches decides the packet's fate — the rest are never even looked at. If nothing matches, the last rule wins: the <strong>default-deny</strong>.</p></div>
     </div>
   </section>
 
@@ -867,5 +930,107 @@
 </div>
 
 <script src="script.js"></script>
+<script>
+  /* Added interactive: packet-filter firewall simulator — evaluates a packet top-down
+     against the visible rule table (first match wins); engine handles i18n/theme elsewhere */
+  (function () {
+    var pktWrap = document.getElementById('fwSimPkts');
+    if (!pktWrap) return;
+
+    var RULES = [
+      { proto: 'tcp', port: 443,   action: 'allow' },
+      { proto: 'tcp', port: 80,    action: 'allow' },
+      { proto: 'tcp', port: 22,    action: 'deny'  },
+      { proto: 'any', port: 'any', action: 'deny'  }
+    ];
+
+    var ruleRows  = document.querySelectorAll('#fwSimRules tbody tr');
+    var buttons   = pktWrap.querySelectorAll('.fw-sim-btn');
+    var resultEl  = document.getElementById('fwSimResult');
+    var verdictEl = document.getElementById('fwSimVerdict');
+    var ruleTagEl = document.getElementById('fwSimRuleTag');
+    var whyEl     = document.getElementById('fwSimWhy');
+
+    var STR = {
+      placeholder: ['Pick a packet above to evaluate it.', 'Elige un paquete arriba para evaluarlo.'],
+      allow: ['ALLOW', 'PERMITIR'],
+      deny:  ['DENY', 'DENEGAR'],
+      rule:  ['Rule', 'Regla'],
+      why: [
+        [
+          "Rule 1 matches on the very first check (tcp → :443) — this is ordinary HTTPS traffic to the web server, so it's let through immediately.",
+          "Rule 1 doesn't match this packet (wrong port), so the firewall checks Rule 2 next (tcp → :80) — plain HTTP is allowed too.",
+          "Rules 1 and 2 don't match. Rule 3 (tcp → :22) matches and wins immediately — SSH from the open internet is blocked before the packet ever reaches rule 4.",
+          "Nothing above matches — it isn't TCP on 443, 80, or 22. The packet falls through to Rule 4, the default-deny catch-all: unlisted traffic is blocked, whatever it is."
+        ],
+        [
+          "La Regla 1 coincide en la primera revisión (tcp → :443) — es tráfico HTTPS normal hacia el servidor web, así que se deja pasar de inmediato.",
+          "La Regla 1 no coincide con este paquete (puerto distinto), así que el firewall revisa la Regla 2 (tcp → :80) — el HTTP simple también se permite.",
+          "Las Reglas 1 y 2 no coinciden. La Regla 3 (tcp → :22) coincide y gana de inmediato — el SSH desde Internet abierto se bloquea antes de llegar a la regla 4.",
+          "Nada de lo anterior coincide — no es TCP en 443, 80 o 22. El paquete cae hasta la Regla 4, el comodín default-deny: el tráfico no listado se bloquea, sea lo que sea."
+        ]
+      ]
+    };
+
+    function evaluate(proto, port) {
+      for (var i = 0; i < RULES.length; i++) {
+        var r = RULES[i];
+        var protoOk = (r.proto === 'any') || (r.proto === proto);
+        var portOk  = (r.port  === 'any') || (r.port  === port);
+        if (protoOk && portOk) return i;
+      }
+      return RULES.length - 1;
+    }
+
+    function langIdx() {
+      return document.documentElement.getAttribute('lang') === 'es' ? 1 : 0;
+    }
+
+    var lastRuleIdx = null;
+
+    function render() {
+      var idx = langIdx();
+      if (lastRuleIdx === null) {
+        verdictEl.textContent = STR.placeholder[idx];
+        ruleTagEl.hidden = true;
+        whyEl.textContent = '';
+        resultEl.classList.remove('fw-sim-allow', 'fw-sim-deny');
+        return;
+      }
+      var action = RULES[lastRuleIdx].action;
+      verdictEl.textContent = (action === 'allow') ? STR.allow[idx] : STR.deny[idx];
+      ruleTagEl.textContent = STR.rule[idx] + ' ' + (lastRuleIdx + 1);
+      ruleTagEl.hidden = false;
+      whyEl.textContent = STR.why[idx][lastRuleIdx];
+      resultEl.classList.toggle('fw-sim-allow', action === 'allow');
+      resultEl.classList.toggle('fw-sim-deny', action === 'deny');
+    }
+
+    buttons.forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var proto = btn.getAttribute('data-proto');
+        var port  = parseInt(btn.getAttribute('data-port'), 10);
+        lastRuleIdx = evaluate(proto, port);
+
+        buttons.forEach(function (b) { b.classList.remove('fw-sim-active'); });
+        btn.classList.add('fw-sim-active');
+
+        ruleRows.forEach(function (row) { row.classList.remove('fw-sim-hit'); });
+        if (ruleRows[lastRuleIdx]) ruleRows[lastRuleIdx].classList.add('fw-sim-hit');
+
+        render();
+      });
+    });
+
+    // Re-render translated verdict/explanation whenever the deck's language changes
+    // (button click or the "L" keyboard shortcut both update <html lang="...">).
+    if (window.MutationObserver) {
+      new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+    }
+
+    render();
+  })();
+</script>
 </body>
 </html>
