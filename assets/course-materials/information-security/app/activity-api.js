@@ -9,11 +9,12 @@ export async function startActivityAttempt(activityInstanceId) {
   });
 }
 
-export async function submitActivityAttempt({ attemptId, responses }) {
+export async function submitActivityAttempt({ attemptId, responses, integrity }) {
   return callActivityFunction({
     action: "submit_attempt",
     attempt_id: attemptId,
-    responses
+    responses,
+    integrity
   });
 }
 

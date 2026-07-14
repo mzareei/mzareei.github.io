@@ -29,7 +29,8 @@ Deno.serve(async (request) => {
     if (body.action === "submit_attempt") {
       const result = await submitAttempt(db, profile, {
         attemptId: cleanUuid(body.attempt_id, "attempt id"),
-        responses: Array.isArray(body.responses) ? body.responses : []
+        responses: Array.isArray(body.responses) ? body.responses : [],
+        integrity: sanitizeIntegrity(body.integrity)
       });
       return json(result);
     }
@@ -99,6 +100,7 @@ async function startAttempt(db: Db, profile: Record<string, unknown>, activityIn
 async function submitAttempt(db: Db, profile: Record<string, unknown>, input: {
   attemptId: string;
   responses: Record<string, unknown>[];
+  integrity?: Record<string, unknown>;
 }) {
   const attempt = await loadAttempt(db, input.attemptId, String(profile.id));
   if (["submitted", "locked"].includes(String(attempt.status))) {
@@ -163,6 +165,27 @@ async function submitAttempt(db: Db, profile: Record<string, unknown>, input: {
     .single();
   if (updateError) throw updateError;
   const gradebookScore = await syncGradebookScore(db, updated, instance, graded);
+
+  const integrity = input.integrity || {};
+  const integrityFlag = computeIntegrityFlag(integrity);
+  const courseId = await sectionCourseId(db, String(instance.section_id));
+  const { error: integrityAuditError } = await db
+    .from("audit_log")
+    .insert({
+      course_id: courseId,
+      actor_profile_id: updated.profile_id,
+      target_type: "student_attempt",
+      target_id: updated.id,
+      action: integrityFlag.flagged ? "integrity_flagged" : "integrity_report",
+      metadata: {
+        ...integrity,
+        flagged: integrityFlag.flagged,
+        reasons: integrityFlag.reasons,
+        activity_instance_id: updated.activity_instance_id
+      }
+    });
+  if (integrityAuditError) throw integrityAuditError;
+
   const attemptPolicy = await attemptLimitPolicy(db, {
     activityInstanceId: String(updated.activity_instance_id),
     profileId: String(updated.profile_id),
@@ -172,6 +195,7 @@ async function submitAttempt(db: Db, profile: Record<string, unknown>, input: {
   return {
     attempt: withAttemptContext(updated, instance, attemptPolicy),
     gradebook_score: gradebookScore,
+    integrity: { ...integrity, flagged: integrityFlag.flagged, reasons: integrityFlag.reasons },
     score: {
       raw: graded.score_raw,
       total: graded.total_points,
@@ -641,6 +665,42 @@ function normalizeResponseJson(value: unknown) {
     return value;
   }
   return {};
+}
+
+function sanitizeIntegrity(value: unknown) {
+  const v = (value && typeof value === "object" && !Array.isArray(value)) ? value as Record<string, unknown> : {};
+  const num = (x: unknown, max: number) => {
+    const n = Number(x || 0);
+    if (!Number.isFinite(n) || n < 0) return 0;
+    return Math.min(max, Math.trunc(n));
+  };
+  return {
+    focus_loss_count: num(v.focus_loss_count, 100000),
+    hidden_ms: num(v.hidden_ms, 86400000),
+    paste_count: num(v.paste_count, 100000),
+    copy_count: num(v.copy_count, 100000),
+    elapsed_ms: num(v.elapsed_ms, 86400000),
+    canary_triggered: Boolean(v.canary_triggered),
+    user_agent: String(v.user_agent || "").slice(0, 400)
+  };
+}
+
+function computeIntegrityFlag(i: Record<string, unknown>) {
+  const reasons: string[] = [];
+  if (i.canary_triggered) reasons.push("ai_canary");
+  if (Number(i.focus_loss_count) >= 2) reasons.push("focus_loss");
+  if (Number(i.paste_count) >= 1) reasons.push("paste");
+  return { flagged: reasons.length > 0, reasons };
+}
+
+async function sectionCourseId(db: Db, sectionId: string) {
+  const { data, error } = await db
+    .from("course_sections")
+    .select("course_id")
+    .eq("id", sectionId)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? data.course_id : null;
 }
 
 function safeInstance(instance: Record<string, unknown>) {

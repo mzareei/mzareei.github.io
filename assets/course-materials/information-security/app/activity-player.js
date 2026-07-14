@@ -19,7 +19,49 @@ let timerExpired = false;
 
 const params = new URLSearchParams(window.location.search);
 const queryActivity = params.get("activity") || params.get("activity_instance_id");
-if (queryActivity) els.activityInstanceInput.value = queryActivity;
+if (queryActivity) {
+  els.activityInstanceInput.value = queryActivity;
+  const loadControls = document.getElementById("loadControls");
+  if (loadControls) loadControls.hidden = true;
+}
+
+// --- Academic-integrity signals (collected client-side; stored + judged server-side) ---
+const integrity = {
+  focus_loss_count: 0,
+  hidden_ms: 0,
+  paste_count: 0,
+  copy_count: 0,
+  started_client_at: Date.now(),
+  _hiddenSince: null
+};
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    integrity.focus_loss_count += 1;
+    integrity._hiddenSince = Date.now();
+  } else if (integrity._hiddenSince) {
+    integrity.hidden_ms += Date.now() - integrity._hiddenSince;
+    integrity._hiddenSince = null;
+  }
+});
+window.addEventListener("blur", () => { integrity.focus_loss_count += 1; });
+document.addEventListener("paste", () => { integrity.paste_count += 1; });
+document.addEventListener("copy", () => { integrity.copy_count += 1; });
+function collectIntegrity() {
+  if (integrity._hiddenSince) {
+    integrity.hidden_ms += Date.now() - integrity._hiddenSince;
+    integrity._hiddenSince = null;
+  }
+  const ack = document.getElementById("assistantAck");
+  return {
+    focus_loss_count: integrity.focus_loss_count,
+    hidden_ms: integrity.hidden_ms,
+    paste_count: integrity.paste_count,
+    copy_count: integrity.copy_count,
+    elapsed_ms: Date.now() - integrity.started_client_at,
+    canary_triggered: Boolean(ack && ack.value.trim()),
+    user_agent: navigator.userAgent
+  };
+}
 
 els.loadActivityBtn.addEventListener("click", loadActivity);
 els.submitActivityBtn.addEventListener("click", submitActivity);
@@ -69,7 +111,8 @@ async function submitActivity() {
   await run("Submitting activity...", async () => {
     const result = await submitActivityAttempt({
       attemptId: currentAttempt.id,
-      responses
+      responses,
+      integrity: collectIntegrity()
     });
     currentAttempt = result.attempt;
     renderAttempt(currentActivityInstance || {});
