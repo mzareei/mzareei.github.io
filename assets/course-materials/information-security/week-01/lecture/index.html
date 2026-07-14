@@ -9,6 +9,32 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<style>
+  /* Added interactive: CIA triad explorer (self-contained, theme-aware) */
+  .cia-interactive{display:grid;grid-template-columns:minmax(230px,1fr) 1.25fr;gap:1.6rem;align-items:center;margin-top:1.3rem}
+  .cia-tri{position:relative;width:100%;aspect-ratio:1 / .82;min-height:190px}
+  .cia-tri svg{position:absolute;inset:0;width:100%;height:100%}
+  .cia-node{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:.1rem;
+    padding:.55rem .7rem;border-radius:14px;border:2px solid var(--line,#2a3a54);background:var(--card,#122036);
+    color:var(--text,#eef4ff);cursor:pointer;font:inherit;font-weight:700;min-width:96px;text-align:center;
+    transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
+  .cia-node b{font-size:1.5rem;line-height:1}
+  .cia-node.c{left:50%;top:15%}.cia-node.i{left:19%;top:85%}.cia-node.a{left:81%;top:85%}
+  .cia-node:hover{transform:translate(-50%,-50%) scale(1.06)}
+  .cia-node.active{box-shadow:0 8px 24px rgba(0,0,0,.28)}
+  .cia-node.c.active{border-color:var(--accent,#4ea1ff)}
+  .cia-node.i.active{border-color:var(--teal,#38d6c0)}
+  .cia-node.a.active{border-color:var(--good,#5fe08a)}
+  .cia-panel{border:1px solid var(--line,#2a3a54);border-radius:16px;padding:1rem 1.15rem;background:var(--card,#122036)}
+  .cia-panel h3{margin:0 0 .4rem;font-size:1.12rem}
+  .cia-row{display:flex;gap:.7rem;align-items:flex-start;margin-top:.7rem}
+  .cia-row .lbl{flex:0 0 auto;font-size:.66rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+    padding:.2rem .55rem;border-radius:999px;border:1px solid currentColor}
+  .cia-row.good .lbl{color:var(--good,#5fe08a)}
+  .cia-row.bad .lbl{color:var(--danger,#ff6b6b)}
+  .cia-row .txt{color:var(--muted,#aebfd6);font-size:.95rem;line-height:1.45}
+  @media(max-width:760px){.cia-interactive{grid-template-columns:1fr}.cia-tri{max-width:340px;margin-inline:auto}}
+</style>
 </head>
 <body>
 
@@ -563,6 +589,42 @@
     </div>
   </section>
 
+  <!-- S30b — Interactive CIA triad (ADDED: explore each goal with real examples) -->
+  <section class="slide" data-section="CIA triad" data-section-es="Tríada CIA">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Explóralo tú mismo"><span class="dot"></span>Explore it yourself</span>
+      <h2 data-es="La tríada CIA, interactiva — toca cada objetivo">The CIA triad, interactive — tap each goal</h2>
+      <div class="cia-interactive">
+        <div class="cia-tri">
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <polygon points="50,15 19,85 81,85" fill="none" stroke="var(--line,#2a3a54)" stroke-width="1.1"/>
+          </svg>
+          <button type="button" class="cia-node c active" data-goal="c" data-es="<b>C</b><span>Confidencialidad</span>"><b>C</b><span>Confidentiality</span></button>
+          <button type="button" class="cia-node i" data-goal="i" data-es="<b>I</b><span>Integridad</span>"><b>I</b><span>Integrity</span></button>
+          <button type="button" class="cia-node a" data-goal="a" data-es="<b>A</b><span>Disponibilidad</span>"><b>A</b><span>Availability</span></button>
+        </div>
+        <div class="cia-detail">
+          <div class="cia-panel" data-goal="c">
+            <h3 data-es="Confidencialidad — mantener lo secreto en secreto">Confidentiality — keeping secrets secret</h3>
+            <div class="cia-row good"><span class="lbl" data-es="Protege">Protects</span><span class="txt" data-es="Solo las personas autorizadas pueden leer los datos (p. ej., mensajes cifrados de extremo a extremo, control de acceso).">Only authorized people can read the data (e.g., end-to-end encrypted messages, access control).</span></div>
+            <div class="cia-row bad"><span class="lbl" data-es="Se rompe">Breaks</span><span class="txt" data-es="Una base de datos de contraseñas filtrada expone millones de cuentas (divulgación de información).">A leaked password database exposes millions of accounts (information disclosure).</span></div>
+          </div>
+          <div class="cia-panel" data-goal="i" hidden>
+            <h3 data-es="Integridad — los datos se mantienen correctos">Integrity — data stays correct</h3>
+            <div class="cia-row good"><span class="lbl" data-es="Protege">Protects</span><span class="txt" data-es="Los datos cambian solo mediante acciones autorizadas y verificadas (p. ej., firmas digitales, sumas de verificación).">Data changes only through authorized, verified actions (e.g., digital signatures, checksums).</span></div>
+            <div class="cia-row bad"><span class="lbl" data-es="Se rompe">Breaks</span><span class="txt" data-es="Un atacante altera en silencio un saldo bancario o una calificación (manipulación).">An attacker silently alters a bank balance or a grade (tampering).</span></div>
+          </div>
+          <div class="cia-panel" data-goal="a" hidden>
+            <h3 data-es="Disponibilidad — utilizable cuando la necesitas">Availability — usable when you need it</h3>
+            <div class="cia-row good"><span class="lbl" data-es="Protege">Protects</span><span class="txt" data-es="Los usuarios autorizados pueden acceder al servicio a tiempo (p. ej., redundancia, respaldos, protección contra DDoS).">Authorized users can reach the service on time (e.g., redundancy, backups, DDoS protection).</span></div>
+            <div class="cia-row bad"><span class="lbl" data-es="Se rompe">Breaks</span><span class="txt" data-es="El ransomware cifra los archivos de un hospital; un DDoS satura un sitio hasta tirarlo (denegación de servicio).">Ransomware encrypts a hospital’s files; a DDoS floods a site offline (denial of service).</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="muted" style="margin-top:1rem" data-es="Toca un vértice: verás qué protege y un ejemplo real de cómo se rompe.">Tap a vertex: see what it protects and a real example of how it breaks.</p>
+    </div>
+  </section>
+
   <!-- S31 — CIAAAN -->
   <section class="slide" data-section="CIA triad" data-section-es="Tríada CIA">
     <div class="slide-inner">
@@ -825,5 +887,21 @@
 </div>
 
 <script src="script.js"></script>
+<script>
+  /* Added interactive: CIA triad explorer — toggles panels; engine handles i18n/theme */
+  (function () {
+    var wrap = document.querySelector('.cia-interactive');
+    if (!wrap) return;
+    var nodes = wrap.querySelectorAll('.cia-node');
+    var panels = wrap.querySelectorAll('.cia-panel');
+    function select(goal) {
+      nodes.forEach(function (n) { n.classList.toggle('active', n.dataset.goal === goal); });
+      panels.forEach(function (p) { p.hidden = (p.dataset.goal !== goal); });
+    }
+    nodes.forEach(function (n) {
+      n.addEventListener('click', function (e) { e.stopPropagation(); select(n.dataset.goal); });
+    });
+  })();
+</script>
 </body>
 </html>
