@@ -10,6 +10,97 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../week-01/mission-01/style.css">
 <link rel="stylesheet" href="style.css">
+<style>
+  /* --- Real-world case callout (additive) --- */
+  .case-callout {
+    border-left: 4px solid var(--danger, #ff6d6d);
+  }
+  .case-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+    margin: 0.9rem 0;
+  }
+  .case-item {
+    border: 1px solid var(--line, #30465f);
+    border-radius: 12px;
+    padding: 0.85rem 0.95rem;
+    background: var(--panel-2, #203247);
+  }
+  .case-item h3 {
+    margin-bottom: 0.35rem;
+    font-size: 1rem;
+    color: var(--ink, #f2f7ff);
+  }
+  .case-item p {
+    margin: 0;
+    color: var(--muted, #aebed0);
+    font-size: 0.92rem;
+    line-height: 1.5;
+  }
+  .case-lesson {
+    margin: 0;
+    padding: 0.75rem 0.9rem;
+    border-left: 4px solid var(--teal, #35d0bf);
+    border-radius: 0 10px 10px 0;
+    background: rgba(53, 208, 191, 0.08);
+    color: var(--ink, #f2f7ff);
+  }
+  @media (max-width: 860px) {
+    .case-grid { grid-template-columns: 1fr; }
+  }
+
+  /* --- w6viz: salting demo (additive, namespaced) --- */
+  .w6viz-card { border-left: 4px solid var(--teal, #35d0bf); }
+  .w6viz-panel { display: grid; gap: 0.85rem; }
+  .w6viz-field { display: grid; gap: 0.35rem; max-width: 420px; }
+  .w6viz-field span {
+    color: var(--muted, #aebed0);
+    font-size: 0.84rem;
+    font-weight: 800;
+  }
+  .w6viz-field input {
+    min-height: 44px;
+    border: 1px solid var(--line, #30465f);
+    border-radius: 10px;
+    padding: 0.55rem 0.65rem;
+    color: var(--ink, #f2f7ff);
+    background: var(--panel-2, #203247);
+    font-family: "JetBrains Mono", monospace;
+    width: 100%;
+  }
+  .w6viz-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .w6viz-table { display: grid; gap: 0.5rem; }
+  .w6viz-row {
+    display: grid;
+    grid-template-columns: minmax(150px, auto) 1fr;
+    gap: 0.6rem;
+    align-items: center;
+    border: 1px solid var(--line, #30465f);
+    border-radius: 10px;
+    padding: 0.55rem 0.7rem;
+    background: var(--panel, #172331);
+  }
+  .w6viz-label {
+    color: var(--muted, #aebed0);
+    font-weight: 800;
+    font-size: 0.85rem;
+  }
+  .w6viz-hash {
+    color: var(--teal, #35d0bf);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.82rem;
+    word-break: break-all;
+  }
+  .w6viz-note {
+    margin: 0;
+    color: var(--muted, #aebed0);
+    font-size: 0.82rem;
+  }
+  @media (max-width: 860px) {
+    .w6viz-row { grid-template-columns: 1fr; }
+  }
+</style>
 </head>
 <body>
 <main class="mission-shell">
@@ -33,6 +124,25 @@
     <div class="challenge-list" id="modeChallenge"></div>
   </section>
 
+  <section class="mission-card w6viz-card">
+    <span class="eyebrow">Try It</span>
+    <h2>Salting demo: same password, different digests</h2>
+    <p class="lead">Hash the same password twice using your browser's real SHA-256 implementation &mdash; once with no salt, once with a fresh random salt each time &mdash; and compare the digests.</p>
+    <div class="w6viz-panel">
+      <label class="w6viz-field">
+        <span>Password to hash</span>
+        <input type="text" id="w6vizPassword" value="Sunshine!2026" autocomplete="off" spellcheck="false">
+      </label>
+      <div class="w6viz-actions">
+        <button type="button" class="choice" id="w6vizNoSalt">Hash twice &middot; no salt</button>
+        <button type="button" class="choice" id="w6vizWithSalt">Hash twice &middot; random salt</button>
+      </div>
+      <div class="w6viz-results" id="w6vizResults" aria-live="polite"></div>
+      <p class="feedback" id="w6vizFeedback" aria-live="polite"></p>
+      <p class="w6viz-note">Digests are computed locally in your browser (Web Crypto API, SHA-256). Nothing is sent anywhere.</p>
+    </div>
+  </section>
+
   <section class="mission-card">
     <span class="eyebrow">Checkpoint 2</span>
     <h2>Key handling choices</h2>
@@ -53,6 +163,23 @@
     <p class="feedback" id="nonceFeedback" aria-live="polite"></p>
   </section>
 
+  <section class="mission-card case-callout">
+    <span class="eyebrow">Real-World Case</span>
+    <h2>This happened for real</h2>
+    <p class="lead">Nonce reuse is not a theoretical warning &mdash; it has broken real cryptosystems in production.</p>
+    <div class="case-grid">
+      <article class="case-item">
+        <h3>PlayStation 3 signing key (2010)</h3>
+        <p>Sony's PS3 firmware signed code with ECDSA but reused the same nonce value for every signature instead of generating a fresh random one each time. Security researchers (the fail0verflow group, and separately George Hotz) noticed the pattern and used two different signatures that shared a nonce to solve for Sony's private signing key, breaking the PS3's entire code-signing trust chain.</p>
+      </article>
+      <article class="case-item">
+        <h3>WEP Wi-Fi encryption</h3>
+        <p>WEP used a 24-bit IV (initialization vector) that was short enough to repeat within hours on a busy network. Once an IV/keystream pair repeated, attackers could recover the RC4 keystream and, from there, the network key &mdash; a core reason WEP was deprecated in favor of WPA/WPA2.</p>
+      </article>
+    </div>
+    <p class="case-lesson"><strong>Lesson:</strong> a key + nonce (or IV) pair must be unique, every single time. Reusing it, even once, can leak relationships between plaintexts or, as in the PS3 case, expose the private key itself. Never hard-code a nonce or rely on a counter that can restart at zero for the same key &mdash; use a source that guarantees uniqueness for as long as that key is in use.</p>
+  </section>
+
   <section class="completion-panel">
     <span class="eyebrow">Debrief</span>
     <h2>Crypto fails at the edges</h2>
@@ -65,5 +192,120 @@
   </section>
 </main>
 <script src="script.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var passwordInput = document.getElementById("w6vizPassword");
+  var noSaltBtn = document.getElementById("w6vizNoSalt");
+  var withSaltBtn = document.getElementById("w6vizWithSalt");
+  var results = document.getElementById("w6vizResults");
+  var feedback = document.getElementById("w6vizFeedback");
+
+  if (!passwordInput || !noSaltBtn || !withSaltBtn || !results || !feedback) return;
+
+  var hasSubtleCrypto = Boolean(window.crypto && window.crypto.subtle && window.crypto.subtle.digest);
+
+  function toHex(bytes) {
+    var out = "";
+    for (var i = 0; i < bytes.length; i++) {
+      var hex = bytes[i].toString(16);
+      out += hex.length === 1 ? "0" + hex : hex;
+    }
+    return out;
+  }
+
+  function sha256Hex(text) {
+    var data = new TextEncoder().encode(text);
+    return window.crypto.subtle.digest("SHA-256", data).then(function (buffer) {
+      return toHex(new Uint8Array(buffer));
+    });
+  }
+
+  function randomSaltHex() {
+    var bytes = new Uint8Array(8);
+    if (window.crypto && window.crypto.getRandomValues) {
+      window.crypto.getRandomValues(bytes);
+    } else {
+      for (var i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+    }
+    return toHex(bytes);
+  }
+
+  function renderRows(rows) {
+    results.innerHTML = "";
+    var table = document.createElement("div");
+    table.className = "w6viz-table";
+    rows.forEach(function (row) {
+      var line = document.createElement("div");
+      line.className = "w6viz-row";
+      var label = document.createElement("span");
+      label.className = "w6viz-label";
+      label.textContent = row.label;
+      var hash = document.createElement("code");
+      hash.className = "w6viz-hash";
+      hash.textContent = row.hash;
+      line.appendChild(label);
+      line.appendChild(hash);
+      table.appendChild(line);
+    });
+    results.appendChild(table);
+  }
+
+  function setFeedback(text, tone) {
+    feedback.textContent = text;
+    feedback.dataset.tone = tone;
+  }
+
+  function runNoSalt() {
+    if (!hasSubtleCrypto) {
+      setFeedback("This browser does not expose crypto.subtle, so the live digest cannot run here. On a supported browser, hashing the same password twice without salt always produces an identical digest.", "warn");
+      return;
+    }
+    var password = passwordInput.value || "";
+    Promise.all([sha256Hex(password), sha256Hex(password)]).then(function (hashes) {
+      var hashA = hashes[0], hashB = hashes[1];
+      renderRows([
+        { label: "Hash #1 (no salt)", hash: hashA },
+        { label: "Hash #2 (no salt)", hash: hashB }
+      ]);
+      var identical = hashA === hashB;
+      setFeedback(
+        identical
+          ? "Identical digests. Anyone with read access to the password table can spot repeated passwords, and precomputed rainbow tables work directly against this hash."
+          : "Unexpected mismatch: the digest function should be deterministic for identical input.",
+        identical ? "warn" : "danger"
+      );
+    });
+  }
+
+  function runWithSalt() {
+    if (!hasSubtleCrypto) {
+      setFeedback("This browser does not expose crypto.subtle, so the live digest cannot run here. On a supported browser, a fresh random salt makes each digest different even for the identical password.", "warn");
+      return;
+    }
+    var password = passwordInput.value || "";
+    var saltA = randomSaltHex();
+    var saltB = randomSaltHex();
+    Promise.all([sha256Hex(saltA + password), sha256Hex(saltB + password)]).then(function (hashes) {
+      var hashA = hashes[0], hashB = hashes[1];
+      renderRows([
+        { label: "Salt " + saltA, hash: hashA },
+        { label: "Salt " + saltB, hash: hashB }
+      ]);
+      var identical = hashA === hashB;
+      setFeedback(
+        identical
+          ? "Unexpected match: two different random salts should not produce the same digest."
+          : "Different digests from the same password. A random salt per user defeats rainbow tables and hides repeated passwords, even though the underlying hash function never changed.",
+        identical ? "danger" : "good"
+      );
+    });
+  }
+
+  noSaltBtn.addEventListener("click", runNoSalt);
+  withSaltBtn.addEventListener("click", runWithSalt);
+})();
+</script>
 </body>
 </html>

@@ -10,13 +10,15 @@
     ["Encrypt database backups and detect tampering.", "Authenticated encryption", "Authenticated encryption protects confidentiality and detects modification."],
     ["Hash passwords for storage after account creation.", "Slow salted password hash", "Password storage needs slow guessing resistance, not fast general hashing."],
     ["Encrypt many files with visible repeated blocks.", "Avoid ECB mode", "ECB leaks patterns because equal plaintext blocks create equal ciphertext blocks."],
-    ["Send a short random session key to someone using their public key.", "Hybrid encryption", "Public-key crypto is commonly used to protect a symmetric session key."]
+    ["Send a short random session key to someone using their public key.", "Hybrid encryption", "Public-key crypto is commonly used to protect a symmetric session key."],
+    ["Encrypt a large bitmap image so its outline and repeated colors are not visible in the ciphertext.", "Avoid ECB mode", "ECB's identical-block-to-identical-block behavior famously leaks image patterns, as in the classic 'ECB penguin' example."]
   ], ["Authenticated encryption", "Slow salted password hash", "Avoid ECB mode", "Hybrid encryption"]);
 
   renderChallenge("keyChallenge", "keys", [
     ["Store production encryption keys in the same public repository as code.", "Weakens the system", "A leaked key can expose every ciphertext protected by it."],
     ["Rotate a key after evidence that it was copied.", "Protects the system", "Rotation limits future damage after compromise."],
-    ["Use a key-management service with access logs and role checks.", "Protects the system", "Central key management can enforce access control and auditing."]
+    ["Use a key-management service with access logs and role checks.", "Protects the system", "Central key management can enforce access control and auditing."],
+    ["Email a symmetric encryption key to a teammate in plain text so they can open a file.", "Weakens the system", "Plaintext channels such as email or chat expose the key to anyone who can read the message, in transit or in storage."]
   ], ["Protects the system", "Weakens the system"]);
 
   renderChoiceSet("nonceChoices", "nonceCorrect", [
