@@ -104,13 +104,20 @@ function renderScores(rows) {
 }
 
 function renderAttempts(rows) {
-  renderTable(els.attempts, rows, 5, (attempt) => [
+  renderTable(els.attempts, rows, 6, (attempt) => [
     attempt.activity_title,
     attempt.attempt_number,
     labelize(attempt.status),
     formatPercent(attempt.score_final),
-    formatDate(attempt.submitted_at)
+    formatDate(attempt.submitted_at),
+    formatIntegrity(attempt)
   ]);
+}
+
+function formatIntegrity(attempt) {
+  if (!attempt.integrity_flagged) return "OK";
+  const reasons = (attempt.integrity_reasons || []).map((reason) => labelize(reason)).join(", ");
+  return `⚠ Flagged${reasons ? ` (${reasons})` : ""}`;
 }
 
 function renderExitTickets(rows) {

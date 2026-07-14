@@ -324,6 +324,7 @@ async function loadAttempts(db: Db, profileId: string, sectionIds: string[]) {
   const instanceById = new Map((instances || []).map((instance) => [instance.id, instance]));
   const templateById = new Map((templates || []).map((template) => [template.id, template]));
   const itemById = new Map((items || []).map((item) => [item.id, item]));
+  const integrityByAttempt = await loadIntegrityFlags(db, (attempts || []).map((attempt) => attempt.id));
   return (attempts || []).map((attempt) => {
     const instance = instanceById.get(attempt.activity_instance_id) || {};
     const template = templateById.get(instance.activity_template_id) || {};
@@ -340,9 +341,34 @@ async function loadAttempts(db: Db, profileId: string, sectionIds: string[]) {
       score_raw: attempt.score_raw,
       score_percent: attempt.score_percent,
       speed_bonus: attempt.speed_bonus,
-      score_final: attempt.score_final
+      score_final: attempt.score_final,
+      integrity_flagged: Boolean(integrityByAttempt.get(String(attempt.id))?.flagged),
+      integrity_reasons: integrityByAttempt.get(String(attempt.id))?.reasons || []
     };
   });
+}
+
+async function loadIntegrityFlags(db: Db, attemptIds: string[]) {
+  const map = new Map<string, { flagged: boolean; reasons: string[] }>();
+  if (!attemptIds.length) return map;
+  const { data, error } = await db
+    .from("audit_log")
+    .select("target_id, action, metadata, created_at")
+    .eq("target_type", "student_attempt")
+    .in("target_id", attemptIds)
+    .in("action", ["integrity_report", "integrity_flagged"])
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  (data || []).forEach((row) => {
+    const key = String(row.target_id);
+    if (map.has(key)) return;
+    const md = (row.metadata || {}) as Record<string, unknown>;
+    map.set(key, {
+      flagged: Boolean(md.flagged) || String(row.action) === "integrity_flagged",
+      reasons: Array.isArray(md.reasons) ? (md.reasons as string[]) : []
+    });
+  });
+  return map;
 }
 
 async function loadExitTickets(db: Db, courseId: string, profileId: string, sectionIds: string[]) {
