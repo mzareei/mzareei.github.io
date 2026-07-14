@@ -66,6 +66,36 @@
 .code-cap { display:inline-block; font-size:.72em; font-weight:800; letter-spacing:.05em; text-transform:uppercase; padding:.15rem .5rem; border-radius:6px; margin-bottom:.4rem; }
 .code-cap.bad  { background: rgba(255,107,107,.15); color: var(--danger); }
 .code-cap.ok   { background: rgba(60,200,120,.15); color: var(--good); }
+
+/* ---- Added interactive: SQLi query builder (self-contained, namespaced sqli-) ---- */
+.sqli-demo-tag {
+  display: inline-flex; align-items: center; gap: .5rem;
+  background: rgba(255,107,107,.12); color: var(--danger);
+  border: 1px solid var(--danger); padding: .4rem 1rem; border-radius: 999px;
+  font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+  font-size: var(--fs-small); margin-top: .8rem;
+}
+.sqli-builder { margin-top: 1.3rem; display: flex; flex-direction: column; gap: 1rem; }
+.sqli-choices { display: flex; gap: 1rem; flex-wrap: wrap; }
+.sqli-choice-btn {
+  background: var(--bg-2); color: var(--ink); border: 2px solid var(--line);
+  border-radius: 12px; padding: .85rem 1.3rem; font-size: var(--fs-body);
+  font-family: var(--font); font-weight: 700; cursor: pointer; transition: .15s;
+}
+.sqli-choice-btn code { font-family: var(--mono); font-size: .85em; }
+.sqli-choice-btn:hover { border-color: var(--accent); color: var(--accent); }
+.sqli-choice-btn.sqli-active { border-color: var(--accent); background: rgba(78,161,255,.1); color: var(--accent); }
+.sqli-choice-btn.sqli-evil { border-color: var(--danger); color: var(--danger); }
+.sqli-choice-btn.sqli-evil:hover { background: rgba(255,107,107,.08); }
+.sqli-choice-btn.sqli-evil.sqli-active { border-color: var(--danger); background: rgba(255,107,107,.12); color: var(--danger); }
+.sqli-panel { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 1.2rem 1.4rem; }
+.sqli-panel .sql-block { margin-top: .6rem; }
+.sqli-typed { font-size: var(--fs-small); color: var(--ink-soft); }
+.sqli-typed code { font-family: var(--mono); color: var(--ink); }
+.sqli-explain { margin-top: .8rem; color: var(--ink-soft); font-size: var(--fs-body); }
+.sqli-neutered { color: var(--ink-soft); text-decoration: line-through; opacity: .6; }
+.sqli-safe { background: var(--bg-2); border: 1px solid var(--line); border-top: 4px solid var(--good); border-radius: var(--radius); padding: 1.2rem 1.4rem; }
+.sqli-safe p { margin-top: .8rem; color: var(--ink-soft); }
 </style>
 </head>
 <body>
@@ -208,6 +238,7 @@
           </tr>
         </tbody>
       </table>
+      <div class="callout note" style="margin-top:1.1rem"><span class="tag" data-es="Ejemplo real">Real example</span><p data-es="<strong>Equifax (2017)</strong>: una falla sin parchear en <strong>Apache Struts</strong> — una vulnerabilidad puramente de <em>capa de aplicación</em> — permitió a los atacantes llegar hasta datos sin cifrar en la BD, exponiendo la información de <strong>~147 millones</strong> de personas. Un solo defecto de aplicación se convirtió en una brecha de confidencialidad de toda la base de datos."><strong>Equifax (2017)</strong>: an unpatched flaw in <strong>Apache Struts</strong> — a purely <em>application-layer</em> vulnerability — let attackers reach unencrypted data in the database, exposing information on <strong>~147 million</strong> people. One application-layer crack became a database-wide confidentiality breach.</p></div>
     </div>
   </section>
 
@@ -258,6 +289,7 @@
         <div class="card violet-top fragment"><span class="ico">🔑</span><h3 data-es="Control de acceso y autenticación">Access control &amp; auth</h3><p data-es="Separación lógica por privilegios de usuario; autenticación independiente y rigurosa.">Logical separation by user privileges; independent and rigorous authentication.</p></div>
         <div class="card danger-top fragment"><span class="ico">⚡</span><h3 data-es="Disponibilidad">Availability</h3><p data-es="Soporte para usuarios concurrentes y fiabilidad bajo carga de producción.">Support for concurrent users and reliability under production load.</p></div>
       </div>
+      <div class="callout discuss" style="margin-top:1.1rem"><span class="tag" data-es="Analogía">Analogy</span><p data-es="Piensa en una <strong>biblioteca pública</strong>: la <em>integridad física</em> es que el edificio resista una tormenta; la <em>integridad lógica</em> es poder reconstruir el catálogo a partir de los registros de préstamo; la <em>integridad de elemento</em> es que el registro de préstamo de cada libro sea correcto; la <em>auditabilidad</em> es el registro de quién se llevó qué y cuándo; el <em>control de acceso</em> es que solo el personal edite los registros; y la <em>disponibilidad</em> es que la biblioteca esté abierta y funcionando en su horario.">Think of a <strong>public library</strong>: <em>physical integrity</em> is the building surviving a storm; <em>logical integrity</em> is being able to rebuild the catalog from checkout records; <em>element integrity</em> is each book's checkout record being correct; <em>auditability</em> is logging who borrowed what and when; <em>access control</em> is only staff being able to edit records; and <em>availability</em> is the library being open and functioning during its hours.</p></div>
     </div>
   </section>
 
@@ -479,6 +511,57 @@
         </div>
       </div>
       <div class="callout note" style="margin-top:.8rem"><span class="tag" data-es="Conclusión">Takeaway</span><p data-es="El SQLi ciego es lento pero imparable si la entrada llega a la consulta; UNION es rápido cuando hay salida visible. Ambos se neutralizan con consultas parametrizadas.">Blind SQLi is slow but unstoppable once input reaches the query; UNION is fast when output is visible. Both are neutralized by parameterized queries.</p></div>
+    </div>
+  </section>
+
+  <!-- S19c — Interactive: SQL injection query builder (ADDED, additive) -->
+  <section class="slide" data-section="SQL Injection" data-section-es="Inyección SQL">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Pruébalo tú mismo"><span class="dot"></span>Try it yourself</span>
+      <h2 data-es="Constructor de consultas SQLi: un login simulado">SQL injection query builder: a simulated login</h2>
+      <span class="sqli-demo-tag" data-es="◆ Demostración segura — solo construye y MUESTRA texto; nunca se conecta a una base de datos real ni ejecuta nada">◆ Safe demonstration — only builds &amp; DISPLAYS text; never connects to a real database or executes anything</span>
+      <p class="lead" style="max-width:60ch;margin-top:.9rem" data-es="Este login simulado toma lo que ‘escribes’ y lo pega directamente en una plantilla SQL — igual que el código vulnerable de hace unas diapositivas. Elige una entrada y observa la consulta que se construye.">This simulated login takes whatever you “type” and pastes it straight into a SQL template — exactly like the vulnerable code from a few slides back. Pick an input below and watch the query it builds.</p>
+
+      <div class="sqli-builder">
+        <div class="sqli-choices">
+          <button type="button" class="ui-btn sqli-choice-btn" id="sqliBtnNormal" data-es="Usuario normal: <code>alice</code>">Normal username: <code>alice</code></button>
+          <button type="button" class="ui-btn sqli-choice-btn sqli-evil" id="sqliBtnEvil" data-es="Entrada maliciosa: <code>' OR '1'='1' --</code>">Malicious input: <code>' OR '1'='1' --</code></button>
+        </div>
+
+        <div class="sqli-panel" id="sqliPlaceholder">
+          <p class="muted" data-es="↑ Elige una entrada arriba para construir la consulta.">↑ Pick an input above to build the query.</p>
+        </div>
+
+        <div class="sqli-panel" id="sqliNormal" hidden>
+          <p class="sqli-typed" data-es="Escribiste: <code>alice</code>">You typed: <code>alice</code></p>
+          <span class="code-cap ok" data-es="Consulta resultante">Resulting query</span>
+          <div class="sql-block">
+            <span class="sql-kw">SELECT</span> * <span class="sql-kw">FROM</span> <span class="sql-tbl">users</span><br>
+            <span class="sql-kw">WHERE</span> <span class="sql-col">user</span>=<span class="sql-val">'alice'</span> <span class="sql-kw">AND</span> <span class="sql-col">pass</span>=<span class="sql-val">'&lt;typed password&gt;'</span>;
+          </div>
+          <p class="sqli-explain" data-es="Consulta normal: <code>WHERE</code> exige que coincidan usuario <strong>y</strong> contraseña. Si la contraseña guardada de alice no coincide, no se devuelve ninguna fila y el login se rechaza correctamente.">Normal query: <code>WHERE</code> requires a matching username <strong>and</strong> password. If alice's stored password doesn't match, no row is returned and the login is correctly rejected.</p>
+        </div>
+
+        <div class="sqli-panel" id="sqliEvil" hidden>
+          <p class="sqli-typed" data-es="Escribiste: <code>' OR '1'='1' --</code>">You typed: <code>' OR '1'='1' --</code></p>
+          <span class="code-cap bad" data-es="Consulta resultante — ¡se rompió!">Resulting query — it broke!</span>
+          <div class="sql-block">
+            <span class="sql-kw">SELECT</span> * <span class="sql-kw">FROM</span> <span class="sql-tbl">users</span><br>
+            <span class="sql-kw">WHERE</span> <span class="sql-col">user</span>=<span class="sql-val">'</span><span class="sql-inj">' OR '1'='1' --</span><span class="sqli-neutered"> ' AND pass='&lt;anything&gt;'</span>;
+          </div>
+          <p class="sqli-explain" data-es="El apóstrofe del atacante <strong>cierra la cadena antes de tiempo</strong>. <code>OR '1'='1'</code> hace que la condición sea <strong>siempre verdadera</strong>. Y <code>--</code> convierte todo lo que sigue en un <strong>comentario SQL</strong> — el propio chequeo de contraseña queda anulado (texto tachado arriba). La consulta devuelve <strong>todas las filas de la tabla</strong>; si la app confía en el primer resultado, el atacante inicia sesión sin conocer ninguna contraseña — con frecuencia como el primer usuario de la tabla (a menudo un administrador).">The attacker's apostrophe <strong>closes the string early</strong>. <code>OR '1'='1'</code> makes the condition <strong>always true</strong>. And <code>--</code> turns everything after it into a <strong>SQL comment</strong> — the password check itself is nullified (struck-through text above). The query returns <strong>every row in the table</strong>; if the app trusts the first result, the attacker logs in without knowing any password — often as the very first user in the table (frequently an admin).</p>
+        </div>
+
+        <div class="sqli-safe">
+          <span class="code-cap ok" data-es="La solución: sentencia preparada / consulta parametrizada">The fix: prepared statement / parameterized query</span>
+          <div class="sql-block">
+            query = <span class="sql-str">"SELECT * FROM users WHERE user = ? AND pass = ?"</span><br>
+            stmt.<span class="sql-fn">setString</span>(<span class="sql-col">1</span>, userInput)<br>
+            stmt.<span class="sql-fn">setString</span>(<span class="sql-col">2</span>, passInput)
+          </div>
+          <p data-es="Aquí, incluso si <code>userInput</code> es <code>' OR '1'='1' --</code>, la BD ya <strong>compiló</strong> la estructura de la consulta (<code>SELECT…WHERE user=? AND pass=?</code>) <strong>antes</strong> de recibir la entrada. El marcador <code>?</code> solo puede contener un <strong>valor literal</strong> — nunca puede añadir <code>OR</code>, comillas ni comentarios a la sintaxis SQL. La app buscaría un usuario literalmente llamado <code>' OR '1'='1' --</code>, no encontraría ninguno, y el login fallaría de forma segura.">Here, even if <code>userInput</code> is <code>' OR '1'='1' --</code>, the DB already <strong>compiled</strong> the query's structure (<code>SELECT…WHERE user=? AND pass=?</code>) <strong>before</strong> receiving any input. The <code>?</code> placeholder can only ever hold a <strong>literal value</strong> — it can never add <code>OR</code>, quotes, or comments to the SQL syntax. The app would look for a user literally named <code>' OR '1'='1' --</code>, find none, and safely reject the login.</p>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -789,7 +872,7 @@
   <span class="course" data-es="TC2007B · S3 · C1 — Seguridad en BD y App">TC2007B · W3 · L1 — Database &amp; App Security</span>
   <span class="right">
     <span class="sec-name" id="secName">Orientation</span>
-    <span class="counter"><span id="cur">1</span> / <span id="total">33</span></span>
+    <span class="counter"><span id="cur">1</span> / <span id="total">36</span></span>
   </span>
 </footer>
 
@@ -829,5 +912,28 @@
 </div>
 
 <script src="script.js"></script>
+<script>
+  /* Added interactive: SQLi query builder — only builds & displays a query
+     string; never executes anything. Toggles pre-rendered bilingual panels
+     so the site's EN/ES engine (applyLang) keeps working untouched. */
+  (function () {
+    var wrap = document.querySelector('.sqli-builder');
+    if (!wrap) return;
+    var btnNormal = document.getElementById('sqliBtnNormal');
+    var btnEvil   = document.getElementById('sqliBtnEvil');
+    var panels = {
+      placeholder: document.getElementById('sqliPlaceholder'),
+      normal: document.getElementById('sqliNormal'),
+      evil: document.getElementById('sqliEvil')
+    };
+    function select(which) {
+      Object.keys(panels).forEach(function (k) { panels[k].hidden = (k !== which); });
+      btnNormal.classList.toggle('sqli-active', which === 'normal');
+      btnEvil.classList.toggle('sqli-active', which === 'evil');
+    }
+    btnNormal.addEventListener('click', function (e) { e.stopPropagation(); select('normal'); });
+    btnEvil.addEventListener('click', function (e) { e.stopPropagation(); select('evil'); });
+  })();
+</script>
 </body>
 </html>
