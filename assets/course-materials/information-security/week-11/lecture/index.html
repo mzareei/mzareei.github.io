@@ -82,6 +82,26 @@
 .ev-block .ttl { color:var(--ink-soft); font-style:italic; }
 .ev-block .hl { color:var(--danger); font-weight:700; }
 .ev-block .ok { color:var(--good); font-weight:700; }
+
+/* Added interactive: base-rate fallacy explorer (self-contained, theme-aware) */
+.ids-ex-wrap { display:grid; grid-template-columns:1.05fr 1fr; gap:1.6rem; align-items:start; margin-top:1.3rem; }
+.ids-ex-controls { display:flex; flex-direction:column; gap:.9rem; }
+.ids-ex-ctrl { background:var(--bg-2); border:1px solid var(--line); border-radius:12px; padding:.75rem 1rem; }
+.ids-ex-ctrl label { display:flex; justify-content:space-between; align-items:baseline; gap:.6rem; font-size:var(--fs-small); color:var(--ink-soft); margin-bottom:.5rem; }
+.ids-ex-ctrl label b { color:var(--ink); font-size:1.05rem; font-family:var(--mono); white-space:nowrap; }
+.ids-ex-ctrl input[type=range] { width:100%; accent-color:var(--accent); cursor:pointer; }
+.ids-ex-hint { font-size:var(--fs-small); color:var(--ink-soft); font-style:italic; margin:0; }
+.ids-ex-result { display:flex; flex-direction:column; align-items:center; gap:1rem; }
+.ids-ex-cm { margin:0 auto; }
+.ids-ex-precision { width:100%; background:var(--bg-3); border:2px solid var(--danger); border-radius:14px; padding:1rem 1.2rem; text-align:center; transition:border-color .2s ease; box-sizing:border-box; }
+.ids-ex-precision .ip-q { display:block; font-size:var(--fs-small); color:var(--ink-soft); margin-bottom:.5rem; }
+.ids-ex-precision .ip-num { display:block; font-size:clamp(2.1rem,6vw,3.1rem); font-weight:900; color:var(--danger); line-height:1; font-family:var(--mono); }
+.ids-ex-precision .ip-sub { display:block; font-size:var(--fs-small); color:var(--ink-soft); margin-top:.4rem; }
+.ids-ex-precision.good { border-color:var(--good); }
+.ids-ex-precision.good .ip-num { color:var(--good); }
+.ids-ex-precision.bad { border-color:var(--danger); }
+.ids-ex-precision.bad .ip-num { color:var(--danger); }
+@media(max-width:760px){ .ids-ex-wrap{ grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
@@ -547,6 +567,7 @@
         <div class="card accent-top"><h3>NIDS</h3><p data-es="Basado en <strong>red</strong>: vigila el tráfico de un segmento. Ve a muchos hosts a la vez, pero no el interior cifrado ni lo que ocurre en el host.">Network-based: watches traffic on a segment. Sees many hosts at once, but not encrypted payloads or what happens on the host itself.</p></div>
         <div class="card teal-top"><h3>HIDS</h3><p data-es="Basado en <strong>host</strong>: vigila registros, llamadas al sistema y archivos de <em>una</em> máquina. Ve la actividad descifrada, pero solo de ese host.">Host-based: watches logs, system calls, and files on <em>one</em> machine. Sees decrypted activity, but only for that host.</p></div>
       </div>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Eco real">Real-world echo</span><p data-es="En 2013, Target ya tenía instalada una herramienta de detección de intrusiones de red (FireEye) — de hecho marcó el malware de los atacantes. La alerta llegó al equipo de seguridad, pero no se atendió a tiempo, y la brecha (ver Semana 1) terminó afectando a ~40 millones de tarjetas. Según lo reportado por periodistas que investigaron la brecha, se recuerda como un caso de manual de fatiga por alertas, no de fallo de detección.">In 2013, Target had already deployed a network intrusion-detection tool (FireEye) — it did flag the attackers' malware. The alert reached the security team, but it wasn't acted on in time, and the breach (see Week 1) went on to hit ~40M cards. As reported by journalists who investigated the breach, this is remembered as a textbook case of alert fatigue, not detection failure.</p></div>
     </div>
   </section>
 
@@ -728,6 +749,60 @@
     </div>
   </section>
 
+  <!-- S35b — Interactive: base-rate fallacy explorer (ADDED: turn the dials yourself) -->
+  <section class="slide" data-section="Metrics" data-section-es="Métricas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Explóralo tú mismo"><span class="dot"></span>Explore it yourself</span>
+      <h2 data-es="Gira tú mismo las perillas: la calculadora de la falacia de la tasa base">Turn the dials yourself: the base-rate fallacy calculator</h2>
+      <p class="lead" style="max-width:62ch" data-es="Ajusta el tamaño de la población de eventos, qué tan raros son los ataques reales y qué tan bueno es el detector. Observa cómo cambia la <strong>precisión</strong> — la probabilidad de que una alarma sea un ataque de verdad.">Adjust the size of the event population, how rare real attacks are, and how good the detector is. Watch how <strong>precision</strong> changes — the chance that an alarm is a genuine attack.</p>
+
+      <div class="ids-ex-wrap">
+        <div class="ids-ex-controls">
+          <div class="ids-ex-ctrl">
+            <label for="idsExPop"><span data-es="Eventos totales por día">Total events per day</span> <b id="idsExPopVal">1,000,000</b></label>
+            <input type="range" id="idsExPop" min="100000" max="5000000" step="100000" value="1000000">
+          </div>
+          <div class="ids-ex-ctrl">
+            <label for="idsExPrev"><span data-es="Prevalencia de ataques reales">Real-attack prevalence</span> <b id="idsExPrevVal">0.010%</b></label>
+            <input type="range" id="idsExPrev" min="0.001" max="5" step="0.001" value="0.01">
+          </div>
+          <div class="ids-ex-ctrl">
+            <label for="idsExTPR"><span data-es="Tasa de detección del IDS (recall)">IDS detection rate (recall)</span> <b id="idsExTPRVal">99%</b></label>
+            <input type="range" id="idsExTPR" min="50" max="100" step="1" value="99">
+          </div>
+          <div class="ids-ex-ctrl">
+            <label for="idsExFPR"><span data-es="Tasa de falsas alarmas del IDS">IDS false-alarm rate</span> <b id="idsExFPRVal">1.0%</b></label>
+            <input type="range" id="idsExFPR" min="0.1" max="20" step="0.1" value="1">
+          </div>
+          <p class="ids-ex-hint" data-es="Prueba esto: sube la prevalencia a 5 % y observa cómo mejora la precisión. Ese es justo el punto — los ataques rarísimos, no un IDS deficiente, son la causa principal de la falacia.">Try this: raise prevalence to 5% and watch precision improve. That's exactly the point — extremely rare attacks, not a poor IDS, are the main cause of the fallacy.</p>
+        </div>
+
+        <div class="ids-ex-result">
+          <table class="cm ids-ex-cm">
+            <thead><tr><th></th><th data-es="Realidad: ataque">Reality: attack</th><th data-es="Realidad: normal">Reality: normal</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="axis" data-es="IDS: alarma">IDS: alarm</td>
+                <td class="tp" id="idsExTP">99</td>
+                <td class="fp" id="idsExFP">9,999</td>
+              </tr>
+              <tr>
+                <td class="axis" data-es="IDS: silencio">IDS: silent</td>
+                <td class="fn" id="idsExFN">1</td>
+                <td class="tn" id="idsExTN">989,901</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="ids-ex-precision bad" id="idsExPrecisionBox">
+            <span class="ip-q" data-es="Si suena la alarma, ¿qué probabilidad hay de que sea un ataque real?">If the alarm fires, what's the chance it's a real attack?</span>
+            <span class="ip-num" id="idsExPrecision">≈0.98%</span>
+            <span class="ip-sub" id="idsExPrecisionSub">of every 10,098 alarms is real</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- S36 — Connect to ML / modern SOC -->
   <section class="slide" data-section="Metrics" data-section-es="Métricas">
     <div class="slide-inner">
@@ -866,6 +941,7 @@
           </ul>
         </div>
       </div>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Un caso clásico">A classic case</span><p data-es="Décadas antes de que «honeypot» fuera un término común, el astrónomo convertido en administrador de sistemas Cliff Stoll notó una discrepancia contable de 75 centavos y usó archivos falsos deliberadamente tentadores para mantener a un intruso conectado el tiempo suficiente para rastrearlo — narrado en su libro de 1989 <em>The Cuckoo's Egg</em>.">Decades before "honeypot" was a common term, astronomer-turned-sysadmin Cliff Stoll noticed a 75-cent accounting discrepancy and used deliberately tempting fake files to keep an intruder connected long enough to trace them — told in his 1989 book <em>The Cuckoo's Egg</em>.</p></div>
     </div>
   </section>
 
@@ -993,5 +1069,85 @@
 </div>
 
 <script src="script.js"></script>
+<script>
+  /* Added interactive: base-rate fallacy explorer — recomputes confusion matrix + precision live; engine handles i18n/theme */
+  (function () {
+    var wrap = document.querySelector('.ids-ex-wrap');
+    if (!wrap) return;
+
+    var popIn  = document.getElementById('idsExPop');
+    var prevIn = document.getElementById('idsExPrev');
+    var tprIn  = document.getElementById('idsExTPR');
+    var fprIn  = document.getElementById('idsExFPR');
+
+    var popVal  = document.getElementById('idsExPopVal');
+    var prevVal = document.getElementById('idsExPrevVal');
+    var tprVal  = document.getElementById('idsExTPRVal');
+    var fprVal  = document.getElementById('idsExFPRVal');
+
+    var tpEl   = document.getElementById('idsExTP');
+    var fpEl   = document.getElementById('idsExFP');
+    var fnEl   = document.getElementById('idsExFN');
+    var tnEl   = document.getElementById('idsExTN');
+    var precEl = document.getElementById('idsExPrecision');
+    var subEl  = document.getElementById('idsExPrecisionSub');
+    var boxEl  = document.getElementById('idsExPrecisionBox');
+
+    function fmt(n) {
+      return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    }
+    function currentLang() {
+      return document.documentElement.getAttribute('data-lang') === 'es' ? 'es' : 'en';
+    }
+    function subText(alarms) {
+      return (currentLang() === 'es')
+        ? 'de cada ' + fmt(alarms) + ' alarmas es real'
+        : 'of every ' + fmt(alarms) + ' alarms is real';
+    }
+
+    function render() {
+      var population = parseInt(popIn.value, 10);
+      var prevalence = parseFloat(prevIn.value);
+      var tpr = parseFloat(tprIn.value);
+      var fpr = parseFloat(fprIn.value);
+
+      popVal.textContent  = fmt(population);
+      prevVal.textContent = prevalence.toFixed(3) + '%';
+      tprVal.textContent  = tpr.toFixed(0) + '%';
+      fprVal.textContent  = fpr.toFixed(1) + '%';
+
+      var attacks = population * (prevalence / 100);
+      var normal  = population - attacks;
+      var TP = attacks * (tpr / 100);
+      var FN = attacks - TP;
+      var FP = normal * (fpr / 100);
+      var TN = normal - FP;
+      var alarms = TP + FP;
+      var precision = alarms > 0 ? (TP / alarms * 100) : 0;
+
+      tpEl.textContent = fmt(TP);
+      fpEl.textContent = fmt(FP);
+      fnEl.textContent = fmt(FN);
+      tnEl.textContent = fmt(TN);
+
+      precEl.textContent = '≈' + precision.toFixed(2) + '%';
+      subEl.textContent = subText(alarms);
+
+      boxEl.classList.toggle('good', precision >= 50);
+      boxEl.classList.toggle('bad', precision < 50);
+    }
+
+    [popIn, prevIn, tprIn, fprIn].forEach(function (inp) {
+      inp.addEventListener('input', function (e) { e.stopPropagation(); render(); });
+      inp.addEventListener('click', function (e) { e.stopPropagation(); });
+    });
+    wrap.addEventListener('click', function (e) { e.stopPropagation(); });
+
+    var langBtn = document.getElementById('langBtn');
+    if (langBtn) langBtn.addEventListener('click', function () { render(); });
+
+    render();
+  })();
+</script>
 </body>
 </html>
