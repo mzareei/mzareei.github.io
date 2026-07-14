@@ -52,6 +52,42 @@
   .commonpw li .rank { color: var(--accent); font-weight: 700; flex: none; }
   .commonpw li .pw { color: var(--danger); font-weight: 700; }
   .commonpw li .note { margin-left: auto; font-family: var(--font); font-size: var(--fs-small); color: var(--ink-soft); }
+
+  /* Added interactive: password strength / search-space explorer (self-contained, theme-aware) */
+  .pwx-wrap { margin-top: 1.3rem; display: grid; gap: 1.1rem; }
+  .pwx-controls { display: grid; gap: 1rem; }
+  .pwx-group { display: grid; gap: .5rem; }
+  .pwx-label {
+    font-size: var(--fs-small, .95rem); font-weight: 700; text-transform: uppercase;
+    letter-spacing: .04em; color: var(--ink-soft, #aebfd6);
+  }
+  .pwx-btnrow { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .pwx-btn {
+    font-family: var(--mono, monospace); font-weight: 700; font-size: 1rem;
+    min-width: 2.7rem; padding: .5rem .7rem; border-radius: 10px;
+    border: 2px solid var(--line, #2c3f5e); background: var(--bg-2, #122036); color: var(--ink, #eef4ff);
+    cursor: pointer; transition: border-color .15s ease, background .15s ease, color .15s ease;
+  }
+  .pwx-btn:hover { border-color: var(--accent, #4ea1ff); }
+  .pwx-btn.active { border-color: var(--accent, #4ea1ff); background: var(--accent, #4ea1ff); color: #06101f; }
+  .pwx-chip {
+    font-size: var(--fs-small, .95rem); font-weight: 600; padding: .5rem .9rem; border-radius: 999px;
+    border: 2px solid var(--line, #2c3f5e); background: var(--bg-2, #122036); color: var(--ink-soft, #aebfd6);
+    cursor: pointer; transition: border-color .15s ease, background .15s ease, color .15s ease;
+  }
+  .pwx-chip:hover { border-color: var(--accent-2, #38d6c0); }
+  .pwx-chip.active { border-color: var(--good, #5fe08a); background: rgba(95,224,138,.15); color: var(--good, #5fe08a); }
+  .pwx-chip.pwx-locked { opacity: .55; cursor: not-allowed; }
+  .pwx-result {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: .9rem;
+    background: var(--bg-3, #1b2c47); border: 1px solid var(--line, #2c3f5e); border-radius: var(--radius, 16px);
+    padding: 1.2rem 1.3rem;
+  }
+  .pwx-stat { display: flex; flex-direction: column; gap: .3rem; text-align: center; }
+  .pwx-num { font-family: var(--mono, monospace); font-weight: 800; font-size: clamp(1.05rem, 2vw, 1.5rem); color: var(--ink, #eef4ff); }
+  .pwx-stat.pwx-time .pwx-num { color: var(--danger, #ff6b6b); }
+  .pwx-lbl { font-size: var(--fs-small, .82rem); color: var(--ink-soft, #aebfd6); }
+  @media (max-width: 760px) { .pwx-result { grid-template-columns: repeat(2, 1fr); } }
 </style>
 </head>
 <body>
@@ -296,6 +332,7 @@
         <li data-es="El ID determina los <strong>privilegios</strong> del usuario (p. ej., usuario normal vs. “superusuario”).">The ID determines the user's <strong>privileges</strong> (e.g., normal user vs. "superuser").</li>
         <li data-es="Se usa en el <strong>control de acceso discrecional</strong> (DAC).">It's used in <strong>discretionary access control</strong> (DAC).</li>
       </ul>
+      <div class="callout note" style="margin-top:1rem"><span class="tag" data-es="Ejemplo cotidiano">Everyday example</span><p data-es="Cuando entras al portal de calificaciones de la universidad, tu <strong>matrícula</strong> (ID) determina qué registros puedes ver — los tuyos, no los de otro estudiante — aun cuando la contraseña ya confirmó quién eres.">When you log into the university's grades portal, your <strong>student ID</strong> determines which records you can see — your own, not another student's — even though the password already confirmed who you are.</p></div>
     </div>
   </section>
 
@@ -470,6 +507,47 @@
         <div class="card good-top"><h3 data-es="“correct horse battery staple”">"correct horse battery staple"</h3><p data-es="4 palabras al azar de una lista común ≈ <strong>44+ bits</strong> — más fuerte <em>y</em> fácil de recordar (idea del cómic XKCD).">4 random words from a common list ≈ <strong>44+ bits</strong> — stronger <em>and</em> easier to remember (the XKCD comic idea).</p></div>
       </div>
       <div class="callout check" style="margin-top:1.1rem"><span class="tag" data-es="Conclusión">Takeaway</span><p data-es="Añadir <strong>longitud</strong> sube la entropía más rápido y barato que añadir símbolos raros. Una frase de cuatro palabras vence a “P@ss1!” en seguridad <em>y</em> en memorabilidad.">Adding <strong>length</strong> raises entropy faster and cheaper than adding odd symbols. A four-word passphrase beats "P@ss1!" on both security <em>and</em> memorability.</p></div>
+    </div>
+  </section>
+
+  <!-- S20c — Interactive: password search-space / crack-time explorer (ADDED) -->
+  <section class="slide" data-section="Passwords" data-section-es="Contraseñas">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Interactivo: explóralo tú mismo"><span class="dot"></span>Interactive: explore it yourself</span>
+      <h2 data-es="Fuerza de la contraseña, en vivo: alfabeto × longitud">Password strength, live: charset × length</h2>
+      <p class="lead" style="max-width:58ch" data-es="Elige una longitud y un conjunto de caracteres — observa cómo cambian al instante el espacio de búsqueda y el tiempo estimado para descifrarla.">Pick a length and a character set — watch the search space and estimated crack time change instantly.</p>
+      <div class="pwx-wrap">
+        <div class="pwx-controls">
+          <div class="pwx-group">
+            <span class="pwx-label" data-es="Longitud (caracteres)">Length (characters)</span>
+            <div class="pwx-btnrow" id="pwxLenRow">
+              <button type="button" class="pwx-btn" data-len="6">6</button>
+              <button type="button" class="pwx-btn" data-len="8">8</button>
+              <button type="button" class="pwx-btn active" data-len="10">10</button>
+              <button type="button" class="pwx-btn" data-len="12">12</button>
+              <button type="button" class="pwx-btn" data-len="14">14</button>
+              <button type="button" class="pwx-btn" data-len="16">16</button>
+              <button type="button" class="pwx-btn" data-len="20">20</button>
+            </div>
+          </div>
+          <div class="pwx-group">
+            <span class="pwx-label" data-es="Conjunto de caracteres">Character set</span>
+            <div class="pwx-btnrow" id="pwxSetRow">
+              <button type="button" class="pwx-chip active" data-set="lower" data-es="minúsculas (a–z)">lowercase (a–z)</button>
+              <button type="button" class="pwx-chip" data-set="upper" data-es="+ mayúsculas (A–Z)">+ uppercase (A–Z)</button>
+              <button type="button" class="pwx-chip" data-set="digits" data-es="+ dígitos (0–9)">+ digits (0–9)</button>
+              <button type="button" class="pwx-chip" data-set="symbols" data-es="+ símbolos (~33)">+ symbols (~33)</button>
+            </div>
+          </div>
+        </div>
+        <div class="pwx-result">
+          <div class="pwx-stat"><span class="pwx-num" id="pwxCharsetSize">26</span><span class="pwx-lbl" data-es="tamaño del alfabeto">charset size</span></div>
+          <div class="pwx-stat"><span class="pwx-num" id="pwxSpace">1.41 × 10¹⁴</span><span class="pwx-lbl" data-es="espacio de búsqueda (alfabeto^longitud)">search space (charset^length)</span></div>
+          <div class="pwx-stat"><span class="pwx-num" id="pwxBits">47.0 bits</span><span class="pwx-lbl" data-es="≈ entropía">≈ entropy</span></div>
+          <div class="pwx-stat pwx-time"><span class="pwx-num" id="pwxTime">≈ 2 hours</span><span class="pwx-lbl" data-es="tiempo promedio estimado para descifrarla">est. average time to crack</span></div>
+        </div>
+      </div>
+      <p class="figure-note" data-es="Supone un atacante fuera de línea probando 10 mil millones de intentos por segundo contra un hash rápido y sin sal, recorriendo en promedio la mitad del espacio de búsqueda — una estimación deliberadamente simple, de orden de magnitud, no una garantía. La sal y el hashing lento (bcrypt/Argon2, visto hace un par de diapositivas) cambian esto por completo.">Assumes an offline attacker guessing at 10 billion tries/second against a fast, unsalted hash, covering on average half the search space — a deliberately simple, order-of-magnitude estimate, not a guarantee. Salting and slow hashing (bcrypt/Argon2, seen a couple of slides back) change this completely.</p>
     </div>
   </section>
 
@@ -689,6 +767,7 @@
         <li data-es="La autenticación responde: <strong>¿en nombre de quién corre este proceso?</strong>">Authentication answers: <strong>on whose behalf does this process run?</strong></li>
       </ul>
       <div class="callout note"><span class="tag" data-es="Conexión">Connect</span><p data-es="Esto enlaza con la semana pasada: identidad → autenticación → autorización → control de acceso.">This links back to last week: identity → authentication → authorization → access control.</p></div>
+      <div class="callout check" style="margin-top:1rem"><span class="tag" data-es="Ejemplo cotidiano">Everyday example</span><p data-es="Por eso <code>sudo</code> en Linux/macOS (o el aviso de <em>Control de Cuentas de Usuario</em> en Windows) te pide autenticarte de nuevo antes de que un proceso actúe como administrador: el SO necesita reconfirmar en nombre de quién corre ese proceso con privilegios elevados.">This is why <code>sudo</code> on Linux/macOS (or the <em>User Account Control</em> prompt on Windows) asks you to re-authenticate before a process can act as administrator: the OS needs to reconfirm on whose behalf that elevated-privilege process is running.</p></div>
     </div>
   </section>
 
@@ -784,5 +863,105 @@
 </div>
 
 <script src="script.js"></script>
+<script>
+  /* Added interactive: password strength / search-space explorer — self-contained, i18n/theme handled by the engine */
+  (function () {
+    var wrap = document.querySelector('.pwx-wrap');
+    if (!wrap) return;
+
+    var lenBtns = wrap.querySelectorAll('#pwxLenRow .pwx-btn');
+    var setBtns = wrap.querySelectorAll('#pwxSetRow .pwx-chip');
+    var elCharset = document.getElementById('pwxCharsetSize');
+    var elSpace   = document.getElementById('pwxSpace');
+    var elBits    = document.getElementById('pwxBits');
+    var elTime    = document.getElementById('pwxTime');
+
+    var SIZES = { lower: 26, upper: 26, digits: 10, symbols: 33 };
+    var ORDER = ['lower', 'upper', 'digits', 'symbols'];
+    var RATE  = 1e10; // guesses/second — a deliberately simple, order-of-magnitude assumption (see figure-note)
+
+    var state = { length: 10, sets: { lower: true, upper: false, digits: false, symbols: false } };
+
+    var SUP = { '0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹' };
+    function toSuperscript(n) {
+      return String(n).split('').map(function (d) { return SUP[d] || d; }).join('');
+    }
+
+    function formatSpace(n) {
+      if (n < 1e6) return Math.round(n).toLocaleString('en-US');
+      var exp = Math.floor(Math.log10(n));
+      var mantissa = n / Math.pow(10, exp);
+      return mantissa.toFixed(2) + ' × 10' + toSuperscript(exp);
+    }
+
+    var DUR = {
+      en: { lt1s: '< 1 second', secs: 'seconds', mins: 'minutes', hours: 'hours', days: 'days', years: 'years', million: 'million years', billion: 'billion years', trillion: 'trillion years' },
+      es: { lt1s: '< 1 segundo', secs: 'segundos', mins: 'minutos', hours: 'horas', days: 'días', years: 'años', million: 'millones de años', billion: 'miles de millones de años', trillion: 'billones de años' }
+    };
+    function formatDuration(seconds, lang) {
+      var L = DUR[lang] || DUR.en;
+      if (seconds < 1) return '≈ ' + L.lt1s;
+      if (seconds < 60) return '≈ ' + Math.round(seconds) + ' ' + L.secs;
+      var minutes = seconds / 60;
+      if (minutes < 60) return '≈ ' + Math.round(minutes) + ' ' + L.mins;
+      var hours = minutes / 60;
+      if (hours < 24) return '≈ ' + Math.round(hours) + ' ' + L.hours;
+      var days = hours / 24;
+      if (days < 365) return '≈ ' + Math.round(days) + ' ' + L.days;
+      var years = days / 365.25;
+      if (years < 1e6) return '≈ ' + Math.round(years).toLocaleString('en-US') + ' ' + L.years;
+      if (years < 1e9) return '≈ ' + (years / 1e6).toFixed(1) + ' ' + L.million;
+      if (years < 1e12) return '≈ ' + (years / 1e9).toFixed(1) + ' ' + L.billion;
+      return '≈ ' + (years / 1e12).toFixed(1) + ' ' + L.trillion;
+    }
+
+    function render() {
+      var lang = (document.documentElement.getAttribute('data-lang') || 'en').toLowerCase();
+      var size = 0;
+      ORDER.forEach(function (k) { if (state.sets[k]) size += SIZES[k]; });
+      if (size === 0) { size = SIZES.lower; state.sets.lower = true; } // safety net, shouldn't happen
+
+      var length = state.length;
+      var space  = Math.pow(size, length);
+      var bits   = length * Math.log2(size);
+      var seconds = space / (2 * RATE);
+
+      elCharset.textContent = size;
+      elSpace.textContent = formatSpace(space);
+      elBits.textContent = bits.toFixed(1) + ' bits';
+      elTime.textContent = formatDuration(seconds, lang);
+    }
+
+    lenBtns.forEach(function (b) {
+      b.addEventListener('click', function (e) {
+        e.stopPropagation();
+        lenBtns.forEach(function (x) { x.classList.remove('active'); });
+        b.classList.add('active');
+        state.length = parseInt(b.dataset.len, 10);
+        render();
+      });
+    });
+
+    setBtns.forEach(function (b) {
+      b.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var key = b.dataset.set;
+        var willBeActive = !state.sets[key];
+        var activeCount = ORDER.filter(function (k) { return state.sets[k]; }).length;
+        if (!willBeActive && activeCount <= 1) return; // always keep at least one charset active
+        state.sets[key] = willBeActive;
+        b.classList.toggle('active', willBeActive);
+        render();
+      });
+    });
+
+    // Re-render on language toggle: unit words (days/years/...) are generated in JS, not via data-es.
+    new MutationObserver(function (muts) {
+      muts.forEach(function (m) { if (m.attributeName === 'data-lang') render(); });
+    }).observe(document.documentElement, { attributes: true });
+
+    render();
+  })();
+</script>
 </body>
 </html>
