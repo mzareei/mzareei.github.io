@@ -247,7 +247,11 @@ function renderReleasedItems(rows) {
   rows.forEach((item) => {
     const listItem = document.createElement("li");
     const link = document.createElement("a");
-    link.href = `content.html?release=${encodeURIComponent(item.release_id || "")}`;
+    if (item.content_type === "activity" && item.activity_instance_id) {
+      link.href = `activity.html?activity=${encodeURIComponent(item.activity_instance_id)}`;
+    } else {
+      link.href = `content.html?release=${encodeURIComponent(item.release_id || "")}`;
+    }
     link.textContent = releasedItemLabel(item);
     listItem.append(link);
     els.releasedItems.append(listItem);
@@ -270,8 +274,7 @@ function renderStudentActions(context) {
     { label: "Open My Progress", href: "progress.html" },
     { label: "Open Review Coach", href: "review-coach.html" },
     { label: "Open My Portfolio", href: "portfolio.html" },
-    { label: "Submit Exit Ticket", href: "exit-ticket.html" },
-    { label: "Open Activity Player", href: "activity.html" }
+    { label: "Submit Exit Ticket", href: "exit-ticket.html" }
   ] : [];
   renderActionList(els.studentActions, actions, "Student actions appear here after section enrollment is active.");
 }

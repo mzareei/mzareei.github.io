@@ -219,6 +219,14 @@ async function loadVisibleReleases(db: ReturnType<typeof adminClient>, courseId:
   if (originError) throw originError;
   const originById = new Map((originSessions || []).map((session) => [session.id, session]));
 
+  const activityContentIds = Array.from(new Set(
+    visible
+      .map((release) => itemById.get(release.content_item_id))
+      .filter((item) => item && item.content_type === "activity")
+      .map((item) => item.id)
+  ));
+  const activityInstanceByContentId = await loadOpenActivityInstances(db, activityContentIds, sectionIds);
+
   return visible
     .map((release) => {
       const item = itemById.get(release.content_item_id);
@@ -232,6 +240,7 @@ async function loadVisibleReleases(db: ReturnType<typeof adminClient>, courseId:
         opens_at: release.opens_at,
         closes_at: release.closes_at,
         content_type: item.content_type,
+        activity_instance_id: activityInstanceByContentId.get(String(item.id)) || null,
         slug: item.slug,
         title: item.title,
         summary: item.summary || "",
@@ -246,6 +255,36 @@ async function loadVisibleReleases(db: ReturnType<typeof adminClient>, courseId:
       };
     })
     .filter(Boolean);
+}
+
+async function loadOpenActivityInstances(
+  db: ReturnType<typeof adminClient>,
+  contentItemIds: string[],
+  sectionIds: string[]
+) {
+  const map = new Map<string, string>();
+  if (!contentItemIds.length || !sectionIds.length) return map;
+  const { data: templates, error: templateError } = await db
+    .from("activity_templates")
+    .select("id, content_item_id")
+    .in("content_item_id", contentItemIds);
+  if (templateError) throw templateError;
+  const templateToContent = new Map((templates || []).map((tpl) => [String(tpl.id), String(tpl.content_item_id)]));
+  const templateIds = (templates || []).map((tpl) => tpl.id);
+  if (!templateIds.length) return map;
+  const { data: instances, error: instanceError } = await db
+    .from("activity_instances")
+    .select("id, activity_template_id, section_id, state, created_at")
+    .in("activity_template_id", templateIds)
+    .in("section_id", sectionIds)
+    .in("state", ["open", "live"])
+    .order("created_at", { ascending: false });
+  if (instanceError) throw instanceError;
+  (instances || []).forEach((inst) => {
+    const contentId = templateToContent.get(String(inst.activity_template_id));
+    if (contentId && !map.has(contentId)) map.set(contentId, String(inst.id));
+  });
+  return map;
 }
 
 function isTeacherContext(memberships: Record<string, unknown>[], sections: Record<string, unknown>[]) {
