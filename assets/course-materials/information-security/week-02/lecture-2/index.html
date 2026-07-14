@@ -117,6 +117,48 @@
   .pdp-box.pip { border-top: 4px solid var(--accent-2); }
   .pdp-box.pip .pname { color: var(--accent-2); }
   .pdp-arrow { color: var(--accent); font-size: 1.6rem; }
+  /* Added interactive: access-control model explorer (self-contained, "ac-" namespaced) */
+  .ac-explorer { margin-top: 1.2rem; }
+  .ac-tabs { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: 1.1rem; }
+  .ac-tab {
+    font: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: .1rem;
+    padding: .55rem 1.1rem; border-radius: 12px; border: 2px solid var(--line, #2c3f5e);
+    background: var(--bg-2, #122036); color: var(--ink, #eef4ff); font-weight: 700; min-width: 110px;
+    transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+  }
+  .ac-tab b { font-size: 1.05rem; letter-spacing: .02em; }
+  .ac-tab span { font-size: .72rem; font-weight: 400; color: var(--ink-soft, #aebfd6); }
+  .ac-tab:hover { transform: translateY(-2px); }
+  .ac-tab.active { box-shadow: 0 8px 20px rgba(0,0,0,.25); }
+  .ac-tab[data-model="dac"].active  { border-color: var(--accent, #4ea1ff); }
+  .ac-tab[data-model="dac"].active b  { color: var(--accent, #4ea1ff); }
+  .ac-tab[data-model="mac"].active  { border-color: var(--danger, #ff6b6b); }
+  .ac-tab[data-model="mac"].active b  { color: var(--danger, #ff6b6b); }
+  .ac-tab[data-model="rbac"].active { border-color: var(--accent-2, #38d6c0); }
+  .ac-tab[data-model="rbac"].active b { color: var(--accent-2, #38d6c0); }
+  .ac-tab[data-model="abac"].active { border-color: var(--good, #5fe08a); }
+  .ac-tab[data-model="abac"].active b { color: var(--good, #5fe08a); }
+  .ac-decision {
+    margin-top: 1.4rem; border: 1px solid var(--line, #2c3f5e); border-radius: 14px;
+    padding: 1rem 1.2rem; background: var(--bg-2, #122036);
+  }
+  .ac-decision-kicker { font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft, #aebfd6); }
+  .ac-decision-controls { display: flex; flex-wrap: wrap; gap: 1.4rem; margin-top: .7rem; }
+  .ac-choice-group { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+  .ac-choice-label { font-size: .8rem; font-weight: 700; color: var(--ink-soft, #aebfd6); margin-right: .15rem; }
+  .ac-role-btn, .ac-res-btn {
+    font: inherit; cursor: pointer; padding: .4rem .85rem; border-radius: 999px; border: 1px solid var(--line, #2c3f5e);
+    background: var(--bg-3, #1b2c47); color: var(--ink, #eef4ff); font-size: .88rem; font-weight: 600;
+    transition: border-color .15s ease, color .15s ease;
+  }
+  .ac-role-btn.active, .ac-res-btn.active { border-color: var(--accent-2, #38d6c0); color: var(--accent-2, #38d6c0); }
+  .ac-decision-result { display: flex; align-items: center; gap: .8rem; margin-top: 1rem; flex-wrap: wrap; }
+  .ac-badge { font-weight: 800; font-size: .82rem; letter-spacing: .04em; text-transform: uppercase; padding: .3rem .75rem; border-radius: 999px; border: 2px solid currentColor; }
+  .ac-badge.allow { color: var(--good, #5fe08a); }
+  .ac-badge.deny  { color: var(--danger, #ff6b6b); }
+  .ac-rtext { color: var(--ink-soft, #aebfd6); font-size: .95rem; line-height: 1.4; }
+  .ac-decision-note { margin-top: .9rem; font-size: .85rem; color: var(--ink-soft, #aebfd6); }
+  @media (max-width: 760px){ .ac-tab{ min-width: 84px; padding: .5rem .7rem; } }
 </style>
 </head>
 <body>
@@ -401,6 +443,101 @@
         <div class="card teal-top"><h3 data-es="RBAC — Por roles">RBAC — Role-based</h3><p data-es="Según los <strong>roles</strong> del usuario y las reglas por rol.">By the user's <strong>roles</strong> and the rules for each role.</p></div>
         <div class="card good-top"><h3 data-es="ABAC — Por atributos">ABAC — Attribute-based</h3><p data-es="Según <strong>atributos</strong> del usuario, del recurso y del <strong>entorno</strong>.">By <strong>attributes</strong> of the user, the resource, and the <strong>environment</strong>.</p></div>
       </div>
+      <div class="callout note" style="margin-top:1.1rem"><span class="tag" data-es="Analogía rápida">Quick analogy</span><p data-es="DAC es la llave de tu propia puerta; MAC es una autorización de gobierno que no puedes anular; RBAC es el gafete de tu puesto; ABAC es el control aeroportuario que revisa tu boleto, tu identificación y tu puerta de abordaje, todo a la vez.">DAC is the key to your own front door; MAC is a government clearance you can't override; RBAC is the badge tied to your job title; ABAC is airport security checking your ticket, your ID, and your gate, all at once.</p></div>
+    </div>
+  </section>
+
+  <!-- S17b — ADDED: interactive access-control model explorer -->
+  <section class="slide" data-section="Policy models" data-section-es="Modelos de política">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Explóralo tú mismo"><span class="dot"></span>Explore it yourself</span>
+      <h2 data-es="Los cuatro modelos, uno junto a otro">The four models, side by side</h2>
+      <p class="muted" style="max-width:60ch" data-es="Toca DAC, MAC, RBAC o ABAC: verás cómo decide el acceso, un ejemplo concreto y un caso de uso típico.">Tap DAC, MAC, RBAC, or ABAC: see how it decides access, a concrete example, and a typical use case.</p>
+
+      <div class="ac-explorer">
+        <div class="ac-tabs">
+          <button type="button" class="ac-tab active" data-model="dac" data-es="<b>DAC</b><span>Discrecional</span>"><b>DAC</b><span>Discretionary</span></button>
+          <button type="button" class="ac-tab" data-model="mac" data-es="<b>MAC</b><span>Obligatorio</span>"><b>MAC</b><span>Mandatory</span></button>
+          <button type="button" class="ac-tab" data-model="rbac" data-es="<b>RBAC</b><span>Por roles</span>"><b>RBAC</b><span>Role-based</span></button>
+          <button type="button" class="ac-tab" data-model="abac" data-es="<b>ABAC</b><span>Por atributos</span>"><b>ABAC</b><span>Attribute-based</span></button>
+        </div>
+
+        <div class="ac-modelpanel" data-model="dac">
+          <div class="grid cols-3">
+            <div class="card accent-top"><span class="ico">🗝️</span><h3 data-es="Cómo decide">How it decides</h3><p data-es="El <strong>dueño</strong> del recurso concede o revoca acceso a usuarios concretos, a su discreción.">The resource's <strong>owner</strong> grants or revokes access to specific users, at their discretion.</p></div>
+            <div class="card accent-top"><span class="ico">📎</span><h3 data-es="Ejemplo">Example</h3><p data-es="Ana es dueña de presupuesto.xlsx y lo comparte con Beto como “solo lectura” desde el menú de Google Drive.">Ana owns budget.xlsx and shares it with Beto as “view only” from the Google Drive sharing menu.</p></div>
+            <div class="card accent-top"><span class="ico">💻</span><h3 data-es="Caso de uso típico">Typical use case</h3><p data-es="Archivos personales en la nube; permisos de archivo por defecto en la mayoría de los sistemas operativos de escritorio.">Personal cloud files; default file permissions on most desktop operating systems.</p></div>
+          </div>
+        </div>
+
+        <div class="ac-modelpanel" data-model="mac" hidden>
+          <div class="grid cols-3">
+            <div class="card danger-top"><span class="ico">🏷️</span><h3 data-es="Cómo decide">How it decides</h3><p data-es="El sistema compara la <strong>clasificación</strong> del objeto con la <strong>autorización</strong> del sujeto; ningún individuo puede anularlo.">The system compares the object's <strong>classification</strong> with the subject's <strong>clearance</strong>; no individual can override it.</p></div>
+            <div class="card danger-top"><span class="ico">📎</span><h3 data-es="Ejemplo">Example</h3><p data-es="Un archivo marcado <em>Secreto</em> solo lo puede abrir alguien con autorización <em>Secreto</em> o superior — sin excepciones.">A file marked <em>Secret</em> can only be opened by someone with a <em>Secret</em> clearance or higher — no exceptions.</p></div>
+            <div class="card danger-top"><span class="ico">🏛️</span><h3 data-es="Caso de uso típico">Typical use case</h3><p data-es="Sistemas militares y gubernamentales clasificados; SELinux en modo <em>enforcing</em>.">Military and government classified systems; SELinux in <em>enforcing</em> mode.</p></div>
+          </div>
+        </div>
+
+        <div class="ac-modelpanel" data-model="rbac" hidden>
+          <div class="grid cols-3">
+            <div class="card teal-top"><span class="ico">🪪</span><h3 data-es="Cómo decide">How it decides</h3><p data-es="Los permisos se asocian a <strong>roles</strong>, no a personas; un usuario obtiene acceso al asignársele (o activar) un rol.">Permissions attach to <strong>roles</strong>, not people; a user gains access by being assigned to (or activating) a role.</p></div>
+            <div class="card teal-top"><span class="ico">📎</span><h3 data-es="Ejemplo">Example</h3><p data-es="El rol “Enfermera” puede ver los signos vitales; asignar a Wendy al rol “Enfermera” le da ese acceso al instante.">The "Nurse" role can view patient vitals; assigning Wendy to the "Nurse" role grants that access instantly.</p></div>
+            <div class="card teal-top"><span class="ico">🏥</span><h3 data-es="Caso de uso típico">Typical use case</h3><p data-es="Hospitales, bancos, TI empresarial — donde las funciones laborales son estables y bien definidas.">Hospitals, banks, enterprise IT — wherever job functions are stable and well defined.</p></div>
+          </div>
+        </div>
+
+        <div class="ac-modelpanel" data-model="abac" hidden>
+          <div class="grid cols-3">
+            <div class="card good-top"><span class="ico">🧩</span><h3 data-es="Cómo decide">How it decides</h3><p data-es="Un motor de políticas evalúa juntos, en cada petición, atributos del <strong>sujeto</strong>, del <strong>recurso</strong> y del <strong>entorno</strong>.">A policy engine evaluates <strong>subject</strong>, <strong>resource</strong>, and <strong>environment</strong> attributes together, on every request.</p></div>
+            <div class="card good-top"><span class="ico">📎</span><h3 data-es="Ejemplo">Example</h3><p data-es="“Permitir si subject.department == resource.department Y la hora está entre 09:00–18:00 Y device.managed == true.”">“Allow if subject.department == resource.department AND time is 09:00–18:00 AND device.managed == true.”</p></div>
+            <div class="card good-top"><span class="ico">☁️</span><h3 data-es="Caso de uso típico">Typical use case</h3><p data-es="Condiciones de IAM en la nube (AWS/Azure); arquitecturas de confianza cero que necesitan contexto en tiempo real.">Cloud IAM conditions (AWS/Azure); Zero Trust architectures that need real-time context.</p></div>
+          </div>
+        </div>
+
+        <div class="ac-decision">
+          <span class="ac-decision-kicker" data-es="Inténtalo: una decisión bajo RBAC">Try it: a decision under RBAC</span>
+          <div class="ac-decision-controls">
+            <div class="ac-choice-group">
+              <span class="ac-choice-label" data-es="Rol:">Role:</span>
+              <button type="button" class="ac-role-btn active" data-role="employee" data-es="Empleado">Employee</button>
+              <button type="button" class="ac-role-btn" data-role="manager" data-es="Gerente">Manager</button>
+              <button type="button" class="ac-role-btn" data-role="auditor" data-es="Auditor">Auditor</button>
+            </div>
+            <div class="ac-choice-group">
+              <span class="ac-choice-label" data-es="Recurso:">Resource:</span>
+              <button type="button" class="ac-res-btn active" data-res="wiki" data-es="Wiki pública">Public wiki</button>
+              <button type="button" class="ac-res-btn" data-res="payroll" data-es="Archivo de nómina">Payroll file</button>
+            </div>
+          </div>
+          <div class="ac-decision-result">
+            <div class="ac-result" data-role="employee" data-res="wiki">
+              <span class="ac-badge allow" data-es="PERMITIR">ALLOW</span>
+              <span class="ac-rtext" data-es="El rol Empleado puede leer la wiki pública — acceso general para todo el personal.">The Employee role may read the public wiki — general access for all staff.</span>
+            </div>
+            <div class="ac-result" data-role="employee" data-res="payroll" hidden>
+              <span class="ac-badge deny" data-es="DENEGAR">DENY</span>
+              <span class="ac-rtext" data-es="El rol Empleado no tiene ningún permiso sobre el archivo de nómina.">The Employee role has no permission on the payroll file.</span>
+            </div>
+            <div class="ac-result" data-role="manager" data-res="wiki" hidden>
+              <span class="ac-badge allow" data-es="PERMITIR">ALLOW</span>
+              <span class="ac-rtext" data-es="El rol Gerente también puede leer la wiki pública.">The Manager role can read the public wiki too.</span>
+            </div>
+            <div class="ac-result" data-role="manager" data-res="payroll" hidden>
+              <span class="ac-badge allow" data-es="PERMITIR">ALLOW</span>
+              <span class="ac-rtext" data-es="El rol Gerente puede leer y aprobar la nómina de su equipo.">The Manager role can read and approve payroll for their team.</span>
+            </div>
+            <div class="ac-result" data-role="auditor" data-res="wiki" hidden>
+              <span class="ac-badge allow" data-es="PERMITIR">ALLOW</span>
+              <span class="ac-rtext" data-es="El rol Auditor puede leer la wiki pública.">The Auditor role can read the public wiki.</span>
+            </div>
+            <div class="ac-result" data-role="auditor" data-res="payroll" hidden>
+              <span class="ac-badge allow" data-es="PERMITIR (solo lectura)">ALLOW (read-only)</span>
+              <span class="ac-rtext" data-es="El rol Auditor puede inspeccionar la nómina para cumplimiento, pero no puede aprobarla.">The Auditor role can inspect payroll for compliance, but cannot approve it.</span>
+            </div>
+          </div>
+          <p class="ac-decision-note" data-es="Cambia el rol o el recurso: la decisión depende del <strong>rol activo</strong>, no de la persona — esa es la idea central del RBAC.">Change the role or resource: the decision depends on the <strong>active role</strong>, not the person — that's RBAC's central idea.</p>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -679,7 +816,7 @@
   <span class="course" data-es="TC2007B · S2 · C2 — Control de acceso">TC2007B · W2 · L2 — Access Control</span>
   <span class="right">
     <span class="sec-name" id="secName">Orientation</span>
-    <span class="counter"><span id="cur">1</span> / <span id="total">35</span></span>
+    <span class="counter"><span id="cur">1</span> / <span id="total">36</span></span>
   </span>
 </footer>
 
@@ -719,5 +856,50 @@
 </div>
 
 <script src="script.js"></script>
+<script>
+  /* Added interactive: access-control model explorer — DAC/MAC/RBAC/ABAC tabs + RBAC decision demo; engine handles i18n/theme */
+  (function () {
+    var wrap = document.querySelector('.ac-explorer');
+    if (!wrap) return;
+
+    // Model tabs
+    var tabs = wrap.querySelectorAll('.ac-tab');
+    var panels = wrap.querySelectorAll('.ac-modelpanel');
+    function selectModel(model) {
+      tabs.forEach(function (t) { t.classList.toggle('active', t.dataset.model === model); });
+      panels.forEach(function (p) { p.hidden = (p.dataset.model !== model); });
+    }
+    tabs.forEach(function (t) {
+      t.addEventListener('click', function (e) { e.stopPropagation(); selectModel(t.dataset.model); });
+    });
+
+    // RBAC decision demo
+    var roleBtns = wrap.querySelectorAll('.ac-role-btn');
+    var resBtns  = wrap.querySelectorAll('.ac-res-btn');
+    var results  = wrap.querySelectorAll('.ac-result');
+    var curRole = 'employee', curRes = 'wiki';
+    function updateResult() {
+      results.forEach(function (r) {
+        r.hidden = !(r.dataset.role === curRole && r.dataset.res === curRes);
+      });
+    }
+    roleBtns.forEach(function (b) {
+      b.addEventListener('click', function (e) {
+        e.stopPropagation();
+        curRole = b.dataset.role;
+        roleBtns.forEach(function (x) { x.classList.toggle('active', x === b); });
+        updateResult();
+      });
+    });
+    resBtns.forEach(function (b) {
+      b.addEventListener('click', function (e) {
+        e.stopPropagation();
+        curRes = b.dataset.res;
+        resBtns.forEach(function (x) { x.classList.toggle('active', x === b); });
+        updateResult();
+      });
+    });
+  })();
+</script>
 </body>
 </html>
