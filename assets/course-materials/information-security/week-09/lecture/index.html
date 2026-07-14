@@ -78,6 +78,45 @@
 .deftable td { border:1px solid var(--line); padding:.55rem .85rem; vertical-align:top; }
 .deftable td:first-child { font-weight:800; color:var(--ink); background:var(--bg-2); white-space:nowrap; }
 .deftable tr:hover { background: rgba(78,161,255,.05); }
+
+/* Added interactive: malware-type explorer (self-contained, theme-aware) */
+.mal-explorer { margin-top: 1.2rem; }
+.mal-tabs { display:flex; flex-wrap:wrap; gap:.6rem; justify-content:center; }
+.mal-tab {
+  font:inherit; font-weight:800; cursor:pointer; padding:.6rem 1.15rem; border-radius:999px;
+  border:2px solid var(--line,#2c3f5e); background:var(--bg-2,#122036); color:var(--ink,#eef4ff);
+  display:flex; align-items:center; gap:.45rem; font-size:clamp(.8rem,1.3vw,1rem);
+  transition:transform .15s ease, border-color .15s ease, background .15s ease;
+}
+.mal-tab .ico { font-size:1.15em; line-height:1; }
+.mal-tab:hover { transform:translateY(-2px); }
+.mal-tab.active { border-color:var(--accent,#4ea1ff); background:rgba(78,161,255,.12); box-shadow:0 6px 18px rgba(0,0,0,.18); }
+.mal-tab[data-type="virus"].active      { border-color:var(--danger,#ff6b6b); background:rgba(255,107,107,.1); }
+.mal-tab[data-type="worm"].active       { border-color:var(--warn,#ffb454); background:rgba(255,180,84,.1); }
+.mal-tab[data-type="trojan"].active     { border-color:var(--violet,#b18cff); background:rgba(177,140,255,.1); }
+.mal-tab[data-type="ransomware"].active { border-color:var(--accent,#4ea1ff); background:rgba(78,161,255,.1); }
+.mal-tab[data-type="botnet"].active     { border-color:var(--good,#5fe08a); background:rgba(95,224,138,.1); }
+.mal-panels { margin-top:1.1rem; }
+.mal-panel { border:1px solid var(--line,#2c3f5e); border-radius:16px; padding:1.05rem 1.3rem; background:var(--bg-2,#122036); }
+.mal-panel h3 { margin:0 0 .7rem; font-size: var(--fs-lead, 1.4rem); }
+.mal-row { display:flex; gap:.8rem; align-items:flex-start; margin-top:.65rem; }
+.mal-row:first-of-type { margin-top:0; }
+.mal-row .mal-lbl {
+  flex:0 0 auto; min-width:9.5ch; font-size:.68rem; font-weight:800; letter-spacing:.05em;
+  text-transform:uppercase; padding:.25rem .6rem; border-radius:999px; border:1px solid currentColor; text-align:center;
+}
+.mal-row .mal-lbl.spread   { color:var(--accent-2,#38d6c0); }
+.mal-row .mal-lbl.damage   { color:var(--danger,#ff6b6b); }
+.mal-row .mal-lbl.example  { color:var(--warn,#ffb454); }
+.mal-row .mal-lbl.defense  { color:var(--good,#5fe08a); }
+.mal-row .mal-txt { color:var(--ink-soft,#aebfd6); font-size: var(--fs-body, 1rem); line-height:1.5; }
+.mal-keydist { display:flex; gap:.7rem; flex-wrap:wrap; justify-content:center; margin-top:1.1rem; }
+.mal-keydist .chip {
+  background:var(--bg-3,#1b2c47); border:1px solid var(--line,#2c3f5e); border-radius:10px;
+  padding:.5rem .8rem; font-size: var(--fs-small, .9rem); color:var(--ink-soft,#aebfd6); max-width:26ch;
+}
+.mal-keydist .chip b { color:var(--ink,#eef4ff); }
+@media (max-width:760px) { .mal-row { flex-direction:column; gap:.25rem; } .mal-row .mal-lbl { min-width:0; } }
 </style>
 </head>
 <body>
@@ -226,6 +265,73 @@
         </div>
       </div>
       <div class="callout note" style="margin-top:.9rem"><span class="tag" data-es="Terminología moderna">Modern term</span><p data-es="Hoy el «trap door» se llama casi siempre <strong>backdoor</strong> (puerta trasera). Aparecen tanto introducidas por atacantes como dejadas (a veces sin querer) por los propios desarrolladores.">Today the "trap door" is almost always called a <strong>backdoor</strong>. They appear both as attacker-introduced entry points and as (sometimes accidental) developer-left ones.</p></div>
+    </div>
+  </section>
+
+  <!-- S7b — Interactive malware-type explorer (ADDED: side-by-side comparison before the deep dives) -->
+  <section class="slide" data-section="Classification" data-section-es="Clasificación">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Explóralo tú mismo"><span class="dot"></span>Explore it yourself</span>
+      <h2 data-es="El explorador de tipos de malware — toca cada uno">The malware-type explorer — tap each one</h2>
+      <p class="lead" style="max-width:58ch" data-es="Antes de profundizar sección por sección, compáralos lado a lado: cómo se propaga cada tipo, qué daño hace, un ejemplo real y su defensa principal.">Before we go deep section by section, compare them side by side: how each one spreads, what damage it does, a real example, and its main defense.</p>
+      <div class="mal-explorer">
+        <div class="mal-tabs">
+          <button type="button" class="mal-tab active" data-type="virus" data-es="<span class='ico'>🦠</span>Virus"><span class="ico">🦠</span>Virus</button>
+          <button type="button" class="mal-tab" data-type="worm" data-es="<span class='ico'>🪱</span>Gusano"><span class="ico">🪱</span>Worm</button>
+          <button type="button" class="mal-tab" data-type="trojan" data-es="<span class='ico'>🎁</span>Troyano"><span class="ico">🎁</span>Trojan</button>
+          <button type="button" class="mal-tab" data-type="ransomware" data-es="<span class='ico'>🔒</span>Ransomware"><span class="ico">🔒</span>Ransomware</button>
+          <button type="button" class="mal-tab" data-type="botnet" data-es="<span class='ico'>🤖</span>Botnet"><span class="ico">🤖</span>Botnet</button>
+        </div>
+        <div class="mal-panels">
+
+          <div class="mal-panel" data-type="virus">
+            <h3 data-es="Virus — necesita un anfitrión, te necesita a ti">Virus — needs a host, needs you</h3>
+            <div class="mal-row"><span class="mal-lbl spread" data-es="Se propaga">Spreads via</span><span class="mal-txt" data-es="Se incrusta dentro de un programa o documento anfitrión. No puede ejecutarse por sí solo — un usuario debe abrir o ejecutar el anfitrión infectado para que el virus se active.">Embeds itself inside a host program or document. It cannot run on its own — a user must open or run the infected host for the virus to activate.</span></div>
+            <div class="mal-row"><span class="mal-lbl damage" data-es="Daño">Damage</span><span class="mal-txt" data-es="Ejecuta su carga útil (payload) al activarse — corrompe, borra o altera archivos y datos en el sistema anfitrión (el paso <code>do_damage()</code> que vimos en el pseudocódigo del virus).">Runs its payload once triggered — corrupting, deleting, or altering files and data on the host system (the <code>do_damage()</code> step we saw in the virus pseudocode).</span></div>
+            <div class="mal-row"><span class="mal-lbl example" data-es="Ejemplo real">Real example</span><span class="mal-txt" data-es="<strong>Melissa (1999)</strong> — un virus de macro que se propagó como un documento de Word infectado, enviándose por correo a los contactos de la víctima al abrirse."><strong>Melissa (1999)</strong> — a macro virus that spread as an infected Word document, emailing itself to a victim's contacts once opened.</span></div>
+            <div class="mal-row"><span class="mal-lbl defense" data-es="Defensa">Main defense</span><span class="mal-txt" data-es="Antivirus por firmas/heurística, macros desactivadas por defecto, mantener el software parchado y no abrir adjuntos no confiables.">Signature/heuristic antivirus scanning, macros disabled by default, keeping software patched, and not opening untrusted attachments.</span></div>
+          </div>
+
+          <div class="mal-panel" data-type="worm" hidden>
+            <h3 data-es="Gusano — sin anfitrión, sin necesidad de clic">Worm — no host, no click needed</h3>
+            <div class="mal-row"><span class="mal-lbl spread" data-es="Se propaga">Spreads via</span><span class="mal-txt" data-es="Se autopropaga: escanea activamente la red en busca de máquinas vulnerables y las explota directamente — no necesita un archivo anfitrión ni acción del usuario.">Self-propagates: actively scans the network for vulnerable machines and exploits them directly — no host file and no user action required.</span></div>
+            <div class="mal-row"><span class="mal-lbl damage" data-es="Daño">Damage</span><span class="mal-txt" data-es="Consume ancho de banda y recursos del sistema a gran escala, y a menudo deja una carga útil adicional (p. ej. ransomware) en cada máquina que alcanza.">Consumes network bandwidth and system resources at scale, and often drops a further payload (e.g. ransomware) on every machine it reaches.</span></div>
+            <div class="mal-row"><span class="mal-lbl example" data-es="Ejemplo real">Real example</span><span class="mal-txt" data-es="<strong>WannaCry (2017)</strong> — usó el exploit <em>EternalBlue</em> para propagarse por todo el mundo en horas, completamente por su cuenta."><strong>WannaCry (2017)</strong> — used the <em>EternalBlue</em> exploit to spread worldwide in hours, entirely on its own.</span></div>
+            <div class="mal-row"><span class="mal-lbl defense" data-es="Defensa">Main defense</span><span class="mal-txt" data-es="Gestión de parches (la falla que usó WannaCry ya tenía parche disponible), segmentación de red y detección/prevención de intrusiones.">Patch management (the flaw WannaCry used already had a patch available), network segmentation, and intrusion detection/prevention.</span></div>
+          </div>
+
+          <div class="mal-panel" data-type="trojan" hidden>
+            <h3 data-es="Troyano — disfraz, no replicación">Trojan — disguise, not replication</h3>
+            <div class="mal-row"><span class="mal-lbl spread" data-es="Se propaga">Spreads via</span><span class="mal-txt" data-es="Se disfraza de algo útil o legítimo. No se autorreplica — depende por completo de engañar a un usuario para que lo instale o ejecute.">Disguises itself as something useful or legitimate. It does not self-replicate — it relies entirely on tricking a user into installing or running it.</span></div>
+            <div class="mal-row"><span class="mal-lbl damage" data-es="Daño">Damage</span><span class="mal-txt" data-es="Una vez ejecutado, realiza una función maliciosa oculta — una puerta trasera, robo de credenciales, o actuar como un <em>loader</em> que descarga más malware.">Once run, it performs a hidden malicious function — a backdoor, credential theft, or acting as a <em>loader</em> that downloads further malware.</span></div>
+            <div class="mal-row"><span class="mal-lbl example" data-es="Ejemplo real">Real example</span><span class="mal-txt" data-es="<strong>Emotet</strong> — comenzó como un troyano bancario oculto en adjuntos de correo con facturas falsas, y luego evolucionó en una plataforma de distribución de malware."><strong>Emotet</strong> — began as a banking trojan hidden in fake-invoice email attachments, later evolving into a malware-delivery platform.</span></div>
+            <div class="mal-row"><span class="mal-lbl defense" data-es="Defensa">Main defense</span><span class="mal-txt" data-es="Formación en concienciación del usuario, filtrado de adjuntos de correo, listas de aplicaciones permitidas y verificar la fuente del software antes de instalar.">User-awareness training, email-attachment filtering, application allow-listing, and verifying software sources before installing.</span></div>
+          </div>
+
+          <div class="mal-panel" data-type="ransomware" hidden>
+            <h3 data-es="Ransomware — secuestro con fines de lucro">Ransomware — hostage-taking for profit</h3>
+            <div class="mal-row"><span class="mal-lbl spread" data-es="Se propaga">Spreads via</span><span class="mal-txt" data-es="Obtiene el acceso inicial mediante phishing, un puerto de escritorio remoto (RDP) expuesto, o una vulnerabilidad explotada — luego se mueve por la red como otro malware.">Gains initial access via phishing, an exposed remote-desktop (RDP) port, or an exploited vulnerability — then moves through the network like other malware.</span></div>
+            <div class="mal-row"><span class="mal-lbl damage" data-es="Daño">Damage</span><span class="mal-txt" data-es="Cifra los archivos de la víctima y, en la extorsión doble/triple, primero exfiltra los datos — luego exige un pago a cambio de la clave de descifrado.">Encrypts the victim's files and, in double/triple extortion, exfiltrates data first — then demands a payment for the decryption key.</span></div>
+            <div class="mal-row"><span class="mal-lbl example" data-es="Ejemplo real">Real example</span><span class="mal-txt" data-es="<strong>LockBit / Conti</strong> — grandes operaciones de Ransomware como Servicio (RaaS), con sus propios sitios de filtración (leak-sites)."><strong>LockBit / Conti</strong> — large Ransomware-as-a-Service (RaaS) operations, complete with their own leak-sites.</span></div>
+            <div class="mal-row"><span class="mal-lbl defense" data-es="Defensa">Main defense</span><span class="mal-txt" data-es="Copias de seguridad sin conexión/inmutables, un plan de respuesta a incidentes probado, y prevención — ya que pagar el rescate se desaconseja firmemente.">Offline/immutable backups, a tested incident-response plan, and prevention — since paying the ransom is strongly discouraged.</span></div>
+          </div>
+
+          <div class="mal-panel" data-type="botnet" hidden>
+            <h3 data-es="Botnet — un ejército bajo un solo mando">Botnet — an army under one command</h3>
+            <div class="mal-row"><span class="mal-lbl spread" data-es="Se propaga">Spreads via</span><span class="mal-txt" data-es="Recluta máquinas mediante otro malware (gusanos, troyanos) o credenciales débiles/por defecto en dispositivos IoT, incorporando cada una a un ejército de bots.">Recruits machines through other malware (worms, trojans) or default/weak credentials on IoT devices, enrolling each one into a bot army.</span></div>
+            <div class="mal-row"><span class="mal-lbl damage" data-es="Daño">Damage</span><span class="mal-txt" data-es="Ejecuta ataques coordinados a gran escala — DDoS, spam, clickfraud, robo de credenciales — todos dirigidos remotamente mediante mando y control (C&amp;C).">Runs coordinated attacks at scale — DDoS, spam, click fraud, credential theft — all directed remotely through command-and-control (C&amp;C).</span></div>
+            <div class="mal-row"><span class="mal-lbl example" data-es="Ejemplo real">Real example</span><span class="mal-txt" data-es="<strong>Mirai (2016)</strong> — reclutó cientos de miles de dispositivos IoT con contraseñas por defecto para lanzar ataques DDoS récord."><strong>Mirai (2016)</strong> — recruited hundreds of thousands of IoT devices with default passwords to launch record-breaking DDoS attacks.</span></div>
+            <div class="mal-row"><span class="mal-lbl defense" data-es="Defensa">Main defense</span><span class="mal-txt" data-es="Cambiar las credenciales por defecto, monitorizar el tráfico de C&amp;C y dominios DGA, endurecer los dispositivos IoT, y desmantelar la infraestructura de C&amp;C.">Changing default credentials, monitoring for C&amp;C traffic and DGA domains, IoT hardening, and takedown of C&amp;C infrastructure.</span></div>
+          </div>
+
+        </div>
+      </div>
+      <div class="mal-keydist">
+        <div class="chip" data-es="<b>Virus</b> → necesita un anfitrión y que el usuario lo ejecute."><b>Virus</b> → needs a host + a user to run it.</div>
+        <div class="chip" data-es="<b>Gusano</b> → se autopropaga por la red, sin acción del usuario."><b>Worm</b> → self-propagates over the network, no user action.</div>
+        <div class="chip" data-es="<b>Troyano</b> → se disfraza de algo útil; el usuario debe ser engañado para ejecutarlo."><b>Trojan</b> → disguises itself as useful; the user must be tricked into running it.</div>
+      </div>
+      <p class="figure-note" data-es="Ejemplos históricos ampliamente documentados en la prensa especializada e informes de seguridad; se incluyen para anclar cada tipo a un caso real, no como cifras exactas verificadas.">Historical examples widely documented in security press and reports; included to anchor each type to a real case, not as precisely-verified figures.</p>
     </div>
   </section>
 
@@ -901,6 +1007,7 @@
         <div class="card danger-top"><h3 data-es="Drive-by-downloads">Drive-by downloads</h3><p data-es="Explota vulnerabilidades del navegador/plugins: con solo visitar una página controlada por el atacante se descarga e instala malware sin el conocimiento del usuario. No se propaga solo como un gusano.">Exploits browser/plugin vulnerabilities: merely viewing an attacker-controlled page downloads and installs malware without the user's knowledge. Doesn't self-propagate like a worm.</p></div>
         <div class="card accent-top"><h3 data-es="Watering-hole">Watering-hole</h3><p data-es="Variante dirigida del drive-by: el atacante compromete un sitio que su víctima objetivo suele visitar y espera. El código puede infectar solo a los sistemas de la organización objetivo.">A targeted drive-by variant: the attacker compromises a site the target victim is likely to visit, then waits. The code may infect only the target organization's systems.</p></div>
       </div>
+      <div class="callout discuss" style="margin-top:.9rem"><span class="tag" data-es="Analogía">Analogy</span><p data-es="Un drive-by-download es como pescar con una red enorme en aguas públicas: atrapa a cualquiera que pase. Un watering-hole es pescar con una trampa cebada junto al único pozo de agua que visita el pez que quieres — mucho más selectivo, mucho más paciente.">A drive-by download is like fishing with a huge net in public waters: it catches whoever swims by. A watering-hole attack is fishing with a baited trap next to the one watering hole your specific target visits — far more selective, far more patient.</p></div>
     </div>
   </section>
 
@@ -1012,6 +1119,7 @@
           </ul>
         </div>
       </div>
+      <div class="callout note" style="margin-top:.9rem"><span class="tag" data-es="Analogía">Analogy</span><p data-es="El análisis estático es como leer la receta de un platillo para imaginar a qué sabrá, sin encenderla estufa. El análisis dinámico es cocinarlo de verdad y probarlo — más certeza sobre el resultado, pero solo después de haberlo hecho.">Static analysis is like reading a recipe to imagine how a dish will taste, without ever turning on the stove. Dynamic analysis is actually cooking it and tasting the result — more certainty about the outcome, but only after you've made it.</p></div>
     </div>
   </section>
 
@@ -1132,5 +1240,21 @@
 </div>
 
 <script src="script.js"></script>
+<script>
+  /* Added interactive: malware-type explorer — toggles panels; engine handles i18n/theme */
+  (function () {
+    var wrap = document.querySelector('.mal-explorer');
+    if (!wrap) return;
+    var tabs = wrap.querySelectorAll('.mal-tab');
+    var panels = wrap.querySelectorAll('.mal-panel');
+    function select(type) {
+      tabs.forEach(function (t) { t.classList.toggle('active', t.dataset.type === type); });
+      panels.forEach(function (p) { p.hidden = (p.dataset.type !== type); });
+    }
+    tabs.forEach(function (t) {
+      t.addEventListener('click', function (e) { e.stopPropagation(); select(t.dataset.type); });
+    });
+  })();
+</script>
 </body>
 </html>
