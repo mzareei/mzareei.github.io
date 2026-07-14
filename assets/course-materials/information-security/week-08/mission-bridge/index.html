@@ -10,6 +10,97 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../week-01/mission-01/style.css">
 <link rel="stylesheet" href="style.css">
+<style>
+  .w8case-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+    margin-top: 0.75rem;
+  }
+  .w8case-item {
+    border: 1px solid var(--line, #30465f);
+    border-radius: 12px;
+    padding: 0.95rem;
+    background: var(--panel-2, #203247);
+  }
+  .w8case-item h3 {
+    margin-bottom: 0.4rem;
+    color: var(--teal, #35d0bf);
+    font-size: 1.05rem;
+  }
+  .w8case-item p {
+    margin: 0 0 0.6rem;
+    color: var(--muted, #aebed0);
+    font-size: 0.94rem;
+    line-height: 1.5;
+  }
+  .w8case-item p:last-child {
+    margin-bottom: 0;
+  }
+  .w8case-lesson {
+    color: var(--ink, #f2f7ff) !important;
+    border-left: 3px solid var(--warn, #ffbd5a);
+    padding-left: 0.65rem;
+  }
+  @media (max-width: 820px) {
+    .w8case-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .w8viz-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0.85rem 0;
+  }
+  .w8viz-btn.is-active {
+    border-color: var(--accent, #48a3ff);
+    background: var(--panel, #172331);
+    box-shadow: 0 0 0 3px rgba(72, 163, 255, 0.18);
+  }
+  .w8viz-result {
+    border: 1px solid var(--line, #30465f);
+    border-radius: 12px;
+    padding: 0.95rem 1rem;
+    background: var(--panel-2, #203247);
+  }
+  .w8viz-verdict {
+    display: inline-block;
+    margin-bottom: 0.5rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+    color: var(--muted, #aebed0);
+    background: var(--panel, #172331);
+    font-weight: 900;
+    font-size: 0.85rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+  .w8viz-verdict.w8viz-good {
+    color: #06111f;
+    background: var(--good, #5fe08a);
+  }
+  .w8viz-verdict.w8viz-danger {
+    color: #06111f;
+    background: var(--danger, #ff6d6d);
+  }
+  .w8viz-verdict.w8viz-warn {
+    color: #06111f;
+    background: var(--warn, #ffbd5a);
+  }
+  .w8viz-reason {
+    margin: 0;
+    color: var(--ink, #f2f7ff);
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+  .w8viz-note {
+    margin-top: 0.7rem;
+    color: var(--muted, #aebed0);
+    font-size: 0.85rem;
+  }
+</style>
 </head>
 <body>
 <main class="mission-shell">
@@ -53,6 +144,36 @@
     <p class="feedback" id="downgradeFeedback" aria-live="polite"></p>
   </section>
 
+  <section class="mission-card w8case-card">
+    <span class="eyebrow">Field report</span>
+    <h2>This happened for real</h2>
+    <p class="lead">Two incidents show what breaks when the parts of a secure channel fail: the trust chain, and the library underneath it.</p>
+    <div class="w8case-grid">
+      <article class="w8case-item">
+        <h3>DigiNotar (2011)</h3>
+        <p>Attackers breached the Dutch certificate authority DigiNotar and issued fraudulent certificates for domains including *.google.com. Those forged certificates were used to intercept and monitor Gmail traffic for internet users in Iran, undetected for weeks.</p>
+        <p class="w8case-lesson"><strong>Lesson:</strong> certificate trust depends on the entire chain, not just a site's own configuration &mdash; one compromised CA can undermine every certificate it ever issued. Browsers eventually revoked all trust in DigiNotar, and the company was declared bankrupt within months.</p>
+      </article>
+      <article class="w8case-item">
+        <h3>Heartbleed (2014)</h3>
+        <p>A memory-handling bug in OpenSSL, the TLS library running a large share of the web's HTTPS servers, let attackers repeatedly pull small chunks of server memory &mdash; sometimes including private keys, session cookies, and passwords &mdash; with no trace left in normal logs.</p>
+        <p class="w8case-lesson"><strong>Lesson:</strong> a flaw in the software implementing the channel breaks every guarantee built on top of it. A perfectly issued, perfectly trusted certificate cannot protect you if the encryption library underneath is broken.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="mission-card w8viz-card">
+    <span class="eyebrow">Try it</span>
+    <h2>Certificate inspector</h2>
+    <p class="lead">Pick a certificate situation and see the verdict a browser would show, with the reason behind it.</p>
+    <div class="w8viz-buttons" id="w8vizButtons"></div>
+    <div class="w8viz-result" id="w8vizResult">
+      <span class="w8viz-verdict" id="w8vizVerdict">Select a situation above</span>
+      <p class="w8viz-reason" id="w8vizReason">The verdict and the browser's reasoning will appear here once you pick one.</p>
+    </div>
+    <p class="w8viz-note">Real browsers also use a middle &ldquo;Warn&rdquo; tier for weaker-but-not-broken setups, such as outdated protocol versions or mixed HTTP/HTTPS content &mdash; not shown here, since this inspector focuses on certificate trust itself.</p>
+  </section>
+
   <section class="completion-panel">
     <span class="eyebrow">Debrief</span>
     <h2>A secure channel proves who and protects what</h2>
@@ -65,5 +186,68 @@
   </section>
 </main>
 <script src="script.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var buttonsEl = document.getElementById("w8vizButtons");
+  var verdictEl = document.getElementById("w8vizVerdict");
+  var reasonEl = document.getElementById("w8vizReason");
+  var resultEl = document.getElementById("w8vizResult");
+  if (!buttonsEl || !verdictEl || !reasonEl || !resultEl) return;
+
+  var scenarios = [
+    {
+      label: "Valid & trusted",
+      verdict: "Trust",
+      tone: "good",
+      reason: "The chain leads to a trusted root, the hostname matches exactly, and the certificate is inside its validity window — the browser shows a normal padlock with no interruption."
+    },
+    {
+      label: "Expired certificate",
+      verdict: "Block",
+      tone: "danger",
+      reason: "The certificate is outside its valid date range. Modern browsers show a full-page “your connection is not private” warning and require an explicit click-through to continue."
+    },
+    {
+      label: "Self-signed",
+      verdict: "Block",
+      tone: "danger",
+      reason: "No trusted third party vouches for this certificate, so the browser cannot confirm who controls the site. It produces the same hard-block interstitial as an untrusted CA."
+    },
+    {
+      label: "Wrong domain (hostname mismatch)",
+      verdict: "Block",
+      tone: "danger",
+      reason: "The certificate may be perfectly valid for a different site, but it was not issued for the hostname you are visiting, so identity cannot be confirmed here."
+    },
+    {
+      label: "Issued by an untrusted CA",
+      verdict: "Block",
+      tone: "danger",
+      reason: "The chain does not lead back to an authority in the browser's trusted root store, so the whole chain of trust fails even if every other detail is correct."
+    }
+  ];
+
+  scenarios.forEach(function (scenario) {
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "choice w8viz-btn";
+    btn.textContent = scenario.label;
+    btn.addEventListener("click", function () {
+      var allButtons = buttonsEl.querySelectorAll(".w8viz-btn");
+      for (var i = 0; i < allButtons.length; i++) {
+        allButtons[i].classList.remove("is-active");
+      }
+      btn.classList.add("is-active");
+      verdictEl.textContent = scenario.verdict;
+      verdictEl.className = "w8viz-verdict w8viz-" + scenario.tone;
+      reasonEl.textContent = scenario.reason;
+      resultEl.dataset.tone = scenario.tone;
+    });
+    buttonsEl.appendChild(btn);
+  });
+})();
+</script>
 </body>
 </html>

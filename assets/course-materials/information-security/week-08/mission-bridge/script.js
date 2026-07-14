@@ -10,14 +10,16 @@
     ["The certificate is valid but issued for portal.example.com while you are visiting bank.example.com.", "Identity failure", "The browser cannot prove this is the intended site."],
     ["The certificate expired yesterday.", "Freshness / validity failure", "The certificate is outside the time window where it should be trusted."],
     ["The certificate chain ends at an authority the device does not trust.", "Issuer trust failure", "A chain must lead to a trusted authority or configured trust anchor."],
-    ["The certificate is valid, current, and matches the hostname.", "Trust checks pass", "That does not guarantee the app is bug-free, but the channel identity checks pass."]
+    ["The certificate is valid, current, and matches the hostname.", "Trust checks pass", "That does not guarantee the app is bug-free, but the channel identity checks pass."],
+    ["A certificate authority is later found to have been compromised and is removed from trusted root stores; a certificate it issued still shows that CA as the issuer.", "Issuer trust failure", "Once a CA loses trust, every certificate that traces back to it loses its foundation, even if the certificate itself looks otherwise correct."]
   ], ["Identity failure", "Freshness / validity failure", "Issuer trust failure", "Trust checks pass"]);
 
   renderChallenge("channelChallenge", "channels", [
     ["Protect a web login from passive network sniffing.", "HTTPS / TLS", "TLS encrypts the connection and authenticates the site."],
     ["Give a remote worker encrypted access to internal-only services.", "VPN or zero-trust access gateway", "Remote private access needs authenticated encrypted access into a protected environment."],
     ["Stop a browser from silently falling back to HTTP.", "HSTS", "HSTS tells browsers to use HTTPS only for that site."],
-    ["Restrict which public certificate authorities can issue for a domain.", "Certificate transparency and monitoring", "Monitoring public logs helps catch unexpected certificates."]
+    ["Restrict which public certificate authorities can issue for a domain.", "Certificate transparency and monitoring", "Monitoring public logs helps catch unexpected certificates."],
+    ["Detect early that a certificate was issued for your domain without your team requesting it.", "Certificate transparency and monitoring", "Public CT logs let domain owners watch for certificates they never asked for, catching a rogue or compromised CA before it does damage."]
   ], ["HTTPS / TLS", "VPN or zero-trust access gateway", "HSTS", "Certificate transparency and monitoring"]);
 
   renderChoiceSet("downgradeChoices", "downgradeCorrect", [
