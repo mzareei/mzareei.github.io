@@ -85,6 +85,26 @@
 .holes { display:flex; gap:.5rem; margin-top:1rem; flex-wrap:wrap; }
 .hole { flex:1; min-width:3rem; background: var(--bg-2); border:1.5px solid var(--line); border-radius:10px; padding:.6rem .3rem; text-align:center; font-size:1.6rem; }
 .hole.full { border-color: var(--danger); background: rgba(255,107,107,.08); }
+
+/* Added interactive: hash avalanche-effect live demo (self-contained, theme-aware) */
+.hash-avalanche { margin-top: 1.3rem; }
+.hash-av-label { display:block; font-size: var(--fs-small); color: var(--ink-soft); margin-bottom:.4rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
+.hash-av-input { width:100%; box-sizing:border-box; font-family: var(--mono); font-size: clamp(1rem,2vw,1.3rem); color: var(--ink); background: var(--bg-2); border:2px solid var(--line); border-radius:12px; padding:.65rem .9rem; outline:none; transition: border-color .15s ease; }
+.hash-av-input:focus { border-color: var(--accent); }
+.hash-av-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:1rem; }
+.hash-av-box { background: var(--bg-3); border:1px solid var(--line); border-radius:14px; padding:.9rem 1.05rem; overflow:hidden; }
+.hash-av-box.alt { border-color: var(--violet); }
+.hash-av-tag { display:block; font-size: var(--fs-small); font-weight:800; color: var(--ink-soft); margin-bottom:.4rem; }
+.hash-av-src { display:block; font-family: var(--mono); font-size: var(--fs-body); color: var(--accent); word-break: break-all; margin-bottom:.7rem; }
+.hash-av-box.alt .hash-av-src { color: var(--violet); }
+.hash-av-hlabel { display:block; font-size:.68rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color: var(--ink-soft); margin-bottom:.3rem; }
+.hash-av-digest { display:block; font-family: var(--mono); font-size: clamp(.68rem,1.5vw,.92rem); line-height:1.6; word-break: break-all; color: var(--ink-soft); }
+.hash-av-digest .hc.diff { color: var(--danger); font-weight:800; }
+.hash-av-stat { margin-top:1.1rem; display:flex; align-items:baseline; gap:.6rem; flex-wrap:wrap; background: var(--bg-2); border:1px solid var(--line); border-radius:12px; padding:.7rem 1rem; }
+.hash-av-stat-n { font-family: var(--mono); font-weight:900; font-size:clamp(1.6rem,3.5vw,2.2rem); color: var(--good); }
+.hash-av-stat-l { font-size: var(--fs-small); color: var(--ink-soft); }
+.hash-av-error { color: var(--danger); font-weight:700; }
+@media (max-width:760px) { .hash-av-grid { grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
@@ -175,6 +195,7 @@
         <blockquote data-es="Un <strong>nonce</strong> (R₁, R₂) es «una pregunta fresca y aleatoria que solo la verdadera Alice puede responder». Se usa una sola vez y nunca se repite.">A <strong>nonce</strong> (R₁, R₂) is "a fresh, random question that only the real Alice can answer." It is used exactly once and never repeats.</blockquote>
         <span class="src" data-es="nonce = «number used once»">nonce = "number used once"</span>
       </div>
+      <div class="callout discuss" style="margin-top:1rem"><span class="tag" data-es="Analogía cotidiana">Everyday analogy</span><p data-es="Es como demostrar que conoces el PIN de tu tarjeta sin decirlo en voz alta: el cajero automático te reta con una pantalla, tú «resuelves» el reto tecleando el PIN correcto, y el cajero verifica la respuesta — nunca escuchas ni transmites el PIN mismo.">It's like proving you know your debit card PIN without saying it out loud: the ATM challenges you with a screen, you "solve" the challenge by typing the correct PIN, and the ATM verifies the response — the PIN itself is never spoken or transmitted.</p></div>
     </div>
   </section>
 
@@ -632,6 +653,45 @@
     </div>
   </section>
 
+  <!-- Hash avalanche effect: interactive live demo (ADDED) -->
+  <section class="slide" data-section="Part 2 · Hashes" data-section-es="Parte 2 · Hashes">
+    <div class="slide-inner">
+      <span class="kicker" data-es="<span class='dot'></span>Pruébalo tú mismo"><span class="dot"></span>Try it yourself</span>
+      <h2 data-es="El efecto avalancha en vivo: SHA-256 mientras escribes">The avalanche effect, live: SHA-256 as you type</h2>
+      <p data-es="Escribe cualquier texto abajo. Tu navegador calcula el hash <strong>SHA-256</strong> real con la <span class='crypto'>Web Crypto API</span> — disponible aquí porque este sitio se sirve por <strong>HTTPS</strong> (esa API solo funciona en contextos seguros). La segunda caja muestra el hash de tu mismo texto con <strong>un solo carácter agregado al final</strong>.">Type any text below. Your browser computes the real <strong>SHA-256</strong> hash with the <span class="crypto">Web Crypto API</span> — available here because this site is served over <strong>HTTPS</strong> (that API only works in secure contexts). The second box shows the hash of your same text with <strong>just one character added at the end</strong>.</p>
+
+      <div class="hash-avalanche">
+        <label class="hash-av-label" for="hashAvInput" data-es="Tu texto (edítalo)">Your text (edit it)</label>
+        <input type="text" id="hashAvInput" class="hash-av-input" value="hello" autocomplete="off" spellcheck="false">
+
+        <div class="hash-av-grid">
+          <div class="hash-av-box">
+            <span class="hash-av-tag" data-es="Entrada A — tal cual la escribiste">Input A — exactly as typed</span>
+            <code class="hash-av-src" id="hashAvSrcA">hello</code>
+            <span class="hash-av-hlabel">SHA-256</span>
+            <code class="hash-av-digest" id="hashAvDigestA">…</code>
+          </div>
+          <div class="hash-av-box alt">
+            <span class="hash-av-tag" data-es="Entrada B — con un carácter extra («!») al final">Input B — with one extra character ("!") at the end</span>
+            <code class="hash-av-src" id="hashAvSrcB">hello!</code>
+            <span class="hash-av-hlabel">SHA-256</span>
+            <code class="hash-av-digest" id="hashAvDigestB">…</code>
+          </div>
+        </div>
+
+        <div class="hash-av-stat">
+          <span class="hash-av-stat-n" id="hashAvDiffPct">—</span>
+          <span class="hash-av-stat-l" data-es="de los caracteres hexadecimales del hash cambiaron por ese único carácter extra">of the hash's hex characters changed from that one extra character</span>
+        </div>
+      </div>
+
+      <div class="callout note" style="margin-top:1rem">
+        <span class="tag" data-es="Efecto avalancha">Avalanche effect</span>
+        <p data-es="Las dos entradas casi son idénticas — difieren en un solo carácter al final. Aun así, sus hashes no se parecen en nada: en promedio, <strong>la mitad</strong> de los bits de salida cambian cuando cambia un solo bit de entrada. Por eso un hash sirve para detectar manipulación: <strong>ningún cambio es «pequeño».</strong>">The two inputs are nearly identical — they differ by exactly one trailing character. Yet their hashes look nothing alike: on average, <strong>half</strong> of the output bits flip when a single input bit changes. This is exactly why a hash can detect tampering: <strong>no change is ever "small."</strong></p>
+      </div>
+    </div>
+  </section>
+
   <!-- Hash properties -->
   <section class="slide" data-section="Part 2 · Hashes" data-section-es="Parte 2 · Hashes">
     <div class="slide-inner">
@@ -793,6 +853,7 @@
         <li data-es="Desarrollado por <strong>NIST</strong>, en el Secure Hash Standard (originalmente 1993).">Developed by <strong>NIST</strong>, in the Secure Hash Standard (originally 1993).</li>
         <li data-es="<strong>SHA-1</strong> (1995): hash de 160 bits. <strong>SHA-2</strong> (2002): 256/384/512 bits, similar a SHA-1 en estructura."><strong>SHA-1</strong> (1995): 160-bit hash. <strong>SHA-2</strong> (2002): 256/384/512-bit, similar to SHA-1 in structure.</li>
       </ul>
+      <div class="callout note" style="margin-top:.8rem"><span class="tag" data-es="Dónde ya los has usado">Where you've already used these</span><p data-es="<strong>Git</strong> identifica cada commit con un hash (SHA-1 históricamente, migrando a SHA-256); <strong>Bitcoin</strong> encadena bloques con doble SHA-256; los certificados <strong>TLS</strong> se firman típicamente con SHA-256. No son solo teoría de examen."><strong>Git</strong> identifies every commit with a hash (SHA-1 historically, migrating to SHA-256); <strong>Bitcoin</strong> chains blocks together with double SHA-256; <strong>TLS</strong> certificates are typically signed with SHA-256. These aren't just exam theory.</p></div>
     </div>
   </section>
 
@@ -1048,5 +1109,81 @@
 </div>
 
 <script src="script.js"></script>
+<script>
+  /* Added interactive: hash avalanche-effect demo — live SHA-256 via Web Crypto API */
+  (function () {
+    var input = document.getElementById('hashAvInput');
+    if (!input) return;
+    var srcA = document.getElementById('hashAvSrcA');
+    var srcB = document.getElementById('hashAvSrcB');
+    var digA = document.getElementById('hashAvDigestA');
+    var digB = document.getElementById('hashAvDigestB');
+    var pctEl = document.getElementById('hashAvDiffPct');
+
+    var hasCrypto = !!(window.crypto && window.crypto.subtle && window.crypto.subtle.digest);
+    if (!hasCrypto) {
+      var msg = 'crypto.subtle unavailable here (Web Crypto needs HTTPS or localhost).';
+      if (digA) { digA.textContent = msg; digA.classList.add('hash-av-error'); }
+      if (digB) { digB.textContent = msg; digB.classList.add('hash-av-error'); }
+      return;
+    }
+
+    function sha256Hex(text) {
+      var bytes = new TextEncoder().encode(text);
+      return crypto.subtle.digest('SHA-256', bytes).then(function (buf) {
+        var arr = Array.from(new Uint8Array(buf));
+        return arr.map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+      });
+    }
+
+    function renderDigest(el, hex, diffIdx) {
+      if (!el) return;
+      el.innerHTML = '';
+      for (var i = 0; i < hex.length; i++) {
+        var span = document.createElement('span');
+        span.className = 'hc' + (diffIdx[i] ? ' diff' : '');
+        span.textContent = hex[i];
+        el.appendChild(span);
+      }
+    }
+
+    var seq = 0;
+    function update() {
+      var mySeq = ++seq;
+      var textA = input.value;
+      var textB = textA + '!';
+      if (srcA) srcA.textContent = textA.length ? textA : '(empty)';
+      if (srcB) srcB.textContent = textB;
+      Promise.all([sha256Hex(textA), sha256Hex(textB)]).then(function (res) {
+        if (mySeq !== seq) return; // a newer keystroke already superseded this request
+        var hexA = res[0], hexB = res[1];
+        var diffIdx = [], diffCount = 0;
+        for (var i = 0; i < hexA.length; i++) {
+          var d = hexA[i] !== hexB[i];
+          diffIdx[i] = d;
+          if (d) diffCount++;
+        }
+        renderDigest(digA, hexA, diffIdx);
+        renderDigest(digB, hexB, diffIdx);
+        if (pctEl) pctEl.textContent = Math.round((diffCount / hexA.length) * 100) + '%';
+      }).catch(function () {
+        if (mySeq !== seq) return;
+        if (digA) digA.textContent = 'error';
+        if (digB) digB.textContent = 'error';
+      });
+    }
+
+    ['input', 'keydown', 'keyup', 'click'].forEach(function (evt) {
+      input.addEventListener(evt, function (e) { e.stopPropagation(); if (evt === 'input') update(); });
+    });
+    var wrap = document.querySelector('.hash-avalanche');
+    if (wrap) wrap.addEventListener('click', function (e) { e.stopPropagation(); });
+
+    var langBtn = document.getElementById('langBtn');
+    if (langBtn) langBtn.addEventListener('click', function () { update(); });
+
+    update();
+  })();
+</script>
 </body>
 </html>
