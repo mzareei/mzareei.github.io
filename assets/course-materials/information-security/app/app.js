@@ -15,6 +15,7 @@ const els = {
   teacherNavigation: document.getElementById("teacherNavigation"),
   teacherNavToggle: document.getElementById("teacherNavToggle"),
   teacherNavClose: document.getElementById("teacherNavClose"),
+  teacherNavHome: document.getElementById("teacherNavHome"),
   teacherNavBackdrop: document.getElementById("teacherNavBackdrop"),
   accountMenuButton: document.getElementById("accountMenuButton"),
   accountPanel: document.getElementById("accountPanel"),
@@ -41,6 +42,7 @@ const els = {
 let currentSession = null;
 let currentContext = null;
 const mobileNavigationQuery = window.matchMedia("(max-width: 900px)");
+let navigationWasMobile = mobileNavigationQuery.matches;
 const teacherContextStorageKey = "tc2007b.teacher-context";
 const sendCooldownSeconds = 60;
 const sendCooldownStorageKey = "tc2007b.auth-send-cooldown";
@@ -186,14 +188,21 @@ function containTeacherNavigationFocus(event) {
 
 function syncTeacherNavigationAccessibility() {
   const isMobile = mobileNavigationQuery.matches;
+  const isOpen = isMobile && els.teacherNavToggle.getAttribute("aria-expanded") === "true";
+  if (navigationWasMobile && !isMobile && document.activeElement === els.teacherNavClose) {
+    els.teacherNavHome.focus();
+  } else if (!navigationWasMobile && isMobile && !isOpen
+      && els.teacherNavigation.contains(document.activeElement)) {
+    els.teacherNavToggle.focus();
+  }
   if (!isMobile) {
     els.teacherNavigation.classList.remove("is-open");
     els.teacherNavToggle.setAttribute("aria-expanded", "false");
   }
-  const isOpen = isMobile && els.teacherNavToggle.getAttribute("aria-expanded") === "true";
   els.teacherNavigation.toggleAttribute("inert", !isOpen && isMobile);
   els.teacherNavigation.setAttribute("aria-hidden", String(!isOpen && isMobile));
   els.teacherNavBackdrop.hidden = !isOpen;
+  navigationWasMobile = isMobile;
 }
 
 async function init() {
@@ -314,7 +323,7 @@ function roleCapabilities(context) {
     hasStudentRole: sections.some((section) => section.role === "student"),
     canTeach: memberships.some((membership) => {
       return ["platform_owner", "instructor", "teaching_assistant"].includes(membership.role);
-    }) || sections.some((section) => ["instructor", "teaching_assistant"].includes(section.role)),
+    }) || sections.some((section) => section.role === "teaching_assistant"),
     canAudit: courseInstructor,
     canManageCourse: courseInstructor
   };
@@ -550,11 +559,21 @@ function updateTeacherContextFromControls() {
 function renderTeacherContextLinks(session = selectedTeacherSession(currentContext || {})) {
   const context = selectedTeacherContext();
   if (!session) {
-    renderActionList(els.teacherContextLinks, [{
+    const capabilities = roleCapabilities(currentContext || {});
+    const emptyActions = context.sectionId ? [{
       label: "Manage Class Sessions",
       href: withTeacherContext("sessions.html", { courseId: context.courseId, sectionId: context.sectionId }),
       primary: true
-    }], "Manage class sessions to add a session for this teaching context.");
+    }] : capabilities.canManageCourse ? [{
+      label: "Course Sections",
+      href: withTeacherContext("sections.html", { courseId: context.courseId }),
+      primary: true
+    }] : [];
+    renderActionList(
+      els.teacherContextLinks,
+      emptyActions,
+      "A section assignment is required before class sessions are available."
+    );
     return;
   }
   const actions = [
@@ -569,7 +588,7 @@ function renderTeacherContextLinks(session = selectedTeacherSession(currentConte
   }
   const primaryLabel = session.state === "planned"
     ? "Prepare selected releases"
-    : session.state === "completed" && context.sectionId
+    : session.state === "closed" && context.sectionId
       ? "Review section gradebook"
       : "Manage selected session";
   const links = actions

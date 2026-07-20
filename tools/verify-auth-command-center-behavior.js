@@ -7,6 +7,8 @@ const root = path.resolve(__dirname, "..");
 const appPath = path.join(root, "assets/course-materials/information-security/app/app.js");
 const htmlPath = path.join(root, "assets/course-materials/information-security/app/index.html");
 const cssPath = path.join(root, "assets/course-materials/information-security/app/app.css");
+const migrationPath = path.join(root, "supabase/migrations/0004_authenticated_course_platform.sql");
+const orchestratorPath = path.join(root, "tools/verify-auth-command-center.js");
 
 class FakeClassList {
   constructor(element) {
@@ -196,7 +198,7 @@ function createHarness() {
   const ids = [
     "emailInput", "otpInput", "sendCodeBtn", "verifyCodeBtn", "signOutBtn", "refreshContextBtn",
     "appStatus", "signedOutPanel", "signedInPanel", "studentDashboard", "teacherDashboard",
-    "teacherNavigation", "teacherNavToggle", "teacherNavClose", "teacherNavBackdrop", "accountMenuButton",
+    "teacherNavigation", "teacherNavToggle", "teacherNavClose", "teacherNavHome", "teacherNavBackdrop", "accountMenuButton",
     "accountPanel", "enrollmentRequiredPanel", "currentSessionPanel", "identitySummary", "roleList",
     "sectionList", "releasedItems", "studentActions", "teacherActions", "teacherReleasedItems",
     "teacherReviewLinks", "teacherContextPanel", "currentSessionTitle", "currentSessionStatus",
@@ -215,7 +217,7 @@ function createHarness() {
 
   const navigation = document.getElementById("teacherNavigation");
   const close = document.getElementById("teacherNavClose");
-  const home = new FakeElement("a", document);
+  const home = document.getElementById("teacherNavHome");
   const last = new FakeElement("a", document);
   navigation._focusables = [close, home, last];
   close.parentElement = navigation;
@@ -291,6 +293,10 @@ test("capabilities distinguish student, section TA, course TA, instructor, and n
     { hasStudentRole: false, canTeach: true, canAudit: true, canManageCourse: true }
   );
   assert.deepStrictEqual(
+    { ...api.roleCapabilities({ sections: [{ role: "instructor", status: "active" }] }) },
+    { hasStudentRole: false, canTeach: false, canAudit: false, canManageCourse: false }
+  );
+  assert.deepStrictEqual(
     { ...api.roleCapabilities({}) },
     { hasStudentRole: false, canTeach: false, canAudit: false, canManageCourse: false }
   );
@@ -336,9 +342,18 @@ test("account trigger uses the returned preferred name and retains an accessible
 test("selected session renders one supported state-dependent primary action and contextual URLs", () => {
   const cases = [
     ["planned", "Prepare selected releases", "releases.html"],
+    ["open", "Manage selected session", "sessions.html"],
     ["live", "Manage selected session", "sessions.html"],
-    ["completed", "Review section gradebook", "gradebook.html"]
+    ["paused", "Manage selected session", "sessions.html"],
+    ["continued", "Manage selected session", "sessions.html"],
+    ["closed", "Review section gradebook", "gradebook.html"],
+    ["cancelled", "Manage selected session", "sessions.html"]
   ];
+  const migration = fs.readFileSync(migrationPath, "utf8");
+  const contract = migration.match(/state in \(('planned'[\s\S]*?'cancelled')\)/)[1]
+    .match(/'([^']+)'/g)
+    .map((state) => state.slice(1, -1));
+  assert.deepStrictEqual(cases.map(([state]) => state), contract);
   for (const [state, label, route] of cases) {
     const { api, document, localStorage } = createHarness();
     localStorage.setItem("tc2007b.teacher-context", JSON.stringify({ courseId: "tc2007b", sectionId: "section-a", sessionId: `session-${state}` }));
@@ -357,20 +372,38 @@ test("selected session renders one supported state-dependent primary action and 
   }
 });
 
-test("no-session state offers Manage Class Sessions and suppresses section review until a section exists", () => {
-  const { api, document, localStorage } = createHarness();
-  localStorage.setItem("tc2007b.teacher-context", JSON.stringify({ courseId: "tc2007b", sectionId: "", sessionId: "" }));
-  api.renderCurrentSession({ teacher_sessions: [] });
-  const sessionActions = links(document.getElementById("teacherContextLinks"));
-  assert.strictEqual(sessionActions.length, 1);
-  assert.strictEqual(sessionActions[0].textContent, "Manage Class Sessions");
-  assert(sessionActions[0].href.startsWith("sessions.html"));
-  api.renderTeacherSupport({ releases: [] });
-  assert.strictEqual(links(document.getElementById("teacherReviewLinks")).length, 0);
-  assert.match(document.getElementById("teacherReviewLinks").children[0].textContent, /Choose a section/);
+test("no-session actions distinguish assigned teachers, sectionless instructors, and unassigned TAs", () => {
+  const scenarios = [
+    [{
+      memberships: [{ role: "instructor", status: "active", course_id: "tc2007b" }],
+      sections: [{ id: "section-a", role: "instructor", status: "active", section_code: "A" }]
+    }, "Manage Class Sessions", "sessions.html", null],
+    [{ memberships: [{ role: "instructor", status: "active", course_id: "tc2007b" }], sections: [] },
+      "Course Sections", "sections.html", null],
+    [{ memberships: [{ role: "teaching_assistant", status: "active", course_id: "tc2007b" }], sections: [] },
+      null, null, /section assignment is required/i]
+  ];
+  for (const [partialContext, label, route, emptyPattern] of scenarios) {
+    const { api, document } = createHarness();
+    api.renderContext({ user: { email: "teacher@tec.mx" }, profile: {}, releases: [], teacher_sessions: [], ...partialContext });
+    const target = document.getElementById("teacherContextLinks");
+    const sessionActions = links(target);
+    if (label) {
+      assert.strictEqual(sessionActions.length, 1);
+      assert.strictEqual(sessionActions[0].textContent, label);
+      assert(sessionActions[0].href.startsWith(route));
+    } else {
+      assert.strictEqual(sessionActions.length, 0);
+      assert.match(target.children[0].textContent, emptyPattern);
+    }
+    api.renderTeacherSupport({ releases: [] });
+    if (!partialContext.sections.length) {
+      assert.strictEqual(links(document.getElementById("teacherReviewLinks")).length, 0);
+    }
+  }
 });
 
-test("mobile navigation moves focus in, traps Tab, closes from backdrop and outside click, and restores focus", () => {
+test("mobile navigation contains focus and moves it safely across responsive transitions", () => {
   const { api, document, mobileQuery } = createHarness();
   const navigation = document.getElementById("teacherNavigation");
   const toggle = document.getElementById("teacherNavToggle");
@@ -411,13 +444,21 @@ test("mobile navigation moves focus in, traps Tab, closes from backdrop and outs
   assert.strictEqual(toggle.getAttribute("aria-expanded"), "false");
   assert.strictEqual(document.activeElement, toggle);
 
-  document.activeElement = null;
   api.setDisclosure(toggle, navigation, true);
+  assert.strictEqual(document.activeElement, close);
   mobileQuery.matches = false;
   api.syncTeacherNavigationAccessibility();
   assert(!navigation.attributes.has("inert"));
   assert.strictEqual(navigation.getAttribute("aria-hidden"), "false");
   assert.strictEqual(backdrop.hidden, true);
+  assert.strictEqual(document.activeElement, document.getElementById("teacherNavHome"));
+
+  navigation._focusables.at(-1).focus();
+  mobileQuery.matches = true;
+  api.syncTeacherNavigationAccessibility();
+  assert(navigation.attributes.has("inert"));
+  assert.strictEqual(navigation.getAttribute("aria-hidden"), "true");
+  assert.strictEqual(document.activeElement, toggle);
 });
 
 test("markup and responsive styles expose a nav landmark, close affordances, and scrollable drawer", () => {
@@ -425,8 +466,18 @@ test("markup and responsive styles expose a nav landmark, close affordances, and
   const css = fs.readFileSync(cssPath, "utf8");
   assert.match(html, /<nav[^>]+id="teacherNavigation"/);
   assert.match(html, /id="teacherNavClose"/);
+  assert.match(html, /id="teacherNavHome"/);
   assert.match(html, /id="teacherNavBackdrop"/);
   assert.match(css, /\.teacher-navigation[\s\S]*?overflow-y:\s*auto/);
+});
+
+test("focused orchestrator runs executable behavior before reporting overall success", () => {
+  const source = fs.readFileSync(orchestratorPath, "utf8");
+  const behaviorIndex = source.indexOf('require("./verify-auth-command-center-behavior.js")');
+  const successIndex = source.indexOf('console.log("Authenticated Command Center verification passed.")');
+  assert(behaviorIndex >= 0);
+  assert(successIndex >= 0);
+  assert(behaviorIndex < successIndex);
 });
 
 let failures = 0;

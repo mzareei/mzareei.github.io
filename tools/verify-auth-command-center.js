@@ -104,7 +104,7 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log("Authenticated Command Center verification passed.");
-console.log("- role-aware shell and instructor navigation checked");
-
 require("./verify-auth-command-center-behavior.js");
+
+console.log("Authenticated Command Center verification passed.");
+console.log("- role-aware shell, instructor navigation, and executable behavior checked");
