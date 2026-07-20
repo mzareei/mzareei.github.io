@@ -19,6 +19,7 @@ Thumbs.db
 # Claude Code local settings (personal automation — not for the repo)
 .claude/settings.local.json
 supabase/.temp/
+.superdesign/tmp/
 
 # Local-only extracted PowerPoint media. The public lecture version uses
 # code-based visuals instead of publishing source-deck images.
