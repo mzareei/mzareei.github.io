@@ -859,6 +859,7 @@ a.progress-card:hover {
 }
 .app-command-brand h2 { margin: 0; }
 .app-command-brand .eyebrow { margin-bottom: 0.15rem; }
+.nav-toggle { display: none; }
 .nav-toggle[hidden] { display: none; }
 
 .account-control { position: relative; }

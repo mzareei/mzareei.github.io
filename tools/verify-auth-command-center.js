@@ -49,6 +49,11 @@ requireMarkers("assets/course-materials/information-security/app/app.js", "Comma
   'label: "Review section gradebook"',
   "setDisclosure",
   "closeCommandDisclosures",
+  "mobileNavigationQuery",
+  "syncTeacherNavigationAccessibility",
+  "toggleAttribute(\"inert\"",
+  "aria-hidden",
+  "mobileNavigationQuery.addEventListener(\"change\"",
   'event.key === "Escape"',
   'setAttribute("aria-expanded"',
   'classList.toggle("is-open"'
@@ -71,7 +76,9 @@ requireMarkers("assets/course-materials/information-security/app/app.css", "Comm
 ]);
 
 requireMarkers("assets/course-materials/information-security/app/app.css", "Command Center responsive styles", [
+  ".nav-toggle { display: none; }",
   "@media (max-width: 900px)",
+  ".nav-toggle:not([hidden]) { display: inline-flex; }",
   "@media (max-width: 760px)",
   ".teacher-navigation.is-open"
 ]);

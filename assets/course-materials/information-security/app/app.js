@@ -37,6 +37,7 @@ const els = {
 
 let currentSession = null;
 let currentContext = null;
+const mobileNavigationQuery = window.matchMedia("(max-width: 900px)");
 const teacherContextStorageKey = "tc2007b.teacher-context";
 const sendCooldownSeconds = 60;
 const sendCooldownStorageKey = "tc2007b.auth-send-cooldown";
@@ -117,6 +118,7 @@ document.addEventListener("click", (event) => {
     setDisclosure(els.accountMenuButton, els.accountPanel, false);
   }
 });
+mobileNavigationQuery.addEventListener("change", syncTeacherNavigationAccessibility);
 
 init();
 
@@ -124,6 +126,7 @@ function setDisclosure(trigger, panel, expanded) {
   trigger.setAttribute("aria-expanded", String(expanded));
   if (panel === els.teacherNavigation) {
     panel.classList.toggle("is-open", expanded);
+    syncTeacherNavigationAccessibility();
   } else {
     panel.hidden = !expanded;
   }
@@ -132,6 +135,17 @@ function setDisclosure(trigger, panel, expanded) {
 function closeCommandDisclosures() {
   setDisclosure(els.accountMenuButton, els.accountPanel, false);
   setDisclosure(els.teacherNavToggle, els.teacherNavigation, false);
+}
+
+function syncTeacherNavigationAccessibility() {
+  const isMobile = mobileNavigationQuery.matches;
+  if (!isMobile) {
+    els.teacherNavigation.classList.remove("is-open");
+    els.teacherNavToggle.setAttribute("aria-expanded", "false");
+  }
+  const isOpen = isMobile && els.teacherNavToggle.getAttribute("aria-expanded") === "true";
+  els.teacherNavigation.toggleAttribute("inert", !isOpen && isMobile);
+  els.teacherNavigation.setAttribute("aria-hidden", String(!isOpen && isMobile));
 }
 
 async function init() {
