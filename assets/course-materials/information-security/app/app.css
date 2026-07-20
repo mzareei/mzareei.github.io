@@ -890,13 +890,19 @@ a.progress-card:hover {
   min-height: 680px;
 }
 .teacher-dashboard[hidden],
-.student-dashboard[hidden] { display: none; }
+.student-dashboard[hidden],
+.enrollment-required-panel[hidden] { display: none; }
+
+.enrollment-required-panel { margin: 1.15rem; }
 
 .teacher-navigation {
   padding: 1.15rem 0.9rem;
   border-right: 1px solid var(--border);
   background: var(--surface-2);
+  overflow-y: auto;
 }
+.teacher-nav-close,
+.teacher-nav-backdrop { display: none; }
 .teacher-nav-home,
 .teacher-nav-links a {
   display: flex;
@@ -975,6 +981,16 @@ a.progress-card:hover {
 .session-status[data-tone="warn"] { border-color: var(--warn); background: var(--warn-soft); color: var(--warn); }
 .current-session-copy .lead { margin: 0.55rem 0 0; }
 .teacher-context-links { align-content: start; }
+.teacher-context-links .session-primary-action {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-ink);
+  font-weight: 700;
+}
+.teacher-context-links .session-primary-action:hover {
+  background: var(--primary-strong);
+  color: var(--primary-ink);
+}
 
 .teacher-support-grid {
   display: grid;
@@ -1001,12 +1017,25 @@ a.progress-card:hover {
     inset: 0 auto 0 0;
     z-index: 60;
     width: min(300px, 88vw);
-    padding-top: 5rem;
+    padding-top: 1rem;
     border-right: 1px solid var(--border-strong);
     box-shadow: var(--shadow-lg);
     transform: translateX(-105%);
     transition: transform var(--ease);
   }
+  .teacher-nav-close { display: inline-flex; width: 100%; margin-bottom: 0.75rem; }
+  .teacher-nav-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: rgba(6, 18, 31, 0.54);
+  }
+  .teacher-nav-backdrop[hidden] { display: none; }
   .teacher-navigation.is-open { transform: translateX(0); }
   .current-session-panel,
   .teacher-support-grid { grid-template-columns: 1fr; }

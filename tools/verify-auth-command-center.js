@@ -19,13 +19,16 @@ requireMarkers("assets/course-materials/information-security/app/index.html", "C
   'id="studentDashboard"',
   'id="teacherDashboard"',
   'id="teacherNavigation"',
+  'id="teacherNavClose"',
+  'id="teacherNavBackdrop"',
   'id="teacherNavToggle"',
   'aria-controls="teacherNavigation"',
   'id="accountMenuButton"',
   'aria-controls="accountPanel"',
   'id="currentSessionPanel"',
   'id="teacherReleasedItems"',
-  'id="teacherReviewLinks"'
+  'id="teacherReviewLinks"',
+  'id="enrollmentRequiredPanel"'
 ]);
 
 requireMarkers("assets/course-materials/information-security/app/app.js", "Command Center script", [
@@ -37,6 +40,7 @@ requireMarkers("assets/course-materials/information-security/app/app.js", "Comma
   'label: "Manage"',
   'label: "Review Audit Log"',
   "capabilities.canAudit",
+  "capabilities.canManageCourse",
   "selectedTeacherSession",
   "renderCurrentSession",
   "renderTeacherSupport",
@@ -102,3 +106,5 @@ if (failures.length) {
 
 console.log("Authenticated Command Center verification passed.");
 console.log("- role-aware shell and instructor navigation checked");
+
+require("./verify-auth-command-center-behavior.js");

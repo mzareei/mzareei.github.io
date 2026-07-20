@@ -14,8 +14,11 @@ const els = {
   teacherDashboard: document.getElementById("teacherDashboard"),
   teacherNavigation: document.getElementById("teacherNavigation"),
   teacherNavToggle: document.getElementById("teacherNavToggle"),
+  teacherNavClose: document.getElementById("teacherNavClose"),
+  teacherNavBackdrop: document.getElementById("teacherNavBackdrop"),
   accountMenuButton: document.getElementById("accountMenuButton"),
   accountPanel: document.getElementById("accountPanel"),
+  enrollmentRequiredPanel: document.getElementById("enrollmentRequiredPanel"),
   currentSessionPanel: document.getElementById("currentSessionPanel"),
   identitySummary: document.getElementById("identitySummary"),
   roleList: document.getElementById("roleList"),
@@ -103,7 +106,13 @@ els.teacherNavToggle.addEventListener("click", () => {
   const expanded = els.teacherNavToggle.getAttribute("aria-expanded") === "true";
   setDisclosure(els.teacherNavToggle, els.teacherNavigation, !expanded);
 });
+els.teacherNavClose.addEventListener("click", () => closeTeacherNavigation(true));
+els.teacherNavBackdrop.addEventListener("click", () => closeTeacherNavigation(true));
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Tab" && isMobileNavigationOpen()) {
+    containTeacherNavigationFocus(event);
+    return;
+  }
   if (event.key === "Escape") {
     const accountWasOpen = els.accountMenuButton.getAttribute("aria-expanded") === "true";
     const navigationWasOpen = els.teacherNavToggle.getAttribute("aria-expanded") === "true";
@@ -114,8 +123,14 @@ document.addEventListener("keydown", (event) => {
 });
 document.addEventListener("click", (event) => {
   const target = event.target;
-  if (!(target instanceof Element) || !target.closest(".account-control")) {
+  if (!(target instanceof Element)) return;
+  if (!target.closest(".account-control")) {
     setDisclosure(els.accountMenuButton, els.accountPanel, false);
+  }
+  if (isMobileNavigationOpen()
+      && !target.closest("#teacherNavigation")
+      && !target.closest("#teacherNavToggle")) {
+    closeTeacherNavigation(true);
   }
 });
 mobileNavigationQuery.addEventListener("change", syncTeacherNavigationAccessibility);
@@ -127,6 +142,7 @@ function setDisclosure(trigger, panel, expanded) {
   if (panel === els.teacherNavigation) {
     panel.classList.toggle("is-open", expanded);
     syncTeacherNavigationAccessibility();
+    if (expanded && mobileNavigationQuery.matches) els.teacherNavClose.focus();
   } else {
     panel.hidden = !expanded;
   }
@@ -134,7 +150,38 @@ function setDisclosure(trigger, panel, expanded) {
 
 function closeCommandDisclosures() {
   setDisclosure(els.accountMenuButton, els.accountPanel, false);
+  closeTeacherNavigation(false);
+}
+
+function closeTeacherNavigation(restoreFocus) {
+  const wasOpen = isMobileNavigationOpen();
   setDisclosure(els.teacherNavToggle, els.teacherNavigation, false);
+  if (restoreFocus && wasOpen) els.teacherNavToggle.focus();
+}
+
+function isMobileNavigationOpen() {
+  return mobileNavigationQuery.matches
+    && els.teacherNavToggle.getAttribute("aria-expanded") === "true";
+}
+
+function teacherNavigationFocusableElements() {
+  return Array.from(els.teacherNavigation.querySelectorAll(
+    'a[href], button:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  )).filter((element) => !element.hidden && element.getAttribute("aria-hidden") !== "true");
+}
+
+function containTeacherNavigationFocus(event) {
+  const focusable = teacherNavigationFocusableElements();
+  if (!focusable.length) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (event.shiftKey && (document.activeElement === first || !els.teacherNavigation.contains(document.activeElement))) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && (document.activeElement === last || !els.teacherNavigation.contains(document.activeElement))) {
+    event.preventDefault();
+    first.focus();
+  }
 }
 
 function syncTeacherNavigationAccessibility() {
@@ -146,6 +193,7 @@ function syncTeacherNavigationAccessibility() {
   const isOpen = isMobile && els.teacherNavToggle.getAttribute("aria-expanded") === "true";
   els.teacherNavigation.toggleAttribute("inert", !isOpen && isMobile);
   els.teacherNavigation.setAttribute("aria-hidden", String(!isOpen && isMobile));
+  els.teacherNavBackdrop.hidden = !isOpen;
 }
 
 async function init() {
@@ -208,6 +256,7 @@ function renderSignedOut() {
   els.signedInPanel.hidden = true;
   els.studentDashboard.hidden = true;
   els.teacherDashboard.hidden = true;
+  els.enrollmentRequiredPanel.hidden = true;
   els.teacherNavToggle.hidden = true;
   els.teacherContextPanel.hidden = true;
   els.identitySummary.textContent = "";
@@ -256,15 +305,18 @@ function isRateLimitError(error) {
 }
 
 function roleCapabilities(context) {
-  const memberships = context.memberships || [];
+  const memberships = (context.memberships || []).filter((membership) => membership.status === "active");
+  const sections = context.sections || [];
+  const courseInstructor = memberships.some((membership) => {
+    return ["platform_owner", "instructor"].includes(membership.role);
+  });
   return {
-    hasStudentRole: (context.sections || []).some((section) => section.role === "student"),
+    hasStudentRole: sections.some((section) => section.role === "student"),
     canTeach: memberships.some((membership) => {
       return ["platform_owner", "instructor", "teaching_assistant"].includes(membership.role);
-    }),
-    canAudit: memberships.some((membership) => {
-      return ["platform_owner", "instructor"].includes(membership.role);
-    })
+    }) || sections.some((section) => ["instructor", "teaching_assistant"].includes(section.role)),
+    canAudit: courseInstructor,
+    canManageCourse: courseInstructor
   };
 }
 
@@ -274,6 +326,9 @@ function renderContext(context) {
   els.signedOutPanel.hidden = true;
   els.signedInPanel.hidden = false;
   const profile = context.profile || {};
+  const accountName = profile.preferred_name || profile.full_name || "Account";
+  els.accountMenuButton.textContent = accountName;
+  els.accountMenuButton.setAttribute("aria-label", accountName === "Account" ? "Account" : `Account for ${accountName}`);
   els.identitySummary.innerHTML = "";
   els.identitySummary.append(
     row("Name", profile.full_name || "Profile not linked yet"),
@@ -297,9 +352,10 @@ function renderContext(context) {
   const capabilities = roleCapabilities(context);
   els.teacherDashboard.hidden = !capabilities.canTeach;
   els.studentDashboard.hidden = capabilities.canTeach || !capabilities.hasStudentRole;
+  els.enrollmentRequiredPanel.hidden = capabilities.canTeach || capabilities.hasStudentRole;
   els.teacherNavToggle.hidden = !capabilities.canTeach;
   renderTeacherContextSwitchers(context, capabilities.canTeach);
-  renderTeacherNavigation(capabilities.canTeach, capabilities.canAudit);
+  renderTeacherNavigation(capabilities);
   if (capabilities.canTeach) {
     renderCurrentSession(context);
     renderTeacherSupport(context);
@@ -370,7 +426,7 @@ function renderStudentActions(context) {
   renderActionList(els.studentActions, actions, "Student actions appear here after section enrollment is active.");
 }
 
-function teacherNavigationGroups(canAudit) {
+function teacherNavigationGroups(capabilities) {
   const groups = [
     {
       label: "Teach",
@@ -387,27 +443,29 @@ function teacherNavigationGroups(canAudit) {
         { label: "Student Records", href: "student-records.html", contextual: false },
         { label: "Learning Insights", href: "insights.html", contextual: true }
       ]
-    },
-    {
+    }
+  ];
+  if (capabilities.canAudit) {
+    groups[1].items.push({ label: "Review Audit Log", href: "audit.html", contextual: false });
+  }
+  if (capabilities.canManageCourse) {
+    groups.push({
       label: "Manage",
       items: [
         { label: "Course Sections", href: "sections.html", contextual: false },
         { label: "Course Roster", href: "roster.html", contextual: false },
         { label: "Content Library", href: "content-library.html", contextual: false }
       ]
-    }
-  ];
-  if (canAudit) {
-    groups[1].items.push({ label: "Review Audit Log", href: "audit.html", contextual: false });
+    });
   }
   return groups;
 }
 
-function renderTeacherNavigation(canTeach, canAudit) {
+function renderTeacherNavigation(capabilities) {
   els.teacherActions.innerHTML = "";
-  if (!canTeach) return;
+  if (!capabilities.canTeach) return;
   const context = selectedTeacherContext();
-  teacherNavigationGroups(canAudit).forEach((group) => {
+  teacherNavigationGroups(capabilities).forEach((group) => {
     const groupItem = document.createElement("li");
     groupItem.className = "teacher-nav-group";
     const heading = document.createElement("span");
@@ -483,20 +541,41 @@ function updateTeacherContextFromControls() {
     sectionId,
     sessionId: els.sessionContextSelect.value
   });
-  renderTeacherNavigation(true, roleCapabilities(currentContext || {}).canAudit);
+  renderTeacherNavigation(roleCapabilities(currentContext || {}));
   renderTeacherContextLinks();
   renderCurrentSession(currentContext || {});
   renderTeacherSupport(currentContext || {});
 }
 
-function renderTeacherContextLinks() {
+function renderTeacherContextLinks(session = selectedTeacherSession(currentContext || {})) {
   const context = selectedTeacherContext();
-  const links = [
+  if (!session) {
+    renderActionList(els.teacherContextLinks, [{
+      label: "Manage Class Sessions",
+      href: withTeacherContext("sessions.html", { courseId: context.courseId, sectionId: context.sectionId }),
+      primary: true
+    }], "Manage class sessions to add a session for this teaching context.");
+    return;
+  }
+  const actions = [
     { label: "Manage selected session", href: withTeacherContext("sessions.html", context) },
-    { label: "Prepare selected releases", href: withTeacherContext("releases.html", context) },
-    { label: "View section insights", href: withTeacherContext("insights.html", context) },
-    { label: "Review section gradebook", href: withTeacherContext("gradebook.html", context) }
+    { label: "Prepare selected releases", href: withTeacherContext("releases.html", context) }
   ];
+  if (context.sectionId) {
+    actions.push(
+      { label: "View section insights", href: withTeacherContext("insights.html", context) },
+      { label: "Review section gradebook", href: withTeacherContext("gradebook.html", context) }
+    );
+  }
+  const primaryLabel = session.state === "planned"
+    ? "Prepare selected releases"
+    : session.state === "completed" && context.sectionId
+      ? "Review section gradebook"
+      : "Manage selected session";
+  const links = actions
+    .map((action) => ({ ...action, primary: action.label === primaryLabel }))
+    .sort((left, right) => Number(right.primary) - Number(left.primary))
+    .slice(0, 4);
   renderActionList(els.teacherContextLinks, links, "Choose a section and session to focus teacher tools.");
 }
 
@@ -584,7 +663,7 @@ function renderCurrentSession(context) {
     els.currentSessionStatus.textContent = "Unavailable";
     els.currentSessionStatus.dataset.tone = "";
     els.currentSessionMeta.textContent = "Select a section and session to focus instructor tools.";
-    renderActionList(els.teacherContextLinks, [], "Choose a section and session to focus teacher tools.");
+    renderTeacherContextLinks(null);
     return;
   }
   const section = [session.section_code, session.section_name].filter(Boolean).join(" · ");
@@ -596,16 +675,17 @@ function renderCurrentSession(context) {
       ? "warn"
       : "";
   els.currentSessionMeta.textContent = [session.planned_date, section].filter(Boolean).join(" · ");
-  renderTeacherContextLinks();
+  renderTeacherContextLinks(session);
 }
 
 function renderTeacherSupport(context) {
   renderReleasedItemsInto(els.teacherReleasedItems, context.releases || []);
   const selection = selectedTeacherContext();
-  renderActionList(els.teacherReviewLinks, [
+  const reviewLinks = selection.sectionId ? [
     { label: "View section insights", href: withTeacherContext("insights.html", selection) },
     { label: "Review section gradebook", href: withTeacherContext("gradebook.html", selection) }
-  ], "Choose a section to focus review tools.");
+  ] : [];
+  renderActionList(els.teacherReviewLinks, reviewLinks, "Choose a section to focus review tools.");
 }
 
 function saveTeacherContext(context) {
@@ -634,6 +714,7 @@ function renderActionList(target, actions, emptyText) {
     const link = document.createElement("a");
     link.href = action.href;
     link.textContent = action.label;
+    if (action.primary) link.classList.add("session-primary-action");
     item.append(link);
     target.append(item);
   });

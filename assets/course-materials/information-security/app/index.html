@@ -69,7 +69,7 @@
       </div>
       <div class="account-control">
         <button class="app-button secondary account-trigger" id="accountMenuButton" type="button"
-          aria-controls="accountPanel" aria-expanded="false">
+          aria-controls="accountPanel" aria-expanded="false" aria-label="Account">
           Account
         </button>
         <div class="account-panel" id="accountPanel" hidden>
@@ -105,11 +105,20 @@
       </section>
     </div>
 
+    <section class="mission-card app-panel enrollment-required-panel" id="enrollmentRequiredPanel" hidden>
+      <span class="eyebrow">Enrollment required</span>
+      <h2>No active course role</h2>
+      <p class="lead">Your account is signed in, but it does not have an active course role or section enrollment. Contact the course instructor if you believe this is an error.</p>
+    </section>
+
     <div class="teacher-dashboard" id="teacherDashboard" hidden>
-      <aside class="teacher-navigation" id="teacherNavigation" aria-label="Instructor navigation">
+      <button class="teacher-nav-backdrop" id="teacherNavBackdrop" type="button"
+        aria-label="Close instructor navigation" hidden></button>
+      <nav class="teacher-navigation" id="teacherNavigation" aria-label="Instructor navigation">
+        <button class="app-button secondary teacher-nav-close" id="teacherNavClose" type="button">Close navigation</button>
         <a class="teacher-nav-home" href="index.html" aria-current="page">Overview</a>
         <ul class="teacher-nav-list" id="teacherActions"></ul>
-      </aside>
+      </nav>
 
       <div class="teacher-workspace">
         <section class="teacher-context-panel" id="teacherContextPanel" hidden>
