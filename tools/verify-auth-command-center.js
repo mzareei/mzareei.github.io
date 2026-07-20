@@ -83,6 +83,17 @@ requireMarkers("assets/course-materials/information-security/app/app.css", "Comm
   ".teacher-navigation.is-open"
 ]);
 
+requireMarkers("supabase/README.md", "Supabase README", [
+  "node tools/verify-auth-command-center.js",
+  "Instructor Command Center"
+]);
+
+requireMarkers(
+  "docs/course-platform/implementation/current-implementation-status.md",
+  "Implementation status",
+  ["role-aware Instructor Command Center", "verify-auth-command-center.js"]
+);
+
 if (failures.length) {
   console.error("Authenticated Command Center verification failed:");
   failures.forEach((failure) => console.error(`- ${failure}`));
