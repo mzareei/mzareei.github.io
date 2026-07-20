@@ -57,73 +57,104 @@
     </ol>
   </section>
 
-  <section class="mission-card app-panel" id="signedInPanel" hidden>
-    <div class="signed-in-bar">
-      <div>
-        <span class="eyebrow">Signed in</span>
-        <h2>Your course</h2>
+  <section class="signed-in-shell" id="signedInPanel" hidden>
+    <header class="app-command-header">
+      <button class="app-button secondary nav-toggle" id="teacherNavToggle" type="button"
+        aria-controls="teacherNavigation" aria-expanded="false" hidden>
+        Menu
+      </button>
+      <div class="app-command-brand">
+        <span class="eyebrow">TC2007B · Authenticated course app</span>
+        <h2>Course App</h2>
       </div>
-      <div class="button-row">
-        <button class="app-button secondary" id="refreshContextBtn" type="button">Refresh</button>
-        <button class="app-button secondary" id="signOutBtn" type="button">Sign out</button>
+      <div class="account-control">
+        <button class="app-button secondary account-trigger" id="accountMenuButton" type="button"
+          aria-controls="accountPanel" aria-expanded="false">
+          Account
+        </button>
+        <div class="account-panel" id="accountPanel" hidden>
+          <div class="identity-summary" id="identitySummary"></div>
+          <div class="account-context-grid">
+            <div>
+              <span class="eyebrow">Roles</span>
+              <ul class="context-list compact-list" id="roleList"></ul>
+            </div>
+            <div>
+              <span class="eyebrow">Enrollment</span>
+              <ul class="context-list compact-list" id="sectionList"></ul>
+            </div>
+          </div>
+          <div class="button-row account-actions">
+            <button class="app-button secondary" id="refreshContextBtn" type="button">Refresh</button>
+            <button class="app-button secondary" id="signOutBtn" type="button">Sign out</button>
+          </div>
+        </div>
       </div>
-    </div>
+    </header>
 
-    <div class="dashboard-grid">
-      <article class="context-card">
-        <span class="eyebrow">Identity</span>
-        <h2>Profile</h2>
-        <div class="identity-summary" id="identitySummary"></div>
-      </article>
-      <article class="context-card">
-        <span class="eyebrow">Course</span>
-        <h2>Roles</h2>
-        <ul class="context-list" id="roleList"></ul>
-      </article>
-      <article class="context-card">
-        <span class="eyebrow">Section</span>
-        <h2>Enrollment</h2>
-        <ul class="context-list" id="sectionList"></ul>
-      </article>
-      <article class="context-card highlight-card">
-        <span class="eyebrow">Released</span>
-        <h2>Materials</h2>
-        <ul class="context-list" id="releasedItems"></ul>
-      </article>
-      <article class="context-card">
+    <div class="student-dashboard" id="studentDashboard" hidden>
+      <section class="mission-card app-panel">
+        <span class="eyebrow">Your course</span>
+        <h2>Released materials</h2>
+        <ul class="context-list released-list" id="releasedItems"></ul>
+      </section>
+      <section class="mission-card app-panel">
         <span class="eyebrow">Student</span>
         <h2>Actions</h2>
         <ul class="context-list" id="studentActions"></ul>
-      </article>
+      </section>
     </div>
 
-    <div class="console-zone">
-      <span class="eyebrow">Teaching console</span>
-      <div class="dashboard-grid">
-        <article class="context-card teacher-context-panel" id="teacherContextPanel" hidden>
-          <span class="eyebrow">Teacher</span>
-          <h2>Teaching context</h2>
+    <div class="teacher-dashboard" id="teacherDashboard" hidden>
+      <aside class="teacher-navigation" id="teacherNavigation" aria-label="Instructor navigation">
+        <a class="teacher-nav-home" href="index.html" aria-current="page">Overview</a>
+        <ul class="teacher-nav-list" id="teacherActions"></ul>
+      </aside>
+
+      <div class="teacher-workspace">
+        <section class="teacher-context-panel" id="teacherContextPanel" hidden>
+          <div class="section-head compact-head">
+            <div>
+              <span class="eyebrow">Teaching context</span>
+              <h2>Current class</h2>
+            </div>
+          </div>
           <div class="teacher-context-grid">
-            <label>
-              Course
-              <select id="courseContextSelect"></select>
-            </label>
-            <label>
-              Section
-              <select id="sectionContextSelect"></select>
-            </label>
-            <label>
-              Session
-              <select id="sessionContextSelect"></select>
-            </label>
+            <label>Course<select id="courseContextSelect"></select></label>
+            <label>Section<select id="sectionContextSelect"></select></label>
+            <label>Session<select id="sessionContextSelect"></select></label>
+          </div>
+        </section>
+
+        <section class="current-session-panel" id="currentSessionPanel" aria-labelledby="currentSessionTitle">
+          <div class="current-session-copy">
+            <span class="eyebrow">Current session</span>
+            <div class="session-title-row">
+              <h2 id="currentSessionTitle">Choose a class session</h2>
+              <span class="session-status" id="currentSessionStatus">Unavailable</span>
+            </div>
+            <p class="lead" id="currentSessionMeta">Select a section and session to focus instructor tools.</p>
           </div>
           <ul class="context-list teacher-context-links" id="teacherContextLinks"></ul>
-        </article>
-        <article class="context-card">
-          <span class="eyebrow">Teacher</span>
-          <h2>Actions</h2>
-          <ul class="context-list" id="teacherActions"></ul>
-        </article>
+        </section>
+
+        <div class="teacher-support-grid">
+          <section class="mission-card app-panel released-panel">
+            <div class="section-head compact-head">
+              <div>
+                <span class="eyebrow">Released</span>
+                <h2>Materials</h2>
+              </div>
+              <a href="releases.html">Manage releases</a>
+            </div>
+            <ul class="context-list released-list" id="teacherReleasedItems"></ul>
+          </section>
+          <section class="mission-card app-panel review-panel">
+            <span class="eyebrow">Review</span>
+            <h2>Selected context</h2>
+            <ul class="context-list" id="teacherReviewLinks"></ul>
+          </section>
+        </div>
       </div>
     </div>
   </section>

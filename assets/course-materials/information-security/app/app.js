@@ -10,12 +10,19 @@ const els = {
   status: document.getElementById("appStatus"),
   signedOutPanel: document.getElementById("signedOutPanel"),
   signedInPanel: document.getElementById("signedInPanel"),
+  studentDashboard: document.getElementById("studentDashboard"),
+  teacherDashboard: document.getElementById("teacherDashboard"),
+  teacherNavigation: document.getElementById("teacherNavigation"),
+  accountPanel: document.getElementById("accountPanel"),
+  currentSessionPanel: document.getElementById("currentSessionPanel"),
   identitySummary: document.getElementById("identitySummary"),
   roleList: document.getElementById("roleList"),
   sectionList: document.getElementById("sectionList"),
   releasedItems: document.getElementById("releasedItems"),
   studentActions: document.getElementById("studentActions"),
   teacherActions: document.getElementById("teacherActions"),
+  teacherReleasedItems: document.getElementById("teacherReleasedItems"),
+  teacherReviewLinks: document.getElementById("teacherReviewLinks"),
   teacherContextPanel: document.getElementById("teacherContextPanel"),
   courseContextSelect: document.getElementById("courseContextSelect"),
   sectionContextSelect: document.getElementById("sectionContextSelect"),
@@ -142,6 +149,8 @@ function renderSignedOut() {
   currentContext = null;
   els.signedOutPanel.hidden = false;
   els.signedInPanel.hidden = true;
+  els.studentDashboard.hidden = true;
+  els.teacherDashboard.hidden = true;
   els.teacherContextPanel.hidden = true;
   els.identitySummary.textContent = "";
   els.roleList.innerHTML = "";
@@ -150,6 +159,8 @@ function renderSignedOut() {
   els.studentActions.innerHTML = "";
   els.teacherActions.innerHTML = "";
   els.teacherContextLinks.innerHTML = "";
+  els.teacherReleasedItems.innerHTML = "";
+  els.teacherReviewLinks.innerHTML = "";
   updateSendCodeCooldown();
 }
 
@@ -186,6 +197,19 @@ function isRateLimitError(error) {
   return /rate limit|too many|email rate/i.test(error?.message || "");
 }
 
+function roleCapabilities(context) {
+  const memberships = context.memberships || [];
+  return {
+    hasStudentRole: (context.sections || []).some((section) => section.role === "student"),
+    canTeach: memberships.some((membership) => {
+      return ["platform_owner", "instructor", "teaching_assistant"].includes(membership.role);
+    }),
+    canAudit: memberships.some((membership) => {
+      return ["platform_owner", "instructor"].includes(membership.role);
+    })
+  };
+}
+
 function renderContext(context) {
   currentContext = context;
   els.signedOutPanel.hidden = true;
@@ -211,11 +235,11 @@ function renderContext(context) {
 
   renderStudentActions(context);
 
-  const canTeach = (context.memberships || []).some((membership) => {
-    return ["platform_owner", "instructor", "teaching_assistant"].includes(membership.role);
-  });
-  renderTeacherContextSwitchers(context, canTeach);
-  renderTeacherActions(context, canTeach);
+  const capabilities = roleCapabilities(context);
+  els.teacherDashboard.hidden = !capabilities.canTeach;
+  els.studentDashboard.hidden = capabilities.canTeach || !capabilities.hasStudentRole;
+  renderTeacherContextSwitchers(context, capabilities.canTeach);
+  renderTeacherActions(context, capabilities.canTeach);
 }
 
 function renderList(target, rows, formatter, emptyText) {
