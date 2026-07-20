@@ -834,6 +834,164 @@ a.progress-card:hover {
 
 .signed-in-shell[aria-busy="true"] .teacher-workspace { cursor: progress; }
 
+/* ---------------------------------------------------- Instructor command center */
+.signed-in-shell {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  box-shadow: var(--shadow);
+  overflow: clip;
+}
+
+.app-command-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 68px;
+  padding: 0.75rem 1.15rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-1);
+}
+.app-command-brand h2 { margin: 0; }
+.app-command-brand .eyebrow { margin-bottom: 0.15rem; }
+.nav-toggle[hidden] { display: none; }
+
+.account-control { position: relative; }
+.account-panel {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  right: 0;
+  z-index: 40;
+  width: min(420px, calc(100vw - 2rem));
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-lg);
+}
+.account-context-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-top: 0.9rem;
+}
+.account-actions { margin-top: 0.9rem; }
+.compact-list li { padding: 0.55rem 0.65rem; font-size: 0.82rem; }
+
+.teacher-dashboard {
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  min-height: 680px;
+}
+.teacher-dashboard[hidden],
+.student-dashboard[hidden] { display: none; }
+
+.teacher-navigation {
+  padding: 1.15rem 0.9rem;
+  border-right: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.teacher-nav-home,
+.teacher-nav-links a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.teacher-nav-home[aria-current="page"] {
+  background: var(--primary-soft);
+  color: var(--primary);
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+.teacher-nav-links a:hover {
+  background: var(--surface-1);
+  color: var(--primary);
+  text-decoration: none;
+}
+.teacher-nav-list,
+.teacher-nav-links { margin: 0; padding: 0; list-style: none; }
+.teacher-nav-group { margin-top: 1rem; }
+.teacher-nav-label {
+  display: block;
+  padding: 0 0.75rem 0.35rem;
+  color: var(--text-subtle);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.teacher-workspace {
+  display: grid;
+  align-content: start;
+  gap: 1.15rem;
+  min-width: 0;
+  padding: clamp(1rem, 2.4vw, 1.6rem);
+  background: var(--surface);
+}
+.teacher-context-panel,
+.current-session-panel {
+  padding: 1.15rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+}
+.teacher-context-panel { border-color: var(--primary-soft-border); background: var(--primary-soft); }
+.compact-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.compact-head h2 { margin: 0; }
+
+.current-session-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 0.55fr);
+  gap: 1.25rem;
+  box-shadow: var(--shadow);
+}
+.session-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+.session-title-row h2 { margin: 0; }
+.session-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.session-status[data-tone="good"] { border-color: var(--good); background: var(--good-soft); color: var(--good); }
+.session-status[data-tone="warn"] { border-color: var(--warn); background: var(--warn-soft); color: var(--warn); }
+.current-session-copy .lead { margin: 0.55rem 0 0; }
+.teacher-context-links { align-content: start; }
+
+.teacher-support-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(260px, 0.7fr);
+  gap: 1.15rem;
+}
+.teacher-support-grid .app-panel { margin-top: 0; box-shadow: none; }
+.released-list a { line-height: 1.45; }
+
+.student-dashboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.6fr);
+  gap: 1rem;
+  padding: 1.15rem;
+  background: var(--surface);
+}
+.student-dashboard .app-panel { margin-top: 0; }
+
 /* -------------------------------------------------------------- Responsive */
 @media (max-width: 760px) {
   .mission-top {

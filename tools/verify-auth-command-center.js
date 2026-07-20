@@ -50,6 +50,17 @@ for (const forbidden of ["attendanceRate", "responseRate", "classHealthScore", "
   if (appSource.includes(forbidden)) failures.push(`Command Center must not invent metric: ${forbidden}`);
 }
 
+requireMarkers("assets/course-materials/information-security/app/app.css", "Command Center styles", [
+  ".signed-in-shell",
+  ".app-command-header",
+  ".teacher-dashboard",
+  ".teacher-navigation",
+  ".teacher-workspace",
+  ".current-session-panel",
+  ".teacher-support-grid",
+  ".account-panel"
+]);
+
 if (failures.length) {
   console.error("Authenticated Command Center verification failed:");
   failures.forEach((failure) => console.error(`- ${failure}`));
