@@ -21,6 +21,7 @@ Thumbs.db
 supabase/.temp/
 .superdesign/tmp/
 .worktrees/
+.superpowers/
 
 # Local-only extracted PowerPoint media. The public lecture version uses
 # code-based visuals instead of publishing source-deck images.

@@ -39,6 +39,12 @@ if (exists("assets/course-materials/information-security/app/index.html")) {
     'Send sign-in email',
     'Optional one-time code',
     'id="signedInPanel"',
+    'id="studentDashboard"',
+    'id="teacherDashboard"',
+    'id="teacherNavigation"',
+    'id="accountPanel"',
+    'id="currentSessionPanel"',
+    'aria-label="Instructor navigation"',
     'id="releasedItems"',
     'platform-config.js',
     'app.js'

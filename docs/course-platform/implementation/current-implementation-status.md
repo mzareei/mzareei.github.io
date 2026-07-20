@@ -23,6 +23,7 @@ This status file separates what is implemented in the repository from what still
 - Student/teacher app shell with passwordless email sign-in support.
 - Supabase Auth users can be created by institutional email link or code, while course access remains blocked unless the email matches an active roster profile.
 - Role-aware dashboard links.
+- The signed-in home uses a role-aware Instructor Command Center: instructors receive grouped Teach/Review/Manage navigation, persistent course/section/session context, a selected-session workspace, released materials, and supported review shortcuts; students retain a separate released-material and student-action composition. Evidence: `node tools/verify-auth-command-center.js`.
 - Teacher dashboard includes course, section, and session switchers for classroom context.
 - Teacher tools honor selected course, section, and session context from dashboard links.
 - Student links for progress, portfolio, exit ticket, and activity player.

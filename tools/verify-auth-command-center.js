@@ -1,0 +1,110 @@
+const fs = require("fs");
+const path = require("path");
+
+const root = path.resolve(__dirname, "..");
+const failures = [];
+
+function read(relativePath) {
+  return fs.readFileSync(path.join(root, relativePath), "utf8").replace(/\r\n/g, "\n");
+}
+
+function requireMarkers(relativePath, label, markers) {
+  const source = read(relativePath);
+  for (const marker of markers) {
+    if (!source.includes(marker)) failures.push(`${label} missing: ${marker}`);
+  }
+}
+
+requireMarkers("assets/course-materials/information-security/app/index.html", "Command Center markup", [
+  'id="studentDashboard"',
+  'id="teacherDashboard"',
+  'id="teacherNavigation"',
+  'id="teacherNavClose"',
+  'id="teacherNavBackdrop"',
+  'id="teacherNavToggle"',
+  'aria-controls="teacherNavigation"',
+  'id="accountMenuButton"',
+  'aria-controls="accountPanel"',
+  'id="currentSessionPanel"',
+  'id="teacherReleasedItems"',
+  'id="teacherReviewLinks"',
+  'id="enrollmentRequiredPanel"'
+]);
+
+requireMarkers("assets/course-materials/information-security/app/app.js", "Command Center script", [
+  "roleCapabilities",
+  "teacherNavigationGroups",
+  "renderTeacherNavigation",
+  'label: "Teach"',
+  'label: "Review"',
+  'label: "Manage"',
+  'label: "Review Audit Log"',
+  "capabilities.canAudit",
+  "capabilities.canManageCourse",
+  "selectedTeacherSession",
+  "renderCurrentSession",
+  "renderTeacherSupport",
+  "currentSessionTitle",
+  "currentSessionStatus",
+  "currentSessionMeta",
+  'label: "Manage selected session"',
+  'label: "Prepare selected releases"',
+  'label: "View section insights"',
+  'label: "Review section gradebook"',
+  "setDisclosure",
+  "closeCommandDisclosures",
+  "mobileNavigationQuery",
+  "syncTeacherNavigationAccessibility",
+  "toggleAttribute(\"inert\"",
+  "aria-hidden",
+  "mobileNavigationQuery.addEventListener(\"change\"",
+  'event.key === "Escape"',
+  'setAttribute("aria-expanded"',
+  'classList.toggle("is-open"'
+]);
+
+const appSource = read("assets/course-materials/information-security/app/app.js");
+for (const forbidden of ["attendanceRate", "responseRate", "classHealthScore", "scheduledItemCount"]) {
+  if (appSource.includes(forbidden)) failures.push(`Command Center must not invent metric: ${forbidden}`);
+}
+
+requireMarkers("assets/course-materials/information-security/app/app.css", "Command Center styles", [
+  ".signed-in-shell",
+  ".app-command-header",
+  ".teacher-dashboard",
+  ".teacher-navigation",
+  ".teacher-workspace",
+  ".current-session-panel",
+  ".teacher-support-grid",
+  ".account-panel"
+]);
+
+requireMarkers("assets/course-materials/information-security/app/app.css", "Command Center responsive styles", [
+  ".nav-toggle { display: none; }",
+  "@media (max-width: 900px)",
+  ".nav-toggle:not([hidden]) { display: inline-flex; }",
+  "@media (max-width: 760px)",
+  ".teacher-navigation.is-open"
+]);
+
+requireMarkers("supabase/README.md", "Supabase README", [
+  "node tools/verify-auth-command-center.js",
+  "Instructor Command Center"
+]);
+
+requireMarkers(
+  "docs/course-platform/implementation/current-implementation-status.md",
+  "Implementation status",
+  ["role-aware Instructor Command Center", "verify-auth-command-center.js"]
+);
+
+if (failures.length) {
+  console.error("Authenticated Command Center verification failed:");
+  failures.forEach((failure) => console.error(`- ${failure}`));
+  process.exit(1);
+}
+
+require("./verify-auth-command-center-behavior.js");
+
+console.log("Authenticated Command Center verification passed.");
+console.log("- role-aware shell, instructor navigation, and executable behavior checked");
