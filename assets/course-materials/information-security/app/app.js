@@ -239,7 +239,7 @@ function renderContext(context) {
   els.teacherDashboard.hidden = !capabilities.canTeach;
   els.studentDashboard.hidden = capabilities.canTeach || !capabilities.hasStudentRole;
   renderTeacherContextSwitchers(context, capabilities.canTeach);
-  renderTeacherActions(context, capabilities.canTeach);
+  renderTeacherNavigation(capabilities.canTeach, capabilities.canAudit);
 }
 
 function renderList(target, rows, formatter, emptyText) {
@@ -303,49 +303,61 @@ function renderStudentActions(context) {
   renderActionList(els.studentActions, actions, "Student actions appear here after section enrollment is active.");
 }
 
-function renderTeacherActions(context, canTeach) {
-  els.teacherActions.innerHTML = "";
-  if (!canTeach) {
-    const empty = document.createElement("li");
-    empty.className = "empty";
-    empty.textContent = "Teacher actions appear here for instructor roles.";
-    els.teacherActions.append(empty);
-    return;
-  }
-
-  const canAudit = (context.memberships || []).some((membership) => ["platform_owner", "instructor"].includes(membership.role));
+function teacherNavigationGroups(canAudit) {
   const groups = [
-    { label: "Set up", items: [
-      { label: "Manage Course Sections", href: "sections.html" },
-      { label: "Import Course Roster", href: "roster.html" },
-      { label: "Manage Content Library", href: "content-library.html" }
-    ] },
-    { label: "Teach", items: [
-      { label: "Manage Class Sessions", href: "sessions.html" },
-      { label: "Prepare Release Controls", href: "releases.html" },
-      { label: "Record Participation", href: "participation.html" }
-    ] },
-    { label: "Review", items: [
-      { label: "Review Gradebook", href: "gradebook.html" },
-      { label: "Review Student Records", href: "student-records.html" },
-      { label: "Open Learning Insights", href: "insights.html" }
-    ] }
+    {
+      label: "Teach",
+      items: [
+        { label: "Class Sessions", href: "sessions.html", contextual: true },
+        { label: "Release Controls", href: "releases.html", contextual: true },
+        { label: "Participation", href: "participation.html", contextual: false }
+      ]
+    },
+    {
+      label: "Review",
+      items: [
+        { label: "Gradebook", href: "gradebook.html", contextual: true },
+        { label: "Student Records", href: "student-records.html", contextual: false },
+        { label: "Learning Insights", href: "insights.html", contextual: true }
+      ]
+    },
+    {
+      label: "Manage",
+      items: [
+        { label: "Course Sections", href: "sections.html", contextual: false },
+        { label: "Course Roster", href: "roster.html", contextual: false },
+        { label: "Content Library", href: "content-library.html", contextual: false }
+      ]
+    }
   ];
-  if (canAudit) groups[2].items.push({ label: "Review Audit Log", href: "audit.html" });
+  if (canAudit) {
+    groups[1].items.push({ label: "Review Audit Log", href: "audit.html", contextual: false });
+  }
+  return groups;
+}
 
-  groups.forEach((group) => {
-    const labelItem = document.createElement("li");
-    labelItem.textContent = group.label;
-    labelItem.style.cssText = "list-style:none; margin:0.85rem 0 0.35rem; font-size:0.7rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; opacity:0.55;";
-    els.teacherActions.append(labelItem);
+function renderTeacherNavigation(canTeach, canAudit) {
+  els.teacherActions.innerHTML = "";
+  if (!canTeach) return;
+  const context = selectedTeacherContext();
+  teacherNavigationGroups(canAudit).forEach((group) => {
+    const groupItem = document.createElement("li");
+    groupItem.className = "teacher-nav-group";
+    const heading = document.createElement("span");
+    heading.className = "teacher-nav-label";
+    heading.textContent = group.label;
+    const list = document.createElement("ul");
+    list.className = "teacher-nav-links";
     group.items.forEach((action) => {
       const item = document.createElement("li");
       const link = document.createElement("a");
-      link.href = action.href;
+      link.href = action.contextual ? withTeacherContext(action.href, context) : action.href;
       link.textContent = action.label;
       item.append(link);
-      els.teacherActions.append(item);
+      list.append(item);
     });
+    groupItem.append(heading, list);
+    els.teacherActions.append(groupItem);
   });
 }
 
@@ -404,6 +416,7 @@ function updateTeacherContextFromControls() {
     sectionId,
     sessionId: els.sessionContextSelect.value
   });
+  renderTeacherNavigation(true, roleCapabilities(currentContext || {}).canAudit);
   renderTeacherContextLinks();
 }
 
