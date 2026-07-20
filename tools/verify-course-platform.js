@@ -6,7 +6,7 @@ const root = path.resolve(__dirname, "..");
 const courseRoot = path.join(root, "assets", "course-materials", "information-security");
 const quizApiPath = path.join(courseRoot, "week-01", "lecture", "quiz", "quiz-api.js");
 const configPath = path.join(courseRoot, "week-01", "lecture", "quiz", "config.js");
-const fullSeedPath = path.join(root, "supabase", "seed", "tc2007b_demo_question_bank.sql");
+const removedSeedPath = path.join(root, "supabase", "seed", "tc2007b_demo_question_bank.sql");
 const supabaseRoot = path.join(root, "supabase");
 
 const failures = [];
@@ -39,7 +39,10 @@ function parseObjectAfter(fileText, marker, endMarker) {
   if (start < 0 || end < 0) {
     throw new Error(`Could not parse ${marker.trim()}`);
   }
-  const objectSource = normalized.slice(start + marker.length, end).trim().replace(/;$/, "");
+  const objectSource = normalized
+    .slice(start + marker.length, end)
+    .trim()
+    .replace(/;\s*(?:\/\/[^\r\n]*)?$/, "");
   return Function(`return (${objectSource});`)();
 }
 
@@ -58,54 +61,29 @@ function verifyQuestionBanks() {
   const config = parseAssignmentObject(read(configPath), "window.QUIZ_CONFIG = ");
   const banks = parseObjectAfter(api, "const demoQuestionBanks = ", "\n\nexport function isConfigured");
   const lectureIds = Object.keys(config.lectures || {});
-  const minimum = Number(config.defaultQuestionCount || 10);
+  const minimum = Number(config.defaultQuestionCount || 0);
+  const bankDeclaration = api.slice(
+    api.indexOf("const demoQuestionBanks = "),
+    api.indexOf("\n\nexport function isConfigured")
+  );
 
-  for (const lectureId of lectureIds) {
-    const questions = banks[lectureId] || [];
-    if (questions.length < minimum) {
-      fail(`${lectureId} has ${questions.length} questions; expected at least ${minimum}.`);
-    }
-    const seenIds = new Set();
-    questions.forEach((question, index) => {
-      if (!question.id || seenIds.has(question.id)) {
-        fail(`${lectureId} question ${index + 1} has a missing or duplicate id.`);
-      }
-      seenIds.add(question.id);
-      if (!question.prompt || question.prompt.length < 8) {
-        fail(`${lectureId} ${question.id || index + 1} has a weak prompt.`);
-      }
-      if (!Array.isArray(question.options) || question.options.length < 2) {
-        fail(`${lectureId} ${question.id || index + 1} needs at least two options.`);
-      }
-      if (!Number.isInteger(question.answer) || question.answer < 0 || question.answer >= question.options.length) {
-        fail(`${lectureId} ${question.id || index + 1} has an invalid answer index.`);
-      }
-      const optionSet = new Set(question.options || []);
-      if (optionSet.size !== (question.options || []).length) {
-        fail(`${lectureId} ${question.id || index + 1} has duplicate answer options.`);
-      }
-    });
+  if (Object.keys(banks).length) {
+    fail("Public quiz API must not include a demo question bank.");
+  }
+  if (/(?:^|[,{]\s*)["']?(?:answer|correct_answer)["']?\s*:/mi.test(bankDeclaration)) {
+    fail("Public quiz API demo question bank contains an answer-bearing field.");
+  }
+  if (!lectureIds.length) {
+    fail("Quiz config must include at least one lecture ID.");
+  }
+  if (!Number.isInteger(minimum) || minimum < 1) {
+    fail("Quiz config must include a positive default question count.");
+  }
+  if (fs.existsSync(removedSeedPath)) {
+    fail("Removed answer-bearing Supabase seed must not be present in the repository.");
   }
 
-  for (const lectureId of Object.keys(banks)) {
-    if (!lectureIds.includes(lectureId)) {
-      fail(`${lectureId} has a question bank but is missing from config.js.`);
-    }
-  }
-
-  const totalQuestions = Object.values(banks).reduce((sum, questions) => sum + questions.length, 0);
-  const fullSeed = fs.existsSync(fullSeedPath) ? read(fullSeedPath) : "";
-  for (const lectureId of lectureIds) {
-    if (!fullSeed.includes(`'${lectureId}'`)) {
-      fail(`Full Supabase seed is missing ${lectureId}.`);
-    }
-  }
-  const seedQuestionCount = (fullSeed.match(/insert into public\.quiz_questions/g) || []).length;
-  if (seedQuestionCount !== totalQuestions) {
-    fail(`Full Supabase seed has ${seedQuestionCount} question inserts; expected ${totalQuestions}.`);
-  }
-
-  return { lectures: lectureIds.length, questions: totalQuestions };
+  return { lectures: lectureIds.length, questions: 0 };
 }
 
 function verifyJavaScriptSyntax() {
