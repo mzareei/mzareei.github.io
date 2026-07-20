@@ -24,6 +24,9 @@ const els = {
   teacherReleasedItems: document.getElementById("teacherReleasedItems"),
   teacherReviewLinks: document.getElementById("teacherReviewLinks"),
   teacherContextPanel: document.getElementById("teacherContextPanel"),
+  currentSessionTitle: document.getElementById("currentSessionTitle"),
+  currentSessionStatus: document.getElementById("currentSessionStatus"),
+  currentSessionMeta: document.getElementById("currentSessionMeta"),
   courseContextSelect: document.getElementById("courseContextSelect"),
   sectionContextSelect: document.getElementById("sectionContextSelect"),
   sessionContextSelect: document.getElementById("sessionContextSelect"),
@@ -240,6 +243,10 @@ function renderContext(context) {
   els.studentDashboard.hidden = capabilities.canTeach || !capabilities.hasStudentRole;
   renderTeacherContextSwitchers(context, capabilities.canTeach);
   renderTeacherNavigation(capabilities.canTeach, capabilities.canAudit);
+  if (capabilities.canTeach) {
+    renderCurrentSession(context);
+    renderTeacherSupport(context);
+  }
 }
 
 function renderList(target, rows, formatter, emptyText) {
@@ -259,15 +266,18 @@ function renderList(target, rows, formatter, emptyText) {
 }
 
 function renderReleasedItems(rows) {
-  els.releasedItems.innerHTML = "";
+  renderReleasedItemsInto(els.releasedItems, rows);
+}
+
+function renderReleasedItemsInto(target, rows) {
+  target.innerHTML = "";
   if (!rows.length) {
     const empty = document.createElement("li");
     empty.className = "empty";
     empty.textContent = "No released items for your section yet.";
-    els.releasedItems.append(empty);
+    target.append(empty);
     return;
   }
-
   rows.forEach((item) => {
     const listItem = document.createElement("li");
     const link = document.createElement("a");
@@ -278,7 +288,7 @@ function renderReleasedItems(rows) {
     }
     link.textContent = releasedItemLabel(item);
     listItem.append(link);
-    els.releasedItems.append(listItem);
+    target.append(listItem);
   });
 }
 
@@ -418,6 +428,8 @@ function updateTeacherContextFromControls() {
   });
   renderTeacherNavigation(true, roleCapabilities(currentContext || {}).canAudit);
   renderTeacherContextLinks();
+  renderCurrentSession(currentContext || {});
+  renderTeacherSupport(currentContext || {});
 }
 
 function renderTeacherContextLinks() {
@@ -501,6 +513,44 @@ function selectedTeacherContext() {
   }
 }
 
+function selectedTeacherSession(context) {
+  const selection = selectedTeacherContext();
+  return (context.teacher_sessions || []).find((session) => {
+    return session.session_id === selection.sessionId;
+  }) || null;
+}
+
+function renderCurrentSession(context) {
+  const session = selectedTeacherSession(context);
+  if (!session) {
+    els.currentSessionTitle.textContent = "Choose a class session";
+    els.currentSessionStatus.textContent = "Unavailable";
+    els.currentSessionStatus.dataset.tone = "";
+    els.currentSessionMeta.textContent = "Select a section and session to focus instructor tools.";
+    renderActionList(els.teacherContextLinks, [], "Choose a section and session to focus teacher tools.");
+    return;
+  }
+  const section = [session.section_code, session.section_name].filter(Boolean).join(" · ");
+  els.currentSessionTitle.textContent = session.title || "Class session";
+  els.currentSessionStatus.textContent = labelize(session.state || "scheduled");
+  els.currentSessionStatus.dataset.tone = session.state === "live"
+    ? "good"
+    : session.state === "paused"
+      ? "warn"
+      : "";
+  els.currentSessionMeta.textContent = [session.planned_date, section].filter(Boolean).join(" · ");
+  renderTeacherContextLinks();
+}
+
+function renderTeacherSupport(context) {
+  renderReleasedItemsInto(els.teacherReleasedItems, context.releases || []);
+  const selection = selectedTeacherContext();
+  renderActionList(els.teacherReviewLinks, [
+    { label: "View section insights", href: withTeacherContext("insights.html", selection) },
+    { label: "Review section gradebook", href: withTeacherContext("gradebook.html", selection) }
+  ], "Choose a section to focus review tools.");
+}
+
 function saveTeacherContext(context) {
   localStorage.setItem(teacherContextStorageKey, JSON.stringify(context));
 }
@@ -550,6 +600,10 @@ function setBusy(isBusy) {
   } else {
     updateSendCodeCooldown();
   }
+  els.signedInPanel.setAttribute("aria-busy", String(isBusy && !els.signedInPanel.hidden));
+  [els.courseContextSelect, els.sectionContextSelect, els.sessionContextSelect].forEach((control) => {
+    control.disabled = isBusy || control.options.length === 0;
+  });
 }
 
 function setStatus(message, tone) {

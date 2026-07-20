@@ -32,8 +32,23 @@ requireMarkers("assets/course-materials/information-security/app/app.js", "Comma
   'label: "Review"',
   'label: "Manage"',
   'label: "Review Audit Log"',
-  "capabilities.canAudit"
+  "capabilities.canAudit",
+  "selectedTeacherSession",
+  "renderCurrentSession",
+  "renderTeacherSupport",
+  "currentSessionTitle",
+  "currentSessionStatus",
+  "currentSessionMeta",
+  'label: "Manage selected session"',
+  'label: "Prepare selected releases"',
+  'label: "View section insights"',
+  'label: "Review section gradebook"'
 ]);
+
+const appSource = read("assets/course-materials/information-security/app/app.js");
+for (const forbidden of ["attendanceRate", "responseRate", "classHealthScore", "scheduledItemCount"]) {
+  if (appSource.includes(forbidden)) failures.push(`Command Center must not invent metric: ${forbidden}`);
+}
 
 if (failures.length) {
   console.error("Authenticated Command Center verification failed:");

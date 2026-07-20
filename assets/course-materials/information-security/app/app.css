@@ -832,6 +832,8 @@ a.progress-card:hover {
 .app-theme-toggle .app-theme-toggle__icon { font-size: 1rem; line-height: 1; }
 .app-theme-toggle .app-theme-toggle__label { font-weight: 600; }
 
+.signed-in-shell[aria-busy="true"] .teacher-workspace { cursor: progress; }
+
 /* -------------------------------------------------------------- Responsive */
 @media (max-width: 760px) {
   .mission-top {
