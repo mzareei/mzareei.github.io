@@ -13,6 +13,8 @@ const els = {
   studentDashboard: document.getElementById("studentDashboard"),
   teacherDashboard: document.getElementById("teacherDashboard"),
   teacherNavigation: document.getElementById("teacherNavigation"),
+  teacherNavToggle: document.getElementById("teacherNavToggle"),
+  accountMenuButton: document.getElementById("accountMenuButton"),
   accountPanel: document.getElementById("accountPanel"),
   currentSessionPanel: document.getElementById("currentSessionPanel"),
   identitySummary: document.getElementById("identitySummary"),
@@ -92,8 +94,45 @@ els.refresh.addEventListener("click", () => refreshContext());
 els.courseContextSelect.addEventListener("change", () => updateTeacherContextFromControls());
 els.sectionContextSelect.addEventListener("change", () => updateTeacherContextFromControls());
 els.sessionContextSelect.addEventListener("change", () => updateTeacherContextFromControls());
+els.accountMenuButton.addEventListener("click", () => {
+  const expanded = els.accountMenuButton.getAttribute("aria-expanded") === "true";
+  setDisclosure(els.accountMenuButton, els.accountPanel, !expanded);
+});
+els.teacherNavToggle.addEventListener("click", () => {
+  const expanded = els.teacherNavToggle.getAttribute("aria-expanded") === "true";
+  setDisclosure(els.teacherNavToggle, els.teacherNavigation, !expanded);
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    const accountWasOpen = els.accountMenuButton.getAttribute("aria-expanded") === "true";
+    const navigationWasOpen = els.teacherNavToggle.getAttribute("aria-expanded") === "true";
+    closeCommandDisclosures();
+    if (navigationWasOpen) els.teacherNavToggle.focus();
+    else if (accountWasOpen) els.accountMenuButton.focus();
+  }
+});
+document.addEventListener("click", (event) => {
+  const target = event.target;
+  if (!(target instanceof Element) || !target.closest(".account-control")) {
+    setDisclosure(els.accountMenuButton, els.accountPanel, false);
+  }
+});
 
 init();
+
+function setDisclosure(trigger, panel, expanded) {
+  trigger.setAttribute("aria-expanded", String(expanded));
+  if (panel === els.teacherNavigation) {
+    panel.classList.toggle("is-open", expanded);
+  } else {
+    panel.hidden = !expanded;
+  }
+}
+
+function closeCommandDisclosures() {
+  setDisclosure(els.accountMenuButton, els.accountPanel, false);
+  setDisclosure(els.teacherNavToggle, els.teacherNavigation, false);
+}
 
 async function init() {
   if (!isConfigured()) {
@@ -149,11 +188,13 @@ async function run(workingMessage, action) {
 }
 
 function renderSignedOut() {
+  closeCommandDisclosures();
   currentContext = null;
   els.signedOutPanel.hidden = false;
   els.signedInPanel.hidden = true;
   els.studentDashboard.hidden = true;
   els.teacherDashboard.hidden = true;
+  els.teacherNavToggle.hidden = true;
   els.teacherContextPanel.hidden = true;
   els.identitySummary.textContent = "";
   els.roleList.innerHTML = "";
@@ -214,6 +255,7 @@ function roleCapabilities(context) {
 }
 
 function renderContext(context) {
+  closeCommandDisclosures();
   currentContext = context;
   els.signedOutPanel.hidden = true;
   els.signedInPanel.hidden = false;
@@ -241,6 +283,7 @@ function renderContext(context) {
   const capabilities = roleCapabilities(context);
   els.teacherDashboard.hidden = !capabilities.canTeach;
   els.studentDashboard.hidden = capabilities.canTeach || !capabilities.hasStudentRole;
+  els.teacherNavToggle.hidden = !capabilities.canTeach;
   renderTeacherContextSwitchers(context, capabilities.canTeach);
   renderTeacherNavigation(capabilities.canTeach, capabilities.canAudit);
   if (capabilities.canTeach) {

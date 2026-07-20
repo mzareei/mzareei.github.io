@@ -19,6 +19,10 @@ requireMarkers("assets/course-materials/information-security/app/index.html", "C
   'id="studentDashboard"',
   'id="teacherDashboard"',
   'id="teacherNavigation"',
+  'id="teacherNavToggle"',
+  'aria-controls="teacherNavigation"',
+  'id="accountMenuButton"',
+  'aria-controls="accountPanel"',
   'id="currentSessionPanel"',
   'id="teacherReleasedItems"',
   'id="teacherReviewLinks"'
@@ -42,7 +46,12 @@ requireMarkers("assets/course-materials/information-security/app/app.js", "Comma
   'label: "Manage selected session"',
   'label: "Prepare selected releases"',
   'label: "View section insights"',
-  'label: "Review section gradebook"'
+  'label: "Review section gradebook"',
+  "setDisclosure",
+  "closeCommandDisclosures",
+  'event.key === "Escape"',
+  'setAttribute("aria-expanded"',
+  'classList.toggle("is-open"'
 ]);
 
 const appSource = read("assets/course-materials/information-security/app/app.js");
@@ -59,6 +68,12 @@ requireMarkers("assets/course-materials/information-security/app/app.css", "Comm
   ".current-session-panel",
   ".teacher-support-grid",
   ".account-panel"
+]);
+
+requireMarkers("assets/course-materials/information-security/app/app.css", "Command Center responsive styles", [
+  "@media (max-width: 900px)",
+  "@media (max-width: 760px)",
+  ".teacher-navigation.is-open"
 ]);
 
 if (failures.length) {

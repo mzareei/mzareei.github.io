@@ -992,6 +992,39 @@ a.progress-card:hover {
 }
 .student-dashboard .app-panel { margin-top: 0; }
 
+@media (max-width: 900px) {
+  .nav-toggle:not([hidden]) { display: inline-flex; }
+  .teacher-dashboard { grid-template-columns: 1fr; }
+  .teacher-navigation {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 60;
+    width: min(300px, 88vw);
+    padding-top: 5rem;
+    border-right: 1px solid var(--border-strong);
+    box-shadow: var(--shadow-lg);
+    transform: translateX(-105%);
+    transition: transform var(--ease);
+  }
+  .teacher-navigation.is-open { transform: translateX(0); }
+  .current-session-panel,
+  .teacher-support-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 760px) {
+  .app-command-header { align-items: flex-start; flex-wrap: wrap; }
+  .app-command-brand { flex: 1 1 180px; }
+  .teacher-workspace,
+  .student-dashboard { padding: 0.85rem; }
+  .student-dashboard,
+  .account-context-grid { grid-template-columns: 1fr; }
+  .teacher-context-grid { grid-template-columns: 1fr; }
+  .current-session-panel { padding: 1rem; }
+  .current-session-panel .context-list a,
+  .account-actions .app-button { width: 100%; }
+  .account-panel { position: fixed; top: 76px; right: 1rem; left: 1rem; width: auto; }
+}
+
 /* -------------------------------------------------------------- Responsive */
 @media (max-width: 760px) {
   .mission-top {
