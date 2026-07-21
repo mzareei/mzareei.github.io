@@ -37,14 +37,14 @@ lang: en
 url: "https://mzareei.github.io"
 baseurl: ""
 
-# ---- Academic profile links (TODO: replace with your real URLs) ----
+# ---- Academic profile links ----
 # Leave a value blank ("") to hide that icon/link.
 profiles:
   cv: ""                                    # set to "/assets/cv/cv.pdf" after adding the PDF to assets/cv/
   google_scholar: "https://scholar.google.com/citations?user=IhVgxzAAAAAJ"
   orcid: "https://orcid.org/0000-0001-6623-1758"
   scopus: "https://www.scopus.com/authid/detail.uri?authorId=48762315500"
-  github: "https://github.com/mzareei"      # TODO: confirm this is your GitHub
+  github: "https://github.com/mzareei"
   linkedin: "https://www.linkedin.com/in/mzareei"
   dblp: ""                                  # optional
   researchgate: "https://www.researchgate.net/profile/Mahdi_Zareei"
@@ -87,6 +87,7 @@ exclude:
   - .gitignore
   - LICENSE
   - supabase
+  - docs/superpowers
 
 # Plugins (all supported on GitHub Pages)
 plugins:

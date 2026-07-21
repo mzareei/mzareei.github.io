@@ -1,74 +1,49 @@
-# ============================================================
-#  SUPERVISED STUDENTS
-#  Groups: phd | msc | graduated | undergrad
-#  Currently 4 active doctoral students (one approaching graduation).
-#  NOTE: theses without names come from the CV — add names only with consent.
-#  Also: committee member for 8 PhD students (2017–2023); see CV.
-# ============================================================
-
 phd:
-  - name: "[Add student name — with consent]"
+  - name: ""
     program: "PhD — Main advisor"
-    title: "Leveraging shared semantic knowledge for multiple-language support applied to sentiment analysis in micro-blogging platforms"
-    status: "In progress — approaching graduation (since 2019)"
-    topic: "Multilingual NLP / sentiment analysis"
-    outcomes: "Related publications with León-Sandoval et al."
-
-  - name: "[Add student name — with consent]"
-    program: "PhD — Main advisor"
-    title: "Text Emotion Detection"
-    status: "In progress (since 2022)"
-    topic: "Natural language processing / affective computing"
-    outcomes: ""
-
-  - name: "[Add student name — with consent]"
-    program: "PhD — Main advisor"
-    title: "[Thesis title — to add]"
+    title: "Multilingual semantic knowledge for sentiment analysis in micro-blogging platforms"
     status: "In progress"
-    topic: "[Add topic]"
-    outcomes: ""
-
-  - name: "[Add student name — with consent]"
+    topic: "Multilingual NLP"
+  - name: ""
     program: "PhD — Main advisor"
-    title: "[Thesis title — to add]"
+    title: "Text emotion detection"
     status: "In progress"
-    topic: "[Add topic]"
-    outcomes: ""
-
+    topic: "Affective computing"
+  - name: ""
+    program: "PhD — Main advisor"
+    title: "Research in applied AI and secure intelligent systems"
+    status: "In progress"
+    topic: "Applied AI"
+  - name: ""
+    program: "PhD — Main advisor"
+    title: "Research in applied AI and secure intelligent systems"
+    status: "In progress"
+    topic: "Applied AI"
 msc:
-  - name: "[Add student name — with consent]"
+  - name: ""
     program: "MSc — Main advisor"
-    title: "MU-MIMO distributed beamforming in RF energy-harvesting cognitive radio sensor networks"
-    status: "In progress (since 2019)"
-    topic: "Wireless communications / energy harvesting"
-    outcomes: ""
-
+    title: "MU-MIMO distributed beamforming in energy-harvesting cognitive radio sensor networks"
+    status: "In progress"
+    topic: "Wireless communications"
 graduated:
-  - name: "[Add student name — with consent]"
+  - name: ""
     program: "MSc — Main advisor"
     title: "Road asphalt monitoring system: pothole detection"
     status: "Graduated 2022"
-    topic: "Applied machine learning / computer vision"
-    outcomes: ""
-
-  - name: "[Add student name — with consent]"
+    topic: "Computer vision"
+  - name: ""
     program: "PhD — Co-advisor"
     title: "Reception of multiple users in reconfigurable wireless networks"
-    status: "Graduated (2018)"
-    topic: "Reconfigurable wireless networks"
-    outcomes: ""
-
+    status: "Graduated 2018"
+    topic: "Wireless networks"
 undergrad:
-  - name: "Programa Delfín — research interns"
+  - name: "Programa Delfín research interns"
     program: "Undergraduate research"
-    title: "Mentoring undergraduate students in research projects"
-    status: "2 students currently"
-    topic: "Applied AI / security"
-    outcomes: ""
-
-  - name: "Next Gen Scientists & Research Stays"
+    title: "Mentored research projects"
+    status: "Current"
+    topic: "Applied AI and security"
+  - name: "Next Gen Scientists and research stays"
     program: "Undergraduate research"
-    title: "Undergraduate research stays and the Next Gen Scientists program"
-    status: "Recent cycle: 1 research stay, 1 Next Gen Scientist"
-    topic: ""
-    outcomes: ""
+    title: "Research stays and the Next Gen Scientists program"
+    status: "Recent cohorts"
+    topic: "Research training"

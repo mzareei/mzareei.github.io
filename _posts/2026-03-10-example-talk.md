@@ -1,6 +1,7 @@
 ---
 title: "[TODO: Conference talk or research note]"
 date: 2026-03-10
+published: false
 description: "[Short summary shown in the blog list and on the home page.]"
 tags: [research, talks]
 ---

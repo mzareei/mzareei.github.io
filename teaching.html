@@ -1,35 +1,17 @@
 ---
 title: Teaching
-subtitle: Courses, slides, and class materials.
-description: Courses taught by [Your Full Name], with slides, labs, assignments, and reading lists.
+eyebrow: Learning and mentorship
+subtitle: Courses that connect computer-science foundations with current research and applied practice.
+description: Courses taught by Mahdi Zareei at Tecnológico de Monterrey.
 ---
-<!--
-  Each course is a file in _courses/. To add a course, copy
-  _courses/example-course.md to a new file (e.g. cs101-fall-2026.md).
--->
-
 {% assign courses = site.courses | sort: "semester" | reverse %}
-
-{% if courses.size > 0 %}
-<div class="grid grid--2">
+<div class="course-grid">
   {% for course in courses %}
-    <article class="card">
-      <h3><a href="{{ course.url | relative_url }}">{{ course.title }}</a></h3>
-      <p class="card__meta">
-        {% if course.code %}<span class="badge">{{ course.code }}</span> {% endif %}
-        {% if course.semester %}{{ course.semester }}{% endif %}
-        {% if course.level %} · {{ course.level }}{% endif %}
-      </p>
-      {% if course.description %}<p>{{ course.description | truncate: 160 }}</p>{% endif %}
-      <p><a href="{{ course.url | relative_url }}">Course page & materials →</a></p>
-    </article>
+  <article class="course-card">
+    <p class="course-card__meta">{% if course.code and course.code != "" %}<span class="badge">{{ course.code }}</span>{% endif %} {{ course.level }}</p>
+    <h2><a href="{{ course.url | relative_url }}">{{ course.title }}</a></h2>
+    <p>{{ course.description }}</p>
+    <div class="course-card__footer"><span>{% if course.code == "TC2007B" %}Course App available{% else %}Course overview{% endif %}</span><a href="{{ course.url | relative_url }}">Open course →</a></div>
+  </article>
   {% endfor %}
 </div>
-{% else %}
-  <p class="pub-empty">No courses yet. Add one by copying <code>_courses/example-course.md</code>.</p>
-{% endif %}
-
-<p style="margin-top:1.5rem;" class="todo">
-  TODO: Store slides, notebooks, and datasets under <code>assets/slides/&lt;course-code&gt;/</code>
-  and link them from each course page.
-</p>

@@ -1,35 +1,12 @@
 ---
 title: Projects
-subtitle: Active, completed, and under-review research projects.
-description: Research projects of [Your Full Name], including funding, collaborators, and outcomes.
+eyebrow: Research portfolio
+subtitle: Funded work translating ideas in secure and responsible intelligent systems into practical research programs.
+description: Active and completed funded research projects led or supported by Mahdi Zareei.
 ---
-<!-- Projects are edited in _data/projects.yml -->
-
 {% assign active = site.data.projects | where: "status", "active" %}
-{% assign review = site.data.projects | where: "status", "review" %}
 {% assign completed = site.data.projects | where: "status", "completed" %}
-
-{% if active.size > 0 %}
-<h2>Active projects</h2>
-<div class="grid grid--2">
-  {% for p in active %}{% include project-card.html p=p %}{% endfor %}
+<div class="project-groups">
+  {% if active.size > 0 %}<section><div class="section-heading"><p class="eyebrow">In progress</p><h2>Active projects</h2></div><div class="grid grid--2">{% for p in active %}{% include project-card.html p=p %}{% endfor %}</div></section>{% endif %}
+  {% if completed.size > 0 %}<section><div class="section-heading"><p class="eyebrow">Archive</p><h2>Completed projects</h2></div><div class="grid grid--2">{% for p in completed %}{% include project-card.html p=p %}{% endfor %}</div></section>{% endif %}
 </div>
-{% endif %}
-
-{% if review.size > 0 %}
-<h2 style="margin-top:2rem;">Under review</h2>
-<div class="grid grid--2">
-  {% for p in review %}{% include project-card.html p=p %}{% endfor %}
-</div>
-{% endif %}
-
-{% if completed.size > 0 %}
-<h2 style="margin-top:2rem;">Completed / archived projects</h2>
-<div class="grid grid--2">
-  {% for p in completed %}{% include project-card.html p=p %}{% endfor %}
-</div>
-{% endif %}
-
-{% if site.data.projects.size == 0 %}
-  <p class="pub-empty">No projects yet. Add entries to <code>_data/projects.yml</code>.</p>
-{% endif %}

@@ -1,81 +1,59 @@
 ---
 layout: default
-title: about
-description: Academic homepage of [Your Full Name] — research professor in Computer Science.
+title: Mahdi Zareei
+description: Academic homepage of Mahdi Zareei — research professor in computer science.
 ---
-<div class="container page">
-
-  <header class="about-head">
-    <h1 class="about-head__name">{{ site.name }}</h1>
-    <p class="about-head__tagline">
-      {% if site.affiliation_url and site.affiliation_url != "" %}
-        <a href="{{ site.affiliation_url }}" rel="noopener">{{ site.affiliation }}</a>
-      {% else %}{{ site.affiliation }}{% endif %}
-      {% if site.tagline and site.tagline != "" %}<br>{{ site.tagline }}{% endif %}
-    </p>
-  </header>
-
-  <section class="about-bio">
-    <!-- TODO: add assets/images/profile.jpg to show your photo -->
-    <img class="about-photo" src="{{ '/assets/images/profile.jpg' | relative_url }}"
-         alt="Photo of {{ site.name }}" onerror="this.style.display='none'">
-
-    <!-- TODO: edit this landing bio. The longer biography lives on the About page. -->
-    <p>{{ site.short_summary }}</p>
-
-    <p>
-      [TODO: Add a second paragraph here — your background, current research
-      program, and what you are looking for in students or collaborators.]
-    </p>
-
-    <p>
-      <a href="{{ '/about/' | relative_url }}">Read full bio &rarr;</a> &nbsp;&middot;&nbsp;
-      {% if site.profiles.cv and site.profiles.cv != "" %}<a href="{{ site.profiles.cv | relative_url }}">Download CV (PDF)</a>{% endif %}
-    </p>
-
-    <div class="social">{% include profile-links.html %}</div>
+<div class="container page home-page">
+  <section class="home-hero editorial-grid">
+    <div class="home-hero__copy">
+      <p class="eyebrow">Research Professor · Tecnológico de Monterrey</p>
+      <h1>Secure intelligent systems for people and connected environments.</h1>
+      <p class="home-hero__lede">I work at the intersection of information security, applied machine learning, natural language processing, and connected systems—turning rigorous research into technologies with practical value.</p>
+      <div class="home-hero__actions">
+        <a class="btn btn--primary" href="{{ '/research/' | relative_url }}">Explore my research</a>
+        <a class="btn" href="{{ '/publications/' | relative_url }}">View publications</a>
+      </div>
+      <div class="home-hero__profiles">{% include profile-links.html %}</div>
+    </div>
+    <figure class="home-hero__portrait">
+      <img src="{{ '/assets/images/profile.jpg' | relative_url }}" alt="Portrait of Mahdi Zareei" width="800" height="800">
+      <figcaption>School of Engineering and Sciences<br>Tecnológico de Monterrey, Mexico</figcaption>
+    </figure>
   </section>
 
-  <hr>
+  {% assign publication_count = site.data.publications | size %}
+  {% assign active_projects = site.data.projects | where: "status", "active" %}
+  <section class="evidence-rail" aria-label="Academic profile at a glance">
+    <div><strong>{{ publication_count }}</strong><span>indexed publications</span></div>
+    <div><strong>{{ active_projects.size }}</strong><span>active research projects</span></div>
+    <div><strong>IEEE</strong><span>Senior Member</span></div>
+    <div><strong>SNI I</strong><span>National researcher</span></div>
+  </section>
 
-  <section>
-    <h2 class="section-title"><a href="{{ '/news/' | relative_url }}">news</a></h2>
-    {% assign recent = site.data.news | sort: "date" | reverse %}
-    <div class="row-table">
-      {% for item in recent limit: 5 %}
-        <div class="row-item">
-          <span class="row-item__date">{{ item.date | date: "%b %-d, %Y" }}</span>
-          <div>
-            <p class="row-item__title">{{ item.title }}</p>
-            <p class="row-item__body">{{ item.body }}</p>
-          </div>
-        </div>
+  <section class="home-section research-preview">
+    <div class="section-heading"><p class="eyebrow">Research agenda</p><h2>Questions that connect security, intelligence, and society.</h2><a href="{{ '/research/' | relative_url }}">All research areas →</a></div>
+    <div class="preview-grid">
+      {% for theme in site.data.research limit: 3 %}
+      <article class="preview-card"><span class="preview-card__index">0{{ forloop.index }}</span><h3>{{ theme.name }}</h3><p>{{ theme.description }}</p></article>
       {% endfor %}
     </div>
   </section>
 
-  {% if site.posts.size > 0 %}
-  <section>
-    <h2 class="section-title"><a href="{{ '/blog/' | relative_url }}">latest posts</a></h2>
-    <div class="row-table">
-      {% for post in site.posts limit: 3 %}
-        <div class="row-item">
-          <span class="row-item__date">{{ post.date | date: "%b %-d, %Y" }}</span>
-          <div>
-            <p class="row-item__title"><a href="{{ post.url | relative_url }}">{{ post.title }}</a></p>
-          </div>
-        </div>
+  <section class="home-section project-preview">
+    <div class="section-heading"><p class="eyebrow">Current work</p><h2>Research in progress.</h2><a href="{{ '/projects/' | relative_url }}">All projects →</a></div>
+    <div class="grid grid--2">
+      {% for project in active_projects limit: 3 %}{% include project-card.html p=project %}{% endfor %}
+    </div>
+  </section>
+
+  <section class="home-section publication-preview">
+    <div class="section-heading"><p class="eyebrow">Selected output</p><h2>Latest publications.</h2><a href="{{ '/publications/' | relative_url }}">Complete record →</a></div>
+    <div class="pub-list">
+      {% for pub in site.data.publications limit: 3 %}
+      <article class="pub-item"><div><p class="pub-item__title">{{ pub.title }}</p><p class="pub-item__authors">{{ pub.authors }}</p><p class="pub-item__venue">{{ pub.venue }} · {{ pub.year }}</p></div>{% if pub.doi %}<a href="https://doi.org/{{ pub.doi }}" rel="noopener">DOI ↗</a>{% endif %}</article>
       {% endfor %}
     </div>
   </section>
-  {% endif %}
 
-  <section>
-    <h2 class="section-title">research areas</h2>
-    <ul class="tag-list">
-      {% for theme in site.data.research %}<li class="tag">{{ theme.name }}</li>{% endfor %}
-    </ul>
-    <p><a href="{{ '/research/' | relative_url }}">More about my research &rarr;</a></p>
-  </section>
-
+  <section class="home-contact"><div><p class="eyebrow">Start a conversation</p><h2>Interested in research collaboration or graduate study?</h2></div><a class="btn btn--primary" href="{{ '/contact/' | relative_url }}">Get in touch</a></section>
 </div>

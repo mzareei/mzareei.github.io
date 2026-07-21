@@ -3,6 +3,10 @@ title: About
 description: Academic biography and research interests of Mahdi Zareei, Research Professor at Tecnológico de Monterrey.
 ---
 
+<div class="about-layout" markdown="1">
+
+<div class="about-layout__main" markdown="1">
+
 ## Short bio
 
 Mahdi Zareei is a Research Professor at the School of Engineering and Sciences,
@@ -52,3 +56,17 @@ See the [Research](/research/) page for details on each theme.
 - Internet of Things and vehicular networks (VANET)
 
 <!-- Scientometrics are summarized on the CV page (with an "as of" date). -->
+
+</div>
+
+<aside class="about-facts" markdown="1">
+## At a glance
+
+- Research Professor since 2019
+- IEEE Senior Member
+- SNI Level I
+- Associate Editor and peer reviewer
+- Based in Guadalajara, Mexico
+</aside>
+
+</div>

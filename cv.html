@@ -1,6 +1,6 @@
 ---
 title: Curriculum Vitae
-subtitle: A web version of my CV. A downloadable PDF is also available.
+subtitle: Academic positions, education, research, projects, service, and supervision.
 description: Curriculum vitae of Mahdi Zareei — positions, education, awards, grants, editorial roles, teaching, and supervision.
 ---
 <!--
@@ -9,15 +9,18 @@ description: Curriculum vitae of Mahdi Zareei — positions, education, awards, 
   Scientometrics are a 2024 snapshot — update the numbers as needed.
 -->
 
+<div class="cv-layout">
+<nav class="cv-nav" aria-label="CV sections"><a href="#positions">Positions</a><a href="#education">Education</a><a href="#research">Research</a><a href="#projects">Projects</a><a href="#service">Service</a></nav>
+<div class="cv-main">
 <p>
   {% if site.profiles.cv and site.profiles.cv != "" %}
     <a class="btn" href="{{ site.profiles.cv | relative_url }}">Download CV (PDF)</a>
   {% else %}
-    <span class="todo">TODO: add assets/cv/cv.pdf and set profiles.cv in _config.yml</span>
+    <span class="empty-state">PDF version coming soon</span>
   {% endif %}
 </p>
 
-<section class="cv-section">
+<section class="cv-section" id="positions">
   <h2>Academic positions</h2>
   <div class="cv-entry"><div class="cv-entry__line"><span>Research Professor — School of Engineering and Sciences, Tecnológico de Monterrey, Mexico</span><span class="cv-entry__when">2019 – present</span></div></div>
   <div class="cv-entry"><div class="cv-entry__line"><span>Postdoctoral Researcher — Tecnológico de Monterrey, Mexico</span><span class="cv-entry__when">2017 – 2019</span></div></div>
@@ -25,7 +28,7 @@ description: Curriculum vitae of Mahdi Zareei — positions, education, awards, 
   <div class="cv-entry"><div class="cv-entry__line"><span>Teaching Assistant — Universiti Sains Malaysia</span><span class="cv-entry__when">2010 – 2012</span></div></div>
 </section>
 
-<section class="cv-section">
+<section class="cv-section" id="education">
   <h2>Education</h2>
   <div class="cv-entry"><div class="cv-entry__line"><span>Ph.D. in Wireless Communication — Malaysia-Japan International Institute of Technology, Universiti Teknologi Malaysia</span><span class="cv-entry__when">2013 – 2016</span></div>
     <p class="cv-entry__sub">Dissertation: Mobility-aware MAC protocol for Cognitive Radio Sensor Networks.</p></div>
@@ -35,7 +38,7 @@ description: Curriculum vitae of Mahdi Zareei — positions, education, awards, 
   <div class="cv-entry"><div class="cv-entry__line"><span>B.Eng. in Software Engineering — Payame Noor University (PNU), Hamedan, Iran</span><span class="cv-entry__when">2002 – 2008</span></div></div>
 </section>
 
-<section class="cv-section">
+<section class="cv-section" id="research">
   <h2>Research interests</h2>
   <p>Information and network security; applied machine learning; natural language
      processing and sentiment analysis; wireless sensor and cognitive radio networks;
@@ -59,7 +62,7 @@ description: Curriculum vitae of Mahdi Zareei — positions, education, awards, 
   </ul>
 </section>
 
-<section class="cv-section">
+<section class="cv-section" id="projects">
   <h2>Grants and funded projects</h2>
   <p>Selected funded projects (full details on the
      <a href="{{ '/projects/' | relative_url }}">Projects</a> page):</p>
@@ -84,7 +87,7 @@ description: Curriculum vitae of Mahdi Zareei — positions, education, awards, 
   <div class="cv-entry"><div class="cv-entry__line"><span>Best Paper Awards — IWNCSP (2015), ICAICT Chittagong (2015), AUN/SEED-Net ICEEE (2014), MJIIS (2013)</span><span class="cv-entry__when">2013 – 2015</span></div></div>
 </section>
 
-<section class="cv-section">
+<section class="cv-section" id="service">
   <h2>Editorial and reviewing activities</h2>
   <ul>
     <li>Associate Editor — <em>IEEE Access</em> (2017 – present)</li>
@@ -137,11 +140,12 @@ description: Curriculum vitae of Mahdi Zareei — positions, education, awards, 
 
 <section class="cv-section">
   <h2>Scientometrics</h2>
-  <p>As of 2024: h-index 34 · i10-index 71 · 100+ publications · 3300+ citations
-     <span class="cv-entry__when">(verify against Scholar/Scopus before quoting)</span>.</p>
+  <p>As of 2024: h-index 34 · i10-index 71 · 100+ publications · 3300+ citations.</p>
   <p class="card__meta">
     ORCID <a href="https://orcid.org/0000-0001-6623-1758" rel="noopener">0000-0001-6623-1758</a> ·
     Scopus Author ID <a href="https://www.scopus.com/authid/detail.uri?authorId=48762315500" rel="noopener">48762315500</a> ·
     Web of Science ResearcherID D-8043-2013
   </p>
 </section>
+</div>
+</div>

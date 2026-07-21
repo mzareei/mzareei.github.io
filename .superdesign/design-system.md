@@ -1,123 +1,172 @@
-# TC2007B Course App design system
+# Mahdi Zareei Academic Portfolio Design System
 
 ## Product context
 
-The TC2007B Course App is the authenticated classroom workspace behind the public course site. It serves instructors and students, but the signed-in home adapts its hierarchy to the active role. For instructors, the dominant job is operating the current class: confirm course/section/session context, prepare releases, run the live session, then review participation and outcomes. Account and enrollment details are supporting context, not the primary task.
+This is the public academic portfolio of Mahdi Zareei, Research Professor at Tecnologico de Monterrey. It serves prospective students, research collaborators, academic peers, funding partners, and current students. The public Jekyll site includes the homepage, biography, research themes, publications, funded projects, students, teaching and course pages, CV, blog, news, and contact. Self-contained lecture microsites and the authenticated Course App retain their own design systems and are outside this redesign.
+
+## Chosen direction
+
+Use a modern editorial academic style: credible, calm, highly readable, and distinctive without resembling a corporate dashboard or generic portfolio template. The experience should feel like a strong research profile and a well-edited scholarly publication. Preserve all existing URLs, content collections, light/dark theme support, and accessible semantics.
 
 ## Design principles
 
-1. Workflow before metadata: show the current class, its state, and the next useful action before profile or role details.
-2. One obvious primary action: each state should offer a single emphasized next step; other actions remain visible but quieter.
-3. Context is persistent: course, section, and session selectors stay near the top of instructor surfaces.
-4. Progressive disclosure: daily teaching tools are immediate; semester setup and audit tools are grouped as secondary navigation.
-5. Calm academic utility: clear, trustworthy, information-dense enough for instructors, without looking like a generic enterprise admin panel.
-6. Role-aware composition: instructors see teaching operations; students see released materials, current activities, and progress using the same visual language.
+1. Research first: visitors should understand expertise, current work, and scholarly credibility within the first viewport.
+2. Editorial hierarchy: use strong display typography, measured line lengths, clear section rhythm, and restrained ornament.
+3. Evidence over decoration: publication counts, active projects, research themes, courses, and profile links carry the visual weight.
+4. Progressive depth: the homepage summarizes; subpages provide dense details without becoming visually flat.
+5. Honest content: never display TODO placeholders, fabricated news, incomplete names, or broken image states.
+6. One system across routes: shared navigation, page mastheads, cards, tags, lists, calls to action, and footer.
+7. Accessible by default: AA contrast, visible focus, semantic landmarks, 44px mobile targets, reduced motion, and keyboard-safe navigation.
 
-## Visual language
+## Brand and visual language
 
-Retain the existing Inter and JetBrains Mono families and the existing blue/teal identity. The redesign may change composition, density, hierarchy, and component arrangement, but must not introduce unrelated fonts, decorative gradients, neon colors, glassmorphism, or marketing-page styling.
+The palette evolves the existing blue academic identity into ink navy, cobalt, and research teal on warm paper-like surfaces. Avoid purple, neon, glassmorphism, decorative gradients, and oversized marketing-style hero text.
 
 ### Typography
 
-- UI and content: Inter, with Segoe UI and system sans-serif fallbacks.
-- IDs, dates, compact metrics, and technical metadata: JetBrains Mono.
-- Page title: 28-34px, weight 800, tight tracking.
-- Section title: 18-22px, weight 700.
-- Card title: 15-17px, weight 700.
-- Body: 14-16px, line-height 1.5-1.6.
-- Eyebrows and compact labels: 11-12px, weight 700, uppercase, 0.08-0.11em tracking.
+- Display and editorial headings: Source Serif 4, with Georgia and serif fallbacks.
+- UI, navigation, labels, metadata, and body: Inter, with system sans-serif fallbacks.
+- Page display title: clamp(2.4rem, 6vw, 5.2rem), weight 650, tight line height.
+- Subpage title: clamp(2.25rem, 5vw, 4.25rem), weight 650.
+- Section title: clamp(1.65rem, 3vw, 2.45rem), weight 620.
+- Card title: 1.1-1.3rem, weight 650.
+- Body: 16-18px, 1.65-1.75 line-height, maximum 68 characters for prose.
+- Eyebrow: 11-12px, weight 700, uppercase, 0.12em tracking.
+- Metadata: 13-14px, medium weight.
 
-### Light colors
+### Light tokens
 
-- App background: #f4f7fb.
+- Page background: #f7f8f6.
 - Primary surface: #ffffff.
-- Secondary surface: #eef2f8.
-- Tertiary surface: #e4eaf3.
-- Default border: #dbe3ee.
-- Strong border: #c3cee0.
-- Primary text: #12203a.
-- Muted text: #55637a.
-- Subtle text: #5d6b81.
-- Primary blue: #2563eb; hover/strong blue: #1d4ed8.
-- Primary soft: #e9f0fe; primary soft border: #cfe0fd.
-- Accent teal: #0a6f65; accent soft: #e2f5f2.
-- Success: #15803d with #e6f5ec background.
-- Warning: #a45a08 with #fbefdc background.
-- Danger: #c02636 with #fdeaec background.
+- Secondary surface: #f0f3f2.
+- Ink: #10213a.
+- Strong ink: #07162b.
+- Muted text: #5e6b7c.
+- Subtle text: #738093.
+- Border: #dce3e2.
+- Strong border: #c6d2d1.
+- Primary cobalt: #2357d8.
+- Primary hover: #183f9f.
+- Primary soft: #e8eefc.
+- Research teal: #087b72.
+- Teal soft: #e1f2ef.
+- Warm highlight: #d9772a.
+- Warm soft: #fff0e4.
+- Success: #177245.
 
-### Dark colors
+### Dark tokens
 
-- App background: #0c131f.
-- Primary surface: #141d2b.
-- Secondary surface: #1b2739.
-- Tertiary surface: #223148.
-- Default border: #29374d.
-- Strong border: #3a4c68.
-- Primary text: #eaf1fb.
-- Muted text: #a6b4c9.
-- Primary blue: #5a9bff; strong blue: #7db0ff.
-- Accent teal: #2dd4bf.
+- Page background: #0b1320.
+- Primary surface: #111d2d.
+- Secondary surface: #172537.
+- Ink: #edf3f7.
+- Strong ink: #ffffff.
+- Muted text: #a8b5c3.
+- Subtle text: #8594a7.
+- Border: #29384a.
+- Strong border: #3b4d62.
+- Primary cobalt: #82a9ff.
+- Primary hover: #adc5ff.
+- Primary soft: rgba(80, 126, 235, 0.18).
+- Research teal: #45d1c4.
+- Teal soft: rgba(69, 209, 196, 0.14).
+- Warm highlight: #f0a66b.
+- Warm soft: rgba(240, 166, 107, 0.14).
 
-### Spacing and shape
+### Layout and spacing
 
-- Base spacing rhythm: 4px.
-- Common gaps: 8, 12, 16, 20, 24, and 32px.
-- Dense control/card padding: 12-16px.
-- Primary panel padding: 20-28px.
-- Small radius: 8px; standard radius: 12px; major panel radius: 16px; pills: 999px.
-- Use borders and restrained surface shifts for grouping. Shadows remain soft and sparse.
+- Maximum site shell: 1180px; reading column: 720px.
+- Header height: 72px desktop, 64px mobile.
+- Base spacing unit: 4px; common spaces: 8, 12, 16, 24, 32, 48, 64, 88px.
+- Section padding: clamp(56px, 8vw, 104px).
+- Small radius: 10px; cards: 18px; feature panels: 24px; pills: 999px.
+- Shadows: sparse and soft; rely primarily on border, surface, and spacing.
+- Use a subtle 1px grid or hairline rule as an editorial motif, never a busy background texture.
 
-## Core layout
+## Shared layout
 
-- Desktop target: 1440px viewport, content shell approximately 1180-1240px wide.
-- Mobile remains fully usable below 760px with stacked regions and 44px minimum controls.
-- Instructor home should use a compact application header, persistent teaching-context bar, a dominant current-session/next-action region, and secondary cards or navigation for materials, class health, setup, and review.
-- Profile, email, role, and sign-out belong in a compact account area rather than a large dashboard card.
-- Avoid empty grid columns and cards whose height is driven by unrelated neighboring content.
+### Header
+
+- Sticky, calm top bar with brand at left and primary navigation at right.
+- Brand treatment: small monogram tile `MZ` plus full name.
+- Desktop navigation: Home, Research, Publications, Projects, Teaching, People, CV; Contact is a compact outlined action.
+- Mobile navigation is a full-width disclosure below the bar, closes on selection/outside/Escape, and preserves focus.
+- Theme toggle remains available and clearly labeled to assistive technology.
+
+### Homepage hero
+
+- Two-column desktop layout: narrative and actions on the left; portrait and compact credibility card on the right.
+- Eyebrow identifies role and institution.
+- Main line communicates the research intersection: secure intelligent systems for people and connected environments.
+- Include concise bio, primary CTA to Research, secondary CTA to Publications, and icon profile links.
+- Portrait must use the real local profile image, with a restrained 4:5 crop.
+- A compact evidence rail below the hero shows publication count from data, active projects from data, IEEE Senior Member, and SNI Level I.
+
+### Subpage masthead
+
+- Eyebrow identifies the section; large page title and concise subtitle.
+- Optional supporting stat or action aligned right on wide screens.
+- Use the same masthead across page, course, and post layouts.
+
+### Footer
+
+- Three-part editorial footer: short identity statement, grouped navigation, academic profile links and copyright.
+- Do not repeat every route as a tiny undifferentiated line.
 
 ## Components
 
-### Buttons
+### Buttons and links
 
-- Primary: blue fill, white text in light theme, 44px minimum height, 8px radius.
-- Secondary: secondary surface, strong border, primary text.
-- Tertiary/navigation: quiet surface or text treatment; reveal blue/soft-blue on hover and active state.
-- Destructive actions use the danger token and are visually separated from routine actions.
+- Primary button: cobalt fill, white text, 46px minimum height, 12px radius.
+- Secondary: transparent or surface fill with strong border.
+- Text arrow links: compact, strong ink/cobalt, animated underline only.
+- All interactive states have a 3px visible focus ring.
 
-### Context selector bar
+### Research cards
 
-- Course, section, and session selectors form one coherent control group.
-- Show current live state as a semantic status chip.
-- The most likely next action sits at the right edge on desktop and below selectors on mobile.
+- Numbered or labeled cards with title, concise description, and only verified connections.
+- Do not render empty or TODO metadata rows.
+- Use teal for research-area accents and cobalt for links.
 
-### Current-session panel
+### Publication list
 
-- Contains date/title, live or scheduled status, released item counts, participation/response signals when available, and one primary next action.
-- A short three-stage model—Prepare, Teach, Review—may show progress, but must not become a decorative stepper detached from real state.
+- Preserve year accordions and source links.
+- Strong title/author/venue hierarchy with compact type badges.
+- Controls sit in a restrained toolbar; rows have generous but efficient vertical rhythm.
 
-### Cards
+### Project and teaching cards
 
-- Cards need a clear purpose and a stable height based on their own content.
-- Prefer compact summary cards with one metric or action group over large blank containers.
-- Released materials show type, release state, class/session association, and direct action in a scannable row.
+- Cards use status/kicker, title, concise description, key metadata, and one clear destination.
+- Active projects may receive a teal top rule; completed projects remain quieter.
+- Course cards distinguish courses with available materials from overview-only courses without displaying TODOs.
 
-### Navigation
+### People and CV entries
 
-- Group instructor destinations as Teach, Review, and Manage.
-- The current page/area must be explicit.
-- Avoid presenting all destinations as an undifferentiated vertical stack of identical cards.
+- People are rendered as privacy-safe role cards when a name is unavailable.
+- CV uses an editorial timeline/list treatment with dates aligned in a stable column.
 
-### Feedback and accessibility
+### Empty states
 
-- Preserve visible focus rings, semantic live regions, keyboard navigation, reduced-motion behavior, and AA text contrast.
-- Loading, empty, success, warning, and error states must not depend on color alone.
+- Replace public TODO markers with honest, polished empty states or omit incomplete metadata.
+- News with no verified entries should state that updates will be added, not show fabricated announcements.
 
 ## Motion
 
-- Use the existing 160ms ease for hover/focus/selection transitions.
-- Limit movement to subtle hover lift or state transitions; no large entrance animations.
-- Respect `prefers-reduced-motion`.
+- 160-220ms ease-out for hover, menu, theme, and disclosure transitions.
+- Card lift is at most 2px.
+- No entrance choreography or parallax.
+- Respect prefers-reduced-motion.
 
-## Redesign scope
+## Responsive behavior
 
-The first design target is the signed-in instructor dashboard at `app/index.html`. All existing capabilities and routes remain available. The design exploration changes information architecture and presentation only; authentication, permissions, Supabase data contracts, and release logic are unchanged.
+- Desktop: hero split and multi-column cards within 1180px shell.
+- Tablet: two-column content where it remains readable; navigation collapses below 880px.
+- Mobile: single-column layout, hero title stays below 3.25rem, portrait follows main copy, buttons become comfortably tappable without always forcing full width.
+- No horizontal scrolling at 390px, including publications, CV metadata, and course tables.
+
+## Content and scope guardrails
+
+- Preserve public route URLs and Jekyll data sources.
+- Do not redesign the authenticated Course App, lecture decks, or course-material microsites in this project; link to them from the redesigned public course pages.
+- Do not invent publications, students, news, awards, grants, affiliations, or metrics.
+- Use known facts already present in configuration, CV, publications, and funded-project data.

@@ -1,18 +1,34 @@
 <footer class="site-footer">
-  <div class="container site-footer__inner">
-    <nav class="site-footer__nav" aria-label="Secondary">
-      {%- assign foot_items = "/,about|/research/,research|/publications/,publications|/projects/,projects|/students/,students|/teaching/,teaching|/cv/,cv|/blog/,blog|/news/,news|/contact/,contact" | split: "|" -%}
-      {%- for item in foot_items -%}
-        {%- assign parts = item | split: "," -%}
-        <a class="site-footer__navlink" href="{{ parts[0] | relative_url }}">{{ parts[1] }}</a>
-      {%- endfor -%}
+  <div class="container site-footer__grid">
+    <section class="site-footer__identity" aria-labelledby="footer-name">
+      <p class="site-footer__brand" id="footer-name"><span class="brand-mark" aria-hidden="true">MZ</span>{{ site.name }}</p>
+      <p>Research Professor working across information security, applied machine learning, and natural language processing.</p>
+    </section>
+
+    <nav class="site-footer__group" aria-label="Research links">
+      <p class="site-footer__label">Research</p>
+      <a href="{{ '/research/' | relative_url }}">Research areas</a>
+      <a href="{{ '/projects/' | relative_url }}">Funded projects</a>
+      <a href="{{ '/publications/' | relative_url }}">Publications</a>
     </nav>
 
-    <p class="site-footer__links">{% include profile-links.html %}</p>
+    <nav class="site-footer__group" aria-label="Academic links">
+      <p class="site-footer__label">Academic</p>
+      <a href="{{ '/teaching/' | relative_url }}">Teaching</a>
+      <a href="{{ '/students/' | relative_url }}">People</a>
+      <a href="{{ '/cv/' | relative_url }}">Curriculum vitae</a>
+      <a href="{{ '/blog/' | relative_url }}">Notes</a>
+    </nav>
 
-    <p class="site-footer__copy">
-      © {{ 'now' | date: "%Y" }} {{ site.name }}.
-      Built with <a href="https://jekyllrb.com/" rel="noopener">Jekyll</a> · hosted on GitHub Pages.
-    </p>
+    <section class="site-footer__connect" aria-labelledby="footer-connect">
+      <p class="site-footer__label" id="footer-connect">Connect</p>
+      <p>For research collaboration or student inquiries, write to <a href="mailto:{{ site.email }}">{{ site.email }}</a>.</p>
+      <div class="site-footer__profiles">{% include profile-links.html %}</div>
+    </section>
+  </div>
+
+  <div class="container site-footer__bottom">
+    <p>© {{ 'now' | date: "%Y" }} {{ site.name }}.</p>
+    <p>Built with <a href="https://jekyllrb.com/" rel="noopener">Jekyll</a> · hosted on GitHub Pages.</p>
   </div>
 </footer>

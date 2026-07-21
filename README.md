@@ -50,22 +50,17 @@ local course links, and accidental server-secret references in public files.
 
 ## 2. First things to edit
 
-Most identity settings live in **`_config.yml`**. Open it and replace every
-`[TODO: ...]` placeholder:
+Most identity settings live in **`_config.yml`**:
 
 - `name`, `title`, `affiliation`, `short_summary`, `email`
 - `profiles:` — your CV path and links to Google Scholar, ORCID, Scopus, GitHub, LinkedIn, etc.
   (Leave any value as `""` to hide that link.)
 - `description`, `keywords` — used for SEO and social sharing.
 
-Then add these files (placeholders are referenced but not included):
+Optional additions:
 
-- `assets/cv/cv.pdf` — your CV (the "Download CV" buttons link here).
-- `assets/images/profile.jpg` — your photo for the home page.
-- `assets/images/og-image.png` — 1200×630 social-share image (optional).
-- `assets/images/favicon.svg` — a placeholder is provided; replace if you like.
-
-> **Tip:** Search the whole repository for `TODO` to find every placeholder.
+- `assets/cv/cv.pdf` — add a downloadable CV when a current version is ready.
+- `assets/images/favicon.svg` — replace the provided mark if desired.
 
 ---
 
@@ -73,12 +68,12 @@ Then add these files (placeholders are referenced but not included):
 
 | Section | Edit this | Notes |
 |---|---|---|
-| Home — research tags & latest updates | `_data/research.yml`, `_data/news.yml` | auto-pulled |
+| Home — research, projects, publications | `_data/research.yml`, `_data/projects.yml`, `_data/publications.yml` | auto-pulled |
 | About / Bio | `about.md` | short + long bio |
 | CV (web) | `cv.html` | pulls publications/projects/students automatically |
 | CV (PDF) | `assets/cv/cv.pdf` | the downloadable file |
 | Research themes | `_data/research.yml` | one entry per theme |
-| Publications | `_data/publications.yml` | filterable by year/type |
+| Publications | `_data/publications.yml` | grouped by year |
 | Projects | `_data/projects.yml` | active / completed / under-review |
 | Students | `_data/students.yml` | phd / msc / graduated / undergrad |
 | Courses | `_courses/*.md` | one file per course |
@@ -222,17 +217,28 @@ Open `_data/news.yml` and add an entry at the top (newest first):
 
 ## 6. Features
 
-- Clean, minimalist "whitespace" academic design (inspired by the al-folio look).
+- Editorial academic design with a wide research-focused layout and reusable page system.
 - Responsive layout (desktop + mobile) with accessible contrast.
 - Stable light/dark theme toggle (remembers your choice; respects system setting).
-- Blog with a "latest posts" feed on the home page.
-- Publication filtering by year and type (no external libraries).
+- Honest empty states for news and notes until verified entries are published.
+- Year-grouped publication archive with accessible expand/collapse controls.
 - SEO + Open Graph metadata via `jekyll-seo-tag`; sitemap + RSS feed included.
 - All content in Markdown/YAML — no design changes needed to update.
 
 ## 7. A note on accuracy
 
-This site ships with **placeholder content only**. It contains no real
-publications, grants, students, awards, or metrics. Replace every `TODO`
-with your own verified information before sharing the site publicly, and
-publish student names only with their consent.
+Public pages render verified profile, publication, project, and course data.
+Student names remain private unless consent is recorded; anonymous entries use
+role-based labels. Draft announcements and example posts are not published.
+
+## 8. Verify the public site
+
+Run the production build and the public-route contract checker before publishing:
+
+```powershell
+bundle exec jekyll build
+node tools/verify-public-site-design.js
+```
+
+The verifier checks the shared design system, required generated routes,
+visitor-facing placeholder text, the portrait asset, and internal links.

@@ -1,56 +1,82 @@
-/* ============================================================
-   main.js  —  small, dependency-free site behaviour
-   1. Dark/light theme toggle (persists in localStorage)
-   2. Mobile navigation toggle
-   3. Publication filtering by year and type
-   ============================================================ */
 (function () {
   "use strict";
 
-  /* ---- 1. Theme toggle ---------------------------------- */
-  var toggle = document.querySelector(".theme-toggle");
-  if (toggle) {
-    toggle.addEventListener("click", function () {
-      var current = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
-      var next = current === "dark" ? "light" : "dark";
-      document.documentElement.setAttribute("data-theme", next);
-      try { localStorage.setItem("theme", next); } catch (e) {}
+  var root = document.documentElement;
+  var themeToggle = document.querySelector(".theme-toggle");
+
+  function currentTheme() {
+    return root.getAttribute("data-theme") === "dark" ? "dark" : "light";
+  }
+
+  function syncThemeControl() {
+    if (!themeToggle) return;
+    var dark = currentTheme() === "dark";
+    themeToggle.setAttribute("aria-pressed", String(dark));
+    themeToggle.setAttribute("aria-label", dark ? "Switch to light theme" : "Switch to dark theme");
+  }
+
+  syncThemeControl();
+  if (themeToggle) {
+    themeToggle.addEventListener("click", function () {
+      var next = currentTheme() === "dark" ? "light" : "dark";
+      root.setAttribute("data-theme", next);
+      try { localStorage.setItem("theme", next); } catch (error) {}
+      syncThemeControl();
     });
   }
 
-  /* ---- 2. Mobile nav ------------------------------------ */
   var navToggle = document.querySelector(".nav-toggle");
   var nav = document.getElementById("primary-nav");
+  var mobileNavigation = window.matchMedia("(max-width: 880px)");
+
+  function setNavigation(open, returnFocus) {
+    if (!navToggle || !nav) return;
+    var mobile = mobileNavigation.matches;
+    var shouldOpen = mobile && open;
+    nav.classList.toggle("is-open", shouldOpen);
+    navToggle.setAttribute("aria-expanded", String(shouldOpen));
+    navToggle.setAttribute("aria-label", shouldOpen ? "Close navigation" : "Open navigation");
+    nav.toggleAttribute("inert", mobile && !shouldOpen);
+    if (mobile) nav.setAttribute("aria-hidden", String(!shouldOpen));
+    else nav.removeAttribute("aria-hidden");
+    if (returnFocus) navToggle.focus();
+  }
+
   if (navToggle && nav) {
+    setNavigation(false, false);
     navToggle.addEventListener("click", function () {
-      var open = nav.classList.toggle("is-open");
-      navToggle.setAttribute("aria-expanded", open ? "true" : "false");
+      setNavigation(navToggle.getAttribute("aria-expanded") !== "true", false);
+    });
+    nav.addEventListener("click", function (event) {
+      if (event.target.closest("a")) setNavigation(false, false);
+    });
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && nav.classList.contains("is-open")) setNavigation(false, true);
+    });
+    document.addEventListener("click", function (event) {
+      if (mobileNavigation.matches && nav.classList.contains("is-open") &&
+          !nav.contains(event.target) && !navToggle.contains(event.target)) setNavigation(false, false);
+    });
+    mobileNavigation.addEventListener("change", function () {
+      var returnFocus = !mobileNavigation.matches && nav.contains(document.activeElement);
+      setNavigation(false, returnFocus);
     });
   }
 
-  /* ---- 3. Publication filters --------------------------- */
-  var yearSel = document.getElementById("filter-year");
-  var typeSel = document.getElementById("filter-type");
-  var pubItems = Array.prototype.slice.call(document.querySelectorAll(".pub-item"));
+  var yearSelect = document.getElementById("filter-year");
+  var typeSelect = document.getElementById("filter-type");
+  var publications = Array.prototype.slice.call(document.querySelectorAll(".pub-item"));
 
   function applyFilters() {
-    if (!pubItems.length) return;
-    var y = yearSel ? yearSel.value : "all";
-    var t = typeSel ? typeSel.value : "all";
-
-    pubItems.forEach(function (item) {
-      var matchYear = (y === "all") || (item.getAttribute("data-year") === y);
-      var matchType = (t === "all") || (item.getAttribute("data-type") === t);
-      item.style.display = (matchYear && matchType) ? "" : "none";
-    });
-
-    // Hide a type heading + its group if every item under it is hidden.
-    document.querySelectorAll("[data-pub-group]").forEach(function (group) {
-      var visible = group.querySelectorAll('.pub-item:not([style*="display: none"])').length;
-      group.style.display = visible ? "" : "none";
+    var year = yearSelect ? yearSelect.value : "all";
+    var type = typeSelect ? typeSelect.value : "all";
+    publications.forEach(function (item) {
+      var visible = (year === "all" || item.dataset.year === year) &&
+        (type === "all" || item.dataset.type === type);
+      item.hidden = !visible;
     });
   }
 
-  if (yearSel) yearSel.addEventListener("change", applyFilters);
-  if (typeSel) typeSel.addEventListener("change", applyFilters);
+  if (yearSelect) yearSelect.addEventListener("change", applyFilters);
+  if (typeSelect) typeSelect.addEventListener("change", applyFilters);
 })();

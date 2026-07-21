@@ -1,69 +1,18 @@
-# ============================================================
-#  RESEARCH THEMES
-#  One entry per research area, rendered as a card on the Research page.
-#  Themes derived from Mahdi Zareei's CV and publications.
-#  TODO: refine the descriptions and fill in related students/projects.
-# ============================================================
-
 - name: "Cybersecurity & AI-based Threat Detection"
-  description: >-
-    Security and privacy for wireless and distributed systems and AI-driven
-    defense: authentication, signcryption and attribute-based access control;
-    trust and intrusion detection for VANETs and fog computing; and machine-learning
-    detection of cyber attacks, including DDoS mitigation in software-defined
-    networks (P4), ransomware detection, and uncertainty quantification of security
-    models.
-  related_publications: "See Publications (security, signcryption, access control)"
-  related_projects: "DDoS mitigation in SDN (FRIDA); DDoS stacking-ensemble detection (FRIDA); uncertainty quantification of AI security models (FRIDA-7463)"
-  related_students: "[TODO]"
-  collaborators: "C. Vargas-Rosales (Tecnológico de Monterrey); A. Waheed; S. A. Soleymani; [TODO]"
-
+  description: "Security and privacy for wireless and distributed systems, including authentication, access control, trust, intrusion detection, and machine-learning defenses against cyber attacks."
+  related_projects: "DDoS mitigation in SDN; uncertainty quantification for AI security models"
+  collaborators: "C. Vargas-Rosales; A. Waheed; S. A. Soleymani"
 - name: "Applied Machine Learning"
-  description: >-
-    Machine and deep learning applied to real-world problems such as medical and
-    biomedical signal analysis, image segmentation, demand forecasting, and
-    community detection in complex networks.
-  related_publications: "See Publications (deep learning, image segmentation)"
-  related_students: "[TODO]"
-  related_projects: "[TODO]"
-  collaborators: "[TODO]"
-
+  description: "Machine and deep learning applied to biomedical signals, image segmentation, demand forecasting, road-anomaly detection, and community detection in complex networks."
 - name: "Natural Language Processing"
-  description: >-
-    Sentiment and emotion analysis, multilingual language modelling, and
-    large-scale social-media analytics — including monitoring the emotional
-    response to the COVID-19 pandemic in Mexico.
-  related_publications: "León-Sandoval, Zareei et al. (sentiment analysis); see Publications"
-  related_students: "[TODO: text emotion detection PhD]"
-  related_projects: "[TODO]"
-  collaborators: "L. I. Barbosa-Santillán; L. E. Falcón Morales; [TODO]"
-
+  description: "Sentiment and emotion analysis, multilingual language modeling, machine translation, and large-scale social-media analytics."
+  collaborators: "L. I. Barbosa-Santillán; L. E. Falcón Morales"
 - name: "AI for Mental Health & Social Good"
-  description: >-
-    Applied AI for health and societal benefit, including detecting signals of
-    depression and suicide risk and assessing adolescent mental health through
-    sentiment and emotion analysis of social-media content.
-  related_publications: "Burgueño Paz, Zareei et al. (depression detection); see Publications"
-  related_projects: "AI model for suicide-risk behavioral patterns (Fundación Gonzalo Río Arronte)"
-  related_students: "[TODO]"
-  collaborators: "[TODO]"
-
+  description: "Responsible AI for health and societal benefit, including detecting signals of depression and suicide risk in privacy-sensitive contexts."
+  related_projects: "AI model for suicide-risk behavioral patterns"
 - name: "Wireless Sensor & Cognitive Radio Networks"
-  description: >-
-    Mobility-aware MAC protocols, cognitive radio ad-hoc and sensor networks,
-    clustering and routing architectures, and energy-harvesting sensor networks
-    for environmental monitoring.
-  related_publications: "Zareei et al. (MAC protocols, cognitive radio surveys); see Publications"
-  related_students: "[TODO]"
-  related_projects: "Energy-Harvesting Sensor Networks for Environmental Monitoring (The Royal Society)"
-  collaborators: "C. Vargas-Rosales; R. Villalpando-Hernández; [TODO]"
-
+  description: "Mobility-aware MAC protocols, cognitive radio networks, routing architectures, and energy-harvesting sensor networks for environmental monitoring."
+  related_projects: "Energy-Harvesting Sensor Networks for Environmental Monitoring"
+  collaborators: "C. Vargas-Rosales; R. Villalpando-Hernández"
 - name: "Internet of Things & Vehicular Networks"
-  description: >-
-    Software-defined and secure architectures for vehicular networks (VANET),
-    IoT communication and caching, underwater acoustic networks, and
-    energy-efficient protocol design.
-  related_publications: "See Publications (SDN/VANET, IoT, underwater networks)"
-  related_students: "[TODO]"
-  related_projects: "[TODO]"
-  collaborators: "[TODO]"
+  description: "Secure and software-defined architectures for vehicular networks, IoT communication and caching, underwater acoustic networks, and energy-efficient protocols."

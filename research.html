@@ -1,24 +1,19 @@
 ---
 title: Research
-subtitle: Research themes and how they connect to my publications, projects, and students.
-description: Research themes of [Your Full Name] in AI, machine learning, NLP, cybersecurity, IoT, blockchain, and applied AI.
+eyebrow: Research agenda
+subtitle: Connected research programs spanning secure systems, machine intelligence, language, health, and networked environments.
+description: Research themes of Mahdi Zareei in cybersecurity, AI, NLP, connected systems, and applied machine learning.
 ---
-<!-- Research themes are edited in _data/research.yml -->
-
-<div class="grid grid--2">
+<div class="research-grid">
   {% for theme in site.data.research %}
-    <article class="card">
-      <h3>{{ theme.name }}</h3>
-      <p>{{ theme.description }}</p>
-
-      <p class="card__meta"><strong>Related publications:</strong> {{ theme.related_publications }}</p>
-      <p class="card__meta"><strong>Related projects:</strong> {{ theme.related_projects }}</p>
-      <p class="card__meta"><strong>Related students:</strong> {{ theme.related_students }}</p>
-      <p class="card__meta"><strong>External collaborators:</strong> {{ theme.collaborators }}</p>
-    </article>
+  <article class="research-card">
+    <span class="research-card__index">0{{ forloop.index }}</span>
+    <div><h2>{{ theme.name }}</h2><p>{{ theme.description }}</p>
+      <dl class="research-card__links">
+        {% if theme.related_projects and theme.related_projects != "" %}<div><dt>Projects</dt><dd>{{ theme.related_projects }}</dd></div>{% endif %}
+        {% if theme.collaborators and theme.collaborators != "" %}<div><dt>Collaborators</dt><dd>{{ theme.collaborators }}</dd></div>{% endif %}
+      </dl>
+    </div>
+  </article>
   {% endfor %}
 </div>
-
-<p style="margin-top:1.5rem;" class="todo">
-  TODO: Edit the themes, descriptions, and connections in <code>_data/research.yml</code>.
-</p>
