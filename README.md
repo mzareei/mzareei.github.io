@@ -222,17 +222,28 @@ Open `_data/news.yml` and add an entry at the top (newest first):
 
 ## 6. Features
 
-- Clean, minimalist "whitespace" academic design (inspired by the al-folio look).
+- Editorial academic design with a wide research-focused layout and reusable page system.
 - Responsive layout (desktop + mobile) with accessible contrast.
 - Stable light/dark theme toggle (remembers your choice; respects system setting).
-- Blog with a "latest posts" feed on the home page.
-- Publication filtering by year and type (no external libraries).
+- Honest empty states for news and notes until verified entries are published.
+- Year-grouped publication archive with accessible expand/collapse controls.
 - SEO + Open Graph metadata via `jekyll-seo-tag`; sitemap + RSS feed included.
 - All content in Markdown/YAML — no design changes needed to update.
 
 ## 7. A note on accuracy
 
-This site ships with **placeholder content only**. It contains no real
-publications, grants, students, awards, or metrics. Replace every `TODO`
-with your own verified information before sharing the site publicly, and
-publish student names only with their consent.
+Public pages render verified profile, publication, project, and course data.
+Student names remain private unless consent is recorded; anonymous entries use
+role-based labels. Draft announcements and example posts are not published.
+
+## 8. Verify the public site
+
+Run the production build and the public-route contract checker before publishing:
+
+```powershell
+bundle exec jekyll build
+node tools/verify-public-site-design.js
+```
+
+The verifier checks the shared design system, required generated routes,
+visitor-facing placeholder text, the portrait asset, and internal links.

@@ -19,7 +19,7 @@ description: Publications by Mahdi Zareei — journal articles, reviews, and con
   {% if site.profiles.scopus and site.profiles.scopus != "" %}<a href="{{ site.profiles.scopus }}" rel="noopener">Scopus</a>{% endif %}{% if site.profiles.google_scholar and site.profiles.google_scholar != "" %} and <a href="{{ site.profiles.google_scholar }}" rel="noopener">Google Scholar</a>{% endif %}.
 </p>
 
-<div class="pub-controls">
+<div class="publication-toolbar pub-controls" aria-label="Publication display controls">
   <button type="button" class="pub-control" id="pub-expand">Expand all</button>
   <button type="button" class="pub-control" id="pub-collapse">Collapse all</button>
 </div>
@@ -35,7 +35,7 @@ description: Publications by Mahdi Zareei — journal articles, reviews, and con
 
     <ol class="pub-list">
       {% for pub in group %}
-        <li class="pub-item" data-type="{{ pub.type }}">
+        <li class="pub-item" data-year="{{ pub.year }}" data-type="{{ pub.type }}">
           <div class="pub-item__body">
             <p class="pub-item__title">{{ pub.title }}</p>
             <p class="pub-item__authors">{{ pub.authors }}</p>

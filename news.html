@@ -1,23 +1,7 @@
 ---
-title: News & Updates
-subtitle: Recent papers, projects, presentations, and announcements.
-description: Latest academic news and updates from [Your Full Name].
+title: News
+eyebrow: Updates
+subtitle: Verified research, project, and academic announcements.
+description: Latest academic news from Mahdi Zareei.
 ---
-<!-- News items are edited in _data/news.yml -->
-
-{% assign items = site.data.news | sort: "date" | reverse %}
-{% if items.size > 0 %}
-<ul class="news-list">
-  {% for item in items %}
-    <li class="news-item">
-      <span class="news-item__date">{{ item.date | date: "%b %-d, %Y" }}</span>
-      <div>
-        <p class="news-item__title">{{ item.title }}</p>
-        <p class="news-item__body">{{ item.body }}</p>
-      </div>
-    </li>
-  {% endfor %}
-</ul>
-{% else %}
-  <p class="pub-empty">No updates yet. Add entries to <code>_data/news.yml</code>.</p>
-{% endif %}
+{% assign items = site.data.news | sort: "date" | reverse %}{% if items.size > 0 %}<div class="news-list">{% for item in items %}<article class="news-item"><time class="news-item__date">{{ item.date | date: "%b %-d, %Y" }}</time><div><h2 class="news-item__title">{{ item.title }}</h2><p>{{ item.body }}</p></div></article>{% endfor %}</div>{% else %}<div class="empty-state"><h2>No current announcements.</h2><p>Verified research and academic updates will be published here as they become available.</p></div>{% endif %}

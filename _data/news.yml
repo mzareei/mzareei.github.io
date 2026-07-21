@@ -1,27 +1,2 @@
-# ============================================================
-#  NEWS / UPDATES
-#  Add one entry per update, newest first.
-#  date format: YYYY-MM-DD
-#  --- ALL ENTRIES BELOW ARE PLACEHOLDERS. Replace with real updates. ---
-#  TODO: Replace with your real announcements.
-# ============================================================
-
-- date: 2026-05-01
-  title: "[TODO: New paper accepted]"
-  body: "[Short description, e.g. 'Our paper on X was accepted at VENUE.']"
-
-- date: 2026-02-15
-  title: "[TODO: New funded project]"
-  body: "[Short description of a new grant or project.]"
-
-- date: 2025-11-10
-  title: "[TODO: Conference presentation]"
-  body: "[Short description, e.g. 'Presented work on X at CONFERENCE.']"
-
-- date: 2025-09-01
-  title: "[TODO: Student graduation]"
-  body: "[Short description celebrating a student milestone.]"
-
-- date: 2025-08-20
-  title: "[TODO: New teaching material uploaded]"
-  body: "[Short description, e.g. 'Lecture slides for COURSE are now available.']"
+# Add verified public announcements here, newest first.
+[]

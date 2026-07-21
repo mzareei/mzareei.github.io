@@ -1,27 +1,31 @@
 ---
 title: Contact
+eyebrow: Start a conversation
+subtitle: Research collaboration, academic exchange, and prospective-student inquiries.
 description: Contact information and academic profiles for Mahdi Zareei, Tecnológico de Monterrey.
 ---
+<div class="contact-layout" markdown="1">
+<section class="contact-primary" markdown="1">
+## Contact details
 
-I welcome inquiries from prospective students, collaborators, and colleagues.
+**Email**<br>
+[m.zareei@ieee.org](mailto:m.zareei@ieee.org) · [m.zareei@tec.mx](mailto:m.zareei@tec.mx)
 
-**Email:** [m.zareei@ieee.org](mailto:m.zareei@ieee.org) · [m.zareei@tec.mx](mailto:m.zareei@tec.mx)
+**Affiliation**<br>
+School of Engineering and Sciences, Tecnológico de Monterrey
 
-**Affiliation:** School of Engineering and Sciences (Escuela de Ingeniería y Ciencias),
-Tecnológico de Monterrey
+**Office**<br>
+EIC 4, Edificio Administrativo, Campus Guadalajara
 
-**Office:** EIC 4, Edificio Administrativo, Campus Guadalajara, Tecnológico de Monterrey
-
-## Academic profiles
+### Academic profiles
 
 {% include profile-links.html %}
+</section>
+<aside class="inquiry-card" markdown="1">
+## Working together
 
-<p class="todo" markdown="1">
-TODO: send your Google Scholar, LinkedIn, and ResearchGate URLs to add them here.
-Web of Science ResearcherID: D-8043-2013.
-</p>
+For collaboration inquiries, include a brief description of the research question, the expected contribution, and any relevant timeline.
 
-### Prospective students
-
-[TODO: Optional note for prospective students — which programs you can supervise,
-the background you look for, and how to get in touch. Say the word and I'll draft it.]
+Prospective graduate researchers are welcome to write with a concise introduction, their research interests, and a CV. Supervision availability depends on program fit and current capacity.
+</aside>
+</div>

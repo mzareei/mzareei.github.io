@@ -1,31 +1,15 @@
 ---
-title: Students
-subtitle: Current and graduated students I supervise or have supervised.
-description: Students supervised by [Your Full Name] — PhD, MSc, graduated, and undergraduate researchers.
+title: People
+eyebrow: Research mentorship
+subtitle: Graduate and undergraduate researchers working across language, security, machine learning, and connected systems.
+description: Researchers supervised and mentored by Mahdi Zareei.
 ---
-<!-- Students are edited in _data/students.yml. Publish names only with consent. -->
-
 {% assign groups = "phd,msc,graduated,undergrad" | split: "," %}
-{% assign group_titles = "Current PhD students,Current MSc students,Graduated students,Undergraduate research students" | split: "," %}
-
-{% for g in groups %}
-  {% assign list = site.data.students[g] %}
-  {% if list and list.size > 0 %}
-    <section class="cv-section">
-      <h2>{{ group_titles[forloop.index0] }}</h2>
-      {% for s in list %}
-        <div class="student-item">
-          <p class="student-item__name">{{ s.name }}</p>
-          <p class="student-item__meta">
-            {{ s.program }}{% if s.status %} · {{ s.status }}{% endif %}
-          </p>
-          {% if s.title and s.title != "" %}<p class="student-item__meta"><strong>Thesis/project:</strong> {{ s.title }}</p>{% endif %}
-          {% if s.topic and s.topic != "" %}<p class="student-item__meta"><strong>Topic:</strong> {{ s.topic }}</p>{% endif %}
-          {% if s.outcomes and s.outcomes != "" %}<p class="student-item__meta"><strong>Outcomes:</strong> {{ s.outcomes }}</p>{% endif %}
-        </div>
-      {% endfor %}
-    </section>
-  {% endif %}
-{% endfor %}
-
-<p class="todo">TODO: Edit <code>_data/students.yml</code>. Obtain consent before listing real names publicly.</p>
+{% assign group_titles = "Doctoral researchers,Master's researchers,Alumni,Undergraduate researchers" | split: "," %}
+<div class="people-groups">
+{% for g in groups %}{% assign list = site.data.students[g] %}{% if list and list.size > 0 %}
+  <section class="people-group"><p class="eyebrow">{{ group_titles[forloop.index0] }}</p><div class="people-grid">
+  {% for s in list %}<article class="person-card"><h2>{% if s.name and s.name != "" %}{{ s.name }}{% elsif g == "phd" %}Doctoral researcher{% elsif g == "msc" %}Master's researcher{% else %}Research mentee{% endif %}</h2><p class="person-card__role">{{ s.program }}{% if s.status %} · {{ s.status }}{% endif %}</p>{% if s.title and s.title != "" %}<p>{{ s.title }}</p>{% endif %}{% if s.topic and s.topic != "" %}<span class="tag">{{ s.topic }}</span>{% endif %}</article>{% endfor %}
+  </div></section>
+{% endif %}{% endfor %}
+</div>

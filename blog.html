@@ -1,21 +1,7 @@
 ---
-layout: page
-title: Blog
-subtitle: Notes, announcements, and write-ups.
-description: Blog posts by [Your Full Name].
+title: Notes
+eyebrow: Writing and updates
+subtitle: Research notes, project reflections, and occasional teaching resources.
+description: Notes and articles by Mahdi Zareei.
 ---
-<!-- Posts live in _posts/. Add a file named YYYY-MM-DD-title.md to publish a post. -->
-
-{% if site.posts.size > 0 %}
-<ul class="post-list">
-  {% for post in site.posts %}
-    <li class="post-list__item">
-      <p class="post-list__date">{{ post.date | date: "%B %-d, %Y" }}</p>
-      <h3 class="post-list__title"><a href="{{ post.url | relative_url }}">{{ post.title }}</a></h3>
-      <p class="post-list__excerpt">{{ post.description | default: post.excerpt | strip_html | truncate: 180 }}</p>
-    </li>
-  {% endfor %}
-</ul>
-{% else %}
-  <p class="pub-empty">No posts yet. Add a file to <code>_posts/</code> named <code>YYYY-MM-DD-title.md</code>.</p>
-{% endif %}
+{% if site.posts.size > 0 %}<div class="post-index">{% for post in site.posts %}<article class="post-list__item"><time class="post-list__date">{{ post.date | date: "%B %-d, %Y" }}</time><div><h2 class="post-list__title"><a href="{{ post.url | relative_url }}">{{ post.title }}</a></h2><p class="post-list__excerpt">{{ post.description | default: post.excerpt | strip_html | truncate: 180 }}</p></div></article>{% endfor %}</div>{% else %}<div class="empty-state"><h2>Notes are being prepared.</h2><p>Future research notes and teaching reflections will appear here.</p></div>{% endif %}
