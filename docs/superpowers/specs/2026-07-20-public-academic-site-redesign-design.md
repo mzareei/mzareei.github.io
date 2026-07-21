@@ -204,4 +204,3 @@ The implementation is complete only when:
 - Desktop, tablet, and 390px mobile views are visually reviewed.
 - Light/dark theme, mobile navigation, publication accordions, and post/course layouts work.
 - Existing authenticated Course App verifiers still pass because that subsystem remains untouched.
-

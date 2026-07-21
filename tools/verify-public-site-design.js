@@ -19,8 +19,12 @@ requireMarkers("assets/css/style.scss", "Public theme", [
   '--font-sans: "Inter"',
   '--font-display: "Source Serif 4"',
   "--site-max: 1180px",
+  "--callout: #1b2d46",
   ".site-masthead",
   ".editorial-grid",
+  ".course-mission-hero",
+  ".course-page__body table",
+  "width: 2.75rem",
   "@media (max-width: 880px)"
 ]);
 
@@ -68,6 +72,7 @@ for (const relativePath of publicSources) {
 }
 
 if (!fs.existsSync(path.join(root, "assets/images/profile.jpg"))) failures.push("Portrait is missing at assets/images/profile.jpg");
+if (read("cv.html").includes("verify against Scholar/Scopus")) failures.push("CV exposes an internal verification note");
 
 const builtRoot = path.join(root, "_site");
 if (fs.existsSync(path.join(builtRoot, "index.html"))) {

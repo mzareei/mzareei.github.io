@@ -50,22 +50,17 @@ local course links, and accidental server-secret references in public files.
 
 ## 2. First things to edit
 
-Most identity settings live in **`_config.yml`**. Open it and replace every
-`[TODO: ...]` placeholder:
+Most identity settings live in **`_config.yml`**:
 
 - `name`, `title`, `affiliation`, `short_summary`, `email`
 - `profiles:` — your CV path and links to Google Scholar, ORCID, Scopus, GitHub, LinkedIn, etc.
   (Leave any value as `""` to hide that link.)
 - `description`, `keywords` — used for SEO and social sharing.
 
-Then add these files (placeholders are referenced but not included):
+Optional additions:
 
-- `assets/cv/cv.pdf` — your CV (the "Download CV" buttons link here).
-- `assets/images/profile.jpg` — your photo for the home page.
-- `assets/images/og-image.png` — 1200×630 social-share image (optional).
-- `assets/images/favicon.svg` — a placeholder is provided; replace if you like.
-
-> **Tip:** Search the whole repository for `TODO` to find every placeholder.
+- `assets/cv/cv.pdf` — add a downloadable CV when a current version is ready.
+- `assets/images/favicon.svg` — replace the provided mark if desired.
 
 ---
 
@@ -73,12 +68,12 @@ Then add these files (placeholders are referenced but not included):
 
 | Section | Edit this | Notes |
 |---|---|---|
-| Home — research tags & latest updates | `_data/research.yml`, `_data/news.yml` | auto-pulled |
+| Home — research, projects, publications | `_data/research.yml`, `_data/projects.yml`, `_data/publications.yml` | auto-pulled |
 | About / Bio | `about.md` | short + long bio |
 | CV (web) | `cv.html` | pulls publications/projects/students automatically |
 | CV (PDF) | `assets/cv/cv.pdf` | the downloadable file |
 | Research themes | `_data/research.yml` | one entry per theme |
-| Publications | `_data/publications.yml` | filterable by year/type |
+| Publications | `_data/publications.yml` | grouped by year |
 | Projects | `_data/projects.yml` | active / completed / under-review |
 | Students | `_data/students.yml` | phd / msc / graduated / undergrad |
 | Courses | `_courses/*.md` | one file per course |

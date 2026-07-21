@@ -508,4 +508,3 @@ Commit: `docs: record public site redesign verification`
 - [ ] Jekyll build, internal-link verification, public-source verifier, course-platform verifier, and Command Center verifier pass.
 - [ ] Desktop/mobile and light/dark visual checks pass.
 - [ ] No authenticated Course App or course-material microsite production file changed.
-

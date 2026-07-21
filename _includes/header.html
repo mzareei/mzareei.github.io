@@ -20,7 +20,7 @@
       <a class="site-nav__link{% if page.url contains '/students/' %} is-active{% endif %}" href="{{ '/students/' | relative_url }}"{% if page.url contains '/students/' %} aria-current="page"{% endif %}>People</a>
       <a class="site-nav__link{% if page.url contains '/cv/' %} is-active{% endif %}" href="{{ '/cv/' | relative_url }}"{% if page.url contains '/cv/' %} aria-current="page"{% endif %}>CV</a>
 
-      <a class="site-nav__contact{% if page.url contains '/contact/' %} is-active{% endif %}" href="{{ '/contact/' | relative_url }}">Contact</a>
+      <a class="site-nav__contact{% if page.url contains '/contact/' %} is-active{% endif %}" href="{{ '/contact/' | relative_url }}"{% if page.url contains '/contact/' %} aria-current="page"{% endif %}>Contact</a>
       <button class="theme-toggle" type="button" aria-pressed="false" aria-label="Switch to dark theme">
         <span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true">☀</span>
         <span class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true">☾</span>
