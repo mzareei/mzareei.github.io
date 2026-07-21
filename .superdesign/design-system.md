@@ -26,8 +26,8 @@ The palette evolves the existing blue academic identity into ink navy, cobalt, a
 
 - Display and editorial headings: Source Serif 4, with Georgia and serif fallbacks.
 - UI, navigation, labels, metadata, and body: Inter, with system sans-serif fallbacks.
-- Page display title: clamp(2.4rem, 6vw, 5.2rem), weight 650, tight line height.
-- Subpage title: clamp(2.25rem, 5vw, 4.25rem), weight 650.
+- Homepage title: clamp(2.75rem, 4.8vw, 4rem), weight 650, tight line height.
+- Subpage title: clamp(2.35rem, 4.2vw, 3.65rem), weight 650.
 - Section title: clamp(1.65rem, 3vw, 2.45rem), weight 620.
 - Card title: 1.1-1.3rem, weight 650.
 - Body: 16-18px, 1.65-1.75 line-height, maximum 68 characters for prose.
@@ -78,7 +78,7 @@ The palette evolves the existing blue academic identity into ink navy, cobalt, a
 - Maximum site shell: 1180px; reading column: 720px.
 - Header height: 72px desktop, 64px mobile.
 - Base spacing unit: 4px; common spaces: 8, 12, 16, 24, 32, 48, 64, 88px.
-- Section padding: clamp(56px, 8vw, 104px).
+- Standard page padding: clamp(36px, 4vw, 64px); larger section transitions may use up to 88px.
 - Small radius: 10px; cards: 18px; feature panels: 24px; pills: 999px.
 - Shadows: sparse and soft; rely primarily on border, surface, and spacing.
 - Use a subtle 1px grid or hairline rule as an editorial motif, never a busy background texture.
@@ -100,11 +100,13 @@ The palette evolves the existing blue academic identity into ink navy, cobalt, a
 - Main line communicates the research intersection: secure intelligent systems for people and connected environments.
 - Include concise bio, primary CTA to Research, secondary CTA to Publications, and icon profile links.
 - Portrait must use the real local profile image, with a restrained 4:5 crop.
+- At a 1280 × 800 laptop viewport, the complete headline, portrait, introduction, actions, and profile links remain visible above the fold.
 - A compact evidence rail below the hero shows publication count from data, active projects from data, IEEE Senior Member, and SNI Level I.
 
 ### Subpage masthead
 
-- Eyebrow identifies the section; large page title and concise subtitle.
+- Eyebrow identifies the section; compact editorial title and concise subtitle.
+- At laptop height, substantive page content begins within the first half of the viewport rather than below a presentation-style title field.
 - Optional supporting stat or action aligned right on wide screens.
 - Use the same masthead across page, course, and post layouts.
 
@@ -159,7 +161,7 @@ The palette evolves the existing blue academic identity into ink navy, cobalt, a
 
 ## Responsive behavior
 
-- Desktop: hero split and multi-column cards within 1180px shell.
+- Desktop: hero split and multi-column cards within 1180px shell; title and portrait remain fully visible at 1280 × 800.
 - Tablet: two-column content where it remains readable; navigation collapses below 880px.
 - Mobile: single-column layout, hero title stays below 3.25rem, portrait follows main copy, buttons become comfortably tappable without always forcing full width.
 - No horizontal scrolling at 390px, including publications, CV metadata, and course tables.
