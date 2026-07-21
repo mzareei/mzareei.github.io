@@ -87,6 +87,7 @@ exclude:
   - .gitignore
   - LICENSE
   - supabase
+  - docs/superpowers
 
 # Plugins (all supported on GitHub Pages)
 plugins:

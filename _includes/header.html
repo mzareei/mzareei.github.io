@@ -1,30 +1,27 @@
 <header class="site-header">
   <div class="container site-header__inner">
-    <a class="site-header__brand" href="{{ '/' | relative_url }}">{{ site.name }}</a>
+    <a class="site-header__brand" href="{{ '/' | relative_url }}" aria-label="{{ site.name }} — home">
+      <span class="brand-mark" aria-hidden="true">MZ</span>
+      <span>{{ site.name }}</span>
+    </a>
 
-    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="primary-nav">
+    <button class="nav-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="primary-nav">
       <span class="nav-toggle__bar"></span>
       <span class="nav-toggle__bar"></span>
       <span class="nav-toggle__bar"></span>
     </button>
 
     <nav id="primary-nav" class="site-nav" aria-label="Primary">
-      {%- comment -%} Navigation items. Add/remove links here to change the menu. {%- endcomment -%}
-      {%- assign nav_items = "/,about|/publications/,publications|/cv/,cv|/teaching/,teaching|/blog/,blog" | split: "|" -%}
-      {%- for item in nav_items -%}
-        {%- assign parts = item | split: "," -%}
-        {%- assign href = parts[0] -%}
-        {%- assign label = parts[1] -%}
-        {%- assign current = page.url | default: "/" -%}
-        {%- if href == "/" -%}
-          {%- if current == "/" -%}{%- assign is_active = true -%}{%- else -%}{%- assign is_active = false -%}{%- endif -%}
-        {%- else -%}
-          {%- if current contains href -%}{%- assign is_active = true -%}{%- else -%}{%- assign is_active = false -%}{%- endif -%}
-        {%- endif -%}
-        <a class="site-nav__link{% if is_active %} is-active{% endif %}" href="{{ href | relative_url }}">{{ label }}</a>
-      {%- endfor -%}
+      <a class="site-nav__link{% if page.url == '/' %} is-active{% endif %}" href="{{ '/' | relative_url }}"{% if page.url == '/' %} aria-current="page"{% endif %}>Home</a>
+      <a class="site-nav__link{% if page.url contains '/research/' %} is-active{% endif %}" href="{{ '/research/' | relative_url }}"{% if page.url contains '/research/' %} aria-current="page"{% endif %}>Research</a>
+      <a class="site-nav__link{% if page.url contains '/publications/' %} is-active{% endif %}" href="{{ '/publications/' | relative_url }}"{% if page.url contains '/publications/' %} aria-current="page"{% endif %}>Publications</a>
+      <a class="site-nav__link{% if page.url contains '/projects/' %} is-active{% endif %}" href="{{ '/projects/' | relative_url }}"{% if page.url contains '/projects/' %} aria-current="page"{% endif %}>Projects</a>
+      <a class="site-nav__link{% if page.url contains '/teaching/' or page.collection == 'courses' %} is-active{% endif %}" href="{{ '/teaching/' | relative_url }}"{% if page.url contains '/teaching/' or page.collection == 'courses' %} aria-current="page"{% endif %}>Teaching</a>
+      <a class="site-nav__link{% if page.url contains '/students/' %} is-active{% endif %}" href="{{ '/students/' | relative_url }}"{% if page.url contains '/students/' %} aria-current="page"{% endif %}>People</a>
+      <a class="site-nav__link{% if page.url contains '/cv/' %} is-active{% endif %}" href="{{ '/cv/' | relative_url }}"{% if page.url contains '/cv/' %} aria-current="page"{% endif %}>CV</a>
 
-      <button class="theme-toggle" type="button" aria-label="Switch between light and dark theme" title="Toggle light / dark theme">
+      <a class="site-nav__contact{% if page.url contains '/contact/' %} is-active{% endif %}" href="{{ '/contact/' | relative_url }}">Contact</a>
+      <button class="theme-toggle" type="button" aria-pressed="false" aria-label="Switch to dark theme">
         <span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true">☀</span>
         <span class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true">☾</span>
       </button>

@@ -1,58 +1,21 @@
 ---
 layout: default
 ---
-<article class="container page course-page">
+<article class="container page course-page course-detail">
   <p class="breadcrumb"><a href="{{ '/teaching/' | relative_url }}">← All courses</a></p>
-
-  <header class="page__header">
-    <h1 class="page__title">{{ page.title }}</h1>
+  <header class="site-masthead">
+    <p class="eyebrow">Academic teaching</p>
+    <h1 class="site-masthead__title">{{ page.title }}</h1>
     <p class="course-page__meta">
       {% if page.code %}<span class="badge">{{ page.code }}</span>{% endif %}
-      {% if page.semester %}<span class="course-page__semester">{{ page.semester }}</span>{% endif %}
-      {% if page.level %}<span class="course-page__level">· {{ page.level }}</span>{% endif %}
+      {% if page.semester %}<span>{{ page.semester }}</span>{% endif %}
+      {% if page.level %}<span>· {{ page.level }}</span>{% endif %}
     </p>
   </header>
 
-  {% if page.description %}
-  <section class="course-section">
-    <h2>Course description</h2>
-    <p>{{ page.description }}</p>
-  </section>
-  {% endif %}
-
-  {% if page.topics %}
-  <section class="course-section">
-    <h2>Topics covered</h2>
-    <ul class="tag-list">
-      {% for topic in page.topics %}<li class="tag">{{ topic }}</li>{% endfor %}
-    </ul>
-  </section>
-  {% endif %}
-
-  {% comment %} The course body (Markdown) holds the week-by-week schedule and materials. {% endcomment %}
-  <section class="course-section course-page__body">
-    {{ content }}
-  </section>
-
-  {% if page.readings %}
-  <section class="course-section">
-    <h2>Reading list</h2>
-    <ul class="reading-list">
-      {% for r in page.readings %}
-        <li>{{ r.text }}{% if r.url and r.url != "" %} — <a href="{{ r.url }}" rel="noopener">link</a>{% endif %}</li>
-      {% endfor %}
-    </ul>
-  </section>
-  {% endif %}
-
-  {% if page.links %}
-  <section class="course-section">
-    <h2>Useful links</h2>
-    <ul>
-      {% for l in page.links %}
-        <li><a href="{{ l.url }}" rel="noopener">{{ l.text }}</a></li>
-      {% endfor %}
-    </ul>
-  </section>
-  {% endif %}
+  {% if page.description %}<section class="course-section reading-column"><h2>Course description</h2><p>{{ page.description }}</p></section>{% endif %}
+  {% if page.topics %}<section class="course-section"><h2>Topics covered</h2><ul class="tag-list">{% for topic in page.topics %}<li class="tag">{{ topic }}</li>{% endfor %}</ul></section>{% endif %}
+  <section class="course-section course-page__body">{{ content }}</section>
+  {% if page.readings and page.readings.size > 0 %}<section class="course-section"><h2>Reading list</h2><ul class="reading-list">{% for r in page.readings %}<li>{{ r.text }}{% if r.url and r.url != "" %} — <a href="{{ r.url }}" rel="noopener">link</a>{% endif %}</li>{% endfor %}</ul></section>{% endif %}
+  {% if page.links and page.links.size > 0 %}<section class="course-section"><h2>Useful links</h2><ul>{% for l in page.links %}<li><a href="{{ l.url }}" rel="noopener">{{ l.text }}</a></li>{% endfor %}</ul></section>{% endif %}
 </article>
