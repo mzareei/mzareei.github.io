@@ -25,6 +25,43 @@ export async function applyRoster({ rows, allowedDomains, sourceFilename }) {
   });
 }
 
+export async function addPerson({ institutionalEmail, fullName, studentIdentifier, sectionCode, role, allowedDomains, externalAccessReason }) {
+  return callRosterFunction({
+    action: "add_person",
+    person: {
+      institutional_email: institutionalEmail,
+      full_name: fullName,
+      student_identifier: studentIdentifier,
+      section_code: sectionCode,
+      role
+    },
+    allowed_domains: allowedDomains,
+    external_access_reason: externalAccessReason
+  });
+}
+
+export async function listExternalAccess() {
+  return callRosterFunction({
+    action: "list_external_access"
+  });
+}
+
+export async function grantExternalAccess({ email, reason }) {
+  return callRosterFunction({
+    action: "grant_external_access",
+    email,
+    reason
+  });
+}
+
+export async function revokeExternalAccess({ email, reason }) {
+  return callRosterFunction({
+    action: "revoke_external_access",
+    email,
+    reason
+  });
+}
+
 export async function correctRosterProfile({ profileId, institutionalEmail, fullName, studentIdentifier, status, reason }) {
   return callRosterFunction({
     action: "correct_roster_profile",

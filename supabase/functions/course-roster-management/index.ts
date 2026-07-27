@@ -1,5 +1,6 @@
 import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
+import { isTestAccessEmail } from "../_shared/identity.ts";
 
 const teacherRoles = ["platform_owner", "instructor"];
 const rosterRoles = ["student", "teaching_assistant", "instructor", "observer"];
@@ -60,10 +61,60 @@ Deno.serve(async (request) => {
       return json(result);
     }
 
-    const roster = await listRoster(db, courseId);
+    if (body.action === "add_person") {
+      const result = await addPerson(db, {
+        courseId,
+        person: cleanRosterRows([body.person || body])[0],
+        allowedDomains: cleanAllowedDomains(body.allowed_domains),
+        externalAccessReason: cleanOptionalReason(body.external_access_reason),
+        actorProfileId: profile.id
+      });
+      return json(result);
+    }
+
+    if (body.action === "grant_external_access") {
+      const result = await grantExternalAccess(db, {
+        courseId,
+        email: cleanEmail(body.email),
+        reason: cleanGrantReason(body.reason),
+        actorProfileId: profile.id
+      });
+      return json(result);
+    }
+
+    if (body.action === "revoke_external_access") {
+      const result = await revokeExternalAccess(db, {
+        courseId,
+        email: cleanEmail(body.email),
+        reason: cleanGrantReason(body.reason),
+        actorProfileId: profile.id
+      });
+      return json(result);
+    }
+
+    if (body.action === "list_external_access") {
+      return json({ external_access: await listExternalAccess(db, courseId) });
+    }
+
+    const [roster, externalAccess] = await Promise.all([
+      listRoster(db, courseId),
+      listExternalAccess(db, courseId)
+    ]);
     return json({
       roster,
-      actions: ["list_roster", "preview_roster", "apply_roster", "correct_roster_profile", "merge_roster_profile"],
+      external_access: externalAccess,
+      actions: [
+        "list_roster",
+        "preview_roster",
+        "apply_roster",
+        "add_person",
+        "correct_roster_profile",
+        "merge_roster_profile",
+        "list_external_access",
+        "grant_external_access",
+        "revoke_external_access"
+      ],
+      roster_roles: rosterRoles,
       allowed_domains: defaultAllowedDomains
     });
   } catch (error) {
@@ -137,6 +188,17 @@ function cleanReason(value: unknown) {
   return text;
 }
 
+function cleanGrantReason(value: unknown) {
+  const text = String(value || "").trim().slice(0, 400);
+  if (text.length < 5) throw new Error("A reason for the access grant is required.");
+  return text;
+}
+
+function cleanOptionalReason(value: unknown) {
+  const text = String(value || "").trim().slice(0, 400);
+  return text.length >= 5 ? text : "";
+}
+
 function cleanUuid(value: unknown, message: string) {
   const text = String(value || "").trim();
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text)) {
@@ -181,13 +243,14 @@ async function validateRosterRows(db: ReturnType<typeof adminClient>, courseId: 
     .eq("course_id", courseId);
   if (error) throw error;
 
+  const grantedEmails = await loadGrantedEmails(db, courseId);
   const sectionByCode = new Map((sections || []).map((section) => [String(section.section_code).toLowerCase(), section]));
   const seenEmails = new Set<string>();
   const accepted_rows = [];
   const rejected_rows = [];
 
   for (const row of rows) {
-    const rejection = validateRosterRow(row, allowedDomains, sectionByCode, seenEmails);
+    const rejection = validateRosterRow(row, allowedDomains, sectionByCode, seenEmails, grantedEmails);
     if (rejection) {
       rejected_rows.push({
         ...row,
@@ -215,9 +278,15 @@ async function validateRosterRows(db: ReturnType<typeof adminClient>, courseId: 
   };
 }
 
-function validateRosterRow(row: ReturnType<typeof cleanRosterRows>[number], allowedDomains: string[], sectionByCode: Map<string, Record<string, unknown>>, seenEmails: Set<string>) {
+function validateRosterRow(row: ReturnType<typeof cleanRosterRows>[number], allowedDomains: string[], sectionByCode: Map<string, Record<string, unknown>>, seenEmails: Set<string>, grantedEmails: Set<string> = new Set()) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.institutional_email)) return "Invalid institutional email.";
-  if (!allowedDomains.some((domain) => row.institutional_email.endsWith(`@${domain}`))) return "Email is outside the allowed institutional domains.";
+  if (
+    !grantedEmails.has(row.institutional_email) &&
+    !isTestAccessEmail(row.institutional_email) &&
+    !allowedDomains.some((domain) => row.institutional_email.endsWith(`@${domain}`))
+  ) {
+    return "Email is outside the allowed institutional domains.";
+  }
   if (seenEmails.has(row.institutional_email)) return "Duplicate email in this import.";
   if (row.full_name.length < 1) return "Full name is required.";
   if (!row.section_code) return "Section code is required.";
@@ -436,6 +505,7 @@ async function mergeRosterProfile(db: ReturnType<typeof adminClient>, input: {
 
 function validateCorrectedEmail(email: string) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Invalid institutional email.");
+  if (isTestAccessEmail(email)) return;
   if (!defaultAllowedDomains.some((domain) => email.endsWith(`@${domain}`))) {
     throw new Error("Email is outside the allowed institutional domains.");
   }
@@ -532,11 +602,182 @@ async function moveProfileRows(db: ReturnType<typeof adminClient>, table: string
   return (data || []).length;
 }
 
+async function loadGrantedEmails(db: ReturnType<typeof adminClient>, courseId: string) {
+  const { data, error } = await db
+    .from("external_access_grants")
+    .select("email")
+    .eq("course_id", courseId)
+    .eq("status", "active");
+  if (error) throw error;
+  return new Set((data || []).map((grant) => String(grant.email || "").toLowerCase()));
+}
+
+async function listExternalAccess(db: ReturnType<typeof adminClient>, courseId: string) {
+  const { data, error } = await db
+    .from("external_access_grants")
+    .select("id, email, status, reason, granted_at, revoked_at")
+    .eq("course_id", courseId)
+    .order("granted_at", { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+async function grantExternalAccess(db: ReturnType<typeof adminClient>, input: {
+  courseId: string;
+  email: string;
+  reason: string;
+  actorProfileId: string;
+}) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email)) throw new Error("A valid email address is required.");
+  if (defaultAllowedDomains.some((domain) => input.email.endsWith(`@${domain}`))) {
+    throw new Error("This address already signs in through an approved institutional domain.");
+  }
+
+  const { data: grant, error } = await db
+    .from("external_access_grants")
+    .upsert({
+      course_id: input.courseId,
+      email: input.email,
+      status: "active",
+      reason: input.reason,
+      granted_by: input.actorProfileId,
+      granted_at: new Date().toISOString(),
+      revoked_by: null,
+      revoked_at: null,
+      updated_at: new Date().toISOString()
+    }, { onConflict: "course_id,email" })
+    .select("id, email, status, reason, granted_at, revoked_at")
+    .single();
+  if (error) throw error;
+
+  await insertAudit(db, {
+    courseId: input.courseId,
+    actorProfileId: input.actorProfileId,
+    targetType: "external_access_grant",
+    targetId: grant.id,
+    action: "external_access_granted",
+    metadata: { email: input.email, reason: input.reason }
+  });
+
+  return { grant };
+}
+
+async function revokeExternalAccess(db: ReturnType<typeof adminClient>, input: {
+  courseId: string;
+  email: string;
+  reason: string;
+  actorProfileId: string;
+}) {
+  const { data: grant, error } = await db
+    .from("external_access_grants")
+    .update({
+      status: "revoked",
+      revoked_by: input.actorProfileId,
+      revoked_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })
+    .eq("course_id", input.courseId)
+    .eq("email", input.email)
+    .select("id, email, status, reason, granted_at, revoked_at")
+    .maybeSingle();
+  if (error) throw error;
+  if (!grant) throw new Error("No access grant exists for that address.");
+
+  await insertAudit(db, {
+    courseId: input.courseId,
+    actorProfileId: input.actorProfileId,
+    targetType: "external_access_grant",
+    targetId: grant.id,
+    action: "external_access_revoked",
+    metadata: { email: input.email, reason: input.reason }
+  });
+
+  return { grant };
+}
+
+// Adds a single person from the roster panel. When the address is outside the approved
+// domains, an explicit reason doubles as the instructor's approval and records the grant
+// before the row is applied.
+async function addPerson(db: ReturnType<typeof adminClient>, input: {
+  courseId: string;
+  person: ReturnType<typeof cleanRosterRows>[number] | undefined;
+  allowedDomains: string[];
+  externalAccessReason: string;
+  actorProfileId: string;
+}) {
+  const person = input.person;
+  if (!person) throw new Error("Person details are required.");
+
+  let grant = null;
+  let preview = await validateRosterRows(db, input.courseId, [person], input.allowedDomains);
+  const rejection = preview.rejected_rows[0];
+
+  if (rejection && rejection.reason === "Email is outside the allowed institutional domains.") {
+    if (!input.externalAccessReason) {
+      return {
+        added: false,
+        needs_external_access: true,
+        reason: rejection.reason,
+        ...preview
+      };
+    }
+    grant = (await grantExternalAccess(db, {
+      courseId: input.courseId,
+      email: person.institutional_email,
+      reason: input.externalAccessReason,
+      actorProfileId: input.actorProfileId
+    })).grant;
+    preview = await validateRosterRows(db, input.courseId, [person], input.allowedDomains);
+  }
+
+  if (!preview.accepted_rows.length) {
+    return {
+      added: false,
+      needs_external_access: false,
+      reason: preview.rejected_rows[0]?.reason || "The person could not be added.",
+      external_access_grant: grant,
+      ...preview
+    };
+  }
+
+  await upsertAcceptedRows(db, input.courseId, preview.accepted_rows);
+
+  const { data: addedProfile, error: addedError } = await db
+    .from("profiles")
+    .select("id, institutional_email, full_name, student_identifier, status")
+    .eq("institutional_email", person.institutional_email)
+    .maybeSingle();
+  if (addedError) throw addedError;
+
+  await insertAudit(db, {
+    courseId: input.courseId,
+    actorProfileId: input.actorProfileId,
+    targetType: "profile",
+    targetId: addedProfile?.id || null,
+    action: "person_added",
+    metadata: {
+      email: person.institutional_email,
+      role: preview.accepted_rows[0].role,
+      section_code: person.section_code,
+      external_access_reason: input.externalAccessReason || null
+    }
+  });
+
+  return {
+    added: true,
+    needs_external_access: false,
+    person: { ...preview.accepted_rows[0], profile_id: addedProfile?.id || null },
+    profile: addedProfile || null,
+    external_access_grant: grant,
+    ...preview
+  };
+}
+
 async function insertAudit(db: ReturnType<typeof adminClient>, input: {
   courseId: string;
   actorProfileId: string;
   targetType: string;
-  targetId: string;
+  targetId: string | null;
   action: string;
   metadata: Record<string, unknown>;
 }) {

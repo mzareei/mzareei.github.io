@@ -79,6 +79,7 @@ Run the migrations in this order in the Supabase SQL editor or through your appr
 0008_authenticated_exit_tickets.sql
 0009_activity_attempt_limits.sql
 0010_profile_identity_confirmations.sql
+0011_external_access_grants.sql
 ```
 
 Stop point: if any migration fails, do not continue to seeds or Edge Function deploys. Save the error message and fix the database state first.

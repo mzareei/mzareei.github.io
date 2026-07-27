@@ -61,7 +61,7 @@ if (exists("supabase/functions/course-identity-confirmation/index.ts")) {
   const requiredFunctionMarkers = [
     "../_shared/identity.ts",
     "auth.getUser",
-    "assertInstitutionalEmailAllowed",
+    "assertCourseEmailAllowed",
     "assertProfileMatchesAuthEmail",
     "profile_identity_confirmations",
     "section_enrollments",

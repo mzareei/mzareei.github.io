@@ -53,6 +53,8 @@ for (const file of requiredFiles) {
 requireMarkers("supabase/functions/_shared/identity.ts", "shared identity guard", [
   "defaultAllowedInstitutionalDomains",
   "assertInstitutionalEmailAllowed",
+  "assertCourseEmailAllowed",
+  "hasExternalAccessGrant",
   "assertProfileMatchesAuthEmail",
   "Institutional email domain is not approved"
 ]);
@@ -60,7 +62,7 @@ requireMarkers("supabase/functions/_shared/identity.ts", "shared identity guard"
 for (const file of guardedFunctions) {
   requireMarkers(file, file, [
     "../_shared/identity.ts",
-    "assertInstitutionalEmailAllowed",
+    "assertCourseEmailAllowed",
     "assertProfileMatchesAuthEmail"
   ]);
 }

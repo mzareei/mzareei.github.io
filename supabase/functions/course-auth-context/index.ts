@@ -1,6 +1,6 @@
 import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
-import { assertInstitutionalEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
+import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
 
 const visibleReleaseStates = ["released", "live", "paused", "review_only", "scheduled"];
 const teacherRoles = ["platform_owner", "instructor", "teaching_assistant"];
@@ -25,7 +25,7 @@ Deno.serve(async (request) => {
       id: userData.user.id,
       email: userData.user.email || ""
     };
-    assertInstitutionalEmailAllowed(user.email);
+    await assertCourseEmailAllowed(db, user.email);
 
     const profile = await loadOrClaimProfile(db, user);
     if (!profile) {
@@ -86,7 +86,7 @@ async function loadOrClaimProfile(db: ReturnType<typeof adminClient>, user: { id
   }
 
   const email = String(user.email || "").trim().toLowerCase();
-  assertInstitutionalEmailAllowed(email);
+  await assertCourseEmailAllowed(db, email);
   if (!email) return null;
 
   const { data: rosterProfile, error: rosterError } = await db

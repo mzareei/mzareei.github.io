@@ -78,12 +78,24 @@ The live importer may reject a row with these messages:
 | Message | Meaning | Fix |
 | --- | --- | --- |
 | `Invalid institutional email.` | The email is blank or malformed. | Correct the email format. |
-| `Email is outside the allowed institutional domains.` | The email does not end with an allowed domain. | Confirm the official institutional email or update the allowed-domain setting intentionally. |
+| `Email is outside the allowed institutional domains.` | The email does not end with an allowed domain and has no external access grant. | Confirm the official institutional email, grant external access from the roster panel, or update the allowed-domain setting intentionally. |
 | `Duplicate email in this import.` | The same email appears twice in the pasted CSV. | Keep one row and remove or correct the duplicate. |
 | `Full name is required.` | The name column is blank. | Add the official full name. |
 | `Section code is required.` | The section column is blank. | Add the intended section code. |
 | `Section code does not exist for this course.` | The section has not been created for the course. | Create/update the section first, or correct the section code. |
 | `Role is not valid for roster import.` | The role is not one of the accepted values. | Use `student`, `teaching_assistant`, `instructor`, or `observer`. |
+
+## Adding One Person Without A CSV
+
+The **Add one person** card at the top of the roster page adds a single student,
+assistant, or professor by email. Use it for late enrollments, a guest professor, or a QA
+test account; use the CSV import for the start-of-semester bulk load.
+
+For an address outside the approved domains the card asks for a reason and records an
+external access grant. Approved addresses then pass the *Allowed domains* check in the CSV
+import too, so leave that field unchanged.
+
+Full procedure in `docs/course-platform/operations/qa-test-accounts.md`.
 
 ## After Import
 

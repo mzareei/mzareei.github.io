@@ -8,6 +8,7 @@ declare
   sensitive_tables text[] := array[
     'profiles',
     'profile_identity_confirmations',
+    'external_access_grants',
     'courses',
     'course_memberships',
     'course_sections',

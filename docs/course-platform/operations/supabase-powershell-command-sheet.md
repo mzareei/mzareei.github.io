@@ -65,6 +65,7 @@ node tools\verify-auth-supabase-launch-checklist.js
 node tools\verify-auth-spec-coverage-audit.js
 node tools\verify-auth-live-evidence-packet.js
 node tools\verify-auth-powershell-launch-commands.js
+node tools\verify-auth-qa-test-accounts.js
 ```
 
 ## Link Supabase Project
@@ -104,6 +105,7 @@ supabase/migrations/0007_portfolio_entries.sql
 supabase/migrations/0008_authenticated_exit_tickets.sql
 supabase/migrations/0009_activity_attempt_limits.sql
 supabase/migrations/0010_profile_identity_confirmations.sql
+supabase/migrations/0011_external_access_grants.sql
 ```
 
 Then run these safe seed files in the Supabase SQL editor:
@@ -130,7 +132,9 @@ Write each SQL result in the evidence packet.
 
 ## Deploy Edge Functions
 
-Run after migrations are applied and secrets are set:
+Run after migrations are applied and secrets are set. To deploy the functions that share
+the sign-in guard in one step, use `.\tools\deploy-course-functions.ps1`; see
+`docs/course-platform/operations/deploying-edge-functions.md` for first-time CLI setup.
 
 ```powershell
 npx supabase functions deploy quiz-create-session

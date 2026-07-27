@@ -1,5 +1,6 @@
-import { applyRoster, correctRosterProfile, listRoster, mergeRosterProfile, previewRoster } from "./roster-api.js";
+import { addPerson, applyRoster, correctRosterProfile, listRoster, mergeRosterProfile, previewRoster, revokeExternalAccess } from "./roster-api.js";
 import { platformConfig } from "./auth-api.js";
+import { loadCourseSections } from "./section-api.js";
 
 const els = {
   csv: document.getElementById("rosterCsvInput"),
@@ -21,18 +22,31 @@ const els = {
   saveCorrection: document.getElementById("saveRosterCorrectionBtn"),
   mergeSourceProfile: document.getElementById("mergeSourceProfileInput"),
   mergeTargetProfile: document.getElementById("mergeTargetProfileInput"),
-  mergeProfile: document.getElementById("mergeRosterProfileBtn")
+  mergeProfile: document.getElementById("mergeRosterProfileBtn"),
+  personEmail: document.getElementById("personEmailInput"),
+  personName: document.getElementById("personNameInput"),
+  personId: document.getElementById("personIdInput"),
+  personSection: document.getElementById("personSectionSelect"),
+  personRole: document.getElementById("personRoleSelect"),
+  personExternalReasonField: document.getElementById("personExternalReasonField"),
+  personExternalReason: document.getElementById("personExternalReasonInput"),
+  addPerson: document.getElementById("addPersonBtn"),
+  addPersonStatus: document.getElementById("addPersonStatus"),
+  externalAccessRows: document.getElementById("externalAccessRows")
 };
 
 let lastPreview = null;
 let currentRoster = [];
 let selectedRosterProfile = null;
+let externalAccessGrants = [];
 
 els.preview.addEventListener("click", previewCurrentRoster);
 els.apply.addEventListener("click", applyCurrentRoster);
 els.refresh.addEventListener("click", refreshCurrentRoster);
 els.saveCorrection.addEventListener("click", saveRosterCorrection);
 els.mergeProfile.addEventListener("click", mergeSelectedRosterProfile);
+els.addPerson.addEventListener("click", addSinglePerson);
+els.personEmail.addEventListener("input", updateExternalReasonVisibility);
 
 const configuredDomains = platformConfig().allowedInstitutionalDomains || [];
 if (configuredDomains.length) {
@@ -40,6 +54,8 @@ if (configuredDomains.length) {
 }
 
 refreshCurrentRoster();
+loadSectionOptions();
+updateExternalReasonVisibility();
 
 async function previewCurrentRoster() {
   await run("Validating roster rows...", async () => {
@@ -74,7 +90,10 @@ async function refreshCurrentRoster(showMessage = true) {
   await run(showMessage ? "Loading current roster..." : "", async () => {
     const result = await listRoster();
     currentRoster = result.roster || [];
+    externalAccessGrants = result.external_access || [];
     renderCurrentRoster(currentRoster);
+    renderExternalAccess(externalAccessGrants);
+    updateExternalReasonVisibility();
     if (showMessage) setStatus(`Loaded ${result.roster?.length || 0} roster record${result.roster?.length === 1 ? "" : "s"}.`, "good");
   });
 }
@@ -115,6 +134,132 @@ async function mergeSelectedRosterProfile() {
     await refreshCurrentRoster(false);
     setStatus("Roster profile merged into target identity.", "good");
   });
+}
+
+async function loadSectionOptions() {
+  try {
+    const result = await loadCourseSections();
+    const sections = (result.sections || []).filter((section) => section.status !== "archived");
+    els.personSection.innerHTML = "";
+    if (!sections.length) {
+      els.personSection.append(new Option("No sections yet - create one first", ""));
+      return;
+    }
+    sections.forEach((section) => {
+      els.personSection.append(new Option(`${section.section_code} - ${section.section_name}`, section.section_code));
+    });
+  } catch (error) {
+    els.personSection.innerHTML = "";
+    els.personSection.append(new Option("Sections unavailable", ""));
+    setPersonStatus(error.message || "Unable to load sections.", "danger");
+  }
+}
+
+// The reason field only appears for addresses that actually need an access grant, so the
+// common institutional case stays a four-field form.
+function updateExternalReasonVisibility() {
+  const email = String(els.personEmail.value || "").trim().toLowerCase();
+  const domains = allowedDomains();
+  const known = externalAccessGrants.some((grant) => grant.email === email && grant.status === "active");
+  const institutional = domains.some((domain) => email.endsWith(`@${domain}`));
+  const needsReason = Boolean(email) && email.includes("@") && !institutional && !known;
+  els.personExternalReasonField.hidden = !needsReason;
+  return needsReason;
+}
+
+async function addSinglePerson() {
+  const email = String(els.personEmail.value || "").trim().toLowerCase();
+  const fullName = String(els.personName.value || "").trim();
+  const sectionCode = els.personSection.value;
+  if (!email || !fullName) {
+    setPersonStatus("Enter an email address and a full name.", "warn");
+    return;
+  }
+  if (!sectionCode) {
+    setPersonStatus("Create a course section before adding people.", "warn");
+    return;
+  }
+
+  await run("Adding person...", async () => {
+    const result = await addPerson({
+      institutionalEmail: email,
+      fullName,
+      studentIdentifier: els.personId.value,
+      sectionCode,
+      role: els.personRole.value,
+      allowedDomains: allowedDomains(),
+      externalAccessReason: els.personExternalReason.value
+    });
+
+    if (result.needs_external_access) {
+      els.personExternalReasonField.hidden = false;
+      els.personExternalReason.focus();
+      setPersonStatus("This address is outside the approved domains. Add a reason to approve it, then add the person again.", "warn");
+      return;
+    }
+    if (!result.added) {
+      setPersonStatus(result.reason || "The person could not be added.", "danger");
+      return;
+    }
+
+    const roleLabel = labelize(result.person?.role || els.personRole.value);
+    const grantNote = result.external_access_grant ? " External access was granted and recorded." : "";
+    setPersonStatus(`${fullName} added as ${roleLabel} in section ${sectionCode}.${grantNote}`, "good");
+    els.personEmail.value = "";
+    els.personName.value = "";
+    els.personId.value = "";
+    els.personExternalReason.value = "";
+    updateExternalReasonVisibility();
+    await refreshCurrentRoster(false);
+  }, setPersonStatus);
+}
+
+async function revokeGrant(email) {
+  const reason = window.prompt(`Reason for revoking access for ${email}?`);
+  if (reason === null) return;
+  await run("Revoking access...", async () => {
+    await revokeExternalAccess({ email, reason });
+    await refreshCurrentRoster(false);
+    setPersonStatus(`Access revoked for ${email}.`, "good");
+  }, setPersonStatus);
+}
+
+function renderExternalAccess(grants) {
+  els.externalAccessRows.innerHTML = "";
+  if (!grants.length) {
+    appendEmptyRow(els.externalAccessRows, 5, "No addresses approved outside the institutional domains.");
+    return;
+  }
+  grants.forEach((grant) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(grant.email)}</td>
+      <td>${escapeHtml(labelize(grant.status))}</td>
+      <td>${escapeHtml(grant.reason)}</td>
+      <td>${escapeHtml(formatDate(grant.granted_at))}</td>
+      <td></td>
+    `;
+    if (grant.status === "active") {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "app-button secondary";
+      button.textContent = "Revoke";
+      button.addEventListener("click", () => revokeGrant(grant.email));
+      tr.lastElementChild.append(button);
+    }
+    els.externalAccessRows.append(tr);
+  });
+}
+
+function formatDate(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString().slice(0, 10);
+}
+
+function setPersonStatus(message, tone) {
+  els.addPersonStatus.textContent = message;
+  els.addPersonStatus.dataset.tone = tone || "";
 }
 
 function parseRosterCsv(text) {
@@ -264,13 +409,13 @@ function selectRosterProfile(profileId) {
   });
 }
 
-async function run(message, action) {
+async function run(message, action, report = setStatus) {
   setBusy(true);
-  if (message) setStatus(message, "");
+  if (message) report(message, "");
   try {
     await action();
   } catch (error) {
-    setStatus(error.message || "Unable to manage roster.", "danger");
+    report(error.message || "Unable to manage roster.", "danger");
   } finally {
     setBusy(false);
   }
@@ -291,6 +436,7 @@ function setBusy(isBusy) {
   els.refresh.disabled = isBusy;
   els.saveCorrection.disabled = isBusy;
   els.mergeProfile.disabled = isBusy;
+  els.addPerson.disabled = isBusy;
 }
 
 function setStatus(message, tone) {
