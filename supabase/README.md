@@ -100,6 +100,12 @@ The browser never receives correct answers in the Supabase version. Questions ar
 
 Do not put high-stakes exam question banks or answer keys in this public repository. Use the demo seed only for a classroom pilot or low-stakes checks.
 
+Trusted functions reject unapproved institutional email domains through `_shared/identity.ts`. QA test accounts are an exact-address exception to that check, configured through the `COURSE_TEST_EMAILS` secret rather than committed to this repository, since `platform-config.js` is served publicly. See `docs/course-platform/operations/qa-test-accounts.md`.
+
+```bash
+supabase secrets set COURSE_TEST_EMAILS="qa.address@example.com"
+```
+
 ## Operations
 
 Before using the authenticated platform for grade-bearing activities, read `docs/course-platform/operations/supabase-launch-checklist.md`, read `docs/course-platform/operations/semester-operations-runbook.md`, review `docs/course-platform/implementation/spec-coverage-audit.md`, review `docs/course-platform/operations/semester-setup-decisions.md`, review `docs/course-platform/operations/roster-import-guide.md`, copy `docs/course-platform/operations/tc2007b-roster-template.csv` into private teacher storage before adding real students, copy `docs/course-platform/operations/live-supabase-evidence-packet.md` into private teacher storage, copy `docs/course-platform/operations/semester-setup-decisions.md` into private teacher storage before filling it, use `docs/course-platform/operations/supabase-powershell-command-sheet.md` for PowerShell commands, run `supabase/tests/rls_auth_platform_checks.sql` before grade-bearing use, and run `supabase/tests/post_launch_smoke_sanity_checks.sql` after the live smoke test.
@@ -162,6 +168,7 @@ node tools/verify-auth-powershell-launch-commands.js
 node tools/verify-auth-roster-import-packet.js
 node tools/verify-auth-post-launch-sanity-sql.js
 node tools/verify-auth-semester-setup-decisions.js
+node tools/verify-auth-qa-test-accounts.js
 ```
 
 The Instructor Command Center verifier checks the role-aware signed-in home, grouped instructor navigation, selected-session workspace, supported contextual actions, responsive shell markers, and accessible disclosures.

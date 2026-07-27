@@ -1,5 +1,6 @@
 import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
+import { isTestAccessEmail } from "../_shared/identity.ts";
 
 const teacherRoles = ["platform_owner", "instructor"];
 const rosterRoles = ["student", "teaching_assistant", "instructor", "observer"];
@@ -217,7 +218,12 @@ async function validateRosterRows(db: ReturnType<typeof adminClient>, courseId: 
 
 function validateRosterRow(row: ReturnType<typeof cleanRosterRows>[number], allowedDomains: string[], sectionByCode: Map<string, Record<string, unknown>>, seenEmails: Set<string>) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.institutional_email)) return "Invalid institutional email.";
-  if (!allowedDomains.some((domain) => row.institutional_email.endsWith(`@${domain}`))) return "Email is outside the allowed institutional domains.";
+  if (
+    !isTestAccessEmail(row.institutional_email) &&
+    !allowedDomains.some((domain) => row.institutional_email.endsWith(`@${domain}`))
+  ) {
+    return "Email is outside the allowed institutional domains.";
+  }
   if (seenEmails.has(row.institutional_email)) return "Duplicate email in this import.";
   if (row.full_name.length < 1) return "Full name is required.";
   if (!row.section_code) return "Section code is required.";
@@ -436,6 +442,7 @@ async function mergeRosterProfile(db: ReturnType<typeof adminClient>, input: {
 
 function validateCorrectedEmail(email: string) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Invalid institutional email.");
+  if (isTestAccessEmail(email)) return;
   if (!defaultAllowedDomains.some((domain) => email.endsWith(`@${domain}`))) {
     throw new Error("Email is outside the allowed institutional domains.");
   }

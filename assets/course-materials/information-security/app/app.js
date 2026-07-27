@@ -1,4 +1,4 @@
-import { getSession, isConfigured, loadCourseContext, platformConfig, sendOtp, signOut, verifyOtp } from "./auth-api.js";
+import { captureTestAccessFromUrl, getSession, isConfigured, isTestAccessEmail, loadCourseContext, platformConfig, sendOtp, signOut, verifyOtp } from "./auth-api.js";
 
 const els = {
   email: document.getElementById("emailInput"),
@@ -206,6 +206,11 @@ function syncTeacherNavigationAccessibility() {
 }
 
 async function init() {
+  const capturedTestAccessEmail = captureTestAccessFromUrl();
+  if (capturedTestAccessEmail && !els.email.value) {
+    els.email.value = capturedTestAccessEmail;
+  }
+
   if (!isConfigured()) {
     renderSignedOut();
     setStatus("Course app auth is not configured yet. Add the public Supabase anon key in platform-config.js.", "warn");
@@ -221,6 +226,10 @@ async function init() {
       setStatus("Sign in with your institutional email to continue.", "");
     }
   });
+
+  if (capturedTestAccessEmail && !currentSession) {
+    setStatus(`QA test access enabled on this device for ${capturedTestAccessEmail}. Send the sign-in email to continue.`, "good");
+  }
 }
 
 async function refreshContext() {
@@ -773,6 +782,7 @@ function cleanEmail(value) {
 }
 
 function isAllowedInstitutionalEmail(email) {
+  if (isTestAccessEmail(email)) return true;
   const allowedInstitutionalDomains = platformConfig().allowedInstitutionalDomains || [];
   if (!allowedInstitutionalDomains.length) return true;
   return allowedInstitutionalDomains.some((domain) => {

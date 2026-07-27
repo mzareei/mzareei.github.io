@@ -1,7 +1,73 @@
 const DEFAULT_CONTEXT_FUNCTION = "course-auth-context";
+const DEFAULT_TEST_ACCESS_STORAGE_KEY = "tc2007b.test-access-emails";
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function platformConfig() {
   return window.TC2007B_PLATFORM_CONFIG || {};
+}
+
+function testAccessStorageKey() {
+  return platformConfig().testAccessStorageKey || DEFAULT_TEST_ACCESS_STORAGE_KEY;
+}
+
+function cleanEmailList(values) {
+  const cleaned = (Array.isArray(values) ? values : [])
+    .map((entry) => String(entry || "").trim().toLowerCase())
+    .filter((entry) => EMAIL_PATTERN.test(entry));
+  return Array.from(new Set(cleaned));
+}
+
+// QA test accounts let the course team sign in with a non-institutional address to walk
+// the student experience. The addresses are held per device (and in the COURSE_TEST_EMAILS
+// secret server side) rather than in this public repository.
+export function testAccessEmails() {
+  let stored = [];
+  try {
+    stored = JSON.parse(window.localStorage.getItem(testAccessStorageKey()) || "[]");
+  } catch {
+    stored = [];
+  }
+  return cleanEmailList([...(platformConfig().allowedTestEmails || []), ...(Array.isArray(stored) ? stored : [])]);
+}
+
+export function isTestAccessEmail(email) {
+  const cleaned = String(email || "").trim().toLowerCase();
+  return Boolean(cleaned) && testAccessEmails().includes(cleaned);
+}
+
+export function rememberTestAccessEmail(email) {
+  const cleaned = String(email || "").trim().toLowerCase();
+  if (!EMAIL_PATTERN.test(cleaned)) return testAccessEmails();
+  const configured = cleanEmailList(platformConfig().allowedTestEmails || []);
+  const next = cleanEmailList([...testAccessEmails(), cleaned]).filter((entry) => !configured.includes(entry));
+  try {
+    window.localStorage.setItem(testAccessStorageKey(), JSON.stringify(next));
+  } catch {
+    // Storage can be unavailable in private browsing; the sign-in guard simply stays strict.
+  }
+  return testAccessEmails();
+}
+
+export function forgetTestAccessEmails() {
+  try {
+    window.localStorage.removeItem(testAccessStorageKey());
+  } catch {
+    // Nothing to clean up when storage is unavailable.
+  }
+}
+
+// Enrolling a device: open the app once as ...?test-access=<email>.
+export function captureTestAccessFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const requested = params.get("test-access");
+  if (!requested) return "";
+  const cleaned = String(requested).trim().toLowerCase();
+  if (!EMAIL_PATTERN.test(cleaned)) return "";
+  rememberTestAccessEmail(cleaned);
+  params.delete("test-access");
+  const query = params.toString();
+  window.history.replaceState({}, "", `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`);
+  return cleaned;
 }
 
 export function isConfigured() {

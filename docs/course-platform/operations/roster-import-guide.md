@@ -78,12 +78,21 @@ The live importer may reject a row with these messages:
 | Message | Meaning | Fix |
 | --- | --- | --- |
 | `Invalid institutional email.` | The email is blank or malformed. | Correct the email format. |
-| `Email is outside the allowed institutional domains.` | The email does not end with an allowed domain. | Confirm the official institutional email or update the allowed-domain setting intentionally. |
+| `Email is outside the allowed institutional domains.` | The email does not end with an allowed domain, and it is not a registered QA test account. | Confirm the official institutional email, register the address as a QA test account, or update the allowed-domain setting intentionally. |
 | `Duplicate email in this import.` | The same email appears twice in the pasted CSV. | Keep one row and remove or correct the duplicate. |
 | `Full name is required.` | The name column is blank. | Add the official full name. |
 | `Section code is required.` | The section column is blank. | Add the intended section code. |
 | `Section code does not exist for this course.` | The section has not been created for the course. | Create/update the section first, or correct the section code. |
 | `Role is not valid for roster import.` | The role is not one of the accepted values. | Use `student`, `teaching_assistant`, `instructor`, or `observer`. |
+
+## Importing A QA Test Account
+
+The teaching team's own accounts are teacher accounts, so walking the student
+experience needs a separate address outside the institutional domains. Register it as a
+QA test account first, then import it as an ordinary `student` row; registered addresses
+bypass the *Allowed domains* field, so leave that field unchanged.
+
+Full procedure in `docs/course-platform/operations/qa-test-accounts.md`.
 
 ## After Import
 
