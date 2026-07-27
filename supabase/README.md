@@ -61,6 +61,8 @@ npx supabase functions deploy course-release-management
 npx supabase functions deploy course-release-maintenance
 npx supabase functions deploy course-session-management
 npx supabase functions deploy course-content-access
+npx supabase functions deploy course-content-upload
+npx supabase functions deploy course-content-serve
 npx supabase functions deploy course-activity-attempt
 npx supabase functions deploy course-quiz-compatibility
 npx supabase functions deploy course-gradebook-summary
