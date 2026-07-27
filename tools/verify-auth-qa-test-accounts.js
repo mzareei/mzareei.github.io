@@ -89,6 +89,7 @@ requireMarkers("assets/course-materials/information-security/app/roster.js", "ro
   "renderExternalAccess",
   "revokeGrant",
   "loadSectionOptions",
+  "grantAccessToAddress",
   "is out of date"
 ]);
 
@@ -99,7 +100,10 @@ requireMarkers("assets/course-materials/information-security/app/roster.html", "
   "personRoleSelect",
   "personExternalReasonInput",
   "addPersonBtn",
-  "externalAccessRows"
+  "externalAccessRows",
+  "grantEmailInput",
+  "grantReasonInput",
+  "grantAccessBtn"
 ]);
 
 // Every trusted function must go through the DB-backed guard, or a granted address would

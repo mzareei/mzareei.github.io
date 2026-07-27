@@ -1,4 +1,4 @@
-import { addPerson, applyRoster, correctRosterProfile, listRoster, mergeRosterProfile, previewRoster, revokeExternalAccess } from "./roster-api.js";
+import { addPerson, applyRoster, correctRosterProfile, grantExternalAccess, listRoster, mergeRosterProfile, previewRoster, revokeExternalAccess } from "./roster-api.js";
 import { platformConfig } from "./auth-api.js";
 import { loadCourseSections } from "./section-api.js";
 
@@ -32,7 +32,11 @@ const els = {
   personExternalReason: document.getElementById("personExternalReasonInput"),
   addPerson: document.getElementById("addPersonBtn"),
   addPersonStatus: document.getElementById("addPersonStatus"),
-  externalAccessRows: document.getElementById("externalAccessRows")
+  externalAccessRows: document.getElementById("externalAccessRows"),
+  grantEmail: document.getElementById("grantEmailInput"),
+  grantReason: document.getElementById("grantReasonInput"),
+  grantAccess: document.getElementById("grantAccessBtn"),
+  grantAccessStatus: document.getElementById("grantAccessStatus")
 };
 
 let lastPreview = null;
@@ -47,6 +51,7 @@ els.saveCorrection.addEventListener("click", saveRosterCorrection);
 els.mergeProfile.addEventListener("click", mergeSelectedRosterProfile);
 els.addPerson.addEventListener("click", addSinglePerson);
 els.personEmail.addEventListener("input", updateExternalReasonVisibility);
+els.grantAccess.addEventListener("click", grantAccessToAddress);
 
 const configuredDomains = platformConfig().allowedInstitutionalDomains || [];
 if (configuredDomains.length) {
@@ -218,6 +223,38 @@ async function addSinglePerson() {
     updateExternalReasonVisibility();
     await refreshCurrentRoster(false);
   }, setPersonStatus);
+}
+
+// Adding a person records a grant automatically. This covers the other direction: an
+// address already on the roster that has no grant yet, which otherwise signs in and then
+// fails when the course context loads.
+async function grantAccessToAddress() {
+  const email = String(els.grantEmail.value || "").trim().toLowerCase();
+  const reason = String(els.grantReason.value || "").trim();
+  if (!email || !email.includes("@")) {
+    setGrantStatus("Enter the email address to approve.", "warn");
+    return;
+  }
+  if (reason.length < 5) {
+    setGrantStatus("Give a short reason, so the grant is meaningful in the audit log.", "warn");
+    return;
+  }
+  await run("Granting access...", async () => {
+    const result = await grantExternalAccess({ email, reason });
+    if (!result.grant) {
+      setGrantStatus("The course roster function on Supabase is out of date. Deploy the Edge Functions, then try again.", "danger");
+      return;
+    }
+    els.grantEmail.value = "";
+    els.grantReason.value = "";
+    await refreshCurrentRoster(false);
+    setGrantStatus(`${email} can now sign in.`, "good");
+  }, setGrantStatus);
+}
+
+function setGrantStatus(message, tone) {
+  els.grantAccessStatus.textContent = message;
+  els.grantAccessStatus.dataset.tone = tone || "";
 }
 
 async function revokeGrant(email) {
@@ -447,6 +484,7 @@ function setBusy(isBusy) {
   els.saveCorrection.disabled = isBusy;
   els.mergeProfile.disabled = isBusy;
   els.addPerson.disabled = isBusy;
+  els.grantAccess.disabled = isBusy;
 }
 
 function setStatus(message, tone) {

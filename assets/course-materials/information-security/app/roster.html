@@ -72,6 +72,20 @@
     <span class="eyebrow">External access</span>
     <h2>Addresses approved outside the institutional domains</h2>
     <p class="lead">Each grant lets one address reach the sign-in screen. What the account can actually see still comes from its roster role and section.</p>
+    <div class="auth-grid">
+      <label class="field-stack">
+        Email
+        <input id="grantEmailInput" type="email" autocomplete="off" placeholder="name@example.com">
+      </label>
+      <label class="field-stack">
+        Reason
+        <input id="grantReasonInput" type="text" autocomplete="off" placeholder="e.g. QA test account for the student view">
+      </label>
+    </div>
+    <div class="button-row gradebook-actions">
+      <button class="app-button" id="grantAccessBtn" type="button">Grant access</button>
+    </div>
+    <p class="status-line" id="grantAccessStatus" aria-live="polite"></p>
     <div class="release-table-wrap">
       <table class="release-table gradebook-table">
         <thead>

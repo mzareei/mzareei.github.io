@@ -15,6 +15,7 @@
 // token that is verified in the browser, so nothing downstream treats it differently.
 import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
+import { assertCourseEmailAllowed } from "../_shared/identity.ts";
 
 const blockedRoles = ["instructor", "platform_owner"];
 const enabledUntilEnvVar = "COURSE_TEST_SIGNIN_UNTIL";
@@ -43,6 +44,18 @@ Deno.serve(async (request) => {
 
     const db = adminClient();
     const { profile, roles } = await requireRosteredNonInstructor(db, courseId, email);
+
+    // A session is useless if the sign-in guard will reject the address on the next
+    // request, so refuse here and name the fix instead of failing later.
+    try {
+      await assertCourseEmailAllowed(db, email);
+    } catch {
+      return json({
+        error: "That address has no external access grant, so it cannot load the course after signing in. Add one on Course Roster, under External access.",
+        needs_external_access: true
+      }, { status: 400 });
+    }
+
     const otp = await issueOneTimeToken(db, email);
 
     await db.from("audit_log").insert({
