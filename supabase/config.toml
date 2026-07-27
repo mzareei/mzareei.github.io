@@ -93,3 +93,8 @@ verify_jwt = false
 [functions.course-content-upload]
 # Instructor-gated storage writes; the function validates the user token itself.
 verify_jwt = false
+
+[functions.course-content-serve]
+# Content delivery via short-lived HMAC token in the URL (iframes cannot send
+# Authorization headers); the function verifies the token itself.
+verify_jwt = false

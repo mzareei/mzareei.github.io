@@ -21,7 +21,7 @@ export function assertTeacherPin(pin: unknown) {
   }
 }
 
-function serviceRoleKey() {
+export function serviceRoleKey() {
   const secretKeys = Deno.env.get("SUPABASE_SECRET_KEYS");
   if (secretKeys) {
     try {

@@ -85,6 +85,18 @@ function cleanSlug(value: unknown) {
   return slug;
 }
 
+function mimeForFilename(filename: string) {
+  if (filename.endsWith(".html")) return "text/html; charset=utf-8";
+  if (filename.endsWith(".pdf")) return "application/pdf";
+  if (filename.endsWith(".png")) return "image/png";
+  if (filename.endsWith(".jpg") || filename.endsWith(".jpeg")) return "image/jpeg";
+  if (filename.endsWith(".svg")) return "image/svg+xml";
+  if (filename.endsWith(".css")) return "text/css; charset=utf-8";
+  if (filename.endsWith(".js")) return "text/javascript; charset=utf-8";
+  if (filename.endsWith(".json")) return "application/json";
+  return "";
+}
+
 function cleanFilename(value: unknown) {
   const filename = String(value || "").trim().toLowerCase().replace(/[^a-z0-9._-]/g, "");
   if (!filename || filename.includes("..")) throw new Error("A valid filename is required.");
@@ -141,8 +153,24 @@ async function registerItem(db: Db, courseId: string, actorProfileId: string, bo
     .list(expectedPrefix.replace(/\/$/, ""));
   if (listError) throw listError;
   const objectName = storagePath.slice(expectedPrefix.length);
-  if (!(objects || []).some((object) => object.name === objectName)) {
+  const uploaded = (objects || []).find((object) => object.name === objectName);
+  if (!uploaded) {
     throw new Error("The uploaded file was not found in storage. Upload it first.");
+  }
+
+  // Signed-upload PUTs don't reliably record the mimetype (and upserts never
+  // update it), so a deck could be served as text/plain and render blank in the
+  // viewer. Normalize it here: if the stored type disagrees with the extension,
+  // re-write the object with the correct contentType via the service role.
+  const expectedMime = mimeForFilename(objectName);
+  const storedMime = String(uploaded.metadata?.mimetype || "");
+  if (expectedMime && storedMime !== expectedMime) {
+    const { data: blob, error: downloadError } = await db.storage.from(bucket).download(storagePath);
+    if (downloadError) throw downloadError;
+    const { error: rewriteError } = await db.storage
+      .from(bucket)
+      .upload(storagePath, blob, { contentType: expectedMime, upsert: true });
+    if (rewriteError) throw rewriteError;
   }
 
   const defaultPoints = Number.isFinite(Number(body.default_points)) ? Math.max(0, Number(body.default_points)) : 0;

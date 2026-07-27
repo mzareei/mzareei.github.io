@@ -1,6 +1,7 @@
 import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
+import { mintContentToken } from "../_shared/content-token.ts";
 
 type Db = ReturnType<typeof adminClient>;
 
@@ -34,20 +35,19 @@ Deno.serve(async (request) => {
       profileId: String(profile.id)
     });
 
-    // request_url: after the same gate, mint a short-lived signed URL for
-    // storage-backed content. The bucket is private with zero policies, so this
-    // is the only way a browser ever reaches an object.
+    // request_url: after the same gate, mint a short-lived delivery URL for
+    // storage-backed content. Delivery goes through course-content-serve (not a
+    // storage signed URL, which downgrades HTML to text/plain on the shared
+    // supabase.co domain). The bucket stays private with zero policies.
     if (body.action === "request_url") {
       if (access.content.source_kind !== "storage_object") {
         throw new Error("Access denied: this content is not stored on the platform.");
       }
-      const { data: signed, error: signError } = await db.storage
-        .from("course-content")
-        .createSignedUrl(String(access.content.source_ref), SIGNED_URL_SECONDS);
-      if (signError) throw signError;
+      const token = await mintContentToken(String(access.content.source_ref), SIGNED_URL_SECONDS);
+      const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
       return json({
         ...access,
-        url: signed.signedUrl,
+        url: `${supabaseUrl}/functions/v1/course-content-serve?t=${token}`,
         expires_in: SIGNED_URL_SECONDS
       });
     }
