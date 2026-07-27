@@ -191,6 +191,12 @@ async function addSinglePerson() {
       externalAccessReason: els.personExternalReason.value
     });
 
+    // A deployed function that predates add_person ignores the action and returns the
+    // plain roster listing, so say that rather than reporting a generic failure.
+    if (!("added" in result)) {
+      setPersonStatus("The course roster function on Supabase is out of date and does not support adding one person yet. Deploy the Edge Functions (tools/deploy-course-functions.ps1), then try again.", "danger");
+      return;
+    }
     if (result.needs_external_access) {
       els.personExternalReasonField.hidden = false;
       els.personExternalReason.focus();
@@ -218,7 +224,11 @@ async function revokeGrant(email) {
   const reason = window.prompt(`Reason for revoking access for ${email}?`);
   if (reason === null) return;
   await run("Revoking access...", async () => {
-    await revokeExternalAccess({ email, reason });
+    const result = await revokeExternalAccess({ email, reason });
+    if (!result.grant) {
+      setPersonStatus("The course roster function on Supabase is out of date and cannot revoke access yet. Deploy the Edge Functions, then try again.", "danger");
+      return;
+    }
     await refreshCurrentRoster(false);
     setPersonStatus(`Access revoked for ${email}.`, "good");
   }, setPersonStatus);
