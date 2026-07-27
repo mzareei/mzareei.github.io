@@ -82,6 +82,20 @@ async function loadOrClaimProfile(db: ReturnType<typeof adminClient>, user: { id
   if (linkedError) throw linkedError;
   if (linkedProfile) {
     assertProfileMatchesAuthEmail(linkedProfile, user.email);
+    // A profile can be linked but still 'invited' (e.g. a roster correction set the
+    // status without touching the link). Signing in is the claim, so promote it —
+    // otherwise student endpoints that require an active profile reject the account.
+    if (linkedProfile.status === "invited") {
+      const { data: activated, error: activateError } = await db
+        .from("profiles")
+        .update({ status: "active", updated_at: new Date().toISOString() })
+        .eq("id", linkedProfile.id)
+        .eq("status", "invited")
+        .select("id, auth_user_id, institutional_email, student_identifier, full_name, preferred_name, status")
+        .maybeSingle();
+      if (activateError) throw activateError;
+      if (activated) return { ...activated, claimed_by_email: false };
+    }
     return { ...linkedProfile, claimed_by_email: false };
   }
 
