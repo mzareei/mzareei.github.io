@@ -88,7 +88,8 @@ requireMarkers("assets/course-materials/information-security/app/roster.js", "ro
   "updateExternalReasonVisibility",
   "renderExternalAccess",
   "revokeGrant",
-  "loadSectionOptions"
+  "loadSectionOptions",
+  "is out of date"
 ]);
 
 requireMarkers("assets/course-materials/information-security/app/roster.html", "roster panel markup", [

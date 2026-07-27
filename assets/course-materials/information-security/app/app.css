@@ -1073,3 +1073,20 @@ a.progress-card:hover {
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* Testing-mode sign-in. Deliberately loud: it should never be mistaken for a normal
+   sign-in route, and it should be obvious if it is still on at launch. */
+.auth-test-signin {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, #b45309 45%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, #b45309 10%, transparent);
+  display: grid;
+  gap: 0.75rem;
+  justify-items: start;
+}
+
+.auth-test-signin .auth-hint {
+  margin: 0;
+}

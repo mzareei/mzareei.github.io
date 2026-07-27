@@ -10,6 +10,12 @@ window.TC2007B_PLATFORM_CONFIG = {
   allowedTestEmails: [],
   testAccessStorageKey: "tc2007b.test-access-emails",
   authContextFunction: "course-auth-context",
+  // Testing only: shows a "Sign in without email" button for rostered students, so testing
+  // is not limited by Supabase's built-in email rate limit. The server refuses unless
+  // COURSE_TEST_SIGNIN_UNTIL names a future date, so this flag alone grants nothing.
+  // Set to false before launch. See docs/course-platform/operations/test-sign-in.md.
+  testSignIn: true,
+  testSignInFunction: "course-test-signin",
   identityConfirmationFunction: "course-identity-confirmation",
   sectionManagementFunction: "course-section-management",
   rosterManagementFunction: "course-roster-management",

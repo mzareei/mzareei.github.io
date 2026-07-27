@@ -25,7 +25,8 @@ $guardFunctions = @(
   "course-portfolio-entry",
   "course-student-progress",
   "course-identity-confirmation",
-  "course-roster-management"
+  "course-roster-management",
+  "course-test-signin"
 )
 
 if (-not (Test-Path "supabase/functions")) {

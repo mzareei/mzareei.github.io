@@ -1,4 +1,5 @@
 const DEFAULT_CONTEXT_FUNCTION = "course-auth-context";
+const DEFAULT_TEST_SIGNIN_FUNCTION = "course-test-signin";
 const DEFAULT_TEST_ACCESS_STORAGE_KEY = "tc2007b.test-access-emails";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -112,6 +113,29 @@ export async function verifyOtp(email, token) {
   });
   if (error) throw error;
   return data.session;
+}
+
+// Test sign-in trades a rostered address for a one-time token generated server side, then
+// verifies it here to get an ordinary Supabase session. No verification email is sent.
+// The server decides whether the mode is on; this only asks.
+export async function testSignIn(email) {
+  const config = platformConfig();
+  const functionName = config.testSignInFunction || DEFAULT_TEST_SIGNIN_FUNCTION;
+  const response = await fetch(`${config.supabaseUrl}/functions/v1/${functionName}`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${config.supabaseAnonKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      course_id: config.courseId || "tc2007b",
+      email
+    })
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || "Unable to complete test sign-in.");
+  if (!payload.otp) throw new Error("Test sign-in did not return a usable token.");
+  return verifyOtp(payload.email || email, payload.otp);
 }
 
 export async function getSession() {

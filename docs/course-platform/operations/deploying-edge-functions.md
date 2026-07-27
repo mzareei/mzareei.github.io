@@ -92,6 +92,9 @@ add a person from **Course Roster → Add one person** using an address outside 
 domains. If that address can sign in and reach the student dashboard, the new guard is
 live everywhere.
 
-If the sign-in email sends but loading the course context then fails with
-`Institutional email domain is not approved for this course.`, at least one function is
-still on the old code — redeploy the full set.
+Two symptoms mean a function is still on older code:
+
+- **Course Roster → Add one person** reports that the roster function is out of date.
+  Deploy `course-roster-management`.
+- The sign-in email sends, but loading the course context fails with `Institutional email
+  domain is not approved for this course.` Deploy the full shared-guard set.
