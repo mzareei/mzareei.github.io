@@ -153,6 +153,7 @@ node tools\verify-auth-roster-import-packet.js
 node tools\verify-auth-post-launch-sanity-sql.js
 node tools\verify-auth-semester-setup-decisions.js
 node tools\verify-auth-qa-test-accounts.js
+node tools\verify-auth-test-sign-in.js
 ```
 
 ## Still Required In Live Supabase

@@ -40,6 +40,11 @@ verify_jwt = false
 [functions.course-roster-management]
 verify_jwt = false
 
+# Testing only. Called with the anon key before a session exists, so it authorises from the
+# roster and the COURSE_TEST_SIGNIN_UNTIL window instead of a JWT.
+[functions.course-test-signin]
+verify_jwt = false
+
 [functions.course-content-library]
 verify_jwt = false
 

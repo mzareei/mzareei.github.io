@@ -71,6 +71,7 @@ npx supabase functions deploy course-participation-events
 npx supabase functions deploy course-exit-ticket
 npx supabase functions deploy course-portfolio-entry
 npx supabase functions deploy course-audit-log
+npx supabase functions deploy course-test-signin
 ```
 
 The browser demo mode includes 10-question banks for the active lectures and bridge missions configured in `config.js`. Supabase mode uses question rows stored in the database. For a fast classroom pilot, run `seed/tc2007b_demo_question_bank.sql`; for custom or private banks, import each lecture bank through `quiz/bank.html`.
@@ -109,6 +110,8 @@ supabase secrets set COURSE_TEST_EMAILS="qa.address@example.com"
 ```
 
 See `docs/course-platform/operations/qa-test-accounts.md`.
+
+Test sign-in (`course-test-signin`) issues a session for a rostered address without sending a verification email, so testing is not limited by Supabase's built-in email rate limit. While it is on, anyone who knows a rostered address can sign in as that person, so it is a testing mode rather than a login method. It stays off unless `COURSE_TEST_SIGNIN_UNTIL` names a future date, refuses instructor and platform_owner accounts, and writes `test_signin_issued` to the audit log. Turn it off before the semester starts. See `docs/course-platform/operations/test-sign-in.md`.
 
 ## Operations
 
@@ -173,6 +176,7 @@ node tools/verify-auth-roster-import-packet.js
 node tools/verify-auth-post-launch-sanity-sql.js
 node tools/verify-auth-semester-setup-decisions.js
 node tools/verify-auth-qa-test-accounts.js
+node tools/verify-auth-test-sign-in.js
 ```
 
 The Instructor Command Center verifier checks the role-aware signed-in home, grouped instructor navigation, selected-session workspace, supported contextual actions, responsive shell markers, and accessible disclosures.

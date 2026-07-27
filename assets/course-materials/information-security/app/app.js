@@ -1,4 +1,4 @@
-import { captureTestAccessFromUrl, getSession, isConfigured, isTestAccessEmail, loadCourseContext, platformConfig, sendOtp, signOut, verifyOtp } from "./auth-api.js";
+import { captureTestAccessFromUrl, getSession, isConfigured, isTestAccessEmail, loadCourseContext, platformConfig, sendOtp, signOut, testSignIn, verifyOtp } from "./auth-api.js";
 
 const els = {
   email: document.getElementById("emailInput"),
@@ -6,6 +6,8 @@ const els = {
   sendCode: document.getElementById("sendCodeBtn"),
   verifyCode: document.getElementById("verifyCodeBtn"),
   signOut: document.getElementById("signOutBtn"),
+  testSignInPanel: document.getElementById("testSignInPanel"),
+  testSignIn: document.getElementById("testSignInBtn"),
   refresh: document.getElementById("refreshContextBtn"),
   status: document.getElementById("appStatus"),
   signedOutPanel: document.getElementById("signedOutPanel"),
@@ -83,6 +85,18 @@ els.verifyCode.addEventListener("click", async () => {
   }
   await run("Verifying code...", async () => {
     currentSession = await verifyOtp(email, token);
+    await refreshContext();
+  });
+});
+
+els.testSignIn.addEventListener("click", async () => {
+  const email = cleanEmail(els.email.value);
+  if (!email) {
+    setStatus("Enter the rostered email to sign in as.", "warn");
+    return;
+  }
+  await run("Signing in without email...", async () => {
+    currentSession = await testSignIn(email);
     await refreshContext();
   });
 });
@@ -206,6 +220,10 @@ function syncTeacherNavigationAccessibility() {
 }
 
 async function init() {
+  // The button is only a shortcut to the request; the server refuses unless the mode is
+  // switched on there, so showing it grants nothing by itself.
+  els.testSignInPanel.hidden = platformConfig().testSignIn !== true;
+
   const capturedTestAccessEmail = captureTestAccessFromUrl();
   if (capturedTestAccessEmail && !els.email.value) {
     els.email.value = capturedTestAccessEmail;
@@ -761,6 +779,7 @@ function setBusy(isBusy) {
   [els.verifyCode, els.signOut, els.refresh].forEach((button) => {
     button.disabled = isBusy;
   });
+  els.testSignIn.disabled = isBusy;
   if (isBusy) {
     els.sendCode.disabled = true;
   } else {

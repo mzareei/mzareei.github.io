@@ -66,6 +66,7 @@ node tools\verify-auth-spec-coverage-audit.js
 node tools\verify-auth-live-evidence-packet.js
 node tools\verify-auth-powershell-launch-commands.js
 node tools\verify-auth-qa-test-accounts.js
+node tools\verify-auth-test-sign-in.js
 ```
 
 ## Link Supabase Project
@@ -166,6 +167,7 @@ npx supabase functions deploy course-participation-events
 npx supabase functions deploy course-exit-ticket
 npx supabase functions deploy course-portfolio-entry
 npx supabase functions deploy course-audit-log
+npx supabase functions deploy course-test-signin
 ```
 
 Write each deploy result or log location in the evidence packet.
