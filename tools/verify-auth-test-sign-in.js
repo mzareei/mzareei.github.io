@@ -46,7 +46,9 @@ requireMarkers("supabase/functions/course-test-signin/index.ts", "test sign-in f
   "platform_owner",
   "test_signin_issued",
   "generateLink",
-  "course_memberships"
+  "course_memberships",
+  "assertCourseEmailAllowed",
+  "needs_external_access"
 ]);
 
 requireMarkers("assets/course-materials/information-security/app/auth-api.js", "auth api", [
