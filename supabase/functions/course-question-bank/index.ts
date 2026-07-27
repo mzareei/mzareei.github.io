@@ -1,0 +1,389 @@
+// Generated question banks.
+//
+// Questions are produced from the course content of a specific class — the
+// instructor never types a stem. This function is where a generated bank lands and
+// where live features draw from it.
+//
+// Actions:
+//   import_bank    { content_slug, title, questions[] }  (instructor)
+//     Idempotent upsert of a whole bank, keyed by (bank, generation_key), so
+//     regenerating a deck replaces its own questions instead of duplicating them.
+//     Anything an instructor edited by hand is marked generated_edited and left
+//     alone unless replace_edited is explicitly set.
+//   list_banks     { }                                   (teacher)
+//   draw_question  { content_slug, difficulty? , exclude_keys? }  (teacher)
+//     Picks one question for a live pulse. Returns the correct option too — only
+//     the instructor's own screen calls this, and course-pulse re-snapshots it.
+import { adminClient } from "../_shared/client.ts";
+import { handleOptions, json } from "../_shared/cors.ts";
+import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
+
+type Db = ReturnType<typeof adminClient>;
+
+const instructorRoles = ["platform_owner", "instructor"];
+const teacherRoles = ["platform_owner", "instructor", "teaching_assistant"];
+const difficulties = ["easy", "medium", "hard"];
+
+Deno.serve(async (request) => {
+  const options = handleOptions(request);
+  if (options) return options;
+  if (request.method !== "POST") return json({ error: "Method not allowed." }, { status: 405 });
+
+  try {
+    const token = bearerToken(request.headers.get("Authorization"));
+    if (!token) return json({ error: "Sign in is required." }, { status: 401 });
+
+    const body = await request.json().catch(() => ({}));
+    const db = adminClient();
+    const courseId = cleanCourseId(body.course_id) || "tc2007b";
+    const profile = await loadProfileForToken(db, token);
+    const roles = await loadRoles(db, courseId, String(profile.id));
+    const isTeacher = roles.some((role) => teacherRoles.includes(role));
+    const isInstructor = roles.some((role) => instructorRoles.includes(role));
+
+    switch (body.action) {
+      case "import_bank": {
+        if (!isInstructor) throw new Error("Importing a question bank is not allowed for this role.");
+        return json(await importBank(db, courseId, String(profile.id), body));
+      }
+      case "list_banks": {
+        if (!isTeacher) throw new Error("Question banks are not allowed for this role.");
+        return json(await listBanks(db, courseId));
+      }
+      case "draw_question": {
+        if (!isTeacher) throw new Error("Drawing a question is not allowed for this role.");
+        return json(await drawQuestion(db, courseId, body));
+      }
+      default:
+        return json({ error: "Unknown action." }, { status: 400 });
+    }
+  } catch (error) {
+    const message = error?.message || "Unable to manage question banks.";
+    if (message.includes("not allowed")) return json({ error: message }, { status: 403 });
+    return json({ error: message }, { status: 400 });
+  }
+});
+
+function bearerToken(value: string | null) {
+  const match = String(value || "").match(/^Bearer\s+(.+)$/i);
+  return match ? match[1].trim() : "";
+}
+
+function cleanCourseId(value: unknown) {
+  return String(value || "").trim().toLowerCase().replace(/[^a-z0-9._-]/g, "").slice(0, 80);
+}
+
+async function loadProfileForToken(db: Db, token: string) {
+  const { data: userData, error: userError } = await db.auth.getUser(token);
+  if (userError || !userData.user) throw new Error("Invalid or expired session.");
+  await assertCourseEmailAllowed(db, userData.user.email || "");
+  const { data: profile, error } = await db
+    .from("profiles")
+    .select("id, auth_user_id, institutional_email, full_name, status")
+    .eq("auth_user_id", userData.user.id)
+    .eq("status", "active")
+    .maybeSingle();
+  if (error) throw error;
+  if (!profile) throw new Error("No active course profile is linked to this account.");
+  assertProfileMatchesAuthEmail(profile, userData.user.email || "");
+  return profile;
+}
+
+async function loadRoles(db: Db, courseId: string, profileId: string) {
+  const { data, error } = await db
+    .from("course_memberships")
+    .select("role, status")
+    .eq("course_id", courseId)
+    .eq("profile_id", profileId)
+    .eq("status", "active");
+  if (error) throw error;
+  return (data || []).map((row) => String(row.role));
+}
+
+async function loadContentItem(db: Db, courseId: string, slug: string) {
+  const { data, error } = await db
+    .from("content_items")
+    .select("id, slug, title, content_type")
+    .eq("course_id", courseId)
+    .eq("slug", slug)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error(`No content item found for slug "${slug}".`);
+  return data;
+}
+
+/** Validate one generated question hard: a malformed bank must never reach a class. */
+function validateQuestion(raw: Record<string, unknown>, index: number) {
+  const where = `question ${index + 1}`;
+  const key = String(raw.key || "").trim().slice(0, 40);
+  if (!key) throw new Error(`${where}: a generation key is required.`);
+  const difficulty = String(raw.difficulty || "medium");
+  if (!difficulties.includes(difficulty)) {
+    throw new Error(`${where}: difficulty must be easy, medium or hard.`);
+  }
+  const prompt = String(raw.prompt || "").trim();
+  if (prompt.length < 8) throw new Error(`${where}: the prompt is too short.`);
+
+  const rawOptions = Array.isArray(raw.options) ? raw.options : [];
+  const options = rawOptions.map((option, optionIndex) => {
+    const record = (option || {}) as Record<string, unknown>;
+    const text = String(record.text || "").trim();
+    if (!text) throw new Error(`${where}: option ${optionIndex + 1} has no text.`);
+    return {
+      text,
+      text_es: String(record.text_es || "").trim() || null,
+      is_correct: Boolean(record.is_correct),
+      position: optionIndex
+    };
+  });
+  if (options.length !== 4) throw new Error(`${where}: exactly four options are required.`);
+  const correctCount = options.filter((option) => option.is_correct).length;
+  if (correctCount !== 1) throw new Error(`${where}: exactly one option must be correct.`);
+
+  return {
+    key,
+    difficulty,
+    prompt,
+    prompt_es: String(raw.prompt_es || "").trim() || null,
+    explanation: String(raw.explanation || "").trim() || null,
+    explanation_es: String(raw.explanation_es || "").trim() || null,
+    topic_tags: Array.isArray(raw.topic_tags)
+      ? raw.topic_tags.map((tag) => String(tag).slice(0, 60)).slice(0, 8)
+      : [],
+    options
+  };
+}
+
+async function importBank(db: Db, courseId: string, actorProfileId: string, body: Record<string, unknown>) {
+  const slug = String(body.content_slug || "").trim();
+  const item = await loadContentItem(db, courseId, slug);
+  const rawQuestions = Array.isArray(body.questions) ? body.questions : [];
+  if (!rawQuestions.length) throw new Error("The bank has no questions.");
+  const questions = rawQuestions.map((raw, index) =>
+    validateQuestion((raw || {}) as Record<string, unknown>, index)
+  );
+
+  // Every tier must be represented, or an end-of-class quiz cannot mix levels.
+  for (const difficulty of difficulties) {
+    if (!questions.some((question) => question.difficulty === difficulty)) {
+      throw new Error(`The bank has no ${difficulty} questions — all three tiers are required.`);
+    }
+  }
+
+  const { data: bank, error: bankError } = await db
+    .from("question_banks")
+    .upsert(
+      {
+        course_id: courseId,
+        content_item_id: item.id,
+        title: String(body.title || item.title).slice(0, 180),
+        bank_type: "graded",
+        status: "active",
+        created_by: actorProfileId,
+        updated_at: new Date().toISOString()
+      },
+      { onConflict: "course_id,content_item_id,bank_type" }
+    )
+    .select("id, title")
+    .maybeSingle();
+  if (bankError) throw bankError;
+  const bankId = String(bank!.id);
+
+  // Leave hand-edited questions alone unless explicitly told otherwise.
+  const { data: existing, error: existingError } = await db
+    .from("questions")
+    .select("id, generation_key, source")
+    .eq("question_bank_id", bankId);
+  if (existingError) throw existingError;
+  const bySource = new Map((existing || []).map((row) => [String(row.generation_key), String(row.source)]));
+  const replaceEdited = Boolean(body.replace_edited);
+
+  let written = 0;
+  let skipped = 0;
+  for (const question of questions) {
+    if (bySource.get(question.key) === "generated_edited" && !replaceEdited) {
+      skipped += 1;
+      continue;
+    }
+
+    const { data: saved, error: saveError } = await db
+      .from("questions")
+      .upsert(
+        {
+          question_bank_id: bankId,
+          generation_key: question.key,
+          prompt: question.prompt,
+          prompt_es: question.prompt_es,
+          explanation: question.explanation,
+          explanation_es: question.explanation_es,
+          question_type: "single_choice",
+          difficulty: question.difficulty,
+          topic_tags: question.topic_tags,
+          points: 1,
+          status: "active",
+          source: "generated",
+          updated_at: new Date().toISOString()
+        },
+        { onConflict: "question_bank_id,generation_key" }
+      )
+      .select("id")
+      .maybeSingle();
+    if (saveError) throw saveError;
+
+    // Options are replaced wholesale: they are meaningless apart from their stem.
+    const { error: deleteError } = await db
+      .from("question_options")
+      .delete()
+      .eq("question_id", saved!.id);
+    if (deleteError) throw deleteError;
+
+    const { error: optionError } = await db.from("question_options").insert(
+      question.options.map((option) => ({
+        question_id: saved!.id,
+        option_text: option.text,
+        option_text_es: option.text_es,
+        is_correct: option.is_correct,
+        position: option.position
+      }))
+    );
+    if (optionError) throw optionError;
+    written += 1;
+  }
+
+  await db.from("audit_log").insert({
+    course_id: courseId,
+    actor_profile_id: actorProfileId,
+    target_type: "question_bank",
+    target_id: bankId,
+    action: "question_bank_imported",
+    metadata: { content_slug: slug, written, skipped, total: questions.length }
+  });
+
+  return {
+    bank_id: bankId,
+    content_slug: slug,
+    written,
+    skipped_edited: skipped,
+    counts: difficulties.reduce(
+      (acc, difficulty) => ({
+        ...acc,
+        [difficulty]: questions.filter((question) => question.difficulty === difficulty).length
+      }),
+      {} as Record<string, number>
+    )
+  };
+}
+
+async function listBanks(db: Db, courseId: string) {
+  const { data: banks, error } = await db
+    .from("question_banks")
+    .select("id, title, content_item_id, bank_type, status, updated_at")
+    .eq("course_id", courseId)
+    .eq("status", "active");
+  if (error) throw error;
+  if (!(banks || []).length) return { banks: [] };
+
+  const { data: items, error: itemError } = await db
+    .from("content_items")
+    .select("id, slug, title, content_type")
+    .in("id", (banks || []).map((bank) => bank.content_item_id).filter(Boolean));
+  if (itemError) throw itemError;
+  const itemById = new Map((items || []).map((item) => [String(item.id), item]));
+
+  const { data: questions, error: questionError } = await db
+    .from("questions")
+    .select("question_bank_id, difficulty, status")
+    .in("question_bank_id", (banks || []).map((bank) => bank.id))
+    .eq("status", "active");
+  if (questionError) throw questionError;
+
+  return {
+    banks: (banks || [])
+      .map((bank) => {
+        const item = itemById.get(String(bank.content_item_id));
+        const mine = (questions || []).filter((q) => String(q.question_bank_id) === String(bank.id));
+        return {
+          bank_id: bank.id,
+          title: bank.title,
+          content_slug: item?.slug ?? null,
+          content_title: item?.title ?? null,
+          content_type: item?.content_type ?? null,
+          updated_at: bank.updated_at,
+          total: mine.length,
+          by_difficulty: difficulties.reduce(
+            (acc, difficulty) => ({
+              ...acc,
+              [difficulty]: mine.filter((q) => q.difficulty === difficulty).length
+            }),
+            {} as Record<string, number>
+          )
+        };
+      })
+      .filter((bank) => bank.content_slug)
+      .sort((a, b) => String(a.content_slug).localeCompare(String(b.content_slug)))
+  };
+}
+
+async function drawQuestion(db: Db, courseId: string, body: Record<string, unknown>) {
+  const slug = String(body.content_slug || "").trim();
+  const item = await loadContentItem(db, courseId, slug);
+  const difficulty = String(body.difficulty || "").trim();
+  if (difficulty && !difficulties.includes(difficulty)) {
+    throw new Error("Difficulty must be easy, medium or hard.");
+  }
+  const exclude = Array.isArray(body.exclude_keys)
+    ? body.exclude_keys.map((key) => String(key)).slice(0, 200)
+    : [];
+
+  const { data: bank, error: bankError } = await db
+    .from("question_banks")
+    .select("id")
+    .eq("course_id", courseId)
+    .eq("content_item_id", item.id)
+    .eq("status", "active")
+    .maybeSingle();
+  if (bankError) throw bankError;
+  if (!bank) throw new Error("This lecture has no question bank yet.");
+
+  let query = db
+    .from("questions")
+    .select("id, prompt, prompt_es, difficulty, generation_key, explanation, explanation_es")
+    .eq("question_bank_id", bank.id)
+    .eq("status", "active");
+  if (difficulty) query = query.eq("difficulty", difficulty);
+  const { data: candidates, error: candidateError } = await query;
+  if (candidateError) throw candidateError;
+
+  const pool = (candidates || []).filter(
+    (question) => !exclude.includes(String(question.generation_key))
+  );
+  const usable = pool.length ? pool : candidates || [];
+  if (!usable.length) throw new Error("No questions match that difficulty yet.");
+  const picked = usable[Math.floor(Math.random() * usable.length)];
+
+  const { data: options, error: optionError } = await db
+    .from("question_options")
+    .select("id, option_text, option_text_es, is_correct, position")
+    .eq("question_id", picked.id)
+    .order("position", { ascending: true });
+  if (optionError) throw optionError;
+
+  return {
+    question: {
+      question_id: picked.id,
+      generation_key: picked.generation_key,
+      difficulty: picked.difficulty,
+      prompt: picked.prompt,
+      prompt_es: picked.prompt_es,
+      explanation: picked.explanation,
+      explanation_es: picked.explanation_es,
+      options: (options || []).map((option) => ({
+        key: String(option.id),
+        text: option.option_text,
+        text_es: option.option_text_es,
+        is_correct: option.is_correct
+      }))
+    },
+    remaining: pool.length
+  };
+}

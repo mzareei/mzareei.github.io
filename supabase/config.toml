@@ -102,3 +102,7 @@ verify_jwt = false
 [functions.course-pulse]
 # Live in-lecture pulse questions; validates the user token and role in-function.
 verify_jwt = false
+
+[functions.course-question-bank]
+# Generated question banks; validates the user token and role in-function.
+verify_jwt = false
