@@ -89,3 +89,7 @@ verify_jwt = false
 
 [functions.course-audit-log]
 verify_jwt = false
+
+[functions.course-content-upload]
+# Instructor-gated storage writes; the function validates the user token itself.
+verify_jwt = false

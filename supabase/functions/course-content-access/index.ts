@@ -6,6 +6,9 @@ type Db = ReturnType<typeof adminClient>;
 
 const visibleContentStates = ["released", "live", "paused", "review_only", "scheduled"];
 const teacherRoles = ["platform_owner", "instructor", "teaching_assistant"];
+// Long enough to read a deck without re-minting mid-lecture, short enough that a
+// leaked link dies quickly. The viewer re-mints transparently on expiry.
+const SIGNED_URL_SECONDS = 600;
 
 Deno.serve(async (request) => {
   const options = handleOptions(request);
@@ -17,7 +20,7 @@ Deno.serve(async (request) => {
     if (!token) return json({ error: "Sign in is required." }, { status: 401 });
 
     const body = await request.json().catch(() => ({}));
-    if (body.action !== "open_content") {
+    if (body.action !== "open_content" && body.action !== "request_url") {
       return json({ error: "Unknown action." }, { status: 400 });
     }
 
@@ -30,6 +33,24 @@ Deno.serve(async (request) => {
       releaseId,
       profileId: String(profile.id)
     });
+
+    // request_url: after the same gate, mint a short-lived signed URL for
+    // storage-backed content. The bucket is private with zero policies, so this
+    // is the only way a browser ever reaches an object.
+    if (body.action === "request_url") {
+      if (access.content.source_kind !== "storage_object") {
+        throw new Error("Access denied: this content is not stored on the platform.");
+      }
+      const { data: signed, error: signError } = await db.storage
+        .from("course-content")
+        .createSignedUrl(String(access.content.source_ref), SIGNED_URL_SECONDS);
+      if (signError) throw signError;
+      return json({
+        ...access,
+        url: signed.signedUrl,
+        expires_in: SIGNED_URL_SECONDS
+      });
+    }
 
     return json(access);
   } catch (error) {

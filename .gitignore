@@ -26,3 +26,4 @@ supabase/.temp/
 # Local-only extracted PowerPoint media. The public lecture version uses
 # code-based visuals instead of publishing source-deck images.
 assets/course-materials/information-security/week-01/lecture/assets/media/
+.gated-content-build/
