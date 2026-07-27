@@ -98,3 +98,7 @@ verify_jwt = false
 # Content delivery via short-lived HMAC token in the URL (iframes cannot send
 # Authorization headers); the function verifies the token itself.
 verify_jwt = false
+
+[functions.course-pulse]
+# Live in-lecture pulse questions; validates the user token and role in-function.
+verify_jwt = false
