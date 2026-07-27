@@ -66,7 +66,8 @@ supabase secrets set COURSE_TEST_EMAILS="qa.address@example.com"
 ```
 
 Multiple addresses are comma separated. Changing the secret requires redeploying the
-functions that read it:
+functions that read it (see `deploying-edge-functions.md`, or run
+`.\tools\deploy-course-functions.ps1`):
 
 ```bash
 supabase functions deploy course-auth-context

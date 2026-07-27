@@ -132,7 +132,9 @@ Write each SQL result in the evidence packet.
 
 ## Deploy Edge Functions
 
-Run after migrations are applied and secrets are set:
+Run after migrations are applied and secrets are set. To deploy the functions that share
+the sign-in guard in one step, use `.\tools\deploy-course-functions.ps1`; see
+`docs/course-platform/operations/deploying-edge-functions.md` for first-time CLI setup.
 
 ```powershell
 npx supabase functions deploy quiz-create-session
