@@ -261,6 +261,7 @@ async function loadVisibleReleases(db: ReturnType<typeof adminClient>, courseId:
         source_kind: item.source_kind,
         source_ref: item.source_ref,
         default_points: item.default_points,
+        class_session_id: release.class_session_id || null,
         class_session_title: session.title || "",
         planned_date: session.planned_date || "",
         session_state: session.state || "",
