@@ -12,7 +12,8 @@
     "0007_portfolio_entries.sql",
     "0008_authenticated_exit_tickets.sql",
     "0009_activity_attempt_limits.sql",
-    "0010_profile_identity_confirmations.sql"
+    "0010_profile_identity_confirmations.sql",
+    "0011_external_access_grants.sql"
   ],
   "seeds": [
     "tc2007b_auth_foundation_demo.sql",

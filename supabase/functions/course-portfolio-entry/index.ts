@@ -1,6 +1,6 @@
 import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
-import { assertInstitutionalEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
+import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
 
 type Db = ReturnType<typeof adminClient>;
 
@@ -71,7 +71,7 @@ function cleanOptionalUuid(value: unknown) {
 async function loadProfileForToken(db: Db, token: string) {
   const { data: userData, error: userError } = await db.auth.getUser(token);
   if (userError || !userData.user) throw new Error("Invalid or expired session.");
-  assertInstitutionalEmailAllowed(userData.user.email || "");
+  await assertCourseEmailAllowed(db, userData.user.email || "");
 
   const { data: profile, error: profileError } = await db
     .from("profiles")

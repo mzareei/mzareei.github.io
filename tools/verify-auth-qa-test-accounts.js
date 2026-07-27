@@ -7,10 +7,14 @@ const root = path.resolve(__dirname, "..");
 const failures = [];
 
 const requiredFiles = [
+  "supabase/migrations/0011_external_access_grants.sql",
   "supabase/functions/_shared/identity.ts",
   "supabase/functions/course-roster-management/index.ts",
   "assets/course-materials/information-security/app/auth-api.js",
   "assets/course-materials/information-security/app/app.js",
+  "assets/course-materials/information-security/app/roster-api.js",
+  "assets/course-materials/information-security/app/roster.js",
+  "assets/course-materials/information-security/app/roster.html",
   "assets/course-materials/information-security/platform-config.js",
   "docs/course-platform/operations/qa-test-accounts.md"
 ];
@@ -47,10 +51,74 @@ requireMarkers("supabase/functions/_shared/identity.ts", "shared identity guard"
   "Institutional email domain is not approved"
 ]);
 
+requireMarkers("supabase/migrations/0011_external_access_grants.sql", "external access migration", [
+  "create table if not exists public.external_access_grants",
+  "unique (course_id, email)",
+  "enable row level security",
+  "revoke all on public.external_access_grants from anon, authenticated"
+]);
+
+requireMarkers("supabase/functions/_shared/identity.ts", "DB-backed guard", [
+  "assertCourseEmailAllowed",
+  "hasExternalAccessGrant",
+  "external_access_grants"
+]);
+
 requireMarkers("supabase/functions/course-roster-management/index.ts", "roster management", [
   "../_shared/identity.ts",
-  "isTestAccessEmail"
+  "isTestAccessEmail",
+  "add_person",
+  "grant_external_access",
+  "revoke_external_access",
+  "list_external_access",
+  "external_access_granted",
+  "external_access_revoked",
+  "loadGrantedEmails"
 ]);
+
+requireMarkers("assets/course-materials/information-security/app/roster-api.js", "roster api", [
+  "addPerson",
+  "grantExternalAccess",
+  "revokeExternalAccess",
+  "listExternalAccess"
+]);
+
+requireMarkers("assets/course-materials/information-security/app/roster.js", "roster panel", [
+  "addSinglePerson",
+  "updateExternalReasonVisibility",
+  "renderExternalAccess",
+  "revokeGrant",
+  "loadSectionOptions"
+]);
+
+requireMarkers("assets/course-materials/information-security/app/roster.html", "roster panel markup", [
+  "personEmailInput",
+  "personNameInput",
+  "personSectionSelect",
+  "personRoleSelect",
+  "personExternalReasonInput",
+  "addPersonBtn",
+  "externalAccessRows"
+]);
+
+// Every trusted function must go through the DB-backed guard, or a granted address would
+// reach sign-in but fail everywhere else.
+const guardedFunctions = [
+  "supabase/functions/course-auth-context/index.ts",
+  "supabase/functions/course-content-access/index.ts",
+  "supabase/functions/course-activity-attempt/index.ts",
+  "supabase/functions/course-exit-ticket/index.ts",
+  "supabase/functions/course-portfolio-entry/index.ts",
+  "supabase/functions/course-student-progress/index.ts",
+  "supabase/functions/course-identity-confirmation/index.ts"
+];
+
+for (const file of guardedFunctions) {
+  requireMarkers(file, file, ["assertCourseEmailAllowed"]);
+  if (exists(file) && read(file).includes("assertInstitutionalEmailAllowed(")) {
+    fail(`${file} still calls the domain-only guard; use assertCourseEmailAllowed so access grants apply.`);
+  }
+}
 
 requireMarkers("assets/course-materials/information-security/app/auth-api.js", "auth api", [
   "testAccessEmails",
@@ -78,7 +146,9 @@ requireMarkers("docs/course-platform/operations/qa-test-accounts.md", "QA test a
   "supabase secrets set",
   "?test-access=",
   "tc2007b.test-access-emails",
-  "Removing a test account"
+  "Adding someone from the panel",
+  "external access grant",
+  "Removing access"
 ]);
 
 // The published config and the deployed functions must not carry a real test address:
@@ -217,6 +287,124 @@ if (exists("assets/course-materials/information-security/app/auth-api.js")) {
   });
 }
 
+// Server guard: strip the TypeScript annotations and exercise the real control flow
+// against a fake Deno env and a fake grants table.
+function loadServerGuard({ testEmails = "", grants = [], envThrows = false } = {}) {
+  const source = read("supabase/functions/_shared/identity.ts")
+    .replace(/^export\s+/gm, "")
+    .replace(/:\s*\{\s*from:\s*\(table:\s*string\)\s*=>\s*any\s*\}/g, "")
+    .replace(/:\s*Record<string,\s*unknown>/g, "")
+    .replace(/:\s*unknown/g, "")
+    .replace(/:\s*string\[\]/g, "");
+
+  const queried = [];
+  const db = {
+    from(table) {
+      const filters = {};
+      const builder = {
+        select: () => builder,
+        eq: (column, value) => {
+          filters[column] = value;
+          return builder;
+        },
+        limit: () => builder,
+        maybeSingle: async () => {
+          queried.push({ table, filters });
+          if (table !== "external_access_grants") return { data: null, error: null };
+          const hit = grants.find((grant) => grant.email === filters.email && grant.status === filters.status);
+          return { data: hit ? { id: "grant-id" } : null, error: null };
+        }
+      };
+      return builder;
+    }
+  };
+
+  const context = vm.createContext({
+    Deno: {
+      env: {
+        get: (key) => {
+          if (envThrows) throw new Error("no env permission");
+          return key === "COURSE_TEST_EMAILS" ? testEmails : "";
+        }
+      }
+    },
+    console
+  });
+  vm.runInContext(
+    `${source}\n;globalThis.__guard = { assertInstitutionalEmailAllowed, assertCourseEmailAllowed, hasExternalAccessGrant, testAccessEmails };`,
+    context
+  );
+  return { guard: context.__guard, db, queried };
+}
+
+async function rejects(promise, label) {
+  try {
+    await promise;
+    throw new Error(`${label} should have been rejected`);
+  } catch (error) {
+    if (String(error.message).includes("should have been rejected")) throw error;
+    return error;
+  }
+}
+
+async function asyncBehaviour(label, run) {
+  try {
+    await run();
+    console.log(`PASS ${label}`);
+  } catch (error) {
+    fail(`${label}: ${error.message}`);
+    console.error(`FAIL ${label}`);
+  }
+}
+
+async function runServerGuardChecks() {
+  if (!exists("supabase/functions/_shared/identity.ts")) return;
+
+  await asyncBehaviour("institutional addresses pass without touching the grants table", async () => {
+    const { guard, db, queried } = loadServerGuard();
+    assert.strictEqual(await guard.assertCourseEmailAllowed(db, "Someone@TEC.MX"), "someone@tec.mx");
+    assert.strictEqual(queried.length, 0, "no grant lookup should be needed for an institutional address");
+  });
+
+  await asyncBehaviour("an unlisted outside address is rejected", async () => {
+    const { guard, db } = loadServerGuard();
+    const error = await rejects(guard.assertCourseEmailAllowed(db, "stranger@gmail.com"), "an unlisted address");
+    assert.ok(error.message.includes("not approved"), `unexpected message: ${error.message}`);
+  });
+
+  await asyncBehaviour("an active grant admits an outside address", async () => {
+    const { guard, db } = loadServerGuard({ grants: [{ email: "guest@example.com", status: "active" }] });
+    assert.strictEqual(await guard.assertCourseEmailAllowed(db, "Guest@Example.com"), "guest@example.com");
+  });
+
+  await asyncBehaviour("a revoked grant no longer admits the address", async () => {
+    const { guard, db } = loadServerGuard({ grants: [{ email: "guest@example.com", status: "revoked" }] });
+    await rejects(guard.assertCourseEmailAllowed(db, "guest@example.com"), "a revoked grant");
+  });
+
+  await asyncBehaviour("COURSE_TEST_EMAILS still admits an address with no grant", async () => {
+    const { guard, db } = loadServerGuard({ testEmails: "qa@example.com" });
+    assert.strictEqual(await guard.assertCourseEmailAllowed(db, "qa@example.com"), "qa@example.com");
+  });
+
+  await asyncBehaviour("the guard fails closed when the environment is unreadable", async () => {
+    const { guard, db } = loadServerGuard({ envThrows: true });
+    await rejects(guard.assertCourseEmailAllowed(db, "qa@example.com"), "an unreadable environment");
+    assert.strictEqual(await guard.assertCourseEmailAllowed(db, "someone@tec.mx"), "someone@tec.mx");
+  });
+
+  await asyncBehaviour("a blank address is never admitted", async () => {
+    const { guard, db } = loadServerGuard({ grants: [{ email: "", status: "active" }] });
+    await rejects(guard.assertCourseEmailAllowed(db, ""), "a blank address");
+    assert.strictEqual(await guard.hasExternalAccessGrant(db, ""), false);
+  });
+}
+
+runServerGuardChecks()
+  .catch((error) => fail(`Server guard checks could not run: ${error.message}`))
+  .then(finish);
+
+function finish() {
 if (failures.length) {
   console.error("Authenticated QA test account verification failed:");
   for (const failure of failures) console.error(`- ${failure}`);
@@ -226,3 +414,4 @@ if (failures.length) {
 console.log("Authenticated QA test account verification passed.");
 console.log(`- ${requiredFiles.length} QA test account files checked`);
 console.log(`- ${publicSources.length} public sources scanned for committed test addresses`);
+}

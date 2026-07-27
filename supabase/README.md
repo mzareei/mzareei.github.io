@@ -100,11 +100,15 @@ The browser never receives correct answers in the Supabase version. Questions ar
 
 Do not put high-stakes exam question banks or answer keys in this public repository. Use the demo seed only for a classroom pilot or low-stakes checks.
 
-Trusted functions reject unapproved institutional email domains through `_shared/identity.ts`. QA test accounts are an exact-address exception to that check, configured through the `COURSE_TEST_EMAILS` secret rather than committed to this repository, since `platform-config.js` is served publicly. See `docs/course-platform/operations/qa-test-accounts.md`.
+Trusted functions reject unapproved institutional email domains through `_shared/identity.ts`. External access grants are an exact-address exception to that check, recorded by an instructor from the roster panel and stored in `external_access_grants`. Use them for guest professors, external collaborators, and QA test accounts.
+
+A `COURSE_TEST_EMAILS` secret provides the same exception without a database row. It exists for bootstrap and recovery; prefer panel grants, which are audited and revocable without a redeploy. Addresses are never committed to this repository, since `platform-config.js` is served publicly.
 
 ```bash
 supabase secrets set COURSE_TEST_EMAILS="qa.address@example.com"
 ```
+
+See `docs/course-platform/operations/qa-test-accounts.md`.
 
 ## Operations
 

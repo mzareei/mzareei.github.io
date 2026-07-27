@@ -28,6 +28,69 @@
   </header>
 
   <section class="mission-card app-panel">
+    <span class="eyebrow">Add one person</span>
+    <h2>Add a student, assistant, or professor</h2>
+    <p class="lead">Add a single person by email without preparing a CSV. Institutional addresses are added straight away. An address outside the approved domains needs a reason, which is recorded as an access grant.</p>
+    <div class="auth-grid">
+      <label class="field-stack">
+        Email
+        <input id="personEmailInput" type="email" autocomplete="off" placeholder="name@tec.mx">
+      </label>
+      <label class="field-stack">
+        Full name
+        <input id="personNameInput" type="text" autocomplete="off" placeholder="Full name">
+      </label>
+      <label class="field-stack">
+        Student or staff ID
+        <input id="personIdInput" type="text" autocomplete="off" placeholder="Optional">
+      </label>
+      <label class="field-stack">
+        Section
+        <select id="personSectionSelect"></select>
+      </label>
+      <label class="field-stack">
+        Role
+        <select id="personRoleSelect">
+          <option value="student">Student</option>
+          <option value="teaching_assistant">Teaching assistant</option>
+          <option value="instructor">Instructor</option>
+          <option value="observer">Observer</option>
+        </select>
+      </label>
+    </div>
+    <label class="field-stack" id="personExternalReasonField" hidden>
+      Reason for access outside the approved domains
+      <input id="personExternalReasonInput" type="text" autocomplete="off" placeholder="e.g. Guest professor for the security module">
+    </label>
+    <div class="button-row gradebook-actions">
+      <button class="app-button" id="addPersonBtn" type="button">Add person</button>
+    </div>
+    <p class="status-line" id="addPersonStatus" aria-live="polite"></p>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">External access</span>
+    <h2>Addresses approved outside the institutional domains</h2>
+    <p class="lead">Each grant lets one address reach the sign-in screen. What the account can actually see still comes from its roster role and section.</p>
+    <div class="release-table-wrap">
+      <table class="release-table gradebook-table">
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Status</th>
+            <th>Reason</th>
+            <th>Granted</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="externalAccessRows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="mission-card app-panel">
+    <span class="eyebrow">Bulk import</span>
+    <h2>Roster CSV</h2>
     <div class="auth-grid">
       <label class="field-stack">
         Allowed domains

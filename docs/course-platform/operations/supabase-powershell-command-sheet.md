@@ -65,6 +65,7 @@ node tools\verify-auth-supabase-launch-checklist.js
 node tools\verify-auth-spec-coverage-audit.js
 node tools\verify-auth-live-evidence-packet.js
 node tools\verify-auth-powershell-launch-commands.js
+node tools\verify-auth-qa-test-accounts.js
 ```
 
 ## Link Supabase Project
@@ -104,6 +105,7 @@ supabase/migrations/0007_portfolio_entries.sql
 supabase/migrations/0008_authenticated_exit_tickets.sql
 supabase/migrations/0009_activity_attempt_limits.sql
 supabase/migrations/0010_profile_identity_confirmations.sql
+supabase/migrations/0011_external_access_grants.sql
 ```
 
 Then run these safe seed files in the Supabase SQL editor:

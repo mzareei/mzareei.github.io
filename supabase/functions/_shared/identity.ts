@@ -43,6 +43,37 @@ export function assertInstitutionalEmailAllowed(email: unknown, allowedDomains =
   return cleaned;
 }
 
+export async function hasExternalAccessGrant(db: { from: (table: string) => any }, email: unknown) {
+  const cleaned = cleanInstitutionalEmail(email);
+  if (!cleaned) return false;
+  const { data, error } = await db
+    .from("external_access_grants")
+    .select("id")
+    .eq("email", cleaned)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return Boolean(data);
+}
+
+// The guard used by every trusted function. An address gets in when it is institutional,
+// when it is listed in COURSE_TEST_EMAILS, or when an instructor recorded an external
+// access grant for it. Course memberships still decide what the account can see.
+export async function assertCourseEmailAllowed(
+  db: { from: (table: string) => any },
+  email: unknown,
+  allowedDomains = defaultAllowedInstitutionalDomains
+) {
+  const cleaned = cleanInstitutionalEmail(email);
+  try {
+    return assertInstitutionalEmailAllowed(cleaned, allowedDomains);
+  } catch (error) {
+    if (await hasExternalAccessGrant(db, cleaned)) return cleaned;
+    throw error;
+  }
+}
+
 export function assertProfileMatchesAuthEmail(profile: Record<string, unknown>, authEmail: unknown) {
   const profileEmail = cleanInstitutionalEmail(profile.institutional_email);
   const signedInEmail = cleanInstitutionalEmail(authEmail);
