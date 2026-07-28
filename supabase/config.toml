@@ -114,3 +114,7 @@ verify_jwt = false
 [functions.course-admin]
 # Platform-owner-only course/professor management; validates the user token and role in-function.
 verify_jwt = false
+
+[functions.course-generation]
+# AI pipeline job orchestration; validates the user token and role in-function.
+verify_jwt = false

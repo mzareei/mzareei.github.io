@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{TITLE}}</title>
+<meta name="description" content="{{DESCRIPTION}}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+{{STYLE_CSS}}
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="fill" id="progress"></div></div>
+
+<div class="controls">
+  <button class="ui-btn" id="langBtn" title="Español / English">ES</button>
+  <button class="ui-btn" id="themeBtn" title="Light / Dark">☀</button>
+</div>
+
+<main class="deck" id="deck">
+{{SLIDES}}
+</main>
+
+<footer class="footer">
+  <span class="course" data-es="{{COURSE_LABEL_ES}}">{{COURSE_LABEL_EN}}</span>
+  <span class="right">
+    <span class="sec-name" id="secName">Orientation</span>
+    <span class="counter"><span id="cur">1</span> / <span id="total">1</span></span>
+  </span>
+</footer>
+
+<div class="frag-hint" id="fragHint"><span id="fragHintText">click to reveal</span><span class="chev">▾</span></div>
+
+<div class="nav-btns">
+  <button id="prevBtn" title="Previous (←)">‹</button>
+  <button id="ovBtn" title="Overview (O)">▦</button>
+  <button id="helpBtn" title="Help (?)">?</button>
+  <button id="fsBtn" title="Fullscreen (F)">⛶</button>
+  <button id="nextBtn" title="Next (→)">›</button>
+</div>
+
+<div class="overview" id="overview">
+  <h2 id="ovTitle">Slide overview</h2>
+  <div class="ov-grid" id="ovGrid"></div>
+</div>
+
+<div class="help" id="help">
+  <div class="panel">
+    <h2 data-es="Navegación">Navigation</h2>
+    <table>
+      <tr><td><kbd>→</kbd> <kbd>Space</kbd> <kbd>PgDn</kbd></td><td data-es="Siguiente / revelar">Next / reveal</td></tr>
+      <tr><td><kbd>←</kbd> <kbd>PgUp</kbd></td><td data-es="Anterior">Previous</td></tr>
+      <tr><td><kbd>Home</kbd> / <kbd>End</kbd></td><td data-es="Primera / última">First / last slide</td></tr>
+      <tr><td><kbd>O</kbd></td><td data-es="Vista general">Slide overview grid</td></tr>
+      <tr><td><kbd>F</kbd></td><td data-es="Pantalla completa">Toggle fullscreen</td></tr>
+      <tr><td><kbd>L</kbd></td><td data-es="Idioma ES / EN">Language ES / EN</td></tr>
+      <tr><td><kbd>T</kbd></td><td data-es="Tema claro / oscuro">Light / dark theme</td></tr>
+      <tr><td><kbd>?</kbd></td><td>Help</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td data-es="Cerrar ventana">Close overlay</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+{{SCRIPT_JS}}
+</script>
+</body>
+</html>
