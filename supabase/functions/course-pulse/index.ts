@@ -377,20 +377,49 @@ async function loadCurrent(
     if (!enrollment) throw new Error("You are not enrolled in this class section.");
   }
 
-  // Newest round that still matters: open, or revealed so the student sees the answer.
+  // Same one poll drives the whole "in class" screen: pulse takes priority,
+  // then the quiz, then the reflection — matching the order the professor
+  // actually moves through a class (pulses during the lecture, quiz at the
+  // end, reflection last). Nothing here is typed by the instructor; it just
+  // reports what Run Class has already done.
+  const [pulseInfo, quizInfo, reflectionInfo] = await Promise.all([
+    loadCurrentPulse(db, courseId, profileId, sessionId),
+    loadCurrentQuiz(db, sessionId),
+    loadReflectionStatus(db, sessionId, profileId)
+  ]);
+
+  return {
+    session_state: session.state,
+    ...pulseInfo,
+    quiz: quizInfo,
+    reflection: reflectionInfo
+  };
+}
+
+// How long a revealed answer stays on screen before the live view moves on.
+// Without this, an instructor who forgets to click "Close the question" (easy
+// to do — the class keeps moving) would freeze every student's screen on that
+// answer for the rest of the session, blocking the quiz and reflection.
+const revealDisplayMinutes = 3;
+
+async function loadCurrentPulse(db: Db, courseId: string, profileId: string, sessionId: string) {
+  // Newest round that still matters: open, or revealed recently enough that a
+  // student is still looking at the answer.
   const { data: rounds, error: roundError } = await db
     .from("pulse_rounds")
-    .select("id, state, points, time_limit_seconds, opened_at, ends_at, prompt_snapshot")
+    .select("id, state, points, time_limit_seconds, opened_at, ends_at, revealed_at, prompt_snapshot")
     .eq("class_session_id", sessionId)
     .in("state", ["open", "revealed"])
     .order("opened_at", { ascending: false })
     .limit(1);
   if (roundError) throw roundError;
 
-  const round = (rounds || [])[0];
-  if (!round) {
-    return { session_state: session.state, round: null, my_answer: null };
+  let round = (rounds || [])[0];
+  if (round && String(round.state) === "revealed" && round.revealed_at) {
+    const staleAfter = new Date(round.revealed_at).getTime() + revealDisplayMinutes * 60 * 1000;
+    if (Date.now() > staleAfter) round = undefined;
   }
+  if (!round) return { round: null, my_answer: null, results: null };
 
   const { data: mine, error: mineError } = await db
     .from("pulse_answers")
@@ -402,7 +431,6 @@ async function loadCurrent(
 
   const revealed = String(round.state) === "revealed";
   return {
-    session_state: session.state,
     round: studentRound(round, revealed),
     // Correctness of their own answer is only meaningful once revealed.
     my_answer: mine
@@ -414,6 +442,48 @@ async function loadCurrent(
         }
       : null,
     results: revealed ? await loadResults(db, courseId, String(round.id), false) : null
+  };
+}
+
+/** Is there a quiz to take right now, or has one already run and closed? */
+async function loadCurrentQuiz(db: Db, sessionId: string) {
+  const { data: instances, error } = await db
+    .from("activity_instances")
+    .select("id, state, ends_at, question_count")
+    .eq("class_session_id", sessionId)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (error) throw error;
+  const instance = (instances || [])[0];
+  if (!instance) return { instance_id: null, state: null };
+  return {
+    instance_id: instance.id,
+    state: instance.state, // 'live' -> take it now; 'closed' -> reflection can open
+    ends_at: instance.ends_at,
+    question_count: instance.question_count
+  };
+}
+
+async function loadReflectionStatus(db: Db, sessionId: string, profileId: string) {
+  const { data: session, error: sessionError } = await db
+    .from("class_sessions")
+    .select("reflection_min_words, reflection_max_words")
+    .eq("id", sessionId)
+    .maybeSingle();
+  if (sessionError) throw sessionError;
+
+  const { data: ticket, error: ticketError } = await db
+    .from("exit_tickets")
+    .select("id")
+    .eq("class_session_id", sessionId)
+    .eq("profile_id", profileId)
+    .maybeSingle();
+  if (ticketError) throw ticketError;
+
+  return {
+    submitted: Boolean(ticket),
+    min_words: session?.reflection_min_words ?? 50,
+    max_words: session?.reflection_max_words ?? 100
   };
 }
 

@@ -41,6 +41,10 @@ Deno.serve(async (request) => {
     const isInstructor = roles.some((role) => instructorRoles.includes(role));
 
     switch (body.action) {
+      case "current": {
+        if (!isTeacher) throw new Error("Quiz status is not allowed for this role.");
+        return json(await currentQuiz(db, courseId, body));
+      }
       case "start": {
         if (!isInstructor) throw new Error("Starting a quiz is not allowed for this role.");
         return json(await startQuiz(db, courseId, String(profile.id), body));
@@ -56,6 +60,10 @@ Deno.serve(async (request) => {
       case "summary": {
         if (!isTeacher) throw new Error("Quiz summary is not allowed for this role.");
         return json(await quizSummary(db, courseId, body, roles.includes("teaching_assistant") && !isInstructor, String(profile.id)));
+      }
+      case "reflections": {
+        if (!isTeacher) throw new Error("Reflections are not allowed for this role.");
+        return json(await classReflections(db, courseId, body, roles.includes("teaching_assistant") && !isInstructor, String(profile.id)));
       }
       default:
         return json({ error: "Unknown action." }, { status: 400 });
@@ -214,6 +222,35 @@ async function bankQuestionCounts(db: Db, courseId: string, contentItemId: strin
     .eq("status", "active");
   if (countError) throw countError;
   return count ?? 0;
+}
+
+/** Recovers the instructor's place after a page reload — Run Class only
+ *  keeps the active instance id in memory, so without this a refresh makes
+ *  an in-progress or just-closed quiz look like it was never started. */
+async function currentQuiz(db: Db, courseId: string, body: Record<string, unknown>) {
+  const sessionId = cleanUuid(body.class_session_id, "class session id");
+  const slug = String(body.content_slug || "").trim();
+  const item = await loadLectureItem(db, courseId, slug);
+
+  const { data: template, error: templateError } = await db
+    .from("activity_templates")
+    .select("id")
+    .eq("content_item_id", item.id)
+    .eq("activity_type", "quiz")
+    .maybeSingle();
+  if (templateError) throw templateError;
+  if (!template) return { instance_id: null };
+
+  const { data: instance, error } = await db
+    .from("activity_instances")
+    .select("id")
+    .eq("activity_template_id", template.id)
+    .eq("class_session_id", sessionId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return { instance_id: instance?.id ?? null };
 }
 
 async function startQuiz(db: Db, courseId: string, actorProfileId: string, body: Record<string, unknown>) {
@@ -377,6 +414,59 @@ async function quizSummary(
         score_percent: attempt.score_percent,
         score_final: attempt.score_final,
         submitted_at: attempt.submitted_at
+      };
+    })
+  };
+}
+
+async function classReflections(
+  db: Db,
+  courseId: string,
+  body: Record<string, unknown>,
+  taScoped: boolean,
+  actorProfileId: string
+) {
+  const sessionId = cleanUuid(body.class_session_id, "class session id");
+  const session = await loadSession(db, courseId, sessionId);
+
+  if (taScoped) {
+    const { data: enrollment, error } = await db
+      .from("section_enrollments")
+      .select("id")
+      .eq("profile_id", actorProfileId)
+      .eq("section_id", session.section_id)
+      .eq("role", "teaching_assistant")
+      .eq("status", "active")
+      .maybeSingle();
+    if (error) throw error;
+    if (!enrollment) throw new Error("Reflections are not allowed for this section.");
+  }
+
+  const { data: tickets, error } = await db
+    .from("exit_tickets")
+    .select("profile_id, one_thing, created_at")
+    .eq("class_session_id", sessionId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  if (!(tickets || []).length) return { reflections: [] };
+
+  const profileIds = Array.from(new Set((tickets || []).map((t) => String(t.profile_id))));
+  const { data: profiles, error: profileError } = await db
+    .from("profiles")
+    .select("id, full_name, preferred_name, student_identifier")
+    .in("id", profileIds);
+  if (profileError) throw profileError;
+  const byId = new Map((profiles || []).map((p) => [String(p.id), p]));
+
+  return {
+    reflections: (tickets || []).map((ticket) => {
+      const person = byId.get(String(ticket.profile_id)) || {};
+      return {
+        profile_id: ticket.profile_id,
+        name: person.preferred_name || person.full_name || "Student",
+        student_identifier: person.student_identifier || null,
+        one_thing: ticket.one_thing,
+        created_at: ticket.created_at
       };
     })
   };
