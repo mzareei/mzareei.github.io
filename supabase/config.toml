@@ -110,3 +110,7 @@ verify_jwt = false
 [functions.course-class-quiz]
 # End-of-class quiz orchestration; validates the user token and role in-function.
 verify_jwt = false
+
+[functions.course-admin]
+# Platform-owner-only course/professor management; validates the user token and role in-function.
+verify_jwt = false
