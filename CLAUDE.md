@@ -169,3 +169,27 @@ He feeds information file-by-file and wants "most important first".
 See `WORKFLOW.md`. Pull before you start, push before you stop. This file is the
 portable context; the assistant should re-read the live repo files on each machine
 rather than rely on memory of a previous session.
+
+---
+
+# Course Platform v2 — where the real documentation lives
+
+The teaching platform (live at https://course-platform-3ko.pages.dev) spans two
+repos: the SPA in **`~/Documents/GitHub/course-platform`** and this repo's
+`supabase/functions/` + `supabase/migrations/`.
+
+**Its complete, current documentation is in the other repo:**
+`~/Documents/GitHub/course-platform/docs/` — start at `00-START-HERE.md`.
+
+That folder covers the project goal, architecture, design system, decision log,
+current status with remaining work, the runbook, and a pitfalls file that is
+worth reading before debugging anything. `docs/HANDOFF-PROMPT.md` there can be
+pasted into a fresh session to continue the work.
+
+In *this* repo:
+- `supabase/functions/` — all edge functions (deploy explicitly with
+  `npx supabase functions deploy <name>`; they do **not** deploy on git push)
+- `supabase/migrations/` — schema (`npx supabase db push --include-all`)
+- `docs/professor-guide.md` — the operating guide for class day
+- `assets/course-materials/` — original hand-authored lecture decks; the Gen-1
+  apps here are frozen
