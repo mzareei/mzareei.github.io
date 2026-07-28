@@ -336,18 +336,58 @@ async function applyRoster(db: ReturnType<typeof adminClient>, input: {
 }
 
 async function upsertAcceptedRows(db: ReturnType<typeof adminClient>, courseId: string, rows: Record<string, unknown>[]) {
-  const profilePayload = rows.map((row) => ({
-    institutional_email: row.institutional_email,
-    student_identifier: row.student_identifier || null,
-    full_name: row.full_name,
-    status: "invited",
-    updated_at: new Date().toISOString()
-  }));
+  const emails = rows.map((row) => String(row.institutional_email));
+  const now = new Date().toISOString();
+
+  // Status is set on INSERT only. A plain upsert would write status:'invited'
+  // over everyone already on the roster, and endpoints that serve a live class
+  // require status='active' — so re-importing a roster mid-semester used to cut
+  // every signed-in student off until they reloaded the app. Adding or dropping
+  // students mid-semester is normal, so this had to stop being destructive.
+  const { data: existing, error: existingError } = await db
+    .from("profiles")
+    .select("id, institutional_email")
+    .in("institutional_email", emails);
+  if (existingError) throw existingError;
+
+  const existingByEmail = new Map(
+    (existing || []).map((profile) => [String(profile.institutional_email), profile])
+  );
+
+  const newRows = rows.filter((row) => !existingByEmail.has(String(row.institutional_email)));
+  if (newRows.length) {
+    const { error: insertError } = await db.from("profiles").insert(
+      newRows.map((row) => ({
+        institutional_email: row.institutional_email,
+        student_identifier: row.student_identifier || null,
+        full_name: row.full_name,
+        status: "invited",
+        updated_at: now
+      }))
+    );
+    if (insertError) throw insertError;
+  }
+
+  // Refresh the name and student id of people already on the roster, but never
+  // their status or their auth link.
+  for (const row of rows) {
+    const profile = existingByEmail.get(String(row.institutional_email));
+    if (!profile) continue;
+    const { error: updateError } = await db
+      .from("profiles")
+      .update({
+        full_name: row.full_name,
+        student_identifier: row.student_identifier || null,
+        updated_at: now
+      })
+      .eq("id", profile.id);
+    if (updateError) throw updateError;
+  }
 
   const { data: profiles, error: profileError } = await db
     .from("profiles")
-    .upsert(profilePayload, { onConflict: "institutional_email" })
-    .select("id, institutional_email");
+    .select("id, institutional_email")
+    .in("institutional_email", emails);
   if (profileError) throw profileError;
 
   const profileByEmail = new Map((profiles || []).map((profile) => [profile.institutional_email, profile]));
