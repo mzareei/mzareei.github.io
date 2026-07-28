@@ -118,3 +118,7 @@ verify_jwt = false
 [functions.course-generation]
 # AI pipeline job orchestration; validates the user token and role in-function.
 verify_jwt = false
+
+[functions.course-generation-worker]
+# Invoked by course-generation and by itself; guarded by GENERATION_WORKER_SECRET.
+verify_jwt = false

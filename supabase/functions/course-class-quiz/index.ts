@@ -19,6 +19,9 @@ type Db = ReturnType<typeof adminClient>;
 const instructorRoles = ["platform_owner", "instructor"];
 const teacherRoles = ["platform_owner", "instructor", "teaching_assistant"];
 const openSessionStates = ["open", "live", "paused", "continued"];
+// An activity_instance in one of these is still "running" — students can reach
+// it, and starting a quiz reuses it rather than opening a duplicate.
+const openInstanceStates = ["open", "live", "paused"];
 const gradebookCategoryName = "Quizzes";
 const defaultQuestionCount = 12;
 const defaultTimeLimitSeconds = 600;
@@ -224,13 +227,21 @@ async function bankQuestionCounts(db: Db, courseId: string, contentItemId: strin
   return count ?? 0;
 }
 
-/** Recovers the instructor's place after a page reload — Run Class only
- *  keeps the active instance id in memory, so without this a refresh makes
- *  an in-progress or just-closed quiz look like it was never started. */
+/** Recovers the instructor's place after a page reload — Run Class only keeps
+ *  the instance id in memory, so without this a refresh makes a running quiz
+ *  look like it was never started.
+ *
+ *  Reports the ACTIVE instance and the last FINISHED one separately. Collapsing
+ *  the two is what made "Start the quiz" vanish for good once a session's first
+ *  quiz was closed: the screen recovered the closed instance and then had no
+ *  path back to starting another one. A session can legitimately run more than
+ *  one quiz (a retry, a second short check), so "finished" must never block
+ *  "start". */
 async function currentQuiz(db: Db, courseId: string, body: Record<string, unknown>) {
   const sessionId = cleanUuid(body.class_session_id, "class session id");
   const slug = String(body.content_slug || "").trim();
   const item = await loadLectureItem(db, courseId, slug);
+  const empty = { instance_id: null, state: null, last_closed_instance_id: null };
 
   const { data: template, error: templateError } = await db
     .from("activity_templates")
@@ -239,18 +250,25 @@ async function currentQuiz(db: Db, courseId: string, body: Record<string, unknow
     .eq("activity_type", "quiz")
     .maybeSingle();
   if (templateError) throw templateError;
-  if (!template) return { instance_id: null };
+  if (!template) return empty;
 
-  const { data: instance, error } = await db
+  const { data: instances, error } = await db
     .from("activity_instances")
-    .select("id")
+    .select("id, state")
     .eq("activity_template_id", template.id)
     .eq("class_session_id", sessionId)
     .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(20);
   if (error) throw error;
-  return { instance_id: instance?.id ?? null };
+
+  const rows = instances || [];
+  const active = rows.find((row) => openInstanceStates.includes(String(row.state)));
+  const lastClosed = rows.find((row) => String(row.state) === "closed");
+  return {
+    instance_id: active?.id ?? null,
+    state: active ? String(active.state) : null,
+    last_closed_instance_id: lastClosed?.id ?? null
+  };
 }
 
 async function startQuiz(db: Db, courseId: string, actorProfileId: string, body: Record<string, unknown>) {
@@ -275,7 +293,7 @@ async function startQuiz(db: Db, courseId: string, actorProfileId: string, body:
     .select("id, state, ends_at")
     .eq("activity_template_id", templateId)
     .eq("class_session_id", sessionId)
-    .in("state", ["open", "live", "paused"])
+    .in("state", openInstanceStates)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();

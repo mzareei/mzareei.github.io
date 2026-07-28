@@ -41,6 +41,8 @@ Deno.serve(async (request) => {
     switch (body.action) {
       case "create_job":
         return json(await createJob(db, courseId, String(profile.id), body));
+      case "advance":
+        return json(await advanceJob(db, courseId, body));
       case "status":
         return json({ job: await loadJob(db, courseId, body.job_id) });
       case "list_jobs":
@@ -146,6 +148,7 @@ async function createJob(db: Db, courseId: string, actorProfileId: string, body:
   if (error) throw error;
 
   await db.from("content_uploads").update({ status: "processing", updated_at: new Date().toISOString() }).eq("id", uploadId);
+  await invokeWorker(String(job.id));
   await db.from("audit_log").insert({
     course_id: courseId,
     actor_profile_id: actorProfileId,
@@ -156,6 +159,29 @@ async function createJob(db: Db, courseId: string, actorProfileId: string, body:
   });
 
   return { job };
+}
+
+/** The worker self-chains, but a run can still stall on a cold start or a
+ *  transient API error. The Content screen calls this while a job is in flight
+ *  so a stalled job resumes instead of sitting there looking alive. */
+async function advanceJob(db: Db, courseId: string, body: Record<string, unknown>) {
+  const job = await loadJob(db, courseId, body.job_id);
+  if (["ready_for_review", "approved", "failed"].includes(String(job.status))) {
+    return { job, advanced: false };
+  }
+  await invokeWorker(String(job.id));
+  return { job, advanced: true };
+}
+
+async function invokeWorker(jobId: string) {
+  const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/course-generation-worker`;
+  const secret = Deno.env.get("GENERATION_WORKER_SECRET") || "";
+  // Fire-and-forget: a generation step takes far longer than this request should.
+  await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ job_id: jobId, secret })
+  }).catch(() => {});
 }
 
 async function loadJob(db: Db, courseId: string, jobIdRaw: unknown) {
