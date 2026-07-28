@@ -12,6 +12,15 @@
 //     Upserts the content item pointing at the uploaded object
 //     (source_kind = 'storage_object'). Releases are managed separately by
 //     course-content-library / course-release-management, unchanged.
+//
+//   create_upload      { filename, size_bytes }  -> { upload_id, path, token, signed_url }
+//     Phase 5 AI pipeline: mints a signed upload URL for a source PDF at
+//     courses/<course_id>/uploads/<upload_id>/original.pdf and records a
+//     content_uploads row. The deck/questions don't exist yet — that's
+//     course-generation's job once this file has actually landed.
+//   confirm_upload     { upload_id }  -> { upload }
+//     Verifies the PDF actually landed in storage (size, extension) and
+//     flips content_uploads to 'uploaded' so a generation job can start.
 import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
@@ -23,6 +32,7 @@ const bucket = "course-content";
 const contentTypes = ["lecture", "mission", "quiz_bank", "activity", "exit_ticket", "portfolio", "resource", "case_file"];
 const allowedExtensions = [".html", ".pdf", ".png", ".jpg", ".jpeg", ".svg", ".css", ".js", ".json"];
 const maxSlugLength = 120;
+const maxPdfBytes = 40 * 1024 * 1024; // 40MB — generous for a ~80-page slide-style PDF
 
 Deno.serve(async (request) => {
   const options = handleOptions(request);
@@ -50,6 +60,14 @@ Deno.serve(async (request) => {
     if (body.action === "register_item") {
       const item = await registerItem(db, courseId, String(profile.id), body);
       return json({ item });
+    }
+
+    if (body.action === "create_upload") {
+      return json(await createPdfUpload(db, courseId, String(profile.id), body));
+    }
+
+    if (body.action === "confirm_upload") {
+      return json(await confirmPdfUpload(db, courseId, body));
     }
 
     return json({ error: "Unknown action." }, { status: 400 });
@@ -131,6 +149,74 @@ async function requireInstructor(db: Db, token: string, courseId: string) {
   const isInstructor = (memberships || []).some((m) => instructorRoles.includes(String(m.role)));
   if (!isInstructor) throw new Error("Content uploads are not allowed for this role.");
   return profile;
+}
+
+async function createPdfUpload(db: Db, courseId: string, actorProfileId: string, body: Record<string, unknown>) {
+  const originalFilename = String(body.filename || "").trim().slice(0, 300);
+  if (!originalFilename.toLowerCase().endsWith(".pdf")) {
+    throw new Error("Only PDF files can be uploaded for AI generation.");
+  }
+  const { data: uploadRow, error: insertError } = await db
+    .from("content_uploads")
+    .insert({
+      course_id: courseId,
+      uploaded_by: actorProfileId,
+      storage_path: "pending",
+      original_filename: originalFilename || "lecture.pdf",
+      mime_type: "application/pdf",
+      size_bytes: 1,
+      status: "uploaded"
+    })
+    .select("id")
+    .single();
+  if (insertError) throw insertError;
+
+  const path = `courses/${courseId}/uploads/${uploadRow.id}/original.pdf`;
+  const { data, error } = await db.storage.from(bucket).createSignedUploadUrl(path, { upsert: true });
+  if (error) throw error;
+
+  const { error: updateError } = await db
+    .from("content_uploads")
+    .update({ storage_path: path })
+    .eq("id", uploadRow.id);
+  if (updateError) throw updateError;
+
+  return { upload_id: uploadRow.id, path, token: data.token, signed_url: data.signedUrl };
+}
+
+async function confirmPdfUpload(db: Db, courseId: string, body: Record<string, unknown>) {
+  const uploadId = String(body.upload_id || "").trim();
+  if (!uploadId) throw new Error("An upload id is required.");
+
+  const { data: uploadRow, error: loadError } = await db
+    .from("content_uploads")
+    .select("id, course_id, storage_path")
+    .eq("id", uploadId)
+    .eq("course_id", courseId)
+    .maybeSingle();
+  if (loadError) throw loadError;
+  if (!uploadRow) throw new Error("That upload was not found.");
+
+  const dir = `courses/${courseId}/uploads/${uploadId}`;
+  const { data: objects, error: listError } = await db.storage.from(bucket).list(dir);
+  if (listError) throw listError;
+  const object = (objects || []).find((entry) => entry.name === "original.pdf");
+  if (!object) throw new Error("The PDF was not found in storage. Upload it first.");
+
+  const sizeBytes = Number(object.metadata?.size || 0);
+  if (!sizeBytes) throw new Error("The uploaded file appears to be empty.");
+  if (sizeBytes > maxPdfBytes) {
+    throw new Error(`That PDF is too large (max ${Math.round(maxPdfBytes / (1024 * 1024))}MB).`);
+  }
+
+  const { data: updated, error: updateError } = await db
+    .from("content_uploads")
+    .update({ size_bytes: sizeBytes, status: "uploaded", updated_at: new Date().toISOString() })
+    .eq("id", uploadId)
+    .select("id, storage_path, original_filename, size_bytes, status")
+    .single();
+  if (updateError) throw updateError;
+  return { upload: updated };
 }
 
 async function registerItem(db: Db, courseId: string, actorProfileId: string, body: Record<string, unknown>) {
