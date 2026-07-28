@@ -332,7 +332,10 @@ async function approveJob(db: Db, courseId: string, actorProfileId: string, body
 
   const { data: updated, error } = await db
     .from("generation_jobs")
-    .update({ status: "approved", updated_at: new Date().toISOString() })
+    // Clear `error` too: a step that failed validation and then succeeded on
+    // retry leaves its message behind, and it reads as a failure on a job the
+    // instructor just approved.
+    .update({ status: "approved", error: null, updated_at: new Date().toISOString() })
     .eq("id", job.id)
     .select("*")
     .single();
