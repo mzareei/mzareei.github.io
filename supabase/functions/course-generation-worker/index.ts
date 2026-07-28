@@ -213,8 +213,8 @@ async function stepSlides(db: Db, job: Record<string, unknown>, stepState: Recor
     maxTokens: 16000
   });
 
-  const slides = (result.slides || []) as Slide[];
-  if (!slides.length) throw new Error("No slides were generated.");
+  const slides = asArray<Slide>(result.slides);
+  if (!slides.length) throw new Error("The model returned no slides; retrying.");
 
   await saveStep(db, String(job.id), { step_state: { ...stepState, slides } });
 }
@@ -250,11 +250,23 @@ async function stepQuestions(db: Db, job: Record<string, unknown>, stepState: Re
     maxTokens: 16000
   });
 
-  const questions = (result.questions || []) as Record<string, unknown>[];
+  const questions = asArray<Record<string, unknown>>(result.questions);
   const problems = validateQuestions(questions);
   if (problems.length) throw new Error(`Generated questions rejected: ${problems.slice(0, 5).join("; ")}`);
 
   await saveStep(db, String(job.id), { step_state: { ...stepState, questions } });
+}
+
+/** The tool schema asks for an array, but a model can still answer with a bare
+ *  object or a wrapper. Coerce rather than letting `.forEach` explode with an
+ *  error the instructor can make no sense of. */
+function asArray<T>(value: unknown): T[] {
+  if (Array.isArray(value)) return value as T[];
+  if (value && typeof value === "object") {
+    const inner = Object.values(value as Record<string, unknown>).find(Array.isArray);
+    if (inner) return inner as T[];
+  }
+  return [];
 }
 
 function validateQuestions(questions: Record<string, unknown>[]) {
@@ -286,8 +298,8 @@ function validateQuestions(questions: Record<string, unknown>[]) {
 async function stepAssemble(db: Db, job: Record<string, unknown>, stepState: Record<string, unknown>) {
   const courseId = String(job.course_id);
   const slug = String(job.lecture_slug);
-  const slides = (stepState.slides || []) as Slide[];
-  const questions = (stepState.questions || []) as Record<string, unknown>[];
+  const slides = asArray<Slide>(stepState.slides);
+  const questions = asArray<Record<string, unknown>>(stepState.questions);
   if (!slides.length) throw new Error("Slides are missing; re-run deck generation.");
   if (!questions.length) throw new Error("Questions are missing; re-run question generation.");
 

@@ -17,6 +17,7 @@
 import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
+import { mintContentToken } from "../_shared/content-token.ts";
 
 type Db = ReturnType<typeof adminClient>;
 
@@ -51,6 +52,8 @@ Deno.serve(async (request) => {
         return json(await cancelJob(db, courseId, body));
       case "review_bundle":
         return json(await reviewBundle(db, courseId, body));
+      case "preview_url":
+        return json(await previewUrl(db, courseId, body));
       case "approve":
         return json(await approveJob(db, courseId, String(profile.id), body));
       case "regenerate_questions":
@@ -260,6 +263,28 @@ async function reviewBundle(db: Db, courseId: string, body: Record<string, unkno
   }
 
   return { job, deck_html: deckHtml, questions };
+}
+
+/** A same-origin URL for previewing a generated deck before it is approved.
+ *  Reuses the gated delivery chain (HMAC token -> course-content-serve ->
+ *  the /content Pages Function) rather than dropping the HTML into a srcdoc
+ *  iframe: srcdoc inherits the app's own CSP, which blocks the deck engine's
+ *  inline script, so the deck renders but is frozen on slide one. This path
+ *  gets the relaxed CSP /content is scoped to. Instructor-only, and the token
+ *  expires quickly. */
+async function previewUrl(db: Db, courseId: string, body: Record<string, unknown>) {
+  const job = await loadJob(db, courseId, body.job_id);
+  const stepState = (job as Record<string, unknown>).step_state as Record<string, unknown> | undefined;
+  let path = String(stepState?.deck_storage_path || "");
+  if (!path && job.content_item_id) {
+    const { data: item, error } = await db
+      .from("content_items").select("source_ref").eq("id", job.content_item_id).maybeSingle();
+    if (error) throw error;
+    path = String(item?.source_ref || "");
+  }
+  if (!path) throw new Error("This job has no generated deck yet.");
+  const token = await mintContentToken(path, 600);
+  return { token, expires_in: 600 };
 }
 
 async function approveJob(db: Db, courseId: string, actorProfileId: string, body: Record<string, unknown>) {
