@@ -1,7 +1,8 @@
 // Live in-lecture pulse questions.
 //
 // Instructor actions: push (open a question), reveal (show the answer and the
-// distribution), close, results.
+// distribution), close, results (one round, live), rounds (every round of a
+// finished class, for the per-class review in the gradebook).
 // Student actions: current (what should I see right now), answer (one shot).
 //
 // Grading is hybrid and happens here, at answer time: answering earns
@@ -50,6 +51,10 @@ Deno.serve(async (request) => {
       case "results": {
         if (!isTeacher) throw new Error("Pulse results are not allowed for this role.");
         return json(await loadResults(db, courseId, cleanUuid(body.round_id, "round id"), true));
+      }
+      case "rounds": {
+        if (!isTeacher) throw new Error("Pulse results are not allowed for this role.");
+        return json(await loadSessionRounds(db, courseId, body));
       }
       case "current": {
         return json(await loadCurrent(db, courseId, String(profile.id), body, isTeacher));
@@ -351,6 +356,78 @@ async function loadResults(db: Db, courseId: string, roundId: string, includeNam
     distribution,
     correct_key: round.state === "open" ? null : (round.prompt_snapshot as Record<string, unknown>).correct_key,
     respondents
+  };
+}
+
+/**
+ * Every pulse round of one class session, in the order they were asked, each
+ * with its distribution. This is the after-class review — loadResults answers
+ * "what is happening right now" for a single round, which would be an N+1 here,
+ * so answers and enrollment are fetched once for the whole session instead.
+ *
+ * Correctness is not withheld: by the time anyone reads this the class is over,
+ * and only a teacher role reaches it.
+ */
+async function loadSessionRounds(db: Db, courseId: string, body: Record<string, unknown>) {
+  const sessionId = cleanUuid(body.class_session_id, "class session id");
+  const session = await loadSession(db, courseId, sessionId);
+
+  const { data: rounds, error: roundError } = await db
+    .from("pulse_rounds")
+    .select("id, state, points, opened_at, prompt_snapshot")
+    .eq("course_id", courseId)
+    .eq("class_session_id", sessionId)
+    .order("opened_at", { ascending: true });
+  if (roundError) throw roundError;
+  if (!(rounds || []).length) return { rounds: [] };
+
+  const roundIds = (rounds || []).map((round) => String(round.id));
+  const [{ data: answers, error: answerError }, { count: enrolled }] = await Promise.all([
+    db.from("pulse_answers").select("round_id, option_key, is_correct").in("round_id", roundIds),
+    db.from("section_enrollments").select("id", { count: "exact", head: true })
+      .eq("section_id", session.section_id).eq("role", "student").eq("status", "active")
+  ]);
+  if (answerError) throw answerError;
+
+  const byRound = new Map<string, Array<{ option_key: string; is_correct: boolean }>>();
+  for (const answer of answers || []) {
+    const key = String(answer.round_id);
+    if (!byRound.has(key)) byRound.set(key, []);
+    byRound.get(key)!.push({
+      option_key: String(answer.option_key),
+      is_correct: Boolean(answer.is_correct)
+    });
+  }
+
+  return {
+    rounds: (rounds || []).map((round) => {
+      const snapshot = (round.prompt_snapshot || {}) as {
+        text?: string;
+        options?: Array<{ key: string; text: string; text_es?: string | null }>;
+        correct_key?: string;
+      };
+      const mine = byRound.get(String(round.id)) || [];
+      const counts = new Map<string, number>();
+      for (const answer of mine) {
+        counts.set(answer.option_key, (counts.get(answer.option_key) || 0) + 1);
+      }
+      return {
+        round_id: round.id,
+        state: round.state,
+        opened_at: round.opened_at,
+        points: round.points,
+        text: snapshot.text || "",
+        correct_key: snapshot.correct_key ?? null,
+        answered: mine.length,
+        correct: mine.filter((answer) => answer.is_correct).length,
+        enrolled: enrolled ?? 0,
+        distribution: (snapshot.options || []).map((option) => ({
+          key: option.key,
+          text: option.text,
+          count: counts.get(option.key) || 0
+        }))
+      };
+    })
   };
 }
 
