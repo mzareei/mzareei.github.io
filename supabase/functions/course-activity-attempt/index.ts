@@ -541,7 +541,7 @@ async function loadQuestionsForInstance(db: Db, instance: Record<string, unknown
 
   const { data: questions, error: questionError } = await db
     .from("questions")
-    .select("id, prompt, question_type, difficulty, topic_tags, points")
+    .select("id, prompt, prompt_es, question_type, difficulty, topic_tags, points")
     .in("question_bank_id", bankIds)
     .eq("status", "active");
   if (questionError) throw questionError;
@@ -552,7 +552,7 @@ async function loadQuestionsForInstance(db: Db, instance: Record<string, unknown
 
   const { data: options, error: optionError } = await db
     .from("question_options")
-    .select("id, question_id, option_text, position")
+    .select("id, question_id, option_text, option_text_es, position")
     .in("question_id", questionIds)
     .order("position", { ascending: true });
   if (optionError) throw optionError;
@@ -564,6 +564,7 @@ async function loadQuestionsForInstance(db: Db, instance: Record<string, unknown
     optionsByQuestion.get(key)!.push({
       id: option.id,
       option_text: option.option_text,
+      option_text_es: option.option_text_es,
       position: option.position
     });
   });
@@ -571,6 +572,7 @@ async function loadQuestionsForInstance(db: Db, instance: Record<string, unknown
   return selectedQuestions.map((question) => ({
     id: question.id,
     prompt: question.prompt,
+    prompt_es: question.prompt_es,
     question_type: question.question_type,
     difficulty: question.difficulty,
     topic_tags: question.topic_tags || [],
@@ -579,9 +581,35 @@ async function loadQuestionsForInstance(db: Db, instance: Record<string, unknown
   }));
 }
 
+// A graded quiz must mix difficulty tiers — never all easy, never all hard.
+// Draw round-robin across easy/medium/hard so `count` questions come out as
+// even a split as the pool allows, shuffled within each tier first.
 function selectQuestions(questions: Record<string, unknown>[], count: number, policy: string) {
-  const pool = policy.includes("shuffle") || policy.includes("random") ? maybeShuffle(questions, true) : [...questions];
-  return count > 0 ? pool.slice(0, count) : pool;
+  const shouldShuffle = policy.includes("shuffle") || policy.includes("random");
+  if (count <= 0) return shouldShuffle ? maybeShuffle(questions, true) : [...questions];
+
+  const tiers: Record<string, Record<string, unknown>[]> = { easy: [], medium: [], hard: [] };
+  const other: Record<string, unknown>[] = [];
+  for (const question of questions) {
+    const bucket = tiers[String(question.difficulty)];
+    if (bucket) bucket.push(question);
+    else other.push(question);
+  }
+  const order = ["easy", "medium", "hard"] as const;
+  const pools = order.map((tier) => (shouldShuffle ? maybeShuffle(tiers[tier], true) : tiers[tier]));
+  const otherPool = shouldShuffle ? maybeShuffle(other, true) : other;
+
+  const picked: Record<string, unknown>[] = [];
+  let round = 0;
+  while (picked.length < count && (pools.some((pool) => round < pool.length) || round < otherPool.length)) {
+    for (const pool of pools) {
+      if (picked.length >= count) break;
+      if (round < pool.length) picked.push(pool[round]);
+    }
+    if (picked.length < count && round < otherPool.length) picked.push(otherPool[round]);
+    round += 1;
+  }
+  return picked;
 }
 
 function maybeShuffle<T>(values: T[], shouldShuffle: boolean) {

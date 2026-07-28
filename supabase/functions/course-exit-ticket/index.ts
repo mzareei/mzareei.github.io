@@ -70,11 +70,6 @@ function cleanText(value: unknown, max: number) {
   return String(value || "").trim().slice(0, max);
 }
 
-function cleanConfidence(value: unknown) {
-  const score = Number(value || 3);
-  return Math.min(5, Math.max(1, Math.round(Number.isFinite(score) ? score : 3)));
-}
-
 async function loadProfileForToken(db: Db, token: string) {
   const { data: userData, error: userError } = await db.auth.getUser(token);
   if (userError || !userData.user) throw new Error("Invalid or expired session.");
@@ -124,6 +119,17 @@ async function loadRecentSessions(db: Db, courseId: string, sectionIds: string[]
   return data || [];
 }
 
+const defaultReflectionMinWords = 50;
+const defaultReflectionMaxWords = 100;
+// A missed reflection still counts as attendance evidence for a few minutes
+// after the professor ends class — a slow writer shouldn't lose the credit
+// because they were still typing when the screen changed.
+const reflectionGraceMinutes = 5;
+
+function countWords(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
 async function submitTicket(db: Db, courseId: string, profileId: string, sections: Record<string, unknown>[], body: Record<string, unknown>) {
   const sectionId = cleanOptionalUuid(body.section_id) || String(sections[0].id);
   if (!sections.some((section) => String(section.id) === sectionId)) {
@@ -131,13 +137,28 @@ async function submitTicket(db: Db, courseId: string, profileId: string, section
   }
   const classSessionId = cleanOptionalUuid(body.class_session_id) || null;
   const contentItemId = cleanOptionalUuid(body.content_item_id) || null;
-  const oneThing = cleanText(body.one_thing, 500);
-  const muddyPoint = cleanText(body.muddy_point, 500);
-  if (!oneThing) throw new Error("One idea that clicked is required.");
-  if (!muddyPoint) throw new Error("One question or muddy point is required.");
 
-  if (classSessionId) await assertSessionBelongsToSection(db, courseId, sectionId, classSessionId);
+  let minWords = defaultReflectionMinWords;
+  let maxWords = defaultReflectionMaxWords;
+  if (classSessionId) {
+    const bounds = await assertSessionBelongsToSection(db, courseId, sectionId, classSessionId);
+    minWords = bounds.reflection_min_words ?? minWords;
+    maxWords = bounds.reflection_max_words ?? maxWords;
+    assertWithinGraceWindow(bounds);
+  }
   if (contentItemId) await assertContentBelongsToCourse(db, courseId, contentItemId);
+
+  // The reflection is one paragraph: what did you learn this class. The old
+  // multi-field ticket (muddy point, next action) is no longer asked for.
+  const oneThing = cleanText(body.one_thing, 800);
+  const wordCount = countWords(oneThing);
+  if (!oneThing) throw new Error("Write what you learned today.");
+  if (wordCount < minWords) {
+    throw new Error(`Write at least ${minWords} words (currently ${wordCount}).`);
+  }
+  if (wordCount > maxWords) {
+    throw new Error(`Keep it to ${maxWords} words or fewer (currently ${wordCount}).`);
+  }
 
   const { data, error } = await db
     .from("exit_tickets")
@@ -147,27 +168,37 @@ async function submitTicket(db: Db, courseId: string, profileId: string, section
       class_session_id: classSessionId,
       profile_id: profileId,
       content_item_id: contentItemId,
-      confidence: cleanConfidence(body.confidence),
+      confidence: 3,
       one_thing: oneThing,
-      muddy_point: muddyPoint,
-      next_action: cleanText(body.next_action || "review_mission", 40)
+      muddy_point: null,
+      next_action: null
     })
-    .select("id, course_id, section_id, class_session_id, profile_id, content_item_id, confidence, one_thing, muddy_point, next_action, created_at")
+    .select("id, course_id, section_id, class_session_id, profile_id, content_item_id, one_thing, created_at")
     .single();
   if (error) throw error;
-  return data;
+  return { ...data, word_count: wordCount };
+}
+
+function assertWithinGraceWindow(session: { state?: string; actual_end_at?: string | null }) {
+  if (!session.actual_end_at) return; // still in progress or never explicitly closed
+  const closedAt = new Date(session.actual_end_at).getTime();
+  const deadline = closedAt + reflectionGraceMinutes * 60 * 1000;
+  if (Date.now() > deadline) {
+    throw new Error("This class has closed and the reflection window has passed.");
+  }
 }
 
 async function assertSessionBelongsToSection(db: Db, courseId: string, sectionId: string, classSessionId: string) {
   const { data, error } = await db
     .from("class_sessions")
-    .select("id")
+    .select("id, state, actual_end_at, reflection_min_words, reflection_max_words")
     .eq("id", classSessionId)
     .eq("course_id", courseId)
     .eq("section_id", sectionId)
     .maybeSingle();
   if (error) throw error;
   if (!data) throw new Error("Class session is not available for this section.");
+  return data;
 }
 
 async function assertContentBelongsToCourse(db: Db, courseId: string, contentItemId: string) {
