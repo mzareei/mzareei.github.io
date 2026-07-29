@@ -39,6 +39,17 @@ Deno.serve(async (request) => {
     const permissions = await requireInstructor(db, token, courseId);
     const { profile } = permissions;
 
+    if (body.action === "create_release") {
+      const release = await createRelease(db, courseId, {
+        contentItemId: cleanUuid(body.content_item_id),
+        sectionId: body.section_id ? cleanUuid(body.section_id) : "",
+        classSessionId: body.class_session_id ? cleanUuid(body.class_session_id) : "",
+        actorProfileId: profile.id,
+        permissions
+      });
+      return json({ release });
+    }
+
     if (body.action === "update_state") {
       const updated = await updateReleaseState(db, {
         releaseId: cleanUuid(body.release_id),
@@ -64,7 +75,7 @@ Deno.serve(async (request) => {
 });
 
 function releaseActions(permissions: { isCourseInstructor: boolean }) {
-  return permissions.isCourseInstructor ? ["list", "update_state"] : ["list"];
+  return permissions.isCourseInstructor ? ["list", "create_release", "update_state"] : ["list"];
 }
 
 function bearerToken(value: string | null) {
@@ -216,6 +227,97 @@ async function listReleases(db: ReturnType<typeof adminClient>, courseId: string
       updated_at: release.updated_at
     };
   });
+}
+
+/**
+ * Create a draft release for a content item, without touching the item.
+ *
+ * The only previous way to do this was course-content-library's
+ * save_content_item with create_draft_release, which *rewrites the whole
+ * content item* as a side effect. That meant "make this lecture available" had
+ * to round-trip and revalidate every field of the item — and it failed on all
+ * 23 real lectures, because that function's source-kind allow-list had never
+ * been updated for 'storage_object'. Rewriting a row to add a related row is
+ * also a good way to blank a field you forgot to echo back.
+ *
+ * Releases belong to this function. Items belong to the library one.
+ */
+async function createRelease(db: ReturnType<typeof adminClient>, courseId: string, input: {
+  contentItemId: string;
+  sectionId: string;
+  classSessionId: string;
+  actorProfileId: string;
+  permissions: { isCourseInstructor: boolean; permittedSectionIds: string[] };
+}) {
+  assertInstructorOnly(input.permissions);
+
+  const { data: item, error: itemError } = await db
+    .from("content_items")
+    .select("id")
+    .eq("id", input.contentItemId)
+    .eq("course_id", courseId)
+    .maybeSingle();
+  if (itemError) throw itemError;
+  if (!item) throw new Error("That content item is not part of this course.");
+
+  let sectionId = input.sectionId;
+  if (input.classSessionId) {
+    const { data: session, error: sessionError } = await db
+      .from("class_sessions")
+      .select("id, section_id")
+      .eq("id", input.classSessionId)
+      .eq("course_id", courseId)
+      .maybeSingle();
+    if (sessionError) throw sessionError;
+    if (!session) throw new Error("That class session is not part of this course.");
+    sectionId = sectionId || String(session.section_id || "");
+  }
+  await assertSectionAllowed(db, input.permissions, sectionId || null, input.classSessionId || null);
+
+  // Reuse a release with the same scope rather than accumulating rows — an item
+  // showing two releases for the same audience is unreadable.
+  let existingQuery = db
+    .from("content_releases")
+    .select("id, content_item_id, section_id, class_session_id, state, opens_at, closes_at, allowed_attempts, updated_at")
+    .eq("course_id", courseId)
+    .eq("content_item_id", input.contentItemId);
+  existingQuery = sectionId ? existingQuery.eq("section_id", sectionId) : existingQuery.is("section_id", null);
+  existingQuery = input.classSessionId
+    ? existingQuery.eq("class_session_id", input.classSessionId)
+    : existingQuery.is("class_session_id", null);
+  const { data: existing, error: existingError } = await existingQuery.maybeSingle();
+  if (existingError) throw existingError;
+  if (existing) return existing;
+
+  const now = new Date().toISOString();
+  const { data: created, error: createError } = await db
+    .from("content_releases")
+    .insert({
+      content_item_id: input.contentItemId,
+      course_id: courseId,
+      section_id: sectionId || null,
+      class_session_id: input.classSessionId || null,
+      state: "draft",
+      allowed_attempts: 1,
+      created_by: input.actorProfileId,
+      updated_by: input.actorProfileId,
+      updated_at: now
+    })
+    .select("id, content_item_id, section_id, class_session_id, state, opens_at, closes_at, allowed_attempts, updated_at")
+    .single();
+  if (createError) throw createError;
+
+  const { error: eventError } = await db.from("release_events").insert({
+    content_release_id: created.id,
+    actor_profile_id: input.actorProfileId,
+    event_type: "created",
+    old_state: null,
+    new_state: "draft",
+    reason: "Created from the Content screen."
+  });
+  if (eventError) throw eventError;
+
+  return created;
 }
 
 async function updateReleaseState(db: ReturnType<typeof adminClient>, input: {

@@ -5,7 +5,12 @@ type Db = ReturnType<typeof adminClient>;
 
 const instructorRoles = ["platform_owner", "instructor"];
 const contentTypes = ["lecture", "mission", "quiz_bank", "activity", "exit_ticket", "portfolio", "resource", "case_file"];
-const sourceKinds = ["static_path", "supabase_record", "external_url"];
+// 'storage_object' was added to the content_items check constraint by migration
+// 0012, when the decks moved into the private bucket — but never added here, so
+// save_content_item rejected every real lecture in the course with "A valid
+// source kind is required." Nothing noticed until the v2 app started calling
+// this function in 2026-07. Keep this list and the constraint in step.
+const sourceKinds = ["static_path", "supabase_record", "external_url", "storage_object"];
 
 Deno.serve(async (request) => {
   const options = handleOptions(request);
