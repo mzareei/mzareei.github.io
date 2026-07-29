@@ -38,6 +38,18 @@ Deno.serve(async (request) => {
     const permissions = await requireInstructor(db, token, courseId);
     const { profile } = permissions;
 
+    if (body.action === "create_session") {
+      const session = await createSession(db, courseId, {
+        sectionId: cleanUuid(body.section_id, "A valid section id is required."),
+        title: cleanSessionTitle(body.title),
+        plannedDate: cleanPlannedDate(body.planned_date),
+        actorProfileId: profile.id,
+        permissions
+      });
+      const sessions = await listSessions(db, courseId, permissions);
+      return json({ session, sessions });
+    }
+
     if (body.action === "update_session_state") {
       const session = await updateSessionState(db, {
         sessionId: cleanUuid(body.session_id, "A valid session id is required."),
@@ -89,7 +101,7 @@ Deno.serve(async (request) => {
       sessions,
       allowedSessionTransitions,
       allowedActivityTransitions,
-      actions: ["list_sessions", "update_session_state", "continue_session", "update_activity_state", "extend_activity_window"]
+      actions: ["list_sessions", "create_session", "update_session_state", "continue_session", "update_activity_state", "extend_activity_window"]
     });
   } catch (error) {
     const message = error.message || "Unable to manage class sessions.";
@@ -162,6 +174,91 @@ function cleanTitle(value: unknown) {
 
 function cleanReason(value: unknown) {
   return String(value || "").trim().slice(0, 2000);
+}
+
+function cleanSessionTitle(value: unknown) {
+  const text = String(value || "").trim().slice(0, 180);
+  if (text.length < 1) throw new Error("A title for the class is required.");
+  return text;
+}
+
+function cleanPlannedDate(value: unknown) {
+  const text = String(value || "").trim().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) throw new Error("A date in the form YYYY-MM-DD is required.");
+  if (Number.isNaN(new Date(`${text}T00:00:00Z`).getTime())) {
+    throw new Error("That date does not exist.");
+  }
+  return text;
+}
+
+/**
+ * Add a class day. The sequence number is assigned here rather than asked for:
+ * `class_sessions` has `unique (section_id, sequence_number)`, so letting a
+ * human pick it is a race and a support ticket. Next = current max + 1 for that
+ * section, which is also what "Class 1, Class 2, …" means to a professor.
+ */
+async function createSession(db: ReturnType<typeof adminClient>, courseId: string, input: {
+  sectionId: string;
+  title: string;
+  plannedDate: string;
+  actorProfileId: string;
+  permissions: { isCourseInstructor: boolean; permittedSectionIds: string[] };
+}) {
+  assertSectionAllowed(input.permissions, input.sectionId);
+
+  const { data: section, error: sectionError } = await db
+    .from("course_sections")
+    .select("id")
+    .eq("id", input.sectionId)
+    .eq("course_id", courseId)
+    .maybeSingle();
+  if (sectionError) throw sectionError;
+  if (!section) throw new Error("That section is not part of this course.");
+
+  const { data: last, error: lastError } = await db
+    .from("class_sessions")
+    .select("sequence_number")
+    .eq("section_id", input.sectionId)
+    .order("sequence_number", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (lastError) throw lastError;
+  const sequenceNumber = Number(last?.sequence_number || 0) + 1;
+
+  const { data: created, error: createError } = await db
+    .from("class_sessions")
+    .insert({
+      course_id: courseId,
+      section_id: input.sectionId,
+      sequence_number: sequenceNumber,
+      title: input.title,
+      planned_date: input.plannedDate,
+      state: "planned"
+    })
+    .select("id, course_id, section_id, sequence_number, title, planned_date, state")
+    .single();
+  if (createError) {
+    if (String(createError.code) === "23505") {
+      throw new Error("That class number is already taken for this section. Try again.");
+    }
+    throw createError;
+  }
+
+  await insertAudit(db, {
+    courseId,
+    actorProfileId: input.actorProfileId,
+    targetType: "class_session",
+    targetId: created.id,
+    action: "class_session_created",
+    metadata: {
+      section_id: input.sectionId,
+      sequence_number: sequenceNumber,
+      title: input.title,
+      planned_date: input.plannedDate
+    }
+  });
+
+  return created;
 }
 
 async function requireInstructor(db: ReturnType<typeof adminClient>, token: string, courseId: string) {

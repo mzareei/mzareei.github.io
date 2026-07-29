@@ -72,6 +72,16 @@ Deno.serve(async (request) => {
       return json(result);
     }
 
+    if (body.action === "remove_person") {
+      const result = await removePerson(db, {
+        courseId,
+        profileId: cleanUuid(body.profile_id, "A valid profile id is required."),
+        reason: cleanOptionalReason(body.reason) || "Removed from the People screen.",
+        actorProfileId: String(profile.id)
+      });
+      return json(result);
+    }
+
     if (body.action === "grant_external_access") {
       const result = await grantExternalAccess(db, {
         courseId,
@@ -108,6 +118,7 @@ Deno.serve(async (request) => {
         "preview_roster",
         "apply_roster",
         "add_person",
+        "remove_person",
         "correct_roster_profile",
         "merge_roster_profile",
         "list_external_access",
@@ -738,6 +749,107 @@ async function revokeExternalAccess(db: ReturnType<typeof adminClient>, input: {
 // Adds a single person from the roster panel. When the address is outside the approved
 // domains, an explicit reason doubles as the instructor's approval and records the grant
 // before the row is applied.
+/**
+ * Take someone off this course's roster.
+ *
+ * Deliberately NOT a delete. The profile, every attempt, every grade and every
+ * participation row stay exactly as they are — memberships go 'inactive' and
+ * section enrolments go 'dropped', which is what the gradebook and the
+ * sign-in guard already read. Re-adding the same email later reactivates the
+ * same profile rather than creating a second one.
+ *
+ * Two people are refused: yourself, and anyone holding platform_owner. Both are
+ * ways to lock the course out of its own administration.
+ */
+async function removePerson(db: ReturnType<typeof adminClient>, input: {
+  courseId: string;
+  profileId: string;
+  reason: string;
+  actorProfileId: string;
+}) {
+  if (input.profileId === input.actorProfileId) {
+    throw new Error("You cannot remove yourself from the course.");
+  }
+
+  const { data: person, error: personError } = await db
+    .from("profiles")
+    .select("id, institutional_email, full_name")
+    .eq("id", input.profileId)
+    .maybeSingle();
+  if (personError) throw personError;
+  if (!person) throw new Error("That person was not found.");
+
+  const { data: memberships, error: membershipError } = await db
+    .from("course_memberships")
+    .select("id, role, status")
+    .eq("course_id", input.courseId)
+    .eq("profile_id", input.profileId);
+  if (membershipError) throw membershipError;
+  if (!(memberships || []).length) {
+    throw new Error("That person is not on this course's roster.");
+  }
+  if ((memberships || []).some((m) => String(m.role) === "platform_owner")) {
+    throw new Error("A platform owner cannot be removed from the course.");
+  }
+
+  const now = new Date().toISOString();
+  const { error: deactivateError } = await db
+    .from("course_memberships")
+    .update({ status: "inactive", updated_at: now })
+    .eq("course_id", input.courseId)
+    .eq("profile_id", input.profileId);
+  if (deactivateError) throw deactivateError;
+
+  // section_enrollments has no course_id of its own, so scope by this course's
+  // sections rather than dropping the person from every course they are in.
+  const { data: sections, error: sectionError } = await db
+    .from("course_sections")
+    .select("id")
+    .eq("course_id", input.courseId);
+  if (sectionError) throw sectionError;
+  const sectionIds = (sections || []).map((s) => String(s.id));
+
+  let droppedSections = 0;
+  if (sectionIds.length) {
+    const { data: dropped, error: dropError } = await db
+      .from("section_enrollments")
+      .update({ status: "dropped", dropped_at: now, updated_at: now })
+      .eq("profile_id", input.profileId)
+      .in("section_id", sectionIds)
+      .neq("status", "dropped")
+      .select("id");
+    if (dropError) throw dropError;
+    droppedSections = (dropped || []).length;
+  }
+
+  await insertAudit(db, {
+    courseId: input.courseId,
+    actorProfileId: input.actorProfileId,
+    targetType: "profile",
+    targetId: input.profileId,
+    action: "roster_person_removed",
+    metadata: {
+      email: person.institutional_email,
+      full_name: person.full_name,
+      memberships_deactivated: (memberships || []).length,
+      enrollments_dropped: droppedSections,
+      reason: input.reason
+    }
+  });
+
+  const [roster, externalAccess] = await Promise.all([
+    listRoster(db, input.courseId),
+    listExternalAccess(db, input.courseId)
+  ]);
+  return {
+    removed: true,
+    profile_id: input.profileId,
+    full_name: person.full_name,
+    roster,
+    external_access: externalAccess
+  };
+}
+
 async function addPerson(db: ReturnType<typeof adminClient>, input: {
   courseId: string;
   person: ReturnType<typeof cleanRosterRows>[number] | undefined;
