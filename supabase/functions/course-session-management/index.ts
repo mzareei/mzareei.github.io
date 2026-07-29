@@ -258,7 +258,10 @@ async function createSession(db: ReturnType<typeof adminClient>, courseId: strin
     }
   });
 
-  return created;
+  // listSessions calls this field `session_id`. Returning `id` here would mean
+  // one concept with two names depending on which call you made — exactly the
+  // cross-boundary mismatch that keeps costing time.
+  return { ...created, session_id: created.id };
 }
 
 async function requireInstructor(db: ReturnType<typeof adminClient>, token: string, courseId: string) {
