@@ -1,14 +1,23 @@
 import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 
+// The graph has to be navigable in both directions. It used to be almost
+// one-way: `released` could only go to `live`, `closed` could only go to
+// `review_only` or `archived`, and `review_only` only to `archived`. So once a
+// professor closed something there was no way to give it back to the students —
+// reported from real use on 2026-07-28.
+//
+// Every visible state can now return to `released`, and anything released can
+// be pulled back to `draft` (invisible) or `closed`. `archived` stays terminal
+// on purpose: it is the one deliberate end of the line.
 const allowedTransitions: Record<string, string[]> = {
   draft: ["scheduled", "released"],
   scheduled: ["released", "draft"],
-  released: ["live"],
-  live: ["paused", "review_only", "closed"],
-  paused: ["live", "review_only", "closed"],
-  review_only: ["archived"],
-  closed: ["review_only", "archived"],
+  released: ["live", "review_only", "closed", "draft"],
+  live: ["paused", "review_only", "closed", "released"],
+  paused: ["live", "review_only", "closed", "released"],
+  review_only: ["released", "closed", "archived"],
+  closed: ["released", "review_only", "archived"],
   archived: []
 };
 
