@@ -122,3 +122,7 @@ verify_jwt = false
 [functions.course-generation-worker]
 # Invoked by course-generation and by itself; guarded by GENERATION_WORKER_SECRET.
 verify_jwt = false
+
+[functions.course-session-join]
+# QR joining validates the user token, active profile, and active section enrollment.
+verify_jwt = false

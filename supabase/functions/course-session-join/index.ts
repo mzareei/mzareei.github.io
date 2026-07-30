@@ -1,0 +1,114 @@
+import { adminClient } from "../_shared/client.ts";
+import { handleOptions, json } from "../_shared/cors.ts";
+import {
+  assertCourseEmailAllowed,
+  assertProfileMatchesAuthEmail
+} from "../_shared/identity.ts";
+
+type Db = ReturnType<typeof adminClient>;
+
+class HttpError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+  }
+}
+
+Deno.serve(async (request) => {
+  const options = handleOptions(request);
+  if (options) return options;
+  if (request.method !== "POST") {
+    return json({ error: "Method not allowed." }, { status: 405 });
+  }
+
+  try {
+    const token = bearerToken(request.headers.get("Authorization"));
+    if (!token) throw new HttpError("Sign in is required.", 401);
+
+    const body = await request.json().catch(() => ({}));
+    if (body.action !== "join") {
+      throw new HttpError("Unknown action.", 400);
+    }
+
+    const db = adminClient();
+    const profile = await loadActiveProfile(db, token);
+    const joinCode = cleanJoinCode(body.join_code);
+
+    const { data: session, error: sessionError } = await db
+      .from("class_sessions")
+      .select("id, section_id, title, state")
+      .eq("join_code", joinCode)
+      .maybeSingle();
+    if (sessionError) throw sessionError;
+    if (!session) throw new HttpError("That class code is not valid.", 404);
+    if (["cancelled", "closed"].includes(String(session.state))) {
+      throw new HttpError("That class is closed.", 409);
+    }
+
+    const { data: enrollment, error: enrollmentError } = await db
+      .from("section_enrollments")
+      .select("id")
+      .eq("section_id", session.section_id)
+      .eq("profile_id", profile.id)
+      .eq("role", "student")
+      .eq("status", "active")
+      .maybeSingle();
+    if (enrollmentError) throw enrollmentError;
+    if (!enrollment) {
+      throw new HttpError("You are not enrolled in the group for this class.", 403);
+    }
+
+    const { data: section, error: sectionError } = await db
+      .from("course_sections")
+      .select("section_code")
+      .eq("id", session.section_id)
+      .maybeSingle();
+    if (sectionError) throw sectionError;
+    if (!section) throw new Error("The class group could not be loaded.");
+
+    return json({
+      session_id: session.id,
+      title: session.title,
+      section_code: section.section_code,
+      state: session.state,
+      joined: true
+    });
+  } catch (error) {
+    const status = error instanceof HttpError ? error.status : 400;
+    const message = error instanceof Error ? error.message : "Unable to join the class.";
+    return json({ error: message }, { status });
+  }
+});
+
+function bearerToken(value: string | null): string {
+  const match = String(value || "").match(/^Bearer\s+(.+)$/i);
+  return match ? match[1].trim() : "";
+}
+
+function cleanJoinCode(value: unknown): string {
+  const code = String(value || "").trim().toUpperCase();
+  if (!/^[A-Z0-9]{4,12}$/.test(code)) {
+    throw new HttpError("That class code is not valid.", 400);
+  }
+  return code;
+}
+
+async function loadActiveProfile(db: Db, token: string) {
+  const { data: userData, error: userError } = await db.auth.getUser(token);
+  if (userError || !userData.user) {
+    throw new HttpError("Invalid or expired session.", 401);
+  }
+  await assertCourseEmailAllowed(db, userData.user.email || "");
+
+  const { data: profile, error } = await db
+    .from("profiles")
+    .select("id, auth_user_id, institutional_email, status")
+    .eq("auth_user_id", userData.user.id)
+    .eq("status", "active")
+    .maybeSingle();
+  if (error) throw error;
+  if (!profile) {
+    throw new HttpError("No active course profile is linked to this account.", 403);
+  }
+  assertProfileMatchesAuthEmail(profile, userData.user.email || "");
+  return profile;
+}
