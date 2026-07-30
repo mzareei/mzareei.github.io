@@ -82,6 +82,21 @@ Deno.serve(async (request) => {
       return json(result);
     }
 
+    if (body.action === "assign_person_section") {
+      const { data: assignment, error: assignmentError } = await db
+        .rpc("assign_student_section_atomic", {
+          p_course_id: courseId,
+          p_actor_profile_id: profile.id,
+          p_profile_id: cleanUuid(body.profile_id, "A valid profile id is required."),
+          p_section_id: cleanUuid(body.section_id, "A valid section id is required.")
+        });
+      if (assignmentError) throw assignmentError;
+      return json({
+        assignment,
+        roster: await listRoster(db, courseId)
+      });
+    }
+
     if (body.action === "grant_external_access") {
       const result = await grantExternalAccess(db, {
         courseId,
@@ -119,6 +134,7 @@ Deno.serve(async (request) => {
         "apply_roster",
         "add_person",
         "remove_person",
+        "assign_person_section",
         "correct_roster_profile",
         "merge_roster_profile",
         "list_external_access",

@@ -16,6 +16,14 @@ const notesFn = fs.readFileSync(
   path.join(root, "supabase/functions/course-student-notes/index.ts"),
   "utf8"
 );
+const rosterFn = fs.readFileSync(
+  path.join(root, "supabase/functions/course-roster-management/index.ts"),
+  "utf8"
+);
+const assignmentSql = fs.readFileSync(
+  path.join(root, "supabase/migrations/0025_assign_student_section.sql"),
+  "utf8"
+);
 
 assert.match(sql, /create table[^;]+class_student_notes/is);
 assert.match(sql, /needs_follow_up boolean not null default false/i);
@@ -94,5 +102,70 @@ assert.doesNotMatch(notesFn, /\.from\("class_student_notes"\)\s*\.insert\(/, "th
 assert.doesNotMatch(notesFn, /\.from\("class_student_notes"\)\s*\.update\(/, "the edge function must not bypass transactional note resolution");
 assert.match(notesFn, /\.eq\("class_session_id", session\.id\)[\s\S]{0,180}\.eq\("course_id", courseId\)/);
 assert.match(notesFn, /\.eq\("profile_id", profileId\)[\s\S]{0,180}\.eq\("course_id", courseId\)[\s\S]{0,180}\.in\("class_session_id", sessionIds\)/);
+
+assert.match(rosterFn, /const teacherRoles = \["platform_owner", "instructor"\]/);
+assert.match(
+  rosterFn,
+  /requireInstructor\(db, token, courseId\)[\s\S]+body\.action === "assign_person_section"/,
+  "group assignment must stay behind the existing instructor role gate"
+);
+assert.match(rosterFn, /\.rpc\("assign_student_section_atomic"/);
+assert.match(rosterFn, /p_course_id:\s*courseId/);
+assert.match(rosterFn, /p_actor_profile_id:\s*profile\.id/);
+assert.match(rosterFn, /p_profile_id:\s*cleanUuid\(body\.profile_id/);
+assert.match(rosterFn, /p_section_id:\s*cleanUuid\(body\.section_id/);
+const assignmentAction = rosterFn.slice(
+  rosterFn.indexOf('if (body.action === "assign_person_section")'),
+  rosterFn.indexOf('if (body.action === "grant_external_access")')
+);
+assert.doesNotMatch(
+  assignmentAction,
+  /\.from\("section_enrollments"\)\s*\.update\(/,
+  "the edge action must not bypass the atomic assignment RPC"
+);
+
+assert.match(assignmentSql, /create or replace function public\.assign_student_section_atomic/i);
+assert.match(assignmentSql, /p_actor_profile_id\s+uuid/i);
+assert.match(assignmentSql, /p_profile_id\s+uuid/i);
+assert.match(assignmentSql, /p_section_id\s+uuid/i);
+assert.match(assignmentSql, /p_actor_profile_id = p_profile_id/i, "self-assignment must be refused");
+assert.match(
+  assignmentSql,
+  /from public\.profiles[\s\S]+id = p_profile_id[\s\S]+status = 'active'[\s\S]+for update/i,
+  "only an active profile may be assigned"
+);
+assert.match(
+  assignmentSql,
+  /from public\.course_sections[\s\S]+id = p_section_id[\s\S]+course_id = p_course_id/i,
+  "the target group must belong to the requested course"
+);
+assert.match(
+  assignmentSql,
+  /from public\.course_memberships[\s\S]+course_id = p_course_id[\s\S]+profile_id = p_profile_id[\s\S]+role = 'student'/i,
+  "the target must have a student course membership"
+);
+assert.match(assignmentSql, /role <> 'student'/i, "instructor, assistant, and observer rows must not be moved as students");
+assert.match(
+  assignmentSql,
+  /update public\.section_enrollments[\s\S]+status = 'dropped'[\s\S]+role = 'student'[\s\S]+status = 'active'/i,
+  "other active student enrollments must be preserved and marked dropped"
+);
+assert.match(
+  assignmentSql,
+  /insert into public\.section_enrollments[\s\S]+on conflict\s*\(\s*section_id\s*,\s*profile_id\s*,\s*role\s*\)[\s\S]+status = 'active'/i,
+  "the target enrollment must be activated through the full unique key"
+);
+assert.match(
+  assignmentSql,
+  /update public\.course_memberships[\s\S]+status = 'active'[\s\S]+course_id = p_course_id[\s\S]+profile_id = p_profile_id[\s\S]+role = 'student'/i,
+  "the student course membership must remain active"
+);
+assert.match(assignmentSql, /insert into public\.audit_log/i);
+assert.match(assignmentSql, /before_section_ids/i);
+assert.match(assignmentSql, /target_section_id/i);
+assert.match(
+  assignmentSql,
+  /grant execute on function public\.assign_student_section_atomic\(text, uuid, uuid, uuid\)\s*to service_role/i
+);
 
 console.log("verify-class-management: OK");
