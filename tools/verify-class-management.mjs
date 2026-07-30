@@ -24,6 +24,10 @@ const assignmentSql = fs.readFileSync(
   path.join(root, "supabase/migrations/0025_assign_student_section.sql"),
   "utf8"
 );
+const assignmentGuardSql = fs.readFileSync(
+  path.join(root, "supabase/migrations/0026_guard_student_section_assignment.sql"),
+  "utf8"
+);
 
 assert.match(sql, /create table[^;]+class_student_notes/is);
 assert.match(sql, /needs_follow_up boolean not null default false/i);
@@ -114,6 +118,9 @@ assert.match(rosterFn, /p_course_id:\s*courseId/);
 assert.match(rosterFn, /p_actor_profile_id:\s*profile\.id/);
 assert.match(rosterFn, /p_profile_id:\s*cleanUuid\(body\.profile_id/);
 assert.match(rosterFn, /p_section_id:\s*cleanUuid\(body\.section_id/);
+assert.match(rosterFn, /function safeErrorMessage\(error: unknown/);
+assert.match(rosterFn, /typeof candidate\.message === "string"/);
+assert.match(rosterFn, /const error_code = rosterErrorCode\(message\)/);
 const assignmentAction = rosterFn.slice(
   rosterFn.indexOf('if (body.action === "assign_person_section")'),
   rosterFn.indexOf('if (body.action === "grant_external_access")')
@@ -165,6 +172,32 @@ assert.match(assignmentSql, /before_section_ids/i);
 assert.match(assignmentSql, /target_section_id/i);
 assert.match(
   assignmentSql,
+  /grant execute on function public\.assign_student_section_atomic\(text, uuid, uuid, uuid\)\s*to service_role/i
+);
+
+assert.match(assignmentGuardSql, /create or replace function public\.assign_student_section_atomic/i);
+assert.match(
+  assignmentGuardSql,
+  /from public\.profiles[\s\S]+id = p_profile_id[\s\S]+status in \('active', 'invited'\)[\s\S]+for update/i,
+  "active and invited student profiles must both be assignable"
+);
+assert.match(
+  assignmentGuardSql,
+  /from public\.course_sections[\s\S]+id = p_section_id[\s\S]+course_id = p_course_id[\s\S]+status in \('planned', 'active'\)/i,
+  "completed and archived groups must be rejected by the transactional boundary"
+);
+assert.match(
+  assignmentGuardSql,
+  /Only planned or active groups can receive students\./i,
+  "the RPC must return an actionable group-state error"
+);
+assert.match(
+  assignmentGuardSql,
+  /Only an active or invited student profile can be assigned to a group\./i,
+  "the RPC must return an actionable student-status error"
+);
+assert.match(
+  assignmentGuardSql,
   /grant execute on function public\.assign_student_section_atomic\(text, uuid, uuid, uuid\)\s*to service_role/i
 );
 

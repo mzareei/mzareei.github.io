@@ -145,11 +145,35 @@ Deno.serve(async (request) => {
       allowed_domains: defaultAllowedDomains
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unable to manage roster.";
-    if (message.includes("not allowed")) return json({ error: message }, { status: 403 });
-    return json({ error: message }, { status: 400 });
+    const message = safeErrorMessage(error, "Unable to manage roster.");
+    const error_code = rosterErrorCode(message);
+    if (message.includes("not allowed")) return json({ error: message, error_code }, { status: 403 });
+    return json({ error: message, error_code }, { status: 400 });
   }
 });
+
+function safeErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message.trim()) return error.message;
+  if (error && typeof error === "object") {
+    const candidate = error as { message?: unknown };
+    if (typeof candidate.message === "string" && candidate.message.trim()) {
+      return candidate.message;
+    }
+  }
+  return fallback;
+}
+
+function rosterErrorCode(message: string) {
+  if (message.includes("Only planned or active groups")) return "group_not_assignable";
+  if (message.includes("Only an active or invited student profile")) return "student_not_assignable";
+  if (
+    message.includes("Only students can be assigned") ||
+    message.includes("cannot be moved as students")
+  ) {
+    return "student_role_required";
+  }
+  return "roster_management_failed";
+}
 
 function bearerToken(value: string | null) {
   const match = String(value || "").match(/^Bearer\s+(.+)$/i);
