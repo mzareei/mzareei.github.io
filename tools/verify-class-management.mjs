@@ -37,5 +37,15 @@ assert.match(fn, /body\.action === "update_session"/);
 assert.match(fn, /actual_start_at/);
 assert.match(fn, /content_type[^;]+lecture/s);
 assert.match(fn, /close_class_session_with_review/);
+assert.match(sql, /create or replace function public\.update_class_session_atomic/i);
+assert.match(
+  sql,
+  /update_class_session_atomic[\s\S]+for update[\s\S]+update public\.class_sessions[\s\S]+insert into public\.audit_log/i,
+  "session editing must lock, update, and audit in one RPC"
+);
+assert.match(sql, /locked_session\.state not in \('planned', 'open', 'continued'\)[\s\S]+actual_start_at is not null/i);
+assert.match(sql, /p_content_item_id[\s\S]+content_type = 'lecture'/i);
+assert.match(sql, /grant execute on function public\.update_class_session_atomic\(uuid, text, uuid, uuid, text, date, uuid\)\s*to service_role/i);
+assert.match(fn, /\.rpc\("update_class_session_atomic"/);
 
 console.log("verify-class-management: OK");
