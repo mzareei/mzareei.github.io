@@ -26,6 +26,20 @@ assert.deepEqual(
   ["cia", "cia", "risk"],
   "questions at one slide boundary must form one checkpoint candidate pool"
 );
+assert.deepEqual(
+  Array.from(
+    new Set(
+      coalesceSegmentKeysByCheckpoint(
+        [5, 10, 11, 20, 30, 40].map((checkpoint_after_slide) => ({
+          segment_key: `slide-${checkpoint_after_slide}`,
+          checkpoint_after_slide
+        }))
+      ).map(({ checkpoint_after_slide }) => checkpoint_after_slide)
+    )
+  ),
+  [5, 11, 20, 30, 40],
+  "the closest adjacent boundaries are merged when a model returns more than five"
+);
 
 const legacyFixture = `<!doctype html>
 <html>

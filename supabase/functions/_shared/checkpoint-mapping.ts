@@ -12,15 +12,47 @@ type RawCheckpointMapping = {
 export function coalesceSegmentKeysByCheckpoint<T extends RawCheckpointMapping>(
   mappings: T[]
 ): T[] {
+  const boundaries = Array.from(
+    new Set(
+      mappings
+        .map((mapping) => Number(mapping.checkpoint_after_slide))
+        .filter((boundary) => Number.isInteger(boundary) && boundary > 0)
+    )
+  ).sort((a, b) => a - b);
+  const mergedBoundary = new Map<number, number>();
+  while (boundaries.length > 5) {
+    let mergeIndex = 0;
+    let smallestGap = Number.POSITIVE_INFINITY;
+    for (let index = 0; index < boundaries.length - 1; index += 1) {
+      const gap = boundaries[index + 1] - boundaries[index];
+      if (gap < smallestGap) {
+        smallestGap = gap;
+        mergeIndex = index;
+      }
+    }
+    const earlier = boundaries[mergeIndex];
+    const later = boundaries[mergeIndex + 1];
+    mergedBoundary.set(earlier, later);
+    boundaries.splice(mergeIndex, 1);
+  }
+
   const keyByBoundary = new Map<number, string>();
   return mappings.map((mapping) => {
-    const boundary = Number(mapping.checkpoint_after_slide);
+    const suppliedBoundary = Number(mapping.checkpoint_after_slide);
+    let boundary = suppliedBoundary;
+    while (mergedBoundary.has(boundary)) {
+      boundary = mergedBoundary.get(boundary)!;
+    }
     const supplied = String(mapping.segment_key || "").trim();
     const canonical =
       keyByBoundary.get(boundary)
       || supplied
       || `checkpoint-${boundary}`;
     keyByBoundary.set(boundary, canonical);
-    return { ...mapping, segment_key: canonical };
+    return {
+      ...mapping,
+      checkpoint_after_slide: boundary,
+      segment_key: canonical
+    };
   });
 }
