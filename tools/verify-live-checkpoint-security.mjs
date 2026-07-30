@@ -3,6 +3,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { assertCheckpointPushMatches } from "../supabase/functions/_shared/pulse-checkpoint.ts";
+import {
+  allowedPulseSourceStates,
+  isPulseTransitionIdempotent
+} from "../supabase/functions/_shared/pulse-transition.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = (relativePath) =>
@@ -33,6 +37,15 @@ assert.throws(
   () => assertCheckpointPushMatches({ ...matching, questionCheckpoint: 13 }),
   /checkpoint/,
   "a question from another slide checkpoint must not be pushable"
+);
+assert.deepEqual(allowedPulseSourceStates("reveal"), ["open"]);
+assert.deepEqual(allowedPulseSourceStates("close"), ["open", "revealed"]);
+assert.equal(isPulseTransitionIdempotent("revealed", "reveal"), true);
+assert.equal(isPulseTransitionIdempotent("closed", "close"), true);
+assert.equal(
+  isPulseTransitionIdempotent("closed", "reveal"),
+  false,
+  "a stale reveal must never reopen a closed round"
 );
 
 const contentSource = read("supabase/functions/course-content-access/index.ts");
@@ -79,6 +92,17 @@ assert.equal(
   pulseSource.match(/text_es:\s*snapshot\.text_es/g)?.length,
   2,
   "both teacher and student round projections must preserve bilingual prompt text"
+);
+assert.match(
+  pulseSource,
+  /allowedPulseSourceStates\(/,
+  "pulse state updates must be conditional on the current server state"
+);
+const sessionSource = read("supabase/functions/course-session-management/index.ts");
+assert.match(
+  sessionSource,
+  /\.from\("pulse_rounds"\)[^]*\.in\("state", \["open", "revealed"\]\)/,
+  "closing a class must close every still-visible pulse before the session closes"
 );
 
 console.log("verify-live-checkpoint-security: OK");

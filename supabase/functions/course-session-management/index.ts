@@ -597,6 +597,15 @@ async function updateSessionState(db: ReturnType<typeof adminClient>, input: {
   if (input.nextState === "closed") changes.actual_end_at = now;
   if (input.reason) changes.teacher_notes = input.reason;
 
+  if (input.nextState === "closed") {
+    const { error: pulseCloseError } = await db
+      .from("pulse_rounds")
+      .update({ state: "closed", closed_at: now })
+      .eq("class_session_id", input.sessionId)
+      .in("state", ["open", "revealed"]);
+    if (pulseCloseError) throw pulseCloseError;
+  }
+
   const { data: updated, error: updateError } = await db
     .from("class_sessions")
     .update(changes)

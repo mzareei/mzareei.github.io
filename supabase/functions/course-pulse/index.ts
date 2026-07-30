@@ -15,6 +15,12 @@ import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
 import { assertCheckpointPushMatches } from "../_shared/pulse-checkpoint.ts";
+import {
+  allowedPulseSourceStates,
+  isPulseTransitionIdempotent,
+  pulseTargetState,
+  type PulseTransitionAction
+} from "../_shared/pulse-transition.ts";
 
 type Db = ReturnType<typeof adminClient>;
 
@@ -46,7 +52,7 @@ Deno.serve(async (request) => {
       case "reveal":
       case "close": {
         requireInstructor(isInstructor);
-        return json(await setRoundState(db, courseId, body, body.action === "reveal" ? "revealed" : "closed"));
+        return json(await setRoundState(db, courseId, body, body.action));
       }
       case "results": {
         if (!isTeacher) throw new Error("Pulse results are not allowed for this role.");
@@ -158,14 +164,20 @@ function buildSnapshot(input: Record<string, unknown>) {
     text: text.slice(0, 600),
     text_es: String(input.text_es || "").trim().slice(0, 600) || null,
     options,
-    correct_key: correctKey
+    correct_key: correctKey,
+    segment_key: String(input.segment_key || "").trim() || null,
+    checkpoint_after_slide:
+      Number.isInteger(Number(input.checkpoint_after_slide))
+      && Number(input.checkpoint_after_slide) > 0
+        ? Number(input.checkpoint_after_slide)
+        : null
   };
 }
 
 async function loadBankQuestion(db: Db, courseId: string, questionId: string) {
   const { data: question, error } = await db
     .from("questions")
-    .select("id, question_bank_id, prompt, prompt_es, question_type, status, checkpoint_after_slide")
+    .select("id, question_bank_id, prompt, prompt_es, question_type, status, segment_key, checkpoint_after_slide")
     .eq("id", questionId)
     .eq("status", "active")
     .maybeSingle();
@@ -204,7 +216,9 @@ async function loadBankQuestion(db: Db, courseId: string, questionId: string) {
       text: question.prompt,
       text_es: question.prompt_es,
       options: mapped,
-      correct_key: String(correct.id)
+      correct_key: String(correct.id),
+      segment_key: question.segment_key,
+      checkpoint_after_slide: question.checkpoint_after_slide
     })
   };
 }
@@ -311,20 +325,46 @@ async function pushRound(db: Db, courseId: string, actorProfileId: string, body:
   return { round: teacherRound(round) };
 }
 
-async function setRoundState(db: Db, courseId: string, body: Record<string, unknown>, nextState: string) {
+async function setRoundState(
+  db: Db,
+  courseId: string,
+  body: Record<string, unknown>,
+  action: PulseTransitionAction
+) {
   const roundId = cleanUuid(body.round_id, "round id");
+  const nextState = pulseTargetState(action);
   const stamp = nextState === "revealed" ? { revealed_at: new Date().toISOString() } : { closed_at: new Date().toISOString() };
   const { data: round, error } = await db
     .from("pulse_rounds")
     .update({ state: nextState, ...stamp })
     .eq("id", roundId)
     .eq("course_id", courseId)
+    .in("state", allowedPulseSourceStates(action))
     .select("id, state, points, answer_points, time_limit_seconds, opened_at, ends_at, prompt_snapshot")
     .maybeSingle();
   if (error) throw error;
-  if (!round) throw new Error("That pulse round was not found.");
+  if (round) {
+    const results = await loadResults(db, courseId, roundId, true);
+    return { round: teacherRound(round), ...results };
+  }
+
+  const { data: existing, error: existingError } = await db
+    .from("pulse_rounds")
+    .select("id, state, points, answer_points, time_limit_seconds, opened_at, ends_at, prompt_snapshot")
+    .eq("id", roundId)
+    .eq("course_id", courseId)
+    .maybeSingle();
+  if (existingError) throw existingError;
+  if (!existing) throw new Error("That pulse round was not found.");
+  if (!isPulseTransitionIdempotent(existing.state, action)) {
+    throw new Error(
+      action === "reveal"
+        ? "That pulse round is already closed."
+        : "That pulse round cannot be closed from its current state."
+    );
+  }
   const results = await loadResults(db, courseId, roundId, true);
-  return { round: teacherRound(round), ...results };
+  return { round: teacherRound(existing), ...results };
 }
 
 function teacherRound(round: Record<string, unknown> | null) {
@@ -341,7 +381,9 @@ function teacherRound(round: Record<string, unknown> | null) {
     text: snapshot.text,
     text_es: snapshot.text_es,
     options: snapshot.options,
-    correct_key: snapshot.correct_key
+    correct_key: snapshot.correct_key,
+    segment_key: snapshot.segment_key || null,
+    checkpoint_after_slide: snapshot.checkpoint_after_slide || null
   };
 }
 
@@ -358,7 +400,9 @@ function studentRound(round: Record<string, unknown>, revealed: boolean) {
     text: snapshot.text,
     text_es: snapshot.text_es,
     options: snapshot.options,
-    correct_key: revealed ? snapshot.correct_key : null
+    correct_key: revealed ? snapshot.correct_key : null,
+    segment_key: snapshot.segment_key || null,
+    checkpoint_after_slide: snapshot.checkpoint_after_slide || null
   };
 }
 
@@ -532,7 +576,7 @@ async function loadCurrent(
   // end, reflection last). Nothing here is typed by the instructor; it just
   // reports what Run Class has already done.
   const [pulseInfo, quizInfo, reflectionInfo] = await Promise.all([
-    loadCurrentPulse(db, courseId, profileId, sessionId),
+    loadCurrentPulse(db, courseId, profileId, sessionId, isTeacher),
     loadCurrentQuiz(db, sessionId),
     loadReflectionStatus(db, sessionId, profileId)
   ]);
@@ -551,7 +595,13 @@ async function loadCurrent(
 // answer for the rest of the session, blocking the quiz and reflection.
 const revealDisplayMinutes = 3;
 
-async function loadCurrentPulse(db: Db, courseId: string, profileId: string, sessionId: string) {
+async function loadCurrentPulse(
+  db: Db,
+  courseId: string,
+  profileId: string,
+  sessionId: string,
+  isTeacher: boolean
+) {
   // Newest round that still matters: open, or revealed recently enough that a
   // student is still looking at the answer.
   const { data: rounds, error: roundError } = await db
@@ -590,7 +640,9 @@ async function loadCurrentPulse(db: Db, courseId: string, profileId: string, ses
           points_awarded: revealed ? mine.points_awarded : null
         }
       : null,
-    results: revealed ? await loadResults(db, courseId, String(round.id), false) : null
+    results: revealed
+      ? await loadResults(db, courseId, String(round.id), isTeacher)
+      : null
   };
 }
 

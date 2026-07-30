@@ -222,6 +222,7 @@
   /* ---- Keyboard / presenter remote ---- */
   document.addEventListener("keydown", function (e) {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.repeat) return;
     switch (e.key) {
       case "ArrowRight":
         e.preventDefault();
