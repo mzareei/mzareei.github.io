@@ -104,5 +104,13 @@ assert.match(
   /\.from\("pulse_rounds"\)[^]*\.in\("state", \["open", "revealed"\]\)/,
   "closing a class must close every still-visible pulse before the session closes"
 );
+const startSearchPathMigration = read(
+  "supabase/migrations/0023_fix_class_session_start_search_path.sql"
+);
+assert.match(
+  startSearchPathMigration,
+  /set search_path = public, extensions/,
+  "the atomic class starter must resolve pgcrypto from Supabase's extensions schema"
+);
 
 console.log("verify-live-checkpoint-security: OK");
