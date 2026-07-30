@@ -8,6 +8,10 @@ const sql = fs.readFileSync(
   path.join(root, "supabase/migrations/0024_class_management_and_notes.sql"),
   "utf8"
 );
+const fn = fs.readFileSync(
+  path.join(root, "supabase/functions/course-session-management/index.ts"),
+  "utf8"
+);
 
 assert.match(sql, /create table[^;]+class_student_notes/is);
 assert.match(sql, /needs_follow_up boolean not null default false/i);
@@ -29,5 +33,9 @@ assert.doesNotMatch(
   /create unique index[^;]+content_releases[^;]+where/i,
   "the conflict target must be backed by a full unique constraint, not a partial index"
 );
+assert.match(fn, /body\.action === "update_session"/);
+assert.match(fn, /actual_start_at/);
+assert.match(fn, /content_type[^;]+lecture/s);
+assert.match(fn, /close_class_session_with_review/);
 
 console.log("verify-class-management: OK");

@@ -51,8 +51,22 @@ Deno.serve(async (request) => {
       return json({ session, sessions });
     }
 
+    if (body.action === "update_session") {
+      const session = await updateSession(db, courseId, {
+        sessionId: cleanUuid(body.session_id, "A valid session id is required."),
+        sectionId: cleanUuid(body.section_id, "A valid section id is required."),
+        title: cleanSessionTitle(body.title),
+        plannedDate: cleanPlannedDate(body.planned_date),
+        contentItemId: cleanOptionalUuid(body.content_item_id, "A valid lecture id is required."),
+        actorProfileId: profile.id,
+        permissions
+      });
+      return json({ session });
+    }
+
     if (body.action === "update_session_state") {
       const session = await updateSessionState(db, {
+        courseId,
         sessionId: cleanUuid(body.session_id, "A valid session id is required."),
         nextState: cleanSessionState(body.next_state),
         reason: cleanReason(body.reason),
@@ -111,7 +125,7 @@ Deno.serve(async (request) => {
       sessions,
       allowedSessionTransitions,
       allowedActivityTransitions,
-      actions: ["list_sessions", "create_session", "start_session", "update_session_state", "continue_session", "update_activity_state", "extend_activity_window"]
+      actions: ["list_sessions", "create_session", "update_session", "start_session", "update_session_state", "continue_session", "update_activity_state", "extend_activity_window"]
     });
   } catch (error) {
     const message = error.message || "Unable to manage class sessions.";
@@ -302,6 +316,110 @@ async function createSession(db: ReturnType<typeof adminClient>, courseId: strin
     source_kind: item?.source_kind || null,
     source_ref: item?.source_ref || null
   };
+}
+
+const editableSessionStates = ["planned", "open", "continued"];
+
+async function updateSession(db: ReturnType<typeof adminClient>, courseId: string, input: {
+  sessionId: string;
+  sectionId: string;
+  title: string;
+  plannedDate: string;
+  contentItemId?: string;
+  actorProfileId: string;
+  permissions: { isCourseInstructor: boolean; permittedSectionIds: string[] };
+}) {
+  const { data: session, error: sessionError } = await db
+    .from("class_sessions")
+    .select("id, course_id, section_id, sequence_number, title, planned_date, content_item_id, state, actual_start_at")
+    .eq("id", input.sessionId)
+    .eq("course_id", courseId)
+    .maybeSingle();
+  if (sessionError) throw sessionError;
+  if (!session) throw new Error("Class session not found.");
+  assertSectionAllowed(input.permissions, session.section_id);
+
+  if (!editableSessionStates.includes(String(session.state)) || session.actual_start_at) {
+    throw new Error("Only planned, open, or continued sessions that have not started can be edited.");
+  }
+
+  assertSectionAllowed(input.permissions, input.sectionId);
+  const { data: section, error: sectionError } = await db
+    .from("course_sections")
+    .select("id")
+    .eq("id", input.sectionId)
+    .eq("course_id", courseId)
+    .maybeSingle();
+  if (sectionError) throw sectionError;
+  if (!section) throw new Error("That section is not part of this course.");
+
+  const { data: item, error: itemError } = input.contentItemId
+    ? await db
+        .from("content_items")
+        .select("id, course_id, content_type")
+        .eq("id", input.contentItemId)
+        .eq("course_id", courseId)
+        .maybeSingle()
+    : { data: null, error: null };
+  if (itemError) throw itemError;
+  if (input.contentItemId && (!item || item.content_type !== "lecture")) {
+    throw new Error("Choose a lecture from this course.");
+  }
+
+  const now = new Date().toISOString();
+  // The eligibility predicates are repeated in the update so PostgreSQL only
+  // locks and changes a row that is still editable when this request reaches it.
+  const { data: updated, error: updateError } = await db
+    .from("class_sessions")
+    .update({
+      section_id: input.sectionId,
+      title: input.title,
+      planned_date: input.plannedDate,
+      content_item_id: input.contentItemId || null,
+      updated_at: now
+    })
+    .eq("id", input.sessionId)
+    .eq("course_id", courseId)
+    .is("actual_start_at", null)
+    .in("state", editableSessionStates)
+    .select("id, section_id, title, planned_date, content_item_id")
+    .maybeSingle();
+  if (updateError) {
+    if (String(updateError.code) === "23505") {
+      throw new Error("That class number is already taken for this section. Choose a different section or class.");
+    }
+    throw updateError;
+  }
+  if (!updated) {
+    throw new Error("Only planned, open, or continued sessions that have not started can be edited.");
+  }
+
+  await insertAudit(db, {
+    courseId,
+    actorProfileId: input.actorProfileId,
+    targetType: "class_session",
+    targetId: updated.id,
+    action: "class_session_updated",
+    metadata: {
+      before: {
+        section_id: session.section_id,
+        title: session.title,
+        planned_date: session.planned_date,
+        content_item_id: session.content_item_id || null
+      },
+      after: {
+        section_id: updated.section_id,
+        title: updated.title,
+        planned_date: updated.planned_date,
+        content_item_id: updated.content_item_id || null
+      }
+    }
+  });
+
+  const sessions = await listSessions(db, courseId, input.permissions);
+  const normalized = sessions.find((row) => row.session_id === updated.id);
+  if (!normalized) throw new Error("Updated class session could not be loaded.");
+  return normalized;
 }
 
 async function startSession(
@@ -561,6 +679,7 @@ async function listSessions(db: ReturnType<typeof adminClient>, courseId: string
 }
 
 async function updateSessionState(db: ReturnType<typeof adminClient>, input: {
+  courseId: string;
   sessionId: string;
   nextState: string;
   reason: string;
@@ -574,6 +693,7 @@ async function updateSessionState(db: ReturnType<typeof adminClient>, input: {
     .from("class_sessions")
     .select("id, state, course_id, section_id, title, actual_start_at")
     .eq("id", input.sessionId)
+    .eq("course_id", input.courseId)
     .maybeSingle();
   if (error) throw error;
   if (!session) throw new Error("Class session not found.");
@@ -588,23 +708,42 @@ async function updateSessionState(db: ReturnType<typeof adminClient>, input: {
     throw new Error("A reason is required when continuing a closed session.");
   }
 
-  const now = new Date().toISOString();
-  const changes: Record<string, string> = {
-    state: input.nextState,
-    updated_at: now
-  };
-  if (input.nextState === "live" && !session.actual_start_at) changes.actual_start_at = now;
-  if (input.nextState === "closed") changes.actual_end_at = now;
-  if (input.reason) changes.teacher_notes = input.reason;
-
   if (input.nextState === "closed") {
+    const { data: updated, error: closeError } = await db
+      .rpc("close_class_session_with_review", {
+        p_session_id: input.sessionId,
+        p_course_id: input.courseId,
+        p_actor_profile_id: input.actorProfileId,
+        p_reason: input.reason
+      })
+      .single();
+    if (closeError) throw closeError;
+
+    const now = new Date().toISOString();
     const { error: pulseCloseError } = await db
       .from("pulse_rounds")
       .update({ state: "closed", closed_at: now })
       .eq("class_session_id", input.sessionId)
       .in("state", ["open", "revealed"]);
     if (pulseCloseError) throw pulseCloseError;
+
+    const { error: activityCloseError } = await db
+      .from("activity_instances")
+      .update({ state: "closed", updated_at: now })
+      .eq("class_session_id", input.sessionId)
+      .in("state", ["open", "live", "paused"]);
+    if (activityCloseError) throw activityCloseError;
+
+    return updated;
   }
+
+  const now = new Date().toISOString();
+  const changes: Record<string, string> = {
+    state: input.nextState,
+    updated_at: now
+  };
+  if (input.nextState === "live" && !session.actual_start_at) changes.actual_start_at = now;
+  if (input.reason) changes.teacher_notes = input.reason;
 
   const { data: updated, error: updateError } = await db
     .from("class_sessions")
@@ -621,14 +760,6 @@ async function updateSessionState(db: ReturnType<typeof adminClient>, input: {
       .eq("class_session_id", input.sessionId)
       .in("state", ["open", "live"]);
   }
-  if (input.nextState === "closed") {
-    await db
-      .from("activity_instances")
-      .update({ state: "closed", updated_at: now })
-      .eq("class_session_id", input.sessionId)
-      .in("state", ["open", "live", "paused"]);
-  }
-
   await insertAudit(db, {
     courseId: session.course_id,
     actorProfileId: input.actorProfileId,
