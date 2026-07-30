@@ -14,6 +14,11 @@
 import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 import { generateStructured, hasAnthropicKey, pdfBlock, textBlock, toBase64 } from "../_shared/anthropic.ts";
+import {
+  checkpointMetadataColumns,
+  checkpointMetadataFromQuestion,
+  validateCheckpointBank
+} from "../_shared/checkpoints.ts";
 import { assembleDeck, type Slide } from "./deck.ts";
 import { OUTLINE_SCHEMA, SLIDES_SCHEMA, QUESTIONS_SCHEMA } from "./schemas.ts";
 
@@ -188,7 +193,14 @@ async function stepExtract(db: Db, job: Record<string, unknown>, stepState: Reco
 // ------------------------------------------------------------------ step 2
 /** Turn the outline into concrete bilingual slides. */
 async function stepSlides(db: Db, job: Record<string, unknown>, stepState: Record<string, unknown>) {
-  if (stepState.slides) return;
+  if (stepState.slides) {
+    const cachedSlides = asArray<Slide>(stepState.slides);
+    const cachedProblems = validateSlides(cachedSlides);
+    if (cachedProblems.length) {
+      throw new Error(`Generated slides rejected: ${cachedProblems.slice(0, 5).join("; ")}`);
+    }
+    return;
+  }
   const outline = stepState.outline;
   if (!outline) throw new Error("Outline is missing; re-run extraction.");
 
@@ -215,6 +227,10 @@ async function stepSlides(db: Db, job: Record<string, unknown>, stepState: Recor
 
   const slides = asArray<Slide>(result.slides);
   if (!slides.length) throw new Error("The model returned no slides; retrying.");
+  const slideProblems = validateSlides(slides);
+  if (slideProblems.length) {
+    throw new Error(`Generated slides rejected: ${slideProblems.slice(0, 5).join("; ")}`);
+  }
 
   await saveStep(db, String(job.id), { step_state: { ...stepState, slides } });
 }
@@ -224,8 +240,8 @@ async function stepSlides(db: Db, job: Record<string, unknown>, stepState: Recor
  *  4 options, exactly 1 correct, plausible distractors, 6 per difficulty. */
 async function stepQuestions(db: Db, job: Record<string, unknown>, stepState: Record<string, unknown>) {
   if (stepState.questions) return;
-  const outline = stepState.outline;
-  if (!outline) throw new Error("Outline is missing; re-run extraction.");
+  const slides = asArray<Slide>(stepState.slides);
+  if (!slides.length) throw new Error("Finalized slides are missing; re-run deck generation.");
 
   const result = await generateStructured({
     system:
@@ -236,12 +252,19 @@ async function stepQuestions(db: Db, job: Record<string, unknown>, stepState: Re
       "answers, and never all-of-the-above. Every question must be answerable purely from " +
       "the lecture content given. Write each question and every option in both English and " +
       "Spanish. Vary what you assess: recall for easy, application for medium, analysis or " +
-      "a scenario judgement for hard. Do not reuse the same stem across difficulties.",
+      "a scenario judgement for hard. Do not reuse the same stem across difficulties. " +
+      "Use no facts outside the cited finalized teaching slides. Cite every slide needed " +
+      "to answer, and never place a cited slide after the question's checkpoint.",
     content: [
       textBlock(
         `Lecture title: ${job.lecture_title}\n\n` +
-        `Lecture content:\n${JSON.stringify(outline, null, 2)}\n\n` +
-        "Write exactly 6 easy, 6 medium and 6 hard questions (18 total)."
+        `Finalized teaching slides:\n${JSON.stringify(slides, null, 2)}\n\n` +
+        "Write exactly 18 questions: exactly 6 easy, 6 medium and 6 hard. " +
+        "For this normal 18–50-slide lecture, group them into 3–5 concept checkpoints " +
+        "with at least 2 candidate questions at every checkpoint. For each question, " +
+        "set checkpoint_after_slide to the finalized slide after which it may be asked; " +
+        "cite only source_slide_numbers at or before that checkpoint; set the source " +
+        "range to the minimum and maximum cited slide; and use no facts outside those cited slides."
       )
     ],
     toolName: "record_questions",
@@ -251,7 +274,7 @@ async function stepQuestions(db: Db, job: Record<string, unknown>, stepState: Re
   });
 
   const questions = asArray<Record<string, unknown>>(result.questions);
-  const problems = validateQuestions(questions);
+  const problems = validateQuestions(questions, slides.length);
   if (problems.length) throw new Error(`Generated questions rejected: ${problems.slice(0, 5).join("; ")}`);
 
   await saveStep(db, String(job.id), { step_state: { ...stepState, questions } });
@@ -269,9 +292,23 @@ function asArray<T>(value: unknown): T[] {
   return [];
 }
 
-function validateQuestions(questions: Record<string, unknown>[]) {
+function validateSlides(slides: Slide[]) {
   const problems: string[] = [];
-  if (questions.length < 12) problems.push(`only ${questions.length} questions`);
+  slides.forEach((slide, index) => {
+    if (slide.slide_number !== index + 1) {
+      problems.push(
+        `slide ${index + 1} has slide_number ${String(slide.slide_number)} instead of ${index + 1}`
+      );
+    }
+  });
+  return problems;
+}
+
+function validateQuestions(
+  questions: Record<string, unknown>[],
+  teachingSlideCount: number
+) {
+  const problems: string[] = [];
   questions.forEach((question, index) => {
     const label = `Q${index + 1}`;
     const options = (question.options || []) as Record<string, unknown>[];
@@ -290,6 +327,13 @@ function validateQuestions(questions: Record<string, unknown>[]) {
       }
     });
   });
+  problems.push(...validateCheckpointBank(
+    questions.map((question) => ({
+      ...checkpointMetadataFromQuestion(question),
+      difficulty: String(question.difficulty || "")
+    })),
+    teachingSlideCount
+  ));
   return problems;
 }
 
@@ -302,6 +346,18 @@ async function stepAssemble(db: Db, job: Record<string, unknown>, stepState: Rec
   const questions = asArray<Record<string, unknown>>(stepState.questions);
   if (!slides.length) throw new Error("Slides are missing; re-run deck generation.");
   if (!questions.length) throw new Error("Questions are missing; re-run question generation.");
+  const slideProblems = validateSlides(slides);
+  if (slideProblems.length) {
+    throw new Error(
+      `Generated slides rejected before persistence: ${slideProblems.slice(0, 5).join("; ")}`
+    );
+  }
+  const questionProblems = validateQuestions(questions, slides.length);
+  if (questionProblems.length) {
+    throw new Error(
+      `Generated questions rejected before persistence: ${questionProblems.slice(0, 5).join("; ")}`
+    );
+  }
 
   // 1. Deck HTML into Storage, beside every other gated deck.
   const html = await assembleDeck({ title: String(job.lecture_title), slides });
@@ -354,6 +410,7 @@ async function stepAssemble(db: Db, job: Record<string, unknown>, stepState: Rec
   if (clearError) throw clearError;
 
   for (const [index, question] of questions.entries()) {
+    const checkpoint = checkpointMetadataFromQuestion(question);
     const { data: row, error: questionError } = await db
       .from("questions")
       .insert({
@@ -369,7 +426,8 @@ async function stepAssemble(db: Db, job: Record<string, unknown>, stepState: Rec
         status: "draft",
         source: "generated",
         generation_key: `${slug}-gen-${index + 1}`,
-        generation_job_id: job.id
+        generation_job_id: job.id,
+        ...checkpointMetadataColumns(checkpoint)
       })
       .select("id")
       .single();

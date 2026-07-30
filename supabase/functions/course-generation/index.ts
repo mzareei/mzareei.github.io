@@ -255,7 +255,7 @@ async function reviewBundle(db: Db, courseId: string, body: Record<string, unkno
   if (job.question_bank_id) {
     const { data, error } = await db
       .from("questions")
-      .select("id, prompt, prompt_es, difficulty, status, question_options(id, option_text, option_text_es, is_correct, position)")
+      .select("id, prompt, prompt_es, difficulty, status, segment_key, source_slide_numbers, source_slide_start, source_slide_end, checkpoint_after_slide, question_options(id, option_text, option_text_es, is_correct, position)")
       .eq("question_bank_id", job.question_bank_id)
       .order("created_at", { ascending: true });
     if (error) throw error;

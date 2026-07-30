@@ -5,16 +5,23 @@
 // where live features draw from it.
 //
 // Actions:
-//   import_bank    { content_slug, title, questions[] }  (instructor)
+//   import_bank    { content_slug, title, teaching_slide_count, questions[] }  (instructor)
 //     Idempotent upsert of a whole bank, keyed by (bank, generation_key), so
 //     regenerating a deck replaces its own questions instead of duplicating them.
 //     Anything an instructor edited by hand is marked generated_edited and left
 //     alone unless replace_edited is explicitly set.
 //   list_banks     { }                                   (teacher)
-//   draw_question  { content_slug, difficulty? , exclude_keys? }  (teacher)
+//   draw_question  { content_slug, difficulty?, checkpoint_after_slide?, exclude_keys? }  (teacher)
 //     Picks one question for a live pulse. Returns the correct option too — only
 //     the instructor's own screen calls this, and course-pulse re-snapshots it.
 import { adminClient } from "../_shared/client.ts";
+import {
+  checkpointCoverage,
+  checkpointMetadataColumns,
+  checkpointMetadataFromQuestion,
+  validateCheckpointBank,
+  validateCheckpointMetadata
+} from "../_shared/checkpoints.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
 
@@ -150,6 +157,7 @@ function validateQuestion(raw: Record<string, unknown>, index: number) {
     topic_tags: Array.isArray(raw.topic_tags)
       ? raw.topic_tags.map((tag) => String(tag).slice(0, 60)).slice(0, 8)
       : [],
+    checkpoint: checkpointMetadataFromQuestion(raw),
     options
   };
 }
@@ -157,17 +165,25 @@ function validateQuestion(raw: Record<string, unknown>, index: number) {
 async function importBank(db: Db, courseId: string, actorProfileId: string, body: Record<string, unknown>) {
   const slug = String(body.content_slug || "").trim();
   const item = await loadContentItem(db, courseId, slug);
+  const teachingSlideCount = Number(body.teaching_slide_count);
+  if (!Number.isInteger(teachingSlideCount) || teachingSlideCount < 1) {
+    throw new Error("A finalized teaching slide count is required.");
+  }
   const rawQuestions = Array.isArray(body.questions) ? body.questions : [];
   if (!rawQuestions.length) throw new Error("The bank has no questions.");
   const questions = rawQuestions.map((raw, index) =>
     validateQuestion((raw || {}) as Record<string, unknown>, index)
   );
 
-  // Every tier must be represented, or an end-of-class quiz cannot mix levels.
-  for (const difficulty of difficulties) {
-    if (!questions.some((question) => question.difficulty === difficulty)) {
-      throw new Error(`The bank has no ${difficulty} questions — all three tiers are required.`);
-    }
+  const checkpointProblems = validateCheckpointBank(
+    questions.map((question) => ({
+      ...question.checkpoint,
+      difficulty: question.difficulty
+    })),
+    teachingSlideCount
+  );
+  if (checkpointProblems.length) {
+    throw new Error(`Generated bank rejected: ${checkpointProblems.slice(0, 5).join("; ")}`);
   }
 
   const { data: bank, error: bankError } = await db
@@ -222,7 +238,8 @@ async function importBank(db: Db, courseId: string, actorProfileId: string, body
           points: 1,
           status: "active",
           source: "generated",
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          ...checkpointMetadataColumns(question.checkpoint)
         },
         { onConflict: "question_bank_id,generation_key" }
       )
@@ -292,7 +309,7 @@ async function listBanks(db: Db, courseId: string) {
 
   const { data: questions, error: questionError } = await db
     .from("questions")
-    .select("question_bank_id, difficulty, status")
+    .select("question_bank_id, difficulty, status, segment_key, source_slide_numbers, source_slide_start, source_slide_end, checkpoint_after_slide")
     .in("question_bank_id", (banks || []).map((bank) => bank.id))
     .eq("status", "active");
   if (questionError) throw questionError;
@@ -302,6 +319,14 @@ async function listBanks(db: Db, courseId: string) {
       .map((bank) => {
         const item = itemById.get(String(bank.content_item_id));
         const mine = (questions || []).filter((q) => String(q.question_bank_id) === String(bank.id));
+        const checkpointRows = mine
+          .map((question) => ({
+            ...checkpointMetadataFromQuestion(question),
+            difficulty: String(question.difficulty)
+          }))
+          .filter((question) =>
+            validateCheckpointMetadata(question, question.checkpointAfterSlide).length === 0
+          );
         return {
           bank_id: bank.id,
           title: bank.title,
@@ -310,6 +335,7 @@ async function listBanks(db: Db, courseId: string) {
           content_type: item?.content_type ?? null,
           updated_at: bank.updated_at,
           total: mine.length,
+          checkpoint_coverage: checkpointCoverage(checkpointRows),
           by_difficulty: difficulties.reduce(
             (acc, difficulty) => ({
               ...acc,
@@ -334,6 +360,17 @@ async function drawQuestion(db: Db, courseId: string, body: Record<string, unkno
   const exclude = Array.isArray(body.exclude_keys)
     ? body.exclude_keys.map((key) => String(key)).slice(0, 200)
     : [];
+  let checkpointAfterSlide: number | null = null;
+  if (
+    body.checkpoint_after_slide !== undefined
+    && body.checkpoint_after_slide !== null
+    && String(body.checkpoint_after_slide).trim() !== ""
+  ) {
+    checkpointAfterSlide = Number(body.checkpoint_after_slide);
+    if (!Number.isInteger(checkpointAfterSlide) || checkpointAfterSlide < 1) {
+      throw new Error("The checkpoint slide must be a positive integer.");
+    }
+  }
 
   const { data: bank, error: bankError } = await db
     .from("question_banks")
@@ -347,10 +384,13 @@ async function drawQuestion(db: Db, courseId: string, body: Record<string, unkno
 
   let query = db
     .from("questions")
-    .select("id, prompt, prompt_es, difficulty, generation_key, explanation, explanation_es")
+    .select("id, prompt, prompt_es, difficulty, generation_key, explanation, explanation_es, segment_key, source_slide_numbers, source_slide_start, source_slide_end, checkpoint_after_slide")
     .eq("question_bank_id", bank.id)
     .eq("status", "active");
   if (difficulty) query = query.eq("difficulty", difficulty);
+  if (checkpointAfterSlide !== null) {
+    query = query.eq("checkpoint_after_slide", checkpointAfterSlide);
+  }
   const { data: candidates, error: candidateError } = await query;
   if (candidateError) throw candidateError;
 
@@ -373,6 +413,11 @@ async function drawQuestion(db: Db, courseId: string, body: Record<string, unkno
       question_id: picked.id,
       generation_key: picked.generation_key,
       difficulty: picked.difficulty,
+      segment_key: picked.segment_key,
+      source_slide_numbers: picked.source_slide_numbers,
+      source_slide_start: picked.source_slide_start,
+      source_slide_end: picked.source_slide_end,
+      checkpoint_after_slide: picked.checkpoint_after_slide,
       prompt: picked.prompt,
       prompt_es: picked.prompt_es,
       explanation: picked.explanation,

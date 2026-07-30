@@ -55,6 +55,10 @@ export const SLIDES_SCHEMA = {
       items: {
         type: "object",
         properties: {
+          slide_number: {
+            type: "integer",
+            description: "One-based position in the finalized deck; sequential with no gaps."
+          },
           kind: {
             type: "string",
             enum: ["title", "section", "bullets", "cards", "definition", "activity", "closing"],
@@ -100,7 +104,7 @@ export const SLIDES_SCHEMA = {
           figure_note: { type: "string", description: "Caveat shown in small print under the slide." },
           figure_note_es: { type: "string" }
         },
-        required: ["kind", "section", "section_es", "heading", "heading_es"]
+        required: ["slide_number", "kind", "section", "section_es", "heading", "heading_es"]
       }
     }
   },
@@ -118,6 +122,21 @@ export const QUESTIONS_SCHEMA = {
           prompt: { type: "string" },
           prompt_es: { type: "string" },
           difficulty: { type: "string", enum: ["easy", "medium", "hard"] },
+          segment_key: {
+            type: "string",
+            description: "Stable lowercase-hyphenated key for the concept checkpoint."
+          },
+          source_slide_numbers: {
+            type: "array",
+            description: "Finalized slide numbers containing every fact needed to answer.",
+            items: { type: "integer" }
+          },
+          source_slide_start: { type: "integer" },
+          source_slide_end: { type: "integer" },
+          checkpoint_after_slide: {
+            type: "integer",
+            description: "Ask only after this finalized slide has been taught."
+          },
           topic_tags: {
             type: "array",
             description: "Two or three lowercase-hyphenated topic tags, e.g. cia-triad.",
@@ -139,7 +158,17 @@ export const QUESTIONS_SCHEMA = {
             }
           }
         },
-        required: ["prompt", "prompt_es", "difficulty", "options"]
+        required: [
+          "prompt",
+          "prompt_es",
+          "difficulty",
+          "segment_key",
+          "source_slide_numbers",
+          "source_slide_start",
+          "source_slide_end",
+          "checkpoint_after_slide",
+          "options"
+        ]
       }
     }
   },

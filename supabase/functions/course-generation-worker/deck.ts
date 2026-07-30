@@ -7,6 +7,7 @@
 import { DECK_SKELETON, DECK_SCRIPT, DECK_STYLE } from "./deck-assets.ts";
 
 export interface Slide {
+  slide_number: number;
   kind: "title" | "section" | "bullets" | "cards" | "definition" | "activity" | "closing";
   section: string;
   section_es: string;
