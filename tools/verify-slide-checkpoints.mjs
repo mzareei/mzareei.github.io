@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import {
   checkpointCoverage,
   checkpointMetadataColumns,
+  checkpointMetadataState,
   validateCheckpointBank,
   validateCheckpointMetadata
 } from "../supabase/functions/_shared/checkpoints.ts";
@@ -38,6 +39,53 @@ assert.deepEqual(checkpointMetadataColumns(valid), {
   source_slide_end: 15,
   checkpoint_after_slide: 15
 });
+const validStored = {
+  difficulty: "easy",
+  segment_key: "cia-triad",
+  source_slide_numbers: [12, 13, 14, 15],
+  source_slide_start: 12,
+  source_slide_end: 15,
+  checkpoint_after_slide: 15
+};
+assert.deepEqual(checkpointMetadataState([{
+  ...validStored,
+  segment_key: null,
+  source_slide_numbers: [],
+  source_slide_start: null,
+  source_slide_end: null,
+  checkpoint_after_slide: null
+}]), {
+  status: "missing",
+  presentCount: 0,
+  validRows: []
+});
+assert.deepEqual(checkpointMetadataState([validStored]), {
+  status: "valid",
+  presentCount: 1,
+  validRows: [{ ...valid, difficulty: "easy" }]
+});
+assert.deepEqual(checkpointMetadataState([{
+  ...validStored,
+  source_slide_end: 16
+}]), {
+  status: "invalid",
+  presentCount: 1,
+  validRows: []
+});
+assert.equal(
+  checkpointMetadataState([
+    validStored,
+    {
+      ...validStored,
+      segment_key: null,
+      source_slide_numbers: [],
+      source_slide_start: null,
+      source_slide_end: null,
+      checkpoint_after_slide: null
+    }
+  ]).status,
+  "invalid"
+);
 
 const difficulties = ["easy", "medium", "hard"];
 const rows = Array.from({ length: 18 }, (_, index) => {
@@ -135,6 +183,9 @@ const bankSource = fs.readFileSync(
   "utf8"
 );
 assert.match(bankSource, /checkpoint_coverage:\s*checkpointCoverage\(/);
+assert.match(bankSource, /checkpoint_metadata_status:\s*metadataState\.status/);
+assert.match(bankSource, /checkpoint_metadata_present:\s*metadataState\.presentCount/);
+assert.match(bankSource, /checkpoint_metadata_valid:\s*metadataState\.validRows\.length/);
 assert.match(bankSource, /\.eq\("checkpoint_after_slide", checkpointAfterSlide\)/);
 for (const property of [
   "segment_key",

@@ -19,8 +19,8 @@ import {
   checkpointCoverage,
   checkpointMetadataColumns,
   checkpointMetadataFromQuestion,
+  checkpointMetadataState,
   validateCheckpointBank,
-  validateCheckpointMetadata
 } from "../_shared/checkpoints.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
@@ -319,14 +319,7 @@ async function listBanks(db: Db, courseId: string) {
       .map((bank) => {
         const item = itemById.get(String(bank.content_item_id));
         const mine = (questions || []).filter((q) => String(q.question_bank_id) === String(bank.id));
-        const checkpointRows = mine
-          .map((question) => ({
-            ...checkpointMetadataFromQuestion(question),
-            difficulty: String(question.difficulty)
-          }))
-          .filter((question) =>
-            validateCheckpointMetadata(question, question.checkpointAfterSlide).length === 0
-          );
+        const metadataState = checkpointMetadataState(mine);
         return {
           bank_id: bank.id,
           title: bank.title,
@@ -335,7 +328,10 @@ async function listBanks(db: Db, courseId: string) {
           content_type: item?.content_type ?? null,
           updated_at: bank.updated_at,
           total: mine.length,
-          checkpoint_coverage: checkpointCoverage(checkpointRows),
+          checkpoint_metadata_status: metadataState.status,
+          checkpoint_metadata_present: metadataState.presentCount,
+          checkpoint_metadata_valid: metadataState.validRows.length,
+          checkpoint_coverage: checkpointCoverage(metadataState.validRows),
           by_difficulty: difficulties.reduce(
             (acc, difficulty) => ({
               ...acc,

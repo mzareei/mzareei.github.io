@@ -34,6 +34,49 @@ export function checkpointMetadataColumns(value: CheckpointMetadata) {
   };
 }
 
+function hasCheckpointMetadata(value: Record<string, unknown>): boolean {
+  return (
+    value.segment_key !== null
+    && value.segment_key !== undefined
+  ) || (
+    Array.isArray(value.source_slide_numbers)
+    && value.source_slide_numbers.length > 0
+  ) || (
+    value.source_slide_start !== null
+    && value.source_slide_start !== undefined
+  ) || (
+    value.source_slide_end !== null
+    && value.source_slide_end !== undefined
+  ) || (
+    value.checkpoint_after_slide !== null
+    && value.checkpoint_after_slide !== undefined
+  );
+}
+
+export function checkpointMetadataState(rows: Array<Record<string, unknown>>): {
+  status: "missing" | "valid" | "invalid";
+  presentCount: number;
+  validRows: CheckpointRow[];
+} {
+  const present = rows.filter(hasCheckpointMetadata);
+  const validRows = present
+    .map((row) => ({
+      ...checkpointMetadataFromQuestion(row),
+      difficulty: String(row.difficulty || "")
+    }))
+    .filter((row) =>
+      validateCheckpointMetadata(row, row.checkpointAfterSlide).length === 0
+    );
+
+  if (present.length === 0) {
+    return { status: "missing", presentCount: 0, validRows: [] };
+  }
+  if (present.length === rows.length && validRows.length === rows.length) {
+    return { status: "valid", presentCount: present.length, validRows };
+  }
+  return { status: "invalid", presentCount: present.length, validRows };
+}
+
 export function validateCheckpointMetadata(
   value: CheckpointMetadata,
   teachingSlideCount: number
