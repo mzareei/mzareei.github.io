@@ -107,6 +107,10 @@ verify_jwt = false
 # Generated question banks; validates the user token and role in-function.
 verify_jwt = false
 
+[functions.course-checkpoint-backfill]
+# Instructor-only metadata mapping and same-path private deck preparation.
+verify_jwt = false
+
 [functions.course-class-quiz]
 # End-of-class quiz orchestration; validates the user token and role in-function.
 verify_jwt = false

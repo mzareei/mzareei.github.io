@@ -322,6 +322,7 @@ async function listBanks(db: Db, courseId: string) {
         const metadataState = checkpointMetadataState(mine);
         return {
           bank_id: bank.id,
+          content_item_id: bank.content_item_id,
           title: bank.title,
           content_slug: item?.slug ?? null,
           content_title: item?.title ?? null,

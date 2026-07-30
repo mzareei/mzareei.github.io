@@ -1,0 +1,211 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import {
+  extractTeachingSlides,
+  injectCheckpointSections,
+  prepareLegacyDeckHtml,
+  removeLegacyDeckNavigation,
+  replaceLegacyDeckAssets
+} from "../supabase/functions/_shared/checkpoint-deck.ts";
+import {
+  DECK_SCRIPT,
+  DECK_STYLE
+} from "../supabase/functions/course-generation-worker/deck-assets.ts";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+const legacyFixture = `<!doctype html>
+<html>
+<head>
+  <style>
+  /* TC2007B — Lecture deck theme (shared design; copy per lecture) */
+  .slide { display: none; }
+  </style>
+  <style>.lecture-custom::after { content: "$&"; }</style>
+</head>
+<body>
+  <div class="controls">
+    <a href="https://mzareei.github.io/teaching/information-security/" class="ui-btn">Home</a>
+    <a href="https://mzareei.github.io/assets/course-materials/information-security/week-01/mission-01/" class="ui-btn">Mission</a>
+    <a href="quiz/teacher.html?lecture=tc2007b-w1-l1" class="ui-btn">Quiz</a>
+    <a href="https://mzareei.github.io/assets/course-materials/information-security/exit-ticket/" class="ui-btn">Exit</a>
+    <button class="ui-btn" id="langBtn">ES</button>
+    <button class="ui-btn" id="themeBtn">Theme</button>
+    <a href="#source-note" class="reference-link">Source note</a>
+  </div>
+  <main class="deck" id="deck">
+    <section class="slide title-slide active"><div class="slide-inner"><h1>One &amp; safe</h1></div></section>
+    <section class="slide"><div class="slide-inner"><h2>Two</h2><p>Markup <strong>stays text</strong>.</p></div></section>
+    <section class="slide activity"><div class="slide-inner"><h2>Three</h2></div></section>
+    <section class="slide section"><div class="slide-inner"><h2>Four</h2></div></section>
+  </main>
+  <div class="nav-btns">
+    <button id="prevBtn">Previous</button>
+    <button id="ovBtn">Overview</button>
+    <button id="helpBtn">Help</button>
+    <button id="fsBtn">Fullscreen</button>
+    <button id="nextBtn">Next</button>
+  </div>
+  <div id="overview">Overview panel</div>
+  <div id="help">Help panel</div>
+  <script>
+  /* TC2007B - W1 - L1 - Presenter engine */
+  window.legacyPresenter = true;
+  </script>
+  <script>window.lectureCustom = "$&";</script>
+</body>
+</html>`;
+
+const checkpoints = [{
+  key: "legacy-security",
+  afterSlide: 3,
+  sourceStart: 2,
+  sourceEnd: 3
+}];
+
+const extracted = extractTeachingSlides(legacyFixture);
+assert.deepEqual(extracted.map(({ number }) => number), [1, 2, 3, 4]);
+assert.equal(extracted[0].text, "One & safe");
+assert.equal(extracted[1].text, "Two Markup stays text.");
+assert.doesNotMatch(extracted[1].text, /<[^>]+>/);
+
+const withoutLegacyNavigation = removeLegacyDeckNavigation(legacyFixture);
+for (const destination of [
+  "teaching/information-security",
+  "mission-01",
+  "quiz/teacher.html",
+  "exit-ticket"
+]) {
+  assert.doesNotMatch(withoutLegacyNavigation, new RegExp(destination));
+}
+assert.match(withoutLegacyNavigation, /id="langBtn"/);
+assert.match(withoutLegacyNavigation, /id="themeBtn"/);
+assert.match(withoutLegacyNavigation, /id="ovBtn"/);
+assert.match(withoutLegacyNavigation, /id="helpBtn"/);
+assert.match(withoutLegacyNavigation, /id="fsBtn"/);
+assert.match(withoutLegacyNavigation, /id="prevBtn"/);
+assert.match(withoutLegacyNavigation, /id="nextBtn"/);
+assert.match(withoutLegacyNavigation, /href="#source-note"/);
+
+const injected = injectCheckpointSections(legacyFixture, checkpoints);
+assert.equal((injected.match(/data-teaching-slide="/g) || []).length, 4);
+assert.equal((injected.match(/data-checkpoint-key=/g) || []).length, 1);
+const teachingThree = injected.indexOf('data-teaching-slide="3"');
+const checkpointThree = injected.indexOf('data-checkpoint-key="legacy-security"');
+const teachingFour = injected.indexOf('data-teaching-slide="4"');
+assert.ok(
+  teachingThree < checkpointThree && checkpointThree < teachingFour,
+  "the checkpoint must be inserted after teaching slide 3 without reordering slide 4"
+);
+assert.deepEqual(
+  extractTeachingSlides(injected).map(({ number, text }) => ({ number, text })),
+  extracted
+);
+
+const escapedCheckpoint = injectCheckpointSections(legacyFixture, [{
+  key: 'unsafe"<&',
+  afterSlide: 3,
+  sourceStart: 3,
+  sourceEnd: 3
+}]);
+assert.match(escapedCheckpoint, /data-checkpoint-key="unsafe&quot;&lt;&amp;"/);
+assert.throws(
+  () => injectCheckpointSections(legacyFixture, [{
+    key: "missing-slide",
+    afterSlide: 5,
+    sourceStart: 4,
+    sourceEnd: 4
+  }]),
+  /finalized teaching slide/
+);
+
+const sentinelAssets = replaceLegacyDeckAssets(legacyFixture, {
+  style: ".checkpoint-slide::after { content: '$&'; }",
+  script: "window.currentDeck = '$&';"
+});
+assert.match(sentinelAssets, /content: '\$&'/);
+assert.match(sentinelAssets, /window\.currentDeck = '\$&'/);
+assert.match(sentinelAssets, /lecture-custom::after \{ content: "\$&"; \}/);
+assert.match(sentinelAssets, /window\.lectureCustom = "\$&"/);
+assert.doesNotMatch(sentinelAssets, /window\.legacyPresenter/);
+
+const upgraded = prepareLegacyDeckHtml(legacyFixture, checkpoints, {
+  style: DECK_STYLE,
+  script: DECK_SCRIPT
+});
+assert.equal((upgraded.match(/data-teaching-slide="/g) || []).length, 4);
+assert.equal((upgraded.match(/data-checkpoint-key=/g) || []).length, 1);
+assert.match(upgraded, /\.checkpoint-slide::before/);
+assert.match(upgraded, /type: "deck\.checkpoint_entered"/);
+assert.match(upgraded, /lecture-custom::after/);
+assert.match(upgraded, /window\.lectureCustom/);
+assert.doesNotMatch(upgraded, /window\.legacyPresenter/);
+assert.deepEqual(
+  extractTeachingSlides(upgraded).map(({ number, text }) => ({ number, text })),
+  extracted
+);
+
+const backfillPath = path.join(
+  root,
+  "supabase/functions/course-checkpoint-backfill/index.ts"
+);
+const backfillSource = fs.readFileSync(backfillPath, "utf8");
+assert.match(
+  backfillSource,
+  /import \{ DECK_SCRIPT, DECK_STYLE \} from "\.\.\/course-generation-worker\/deck-assets\.ts"/,
+  "the backfill must reuse the current generated deck assets"
+);
+assert.match(backfillSource, /requireInstructor\(/);
+assert.match(backfillSource, /content_type !== "lecture"/);
+assert.match(backfillSource, /source_kind !== "storage_object"/);
+assert.match(backfillSource, /\.eq\("status", "active"\)/);
+assert.equal(
+  (backfillSource.match(/generateStructured\(/g) || []).length,
+  1,
+  "the backfill must make one structured Claude call"
+);
+assert.match(backfillSource, /validateCheckpointBank\(/);
+assert.match(backfillSource, /candidate_count < 2/);
+assert.match(backfillSource, /checkpointMetadataState\(/);
+assert.match(backfillSource, /status !== "missing"/);
+assert.match(backfillSource, /prepareLegacyDeckHtml\([\s\S]*style: DECK_STYLE[\s\S]*script: DECK_SCRIPT/);
+assert.match(backfillSource, /\.from\("questions"\)\s*\.update\(metadataColumns\)/);
+assert.doesNotMatch(
+  backfillSource,
+  /\.from\("question_options"\)\s*\.(?:insert|update|upsert|delete)\(/,
+  "backfill must never rewrite question options"
+);
+
+const validationIndex = backfillSource.indexOf("validateCheckpointBank(");
+const metadataWriteIndex = backfillSource.indexOf('.from("questions")\n      .update(metadataColumns)');
+const storageWriteIndex = backfillSource.indexOf(".upload(\n      item.source_ref");
+assert.ok(validationIndex >= 0 && metadataWriteIndex > validationIndex);
+assert.ok(
+  storageWriteIndex > metadataWriteIndex,
+  "all metadata validation and database writes must precede the same-path storage upload"
+);
+assert.doesNotMatch(
+  backfillSource.slice(storageWriteIndex),
+  /\.from\(/,
+  "the storage upload must be the final database/storage operation"
+);
+
+const configSource = fs.readFileSync(path.join(root, "supabase/config.toml"), "utf8");
+assert.match(
+  configSource,
+  /\[functions\.course-checkpoint-backfill\]\s*\n(?:#[^\n]*\n)*verify_jwt = false/
+);
+
+const bankSource = fs.readFileSync(
+  path.join(root, "supabase/functions/course-question-bank/index.ts"),
+  "utf8"
+);
+assert.match(
+  bankSource,
+  /content_item_id: bank\.content_item_id/,
+  "the Content UI needs the real content item id returned by list_banks"
+);
+
+console.log("verify-checkpoint-decks: OK");
