@@ -349,12 +349,7 @@ async function updateSession(db: ReturnType<typeof adminClient>, courseId: strin
       p_content_item_id: input.contentItemId || null
     })
     .single();
-  if (updateError) {
-    if (String(updateError.code) === "23505") {
-      throw new Error("That class number is already taken for this section. Choose a different section or class.");
-    }
-    throw updateError;
-  }
+  if (updateError) throw updateError;
   const updatedRow = classSessionRpcRow(updated);
 
   const sessions = await listSessions(db, courseId, input.permissions);
@@ -645,7 +640,8 @@ async function updateSessionState(db: ReturnType<typeof adminClient>, input: {
 
   const currentState = String(session.state || "");
   const allowed = allowedSessionTransitions[currentState] || [];
-  if (!allowed.includes(input.nextState)) {
+  const isIdempotentClose = currentState === "closed" && input.nextState === "closed";
+  if (!isIdempotentClose && !allowed.includes(input.nextState)) {
     throw new Error(`Transition from ${currentState} to ${input.nextState} is not allowed.`);
   }
   if (currentState === "closed" && input.nextState === "continued" && !input.reason) {

@@ -160,56 +160,30 @@ async function listSessionNotes(db: Db, courseId: string, session: { id: string;
     .eq("course_id", courseId)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  await assertStoredNotesMatchSessionGroup(db, session, rows || []);
   return formatNotes(db, rows || [], new Map([[session.id, session]]));
 }
 
 async function listStudentNotes(db: Db, courseId: string, profileId: string) {
-  const { data: enrollments, error: enrollmentError } = await db
-    .from("section_enrollments")
-    .select("section_id")
-    .eq("profile_id", profileId)
-    .eq("role", "student")
-    .eq("status", "active");
-  if (enrollmentError) throw enrollmentError;
-  const sectionIds = unique((enrollments || []).map((row) => String(row.section_id)));
-  if (!sectionIds.length) throw new Error("That student is not active in any class group.");
-
-  const { data: sessions, error: sessionError } = await db
-    .from("class_sessions")
-    .select("id, section_id, title, planned_date")
-    .eq("course_id", courseId)
-    .in("section_id", sectionIds);
-  if (sessionError) throw sessionError;
-  const sessionIds = unique((sessions || []).map((session) => String(session.id)));
-  if (!sessionIds.length) throw new Error("That student is not active in a class group for this course.");
-
+  // Notes are the durable semester history. A normal group move drops the old
+  // enrollment, so deriving history from only today's active group silently
+  // hid earlier class notes.
   const { data: rows, error } = await db
     .from("class_student_notes")
     .select("id, class_session_id, profile_id, author_profile_id, note_text, needs_follow_up, resolved_at, created_at")
     .eq("profile_id", profileId)
     .eq("course_id", courseId)
-    .in("class_session_id", sessionIds)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return formatNotes(db, rows || [], new Map((sessions || []).map((session) => [session.id, session])));
-}
+  if (!(rows || []).length) return [];
 
-async function assertStoredNotesMatchSessionGroup(db: Db, session: { section_id: string }, rows: Array<{ profile_id: string }>) {
-  const profileIds = unique(rows.map((row) => String(row.profile_id)));
-  if (!profileIds.length) return;
-  const { data: enrollments, error } = await db
-    .from("section_enrollments")
-    .select("profile_id")
-    .eq("section_id", session.section_id)
-    .in("profile_id", profileIds)
-    .eq("role", "student")
-    .eq("status", "active");
-  if (error) throw error;
-  const activeStudentIds = new Set((enrollments || []).map((row) => String(row.profile_id)));
-  if (profileIds.some((profileId) => !activeStudentIds.has(profileId))) {
-    throw new Error("A class student note refers to a student outside this active class group.");
-  }
+  const sessionIds = unique((rows || []).map((row) => String(row.class_session_id)));
+  const { data: sessions, error: sessionError } = await db
+    .from("class_sessions")
+    .select("id, section_id, title, planned_date")
+    .eq("course_id", courseId)
+    .in("id", sessionIds);
+  if (sessionError) throw sessionError;
+  return formatNotes(db, rows || [], new Map((sessions || []).map((session) => [session.id, session])));
 }
 
 async function formatNotes(

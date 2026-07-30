@@ -28,6 +28,14 @@ const assignmentGuardSql = fs.readFileSync(
   path.join(root, "supabase/migrations/0026_guard_student_section_assignment.sql"),
   "utf8"
 );
+const compositionFixSql = fs.readFileSync(
+  path.join(root, "supabase/migrations/0027_class_management_composition_fixes.sql"),
+  "utf8"
+);
+const releaseFn = fs.readFileSync(
+  path.join(root, "supabase/functions/course-release-management/index.ts"),
+  "utf8"
+);
 
 assert.match(sql, /create table[^;]+class_student_notes/is);
 assert.match(sql, /needs_follow_up boolean not null default false/i);
@@ -73,6 +81,31 @@ assert.match(sql, /locked_session\.state not in \('planned', 'open', 'continued'
 assert.match(sql, /p_content_item_id[\s\S]+content_type = 'lecture'/i);
 assert.match(sql, /grant execute on function public\.update_class_session_atomic\(uuid, text, uuid, uuid, text, date, uuid\)\s*to service_role/i);
 assert.match(fn, /\.rpc\("update_class_session_atomic"/);
+assert.match(
+  compositionFixSql,
+  /update_class_session_atomic[\s\S]+target_sequence_number[\s\S]+for update[\s\S]+sequence_number = target_sequence_number/i,
+  "moving a planned class must atomically choose and return an available target-group sequence number"
+);
+assert.match(
+  compositionFixSql,
+  /loop[\s\S]+update public\.class_sessions[\s\S]+exception[\s\S]+when unique_violation[\s\S]+max\(sequence_number\)/i,
+  "a concurrent target-group insert must be retried with the next available sequence number"
+);
+assert.doesNotMatch(
+  fn,
+  /Choose a different section or class/,
+  "a target-group sequence collision is resolved atomically and must not be presented as a user choice"
+);
+assert.match(
+  compositionFixSql,
+  /if locked_session\.state = 'closed' then[\s\S]+return locked_session/i,
+  "closing an already-closed session must return the existing result without duplicate review or audit writes"
+);
+assert.match(
+  fn,
+  /const isIdempotentClose = currentState === "closed" && input\.nextState === "closed"/,
+  "the edge function must allow a close retry to reach post-close cleanup"
+);
 
 assert.match(notesFn, /const instructorRoles = \["platform_owner", "instructor"\]/);
 assert.match(notesFn, /\.from\("profiles"\)[\s\S]+\.eq\("status", "active"\)/);
@@ -105,7 +138,26 @@ assert.match(notesFn, /p_course_id: courseId/);
 assert.doesNotMatch(notesFn, /\.from\("class_student_notes"\)\s*\.insert\(/, "the edge function must not bypass transactional note creation");
 assert.doesNotMatch(notesFn, /\.from\("class_student_notes"\)\s*\.update\(/, "the edge function must not bypass transactional note resolution");
 assert.match(notesFn, /\.eq\("class_session_id", session\.id\)[\s\S]{0,180}\.eq\("course_id", courseId\)/);
-assert.match(notesFn, /\.eq\("profile_id", profileId\)[\s\S]{0,180}\.eq\("course_id", courseId\)[\s\S]{0,180}\.in\("class_session_id", sessionIds\)/);
+assert.doesNotMatch(
+  notesFn,
+  /assertStoredNotesMatchSessionGroup/,
+  "one moved student must not make an instructor's whole session-note list fail"
+);
+assert.match(
+  notesFn,
+  /\.from\("class_student_notes"\)[\s\S]+\.eq\("profile_id", profileId\)[\s\S]+\.eq\("course_id", courseId\)/,
+  "student history must start from course-scoped notes, not only current group sessions"
+);
+assert.match(
+  compositionFixSql,
+  /create_class_student_note_atomic[\s\S]+enrollment\.section_id = locked_session\.section_id[\s\S]+enrollment\.role = 'student'[\s\S]+enrollment\.status in \('active', 'dropped'\)/i,
+  "note creation must accept a student's historical enrollment after a normal group move"
+);
+assert.match(
+  compositionFixSql,
+  /resolve_class_student_note_atomic[\s\S]+enrollment\.section_id = locked_session\.section_id[\s\S]+enrollment\.role = 'student'[\s\S]+enrollment\.status in \('active', 'dropped'\)/i,
+  "an unresolved note from a student's old group must remain resolvable"
+);
 
 assert.match(rosterFn, /const teacherRoles = \["platform_owner", "instructor"\]/);
 assert.match(
@@ -199,6 +251,12 @@ assert.match(
 assert.match(
   assignmentGuardSql,
   /grant execute on function public\.assign_student_section_atomic\(text, uuid, uuid, uuid\)\s*to service_role/i
+);
+
+assert.match(
+  releaseFn,
+  /scheduled:\s*\["released",\s*"draft"\]/,
+  "scheduled access must have a valid cancellation transition back to draft"
 );
 
 console.log("verify-class-management: OK");
