@@ -331,53 +331,35 @@ async function startSession(
     throw new Error(`Transition from ${currentState} to live is not allowed.`);
   }
 
-  const now = new Date().toISOString();
-  const { data: updated, error: updateError } = await db
-    .from("class_sessions")
-    .update({
-      state: "live",
-      actual_start_at: now,
-      join_code: session.join_code || generateJoinCode(),
-      updated_at: now
-    })
-    .eq("id", input.sessionId)
-    .eq("state", currentState)
-    .select("id, course_id, section_id, sequence_number, title, planned_date, actual_start_at, actual_end_at, state, join_code, content_item_id")
-    .maybeSingle();
-  if (updateError) throw updateError;
-  if (!updated) throw new Error("The class changed before it could be started. Refresh and try again.");
-
-  const { data: item, error: itemError } = updated.content_item_id
+  const { data: item, error: itemError } = session.content_item_id
     ? await db
         .from("content_items")
         .select("id, slug, title, source_kind, source_ref")
-        .eq("id", updated.content_item_id)
+        .eq("id", session.content_item_id)
         .eq("course_id", courseId)
         .maybeSingle()
     : { data: null, error: null };
   if (itemError) throw itemError;
 
-  await insertAudit(db, {
-    courseId,
-    actorProfileId: input.actorProfileId,
-    targetType: "class_session",
-    targetId: input.sessionId,
-    action: "session_state_changed",
-    metadata: {
-      old_state: currentState,
-      new_state: "live",
-      reason: null
-    }
-  });
+  const { data: updated, error: startError } = await db
+    .rpc("start_class_session_atomic", {
+      p_session_id: input.sessionId,
+      p_course_id: courseId,
+      p_actor_profile_id: input.actorProfileId
+    })
+    .single();
+  if (startError) throw startError;
+
+  const associatedItem = updated.content_item_id === item?.id ? item : null;
 
   return {
     ...updated,
     session_id: updated.id,
     content_item_id: updated.content_item_id || null,
-    content_slug: item?.slug || null,
-    content_title: item?.title || null,
-    source_kind: item?.source_kind || null,
-    source_ref: item?.source_ref || null
+    content_slug: associatedItem?.slug || null,
+    content_title: associatedItem?.title || null,
+    source_kind: associatedItem?.source_kind || null,
+    source_ref: associatedItem?.source_ref || null
   };
 }
 
