@@ -56,7 +56,7 @@ Deno.serve(async (request) => {
         })
         .single();
       if (noteError) throw noteError;
-      const session = await loadSession(db, courseId, String(note.class_session_id));
+      const session = await loadSession(db, courseId, rpcSessionId(note));
       return json({ notes: await listSessionNotes(db, courseId, session) });
     }
 
@@ -69,13 +69,13 @@ Deno.serve(async (request) => {
         })
         .single();
       if (resolveError) throw resolveError;
-      const session = await loadSession(db, courseId, String(resolved.class_session_id));
+      const session = await loadSession(db, courseId, rpcSessionId(resolved));
       return json({ notes: await listSessionNotes(db, courseId, session) });
     }
 
     return json({ error: "Unknown action." }, { status: 400 });
   } catch (error) {
-    const message = error.message || "Unable to manage class student notes.";
+    const message = errorMessage(error, "Unable to manage class student notes.");
     if (message.includes("not allowed")) return json({ error: message }, { status: 403 });
     return json({ error: message }, { status: 400 });
   }
@@ -247,4 +247,20 @@ async function formatNotes(
 
 function unique(values: string[]) {
   return Array.from(new Set(values.filter(Boolean)));
+}
+
+function rpcSessionId(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("The class student note update returned an invalid row.");
+  }
+  const classSessionId = (value as Record<string, unknown>).class_session_id;
+  if (typeof classSessionId !== "string") {
+    throw new Error("The class student note update returned an invalid row.");
+  }
+  return classSessionId;
+}
+
+function errorMessage(error: unknown, fallback: string) {
+  if (!error || typeof error !== "object" || !("message" in error)) return fallback;
+  return typeof error.message === "string" && error.message ? error.message : fallback;
 }

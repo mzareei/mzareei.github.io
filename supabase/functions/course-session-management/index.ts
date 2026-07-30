@@ -128,7 +128,7 @@ Deno.serve(async (request) => {
       actions: ["list_sessions", "create_session", "update_session", "start_session", "update_session_state", "continue_session", "update_activity_state", "extend_activity_window"]
     });
   } catch (error) {
-    const message = error.message || "Unable to manage class sessions.";
+    const message = errorMessage(error, "Unable to manage class sessions.");
     if (message.includes("not allowed")) return json({ error: message }, { status: 403 });
     return json({ error: message }, { status: 400 });
   }
@@ -355,9 +355,10 @@ async function updateSession(db: ReturnType<typeof adminClient>, courseId: strin
     }
     throw updateError;
   }
+  const updatedRow = classSessionRpcRow(updated);
 
   const sessions = await listSessions(db, courseId, input.permissions);
-  const normalized = sessions.find((row) => row.session_id === updated.id);
+  const normalized = sessions.find((row) => row.session_id === updatedRow.id);
   if (!normalized) throw new Error("Updated class session could not be loaded.");
   return normalized;
 }
@@ -407,13 +408,14 @@ async function startSession(
     })
     .single();
   if (startError) throw startError;
+  const updatedRow = classSessionRpcRow(updated);
 
-  const associatedItem = updated.content_item_id === item?.id ? item : null;
+  const associatedItem = updatedRow.content_item_id === item?.id ? item : null;
 
   return {
-    ...updated,
-    session_id: updated.id,
-    content_item_id: updated.content_item_id || null,
+    ...updatedRow,
+    session_id: updatedRow.id,
+    content_item_id: updatedRow.content_item_id || null,
     content_slug: associatedItem?.slug || null,
     content_title: associatedItem?.title || null,
     source_kind: associatedItem?.source_kind || null,
@@ -510,6 +512,7 @@ async function listSessions(db: ReturnType<typeof adminClient>, courseId: string
 
   const sectionById = new Map((sections || []).map((section) => [section.id, section]));
   const sessionById = new Map((sessions || []).map((session) => [session.id, session]));
+  const originTitleById = new Map((sessions || []).map((session) => [session.id, session.title]));
   const itemById = new Map((items || []).map((item) => [item.id, item]));
 
   const { data: activityTemplates, error: templateError } = contentIds.length
@@ -552,14 +555,14 @@ async function listSessions(db: ReturnType<typeof adminClient>, courseId: string
         .in("id", missingOriginIds)
     : { data: [], error: null };
   if (originError) throw originError;
-  for (const origin of missingOrigins || []) sessionById.set(origin.id, origin);
+  for (const origin of missingOrigins || []) originTitleById.set(origin.id, origin.title);
 
   const releasesBySession = new Map<string, any[]>();
   for (const release of releases || []) {
     const rows = releasesBySession.get(release.class_session_id) || [];
-    const item = itemById.get(release.content_item_id) || {};
-    const session = sessionById.get(release.class_session_id) || {};
-    const targetSectionId = release.section_id || session.section_id || "";
+    const item = itemById.get(release.content_item_id);
+    const session = sessionById.get(release.class_session_id);
+    const targetSectionId = release.section_id || session?.section_id || "";
     const template = (templatesByContent.get(release.content_item_id) || []).find((row) => row.activity_type === "quiz")
       || (templatesByContent.get(release.content_item_id) || [])[0]
       || {};
@@ -570,8 +573,8 @@ async function listSessions(db: ReturnType<typeof adminClient>, courseId: string
       || {};
     rows.push({
       release_id: release.id,
-      title: item.title || "Untitled content",
-      content_type: item.content_type || "",
+      title: item?.title || "Untitled content",
+      content_type: item?.content_type || "",
       state: release.state,
       opens_at: release.opens_at,
       closes_at: release.closes_at,
@@ -586,16 +589,15 @@ async function listSessions(db: ReturnType<typeof adminClient>, courseId: string
   }
 
   return (sessions || []).map((session) => {
-    const section = sectionById.get(session.section_id) || {};
-    const origin = session.continued_from_session_id ? sessionById.get(session.continued_from_session_id) || {} : {};
-    const item = itemById.get(session.content_item_id) || {};
+    const section = sectionById.get(session.section_id);
+    const item = itemById.get(session.content_item_id);
     const continuationCount = (sessions || []).filter((row) => row.continued_from_session_id === session.id).length;
     return {
       session_id: session.id,
       course_id: session.course_id,
       section_id: session.section_id,
-      section_code: section.section_code || "",
-      section_name: section.section_name || "",
+      section_code: section?.section_code || "",
+      section_name: section?.section_name || "",
       sequence_number: session.sequence_number,
       title: session.title,
       planned_date: session.planned_date,
@@ -604,12 +606,14 @@ async function listSessions(db: ReturnType<typeof adminClient>, courseId: string
       state: session.state,
       join_code: session.join_code || "",
       content_item_id: session.content_item_id || null,
-      content_slug: item.slug || null,
-      content_title: item.title || null,
-      source_kind: item.source_kind || null,
-      source_ref: item.source_ref || null,
+      content_slug: item?.slug || null,
+      content_title: item?.title || null,
+      source_kind: item?.source_kind || null,
+      source_ref: item?.source_ref || null,
       continued_from_session_id: session.continued_from_session_id,
-      continued_from_session_title: origin.title || "",
+      continued_from_session_title: session.continued_from_session_id
+        ? originTitleById.get(session.continued_from_session_id) || ""
+        : "",
       teacher_notes: session.teacher_notes || "",
       updated_at: session.updated_at,
       continuation_count: continuationCount,
@@ -985,6 +989,25 @@ async function insertAudit(db: ReturnType<typeof adminClient>, input: {
 
 function unique(values: unknown[]) {
   return Array.from(new Set(values.filter(Boolean))) as string[];
+}
+
+function classSessionRpcRow(value: unknown): Record<string, unknown> & {
+  id: string;
+  content_item_id: string | null;
+} {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("The class session update returned an invalid row.");
+  }
+  const row = value as Record<string, unknown>;
+  if (typeof row.id !== "string" || (row.content_item_id !== null && typeof row.content_item_id !== "string")) {
+    throw new Error("The class session update returned an invalid row.");
+  }
+  return row as Record<string, unknown> & { id: string; content_item_id: string | null };
+}
+
+function errorMessage(error: unknown, fallback: string) {
+  if (!error || typeof error !== "object" || !("message" in error)) return fallback;
+  return typeof error.message === "string" && error.message ? error.message : fallback;
 }
 
 function generateJoinCode() {
