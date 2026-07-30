@@ -399,6 +399,52 @@ function verifyCheckpointKeyboardBridge(script) {
   keydown(keyEvent("ArrowRight"));
   assert.equal(checkpoint.classList.contains("active"), true);
 
+  const parentMessage = windowListeners.get("message");
+  assert.equal(typeof parentMessage, "function");
+  const deliverParentMessage = (data) => parentMessage({
+    data,
+    origin: location.origin,
+    source: parent
+  });
+  const hiddenExecutableMessage = {
+    version: 1,
+    type: "checkpoint.question_ready",
+    checkpoint_key: "checkpoint-one"
+  };
+  Object.defineProperty(hiddenExecutableMessage, "execute", {
+    enumerable: false,
+    value() {}
+  });
+  deliverParentMessage(hiddenExecutableMessage);
+  assert.equal(
+    checkpoint.getAttribute("data-checkpoint-state"),
+    null,
+    "deck must reject a parent message with a hidden executable property"
+  );
+
+  const hiddenUnknownMessage = {
+    version: 1,
+    type: "checkpoint.question_ready",
+    checkpoint_key: "checkpoint-one"
+  };
+  Object.defineProperty(hiddenUnknownMessage, "internal", {
+    enumerable: false,
+    value: "unexpected"
+  });
+  deliverParentMessage(hiddenUnknownMessage);
+  assert.equal(
+    checkpoint.getAttribute("data-checkpoint-state"),
+    null,
+    "deck must reject a parent message with a hidden unknown property"
+  );
+
+  deliverParentMessage({
+    version: 1,
+    type: "checkpoint.question_ready",
+    checkpoint_key: "checkpoint-one"
+  });
+  assert.equal(checkpoint.getAttribute("data-checkpoint-state"), "ready");
+
   posted.length = 0;
   keydown(keyEvent(" "));
   assert.equal(checkpoint.classList.contains("active"), true);

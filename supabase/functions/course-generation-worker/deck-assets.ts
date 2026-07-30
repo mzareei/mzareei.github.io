@@ -722,14 +722,16 @@ export const DECK_SCRIPT = `/* =================================================
     if (!value || typeof value !== "object") return false;
     var proto = Object.getPrototypeOf(value);
     if (proto !== Object.prototype && proto !== null) return false;
-    if (Object.getOwnPropertySymbols(value).length) return false;
-    var keys = Object.keys(value).sort();
-    if (keys.join(",") !== "checkpoint_key,type,version") return false;
+    var ownKeys = Reflect.ownKeys(value);
+    if (ownKeys.some(function (key) { return typeof key !== "string"; })) return false;
     var descriptors = Object.getOwnPropertyDescriptors(value);
-    if (keys.some(function (key) {
+    if (ownKeys.some(function (key) {
       return !Object.prototype.hasOwnProperty.call(descriptors[key], "value")
+        || !descriptors[key].enumerable
         || typeof descriptors[key].value === "function";
     })) return false;
+    var keys = Object.getOwnPropertyNames(value).sort();
+    if (keys.join(",") !== "checkpoint_key,type,version") return false;
     if (value.version !== 1 || typeof value.checkpoint_key !== "string" || !value.checkpoint_key.trim()) {
       return false;
     }
