@@ -21,12 +21,33 @@ Deno.serve(async (request) => {
     if (!token) return json({ error: "Sign in is required." }, { status: 401 });
 
     const body = await request.json().catch(() => ({}));
-    if (body.action !== "open_content" && body.action !== "request_url") {
+    if (
+      body.action !== "open_content"
+      && body.action !== "request_url"
+      && body.action !== "request_instructor_url"
+    ) {
       return json({ error: "Unknown action." }, { status: 400 });
     }
 
     const db = adminClient();
     const profile = await loadProfileForToken(db, token);
+
+    if (body.action === "request_instructor_url") {
+      const access = await loadInstructorContentAccess(db, {
+        contentItemId: cleanUuid(body.content_item_id, "content item id"),
+        profileId: String(profile.id)
+      });
+      const contentToken = await mintContentToken(
+        access.storagePath,
+        SIGNED_URL_SECONDS
+      );
+      return json({
+        token: contentToken,
+        expires_in: SIGNED_URL_SECONDS,
+        content: access.content
+      });
+    }
+
     const courseId = cleanCourseId(body.course_id) || "tc2007b";
     const releaseId = cleanUuid(body.release_id, "release id");
     const access = await loadContentAccess(db, {
@@ -141,6 +162,45 @@ async function loadContentAccess(db: Db, input: {
       source_ref: item.source_ref,
       contains_sensitive_content: item.contains_sensitive_content,
       default_points: item.default_points
+    }
+  };
+}
+
+async function loadInstructorContentAccess(db: Db, input: {
+  contentItemId: string;
+  profileId: string;
+}) {
+  const { data: item, error: itemError } = await db
+    .from("content_items")
+    .select("id, course_id, slug, title, source_kind, source_ref")
+    .eq("id", input.contentItemId)
+    .maybeSingle();
+  if (itemError) throw itemError;
+  if (!item) throw new Error("Access denied: that lecture was not found.");
+
+  const { data: memberships, error: membershipError } = await db
+    .from("course_memberships")
+    .select("role, status")
+    .eq("course_id", item.course_id)
+    .eq("profile_id", input.profileId)
+    .eq("status", "active");
+  if (membershipError) throw membershipError;
+  const isTeacher = (memberships || []).some((membership) =>
+    teacherRoles.includes(String(membership.role))
+  );
+  if (!isTeacher) {
+    throw new Error("Access denied: instructor access is required for this lecture.");
+  }
+  if (String(item.source_kind) !== "storage_object" || !String(item.source_ref || "")) {
+    throw new Error("Access denied: this lecture is not stored on the platform.");
+  }
+
+  return {
+    storagePath: String(item.source_ref),
+    content: {
+      id: String(item.id),
+      title: String(item.title || ""),
+      slug: String(item.slug || "")
     }
   };
 }

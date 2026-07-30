@@ -14,12 +14,12 @@
 import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
+import { assertCheckpointPushMatches } from "../_shared/pulse-checkpoint.ts";
 
 type Db = ReturnType<typeof adminClient>;
 
 const instructorRoles = ["platform_owner", "instructor"];
 const teacherRoles = ["platform_owner", "instructor", "teaching_assistant"];
-const liveSessionStates = ["open", "live", "paused", "continued"];
 
 Deno.serve(async (request) => {
   const options = handleOptions(request);
@@ -126,7 +126,7 @@ async function loadRoles(db: Db, courseId: string, profileId: string) {
 async function loadSession(db: Db, courseId: string, sessionId: string) {
   const { data, error } = await db
     .from("class_sessions")
-    .select("id, course_id, section_id, state, sequence_number, title")
+    .select("id, course_id, section_id, state, sequence_number, title, content_item_id")
     .eq("id", sessionId)
     .eq("course_id", courseId)
     .maybeSingle();
@@ -144,7 +144,8 @@ function buildSnapshot(input: Record<string, unknown>) {
   const options = rawOptions
     .map((option, index) => ({
       key: String((option as Record<string, unknown>)?.key || `o${index + 1}`).slice(0, 40),
-      text: String((option as Record<string, unknown>)?.text || "").trim().slice(0, 400)
+      text: String((option as Record<string, unknown>)?.text || "").trim().slice(0, 400),
+      text_es: String((option as Record<string, unknown>)?.text_es || "").trim().slice(0, 400) || null
     }))
     .filter((option) => option.text);
   if (options.length < 2) throw new Error("A pulse needs at least two options.");
@@ -153,43 +154,106 @@ function buildSnapshot(input: Record<string, unknown>) {
   if (!options.some((option) => option.key === correctKey)) {
     throw new Error("One option must be marked correct.");
   }
-  return { text: text.slice(0, 600), options, correct_key: correctKey };
+  return {
+    text: text.slice(0, 600),
+    text_es: String(input.text_es || "").trim().slice(0, 600) || null,
+    options,
+    correct_key: correctKey
+  };
 }
 
-async function snapshotFromBank(db: Db, questionId: string) {
+async function loadBankQuestion(db: Db, courseId: string, questionId: string) {
   const { data: question, error } = await db
     .from("questions")
-    .select("id, prompt, question_type, status")
+    .select("id, question_bank_id, prompt, prompt_es, question_type, status, checkpoint_after_slide")
     .eq("id", questionId)
+    .eq("status", "active")
     .maybeSingle();
   if (error) throw error;
-  if (!question) throw new Error("That question was not found in the bank.");
+  if (!question) throw new Error("That active question was not found in the bank.");
+
+  const { data: bank, error: bankError } = await db
+    .from("question_banks")
+    .select("id, course_id, content_item_id, status")
+    .eq("id", question.question_bank_id)
+    .eq("course_id", courseId)
+    .eq("status", "active")
+    .maybeSingle();
+  if (bankError) throw bankError;
+  if (!bank) throw new Error("That question bank is not active for this course.");
 
   const { data: options, error: optionError } = await db
     .from("question_options")
-    .select("id, option_text, is_correct, position")
+    .select("id, option_text, option_text_es, is_correct, position")
     .eq("question_id", questionId)
     .order("position", { ascending: true });
   if (optionError) throw optionError;
 
   const mapped = (options || []).map((option) => ({
     key: String(option.id),
-    text: String(option.option_text || "")
+    text: String(option.option_text || ""),
+    text_es: String(option.option_text_es || "") || null
   }));
   const correct = (options || []).find((option) => option.is_correct);
   if (!correct) throw new Error("That bank question has no correct option.");
-  return buildSnapshot({ text: question.prompt, options: mapped, correct_key: String(correct.id) });
+  return {
+    questionId: String(question.id),
+    bankContentItemId: String(bank.content_item_id || ""),
+    checkpointAfterSlide: question.checkpoint_after_slide,
+    snapshot: buildSnapshot({
+      text: question.prompt,
+      text_es: question.prompt_es,
+      options: mapped,
+      correct_key: String(correct.id)
+    })
+  };
 }
 
 async function pushRound(db: Db, courseId: string, actorProfileId: string, body: Record<string, unknown>) {
   const sessionId = cleanUuid(body.class_session_id, "class session id");
   const session = await loadSession(db, courseId, sessionId);
-  if (!liveSessionStates.includes(String(session.state))) {
+  if (String(session.state) !== "live") {
     throw new Error("Start the class session before pushing a pulse.");
   }
 
-  const snapshot = body.question_id
-    ? await snapshotFromBank(db, cleanUuid(body.question_id, "question id"))
+  const hasQuestionId = body.question_id !== undefined && body.question_id !== null;
+  const hasCheckpoint = (
+    body.checkpoint_after_slide !== undefined
+    && body.checkpoint_after_slide !== null
+  );
+  if (hasQuestionId !== hasCheckpoint) {
+    throw new Error("A bank question and slide checkpoint must be supplied together.");
+  }
+
+  const requestedCheckpoint = hasCheckpoint
+    ? Number(body.checkpoint_after_slide)
+    : null;
+  if (
+    hasCheckpoint
+    && (!Number.isInteger(requestedCheckpoint) || Number(requestedCheckpoint) < 1)
+  ) {
+    throw new Error("The checkpoint slide must be a positive integer.");
+  }
+
+  const bankQuestion = hasQuestionId
+    ? await loadBankQuestion(
+      db,
+      courseId,
+      cleanUuid(body.question_id, "question id")
+    )
+    : null;
+  if (bankQuestion) {
+    assertCheckpointPushMatches({
+      sessionState: session.state,
+      sessionContentItemId: session.content_item_id,
+      bankContentItemId: bankQuestion.bankContentItemId,
+      questionCheckpoint: bankQuestion.checkpointAfterSlide,
+      requestedCheckpoint
+    });
+  }
+
+  const snapshot = bankQuestion
+    ? bankQuestion.snapshot
     : buildSnapshot((body.question as Record<string, unknown>) || {});
 
   const timeLimit = Math.min(900, Math.max(10, Number(body.time_limit_seconds) || 60));
@@ -215,7 +279,7 @@ async function pushRound(db: Db, courseId: string, actorProfileId: string, body:
       course_id: courseId,
       class_session_id: sessionId,
       section_id: session.section_id,
-      question_id: body.question_id ? cleanUuid(body.question_id, "question id") : null,
+      question_id: bankQuestion ? bankQuestion.questionId : null,
       prompt_snapshot: snapshot,
       state: "open",
       points,
@@ -235,7 +299,13 @@ async function pushRound(db: Db, courseId: string, actorProfileId: string, body:
     target_type: "pulse_round",
     target_id: round?.id || null,
     action: "pulse_pushed",
-    metadata: { class_session_id: sessionId, points, time_limit_seconds: timeLimit }
+    metadata: {
+      class_session_id: sessionId,
+      question_id: bankQuestion?.questionId || null,
+      checkpoint_after_slide: requestedCheckpoint,
+      points,
+      time_limit_seconds: timeLimit
+    }
   });
 
   return { round: teacherRound(round) };
@@ -269,6 +339,7 @@ function teacherRound(round: Record<string, unknown> | null) {
     opened_at: round.opened_at,
     ends_at: round.ends_at,
     text: snapshot.text,
+    text_es: snapshot.text_es,
     options: snapshot.options,
     correct_key: snapshot.correct_key
   };
@@ -285,6 +356,7 @@ function studentRound(round: Record<string, unknown>, revealed: boolean) {
     opened_at: round.opened_at,
     ends_at: round.ends_at,
     text: snapshot.text,
+    text_es: snapshot.text_es,
     options: snapshot.options,
     correct_key: revealed ? snapshot.correct_key : null
   };
