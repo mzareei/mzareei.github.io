@@ -120,10 +120,12 @@ export function renderCheckpointSection(checkpoint: DeckCheckpoint): string {
   );
 }
 
-const sectionTagPattern = /<\/?section\b[^>]*>/gi;
 const stylePattern = /<style\b[^>]*>[\s\S]*?<\/style\s*>/gi;
 const scriptPattern = /<script\b[^>]*>[\s\S]*?<\/script\s*>/gi;
 const anchorPattern = /<a\b[^>]*>[\s\S]*?<\/a\s*>/gi;
+const rawTextElementNames = new Set([
+  "noscript", "script", "style", "textarea", "title"
+]);
 
 type LegacyCheckpoint = {
   key: string;
@@ -163,6 +165,142 @@ type SectionSpan = {
   checkpoint: boolean;
 };
 
+type HtmlTag = {
+  start: number;
+  end: number;
+  html: string;
+  name: string;
+  closing: boolean;
+  selfClosing: boolean;
+  rawText: boolean;
+};
+
+function tagEndOutsideQuotes(html: string, start: number): number {
+  let quote: '"' | "'" | null = null;
+  for (let index = start + 1; index < html.length; index += 1) {
+    const character = html[index];
+    if (quote) {
+      if (character === quote) quote = null;
+      continue;
+    }
+    if (character === '"' || character === "'") {
+      quote = character;
+    } else if (character === ">") {
+      return index + 1;
+    }
+  }
+  if (quote) {
+    throw new Error("The deck contains an unterminated quoted HTML tag.");
+  }
+  throw new Error("The deck contains an unterminated HTML tag.");
+}
+
+function scanHtmlTags(html: string): HtmlTag[] {
+  const tags: HtmlTag[] = [];
+  let cursor = 0;
+  while (cursor < html.length) {
+    const start = html.indexOf("<", cursor);
+    if (start < 0) break;
+
+    if (html.startsWith("<!--", start)) {
+      const commentEnd = html.indexOf("-->", start + 4);
+      if (commentEnd < 0) {
+        throw new Error("The deck contains an unterminated HTML comment.");
+      }
+      const end = commentEnd + 3;
+      tags.push({
+        start,
+        end,
+        html: html.slice(start, end),
+        name: "#comment",
+        closing: false,
+        selfClosing: false,
+        rawText: true
+      });
+      cursor = end;
+      continue;
+    }
+    if (html.slice(start, start + 9).toUpperCase() === "<![CDATA[") {
+      const cdataEnd = html.indexOf("]]>", start + 9);
+      if (cdataEnd < 0) {
+        throw new Error("The deck contains an unterminated CDATA section.");
+      }
+      const end = cdataEnd + 3;
+      tags.push({
+        start,
+        end,
+        html: html.slice(start, end),
+        name: "#cdata",
+        closing: false,
+        selfClosing: false,
+        rawText: true
+      });
+      cursor = end;
+      continue;
+    }
+    if (html.startsWith("<!", start) || html.startsWith("<?", start)) {
+      const end = tagEndOutsideQuotes(html, start);
+      tags.push({
+        start,
+        end,
+        html: html.slice(start, end),
+        name: "#declaration",
+        closing: false,
+        selfClosing: false,
+        rawText: true
+      });
+      cursor = end;
+      continue;
+    }
+
+    const prefix = html.slice(start).match(
+      /^<\s*(\/?)\s*([a-z][a-z\d:-]*)(?=[\s/>])/i
+    );
+    if (!prefix) {
+      cursor = start + 1;
+      continue;
+    }
+    const end = tagEndOutsideQuotes(html, start);
+    const tagHtml = html.slice(start, end);
+    const closing = prefix[1] === "/";
+    const name = prefix[2].toLowerCase();
+    const selfClosing = /\/\s*>$/.test(tagHtml);
+
+    if (!closing && !selfClosing && rawTextElementNames.has(name)) {
+      const closePattern = new RegExp(`<\\/\\s*${name}\\s*>`, "ig");
+      closePattern.lastIndex = end;
+      const close = closePattern.exec(html);
+      if (!close) {
+        throw new Error(`The deck contains an unclosed <${name}> element.`);
+      }
+      const rawEnd = close.index + close[0].length;
+      tags.push({
+        start,
+        end: rawEnd,
+        html: html.slice(start, rawEnd),
+        name,
+        closing: false,
+        selfClosing: false,
+        rawText: true
+      });
+      cursor = rawEnd;
+      continue;
+    }
+
+    tags.push({
+      start,
+      end,
+      html: tagHtml,
+      name,
+      closing,
+      selfClosing,
+      rawText: false
+    });
+    cursor = end;
+  }
+  return tags;
+}
+
 function scanTopLevelSections(html: string): SectionSpan[] {
   const stack: Array<{
     start: number;
@@ -172,21 +310,22 @@ function scanTopLevelSections(html: string): SectionSpan[] {
   }> = [];
   const sections: SectionSpan[] = [];
 
-  for (const match of html.matchAll(sectionTagPattern)) {
-    const tag = match[0];
-    const start = match.index ?? 0;
-    if (/^<\s*\/section\b/i.test(tag)) {
+  for (const tag of scanHtmlTags(html)) {
+    if (tag.name !== "section") continue;
+    if (tag.selfClosing) {
+      throw new Error("Self-closing <section> tags are not supported.");
+    }
+    if (tag.closing) {
       const opened = stack.pop();
       if (!opened) {
         throw new Error("The deck contains an unmatched </section> tag.");
       }
       if (!stack.length) {
-        const end = start + tag.length;
         sections.push({
           start: opened.start,
-          end,
+          end: tag.end,
           openingTag: opened.openingTag,
-          html: html.slice(opened.start, end),
+          html: html.slice(opened.start, tag.end),
           teaching: opened.teaching,
           checkpoint: opened.checkpoint
         });
@@ -194,8 +333,8 @@ function scanTopLevelSections(html: string): SectionSpan[] {
       continue;
     }
 
-    const classes = classNames(tag);
-    const teaching = isTeachingOpeningTag(tag);
+    const classes = classNames(tag.html);
+    const teaching = isTeachingOpeningTag(tag.html);
     if (
       stack.some((opened) => opened.teaching)
       || (stack.length > 0 && teaching)
@@ -203,8 +342,8 @@ function scanTopLevelSections(html: string): SectionSpan[] {
       throw new Error("A nested <section> inside a teaching slide is not supported.");
     }
     stack.push({
-      start,
-      openingTag: tag,
+      start: tag.start,
+      openingTag: tag.html,
       teaching,
       checkpoint: classes.includes("checkpoint-slide")
     });
@@ -213,6 +352,22 @@ function scanTopLevelSections(html: string): SectionSpan[] {
     throw new Error("The deck contains an unclosed <section> tag.");
   }
   return sections;
+}
+
+function withoutTeachingSlideAttribute(tag: string): string {
+  return tag.replace(
+    /\s+data-teaching-slide\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/i,
+    () => ""
+  );
+}
+
+function teachingSectionMarkup(html: string): string[] {
+  return scanTopLevelSections(html)
+    .filter((section) => section.teaching)
+    .map((section) => section.html.replace(
+      section.openingTag,
+      () => withoutTeachingSlideAttribute(section.openingTag)
+    ));
 }
 
 function decodeHtmlEntities(text: string): string {
@@ -238,11 +393,20 @@ function decodeHtmlEntities(text: string): string {
 }
 
 function visibleSlideText(section: string): string {
-  const text = section
-    .replace(/<(script|style|noscript)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, () => " ")
-    .replace(/<br\s*\/?>/gi, () => " ")
-    .replace(/<\/(?:div|h[1-6]|li|ol|p|table|td|th|tr|ul)\s*>/gi, () => " ")
-    .replace(/<[^>]+>/g, () => " ");
+  const blockNames = new Set([
+    "div", "h1", "h2", "h3", "h4", "h5", "h6", "li", "ol",
+    "p", "table", "td", "th", "tr", "ul"
+  ]);
+  let cursor = 0;
+  let text = "";
+  for (const tag of scanHtmlTags(section)) {
+    text += section.slice(cursor, tag.start);
+    if (tag.rawText || tag.name === "br" || (tag.closing && blockNames.has(tag.name))) {
+      text += " ";
+    }
+    cursor = tag.end;
+  }
+  text += section.slice(cursor);
   return decodeHtmlEntities(text)
     .replace(/\s+/g, () => " ")
     .replace(/\s+([,.;:!?])/g, (_match, punctuation: string) => punctuation)
@@ -347,10 +511,7 @@ export function injectCheckpointSections(
     teachingSlideNumber += 1;
 
     const originalOpeningTag = section.openingTag;
-    const unnumberedOpeningTag = originalOpeningTag.replace(
-      /\s+data-teaching-slide\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/i,
-      () => ""
-    );
+    const unnumberedOpeningTag = withoutTeachingSlideAttribute(originalOpeningTag);
     const numberedOpeningTag = unnumberedOpeningTag.replace(
       />$/,
       () => ` data-teaching-slide="${teachingSlideNumber}">`
@@ -489,19 +650,25 @@ export function prepareLegacyDeckHtml(
   assets: DeckAssets
 ): string {
   const teachingSlides = extractTeachingSlides(html);
+  const teachingMarkup = teachingSectionMarkup(html);
   const transformed = replaceLegacyDeckAssets(
     injectCheckpointSections(removeLegacyDeckNavigation(html), checkpoints),
     assets
   );
   const transformedSlides = extractTeachingSlides(transformed);
+  const transformedMarkup = teachingSectionMarkup(transformed);
   if (
     transformedSlides.length !== teachingSlides.length
     || transformedSlides.some((slide, index) =>
       slide.number !== teachingSlides[index].number
       || slide.text !== teachingSlides[index].text
     )
+    || transformedMarkup.length !== teachingMarkup.length
+    || transformedMarkup.some((section, index) => section !== teachingMarkup[index])
   ) {
-    throw new Error("The teaching-slide count or order changed during checkpoint preparation.");
+    throw new Error(
+      "The teaching-slide markup, count, text, or order changed during checkpoint preparation."
+    );
   }
   return transformed;
 }

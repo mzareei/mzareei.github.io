@@ -152,6 +152,77 @@ assert.throws(
   /nested <section>/i
 );
 
+const quotedAttributeFixture = legacyFixture
+  .replace(
+    '<section class="slide title-slide active">',
+    '<section class="slide title-slide active" data-section="A > B">'
+  )
+  .replace(
+    '<section class="slide"><div class="slide-inner"><h2>Two</h2>',
+    "<section class=\"slide\" data-section='C > D'><div class=\"slide-inner\"><h2>Two</h2>"
+  );
+const quotedAttributeSlides = extractTeachingSlides(quotedAttributeFixture);
+const quotedAttributeUpgrade = prepareLegacyDeckHtml(
+  quotedAttributeFixture,
+  checkpoints,
+  { style: DECK_STYLE, script: DECK_SCRIPT }
+);
+assert.match(
+  quotedAttributeUpgrade,
+  /data-section="A > B" data-teaching-slide="1">/,
+  "double-quoted > must stay inside the original attribute"
+);
+assert.match(
+  quotedAttributeUpgrade,
+  /data-section='C > D' data-teaching-slide="2">/,
+  "single-quoted > must stay inside the original attribute"
+);
+assert.deepEqual(
+  extractTeachingSlides(quotedAttributeUpgrade),
+  quotedAttributeSlides,
+  "quote-aware numbering must preserve exact teaching text and order"
+);
+assert.doesNotMatch(
+  quotedAttributeUpgrade,
+  /data-section=(?:"A\s+data-teaching|'C\s+data-teaching)/,
+  "numbering must not splice inside a quoted attribute"
+);
+
+for (const malformedQuotedTag of [
+  '<main><section class="slide data-section=\'unterminated\'>Teaching</section></main>',
+  '<main><section class=\'slide data-section="unterminated">Teaching</section></main>'
+]) {
+  assert.throws(
+    () => extractTeachingSlides(malformedQuotedTag),
+    /unterminated quoted html tag/i,
+    "unterminated single or double attribute quotes must fail closed"
+  );
+}
+
+const rawTextFixture = legacyFixture
+  .replace(
+    "<body>",
+    '<body>\n<!-- <section class="slide">Comment-only fake section</section> -->'
+  )
+  .replace(
+    '<script>window.lectureCustom = "$&";</script>',
+    '<script>window.fakeSection = \'<section class="slide">Script-only fake</section>\'; window.lectureCustom = "$&";</script>'
+  );
+assert.equal(
+  extractTeachingSlides(rawTextFixture).length,
+  4,
+  "section-looking text in comments and scripts must not enter the teaching coordinate system"
+);
+assert.equal(
+  extractTeachingSlides(
+    prepareLegacyDeckHtml(rawTextFixture, checkpoints, {
+      style: DECK_STYLE,
+      script: DECK_SCRIPT
+    })
+  ).length,
+  4
+);
+
 const injected = injectCheckpointSections(legacyFixture, checkpoints);
 assert.equal((injected.match(/data-teaching-slide="/g) || []).length, 4);
 assert.equal((injected.match(/data-checkpoint-key=/g) || []).length, 1);
