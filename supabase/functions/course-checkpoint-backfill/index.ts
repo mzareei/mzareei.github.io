@@ -18,6 +18,7 @@ import {
   type CheckpointMetadata,
   validateCheckpointBank
 } from "../_shared/checkpoints.ts";
+import { coalesceSegmentKeysByCheckpoint } from "../_shared/checkpoint-mapping.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
 import { DECK_SCRIPT, DECK_STYLE } from "../course-generation-worker/deck-assets.ts";
@@ -536,7 +537,17 @@ async function prepareCheckpoints(
     schema: mappingSchema,
     maxTokens: 7000
   });
-  const { mappings, coverage } = validateMappings(result, questions, teachingSlides.length);
+  const normalizedResult = {
+    ...result,
+    mappings: coalesceSegmentKeysByCheckpoint(
+      Array.isArray(result.mappings) ? result.mappings : []
+    )
+  };
+  const { mappings, coverage } = validateMappings(
+    normalizedResult,
+    questions,
+    teachingSlides.length
+  );
   return persistPreparedDeck(
     db,
     courseId,

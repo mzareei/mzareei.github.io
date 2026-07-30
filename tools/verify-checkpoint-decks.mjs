@@ -13,8 +13,19 @@ import {
   DECK_SCRIPT,
   DECK_STYLE
 } from "../supabase/functions/course-generation-worker/deck-assets.ts";
+import { coalesceSegmentKeysByCheckpoint } from "../supabase/functions/_shared/checkpoint-mapping.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+assert.deepEqual(
+  coalesceSegmentKeysByCheckpoint([
+    { question_id: "q1", segment_key: "cia", checkpoint_after_slide: 15 },
+    { question_id: "q2", segment_key: "threats", checkpoint_after_slide: 15 },
+    { question_id: "q3", segment_key: "risk", checkpoint_after_slide: 28 }
+  ]).map(({ segment_key }) => segment_key),
+  ["cia", "cia", "risk"],
+  "questions at one slide boundary must form one checkpoint candidate pool"
+);
 
 const legacyFixture = `<!doctype html>
 <html>
