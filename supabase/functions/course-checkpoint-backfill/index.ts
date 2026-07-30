@@ -1,8 +1,8 @@
 // Instructor-only preparation for storage-backed legacy lecture decks.
 //
 // The existing question stems and options are immutable here. Claude maps each
-// question to finalized teaching slides, shared validators reject the complete
-// mapping before any write, and the same-path private deck upload happens last.
+// question to finalized teaching slides and shared validators reject the complete
+// mapping before one RPC commits all metadata plus a durable upload-pending state.
 import { generateStructured, textBlock } from "../_shared/anthropic.ts";
 import { adminClient } from "../_shared/client.ts";
 import {
@@ -49,6 +49,7 @@ export type BackfillResult = {
   teaching_slide_count: number;
   checkpoint_count: number;
   mapped_question_count: number;
+  preparation_state: "ready";
 };
 
 const bucket = "course-content";
@@ -273,6 +274,117 @@ function validateMappings(
   return { mappings, coverage };
 }
 
+function persistedMappings(
+  questions: StoredQuestion[],
+  teachingSlideCount: number
+): ReturnType<typeof validateMappings> {
+  return validateMappings(
+    {
+      mappings: questions.map((question) => ({
+        checkpoint_after_slide: question.checkpoint_after_slide,
+        question_id: question.id,
+        segment_key: question.segment_key,
+        source_slide_end: question.source_slide_end,
+        source_slide_numbers: question.source_slide_numbers,
+        source_slide_start: question.source_slide_start
+      }))
+    },
+    questions,
+    teachingSlideCount
+  );
+}
+
+function backfillResult(
+  item: { id: unknown; source_ref: unknown },
+  bank: { id: unknown },
+  teachingSlideCount: number,
+  mappedQuestionCount: number,
+  checkpointCount: number
+): BackfillResult {
+  return {
+    content_item_id: String(item.id),
+    question_bank_id: String(bank.id),
+    storage_path: String(item.source_ref),
+    teaching_slide_count: teachingSlideCount,
+    checkpoint_count: checkpointCount,
+    mapped_question_count: mappedQuestionCount,
+    preparation_state: "ready"
+  };
+}
+
+async function persistPreparedDeck(
+  db: Db,
+  courseId: string,
+  item: { id: unknown; source_ref: unknown },
+  bank: { id: unknown },
+  currentHtml: string,
+  teachingSlideCount: number,
+  mappings: MappedQuestion[],
+  coverage: ReturnType<typeof checkpointCoverage>,
+  beginPreparation: boolean
+): Promise<BackfillResult> {
+  const deckCheckpoints = deckCheckpointsFromQuestions(
+    mappings.map((mapping) => ({
+      segment_key: mapping.metadata.segmentKey,
+      source_slide_start: mapping.metadata.sourceSlideStart,
+      source_slide_end: mapping.metadata.sourceSlideEnd,
+      checkpoint_after_slide: mapping.metadata.checkpointAfterSlide
+    }))
+  );
+  const preparedHtml = prepareLegacyDeckHtml(
+    currentHtml,
+    deckCheckpoints.map((checkpoint) => ({
+      key: checkpoint.key,
+      afterSlide: checkpoint.after_slide,
+      sourceStart: checkpoint.source_slide_start,
+      sourceEnd: checkpoint.source_slide_end
+    })),
+    {
+      style: DECK_STYLE,
+      script: DECK_SCRIPT
+    }
+  );
+
+  if (beginPreparation) {
+    const { error: beginError } = await db
+      .rpc("begin_question_bank_checkpoint_preparation", {
+        p_course_id: courseId,
+        p_bank_id: bank.id,
+        p_mappings: mappings.map((mapping) => ({
+          question_id: mapping.questionId,
+          ...checkpointMetadataColumns(mapping.metadata)
+        }))
+      });
+    if (beginError) throw beginError;
+  }
+
+  // Storage is the last content mutation. If this upload fails, or if the
+  // readiness acknowledgement below fails, pending_upload remains retryable.
+  const { error: uploadError } = await db.storage
+    .from(bucket)
+    .upload(
+      item.source_ref,
+      new Blob([preparedHtml], { type: "text/html; charset=utf-8" }),
+      { contentType: "text/html; charset=utf-8", upsert: true }
+    );
+  if (uploadError) throw uploadError;
+
+  const { error: completionError } = await db
+    .rpc("complete_question_bank_checkpoint_preparation", {
+      p_course_id: courseId,
+      p_bank_id: bank.id
+    });
+  if (completionError) throw completionError;
+
+  return backfillResult(
+    item,
+    bank,
+    teachingSlideCount,
+    mappings.length,
+    coverage.length
+  );
+}
+
 async function prepareCheckpoints(
   db: Db,
   courseId: string,
@@ -300,7 +412,7 @@ async function prepareCheckpoints(
 
   const { data: banks, error: bankError } = await db
     .from("question_banks")
-    .select("id, content_item_id, status")
+    .select("id, content_item_id, status, checkpoint_preparation_state")
     .eq("course_id", courseId)
     .eq("content_item_id", item.id)
     .eq("status", "active");
@@ -334,6 +446,39 @@ async function prepareCheckpoints(
   const metadataState = checkpointMetadataState(
     questions as unknown as Array<Record<string, unknown>>
   );
+  if (bank.checkpoint_preparation_state === "pending_upload") {
+    if (metadataState.status !== "valid") {
+      throw new Error("Pending checkpoint preparation has incomplete persisted metadata.");
+    }
+    const retry = persistedMappings(questions, teachingSlides.length);
+    return persistPreparedDeck(
+      db,
+      courseId,
+      item,
+      bank,
+      legacyHtml,
+      teachingSlides.length,
+      retry.mappings,
+      retry.coverage,
+      false
+    );
+  }
+  if (bank.checkpoint_preparation_state === "ready") {
+    if (metadataState.status !== "valid") {
+      throw new Error("A ready checkpoint bank has invalid persisted metadata.");
+    }
+    const ready = persistedMappings(questions, teachingSlides.length);
+    return backfillResult(
+      item,
+      bank,
+      teachingSlides.length,
+      ready.mappings.length,
+      ready.coverage.length
+    );
+  }
+  if (bank.checkpoint_preparation_state !== "none") {
+    throw new Error("The checkpoint preparation state is not recognized.");
+  }
   if (metadataState.status !== "missing") {
     throw new Error("Only a legacy bank with completely missing checkpoint metadata can be prepared.");
   }
@@ -392,60 +537,15 @@ async function prepareCheckpoints(
     maxTokens: 7000
   });
   const { mappings, coverage } = validateMappings(result, questions, teachingSlides.length);
-  const deckCheckpoints = deckCheckpointsFromQuestions(
-    mappings.map((mapping) => ({
-      segment_key: mapping.metadata.segmentKey,
-      source_slide_start: mapping.metadata.sourceSlideStart,
-      source_slide_end: mapping.metadata.sourceSlideEnd,
-      checkpoint_after_slide: mapping.metadata.checkpointAfterSlide
-    }))
-  );
-  const preparedHtml = prepareLegacyDeckHtml(
+  return persistPreparedDeck(
+    db,
+    courseId,
+    item,
+    bank,
     legacyHtml,
-    deckCheckpoints.map((checkpoint) => ({
-      key: checkpoint.key,
-      afterSlide: checkpoint.after_slide,
-      sourceStart: checkpoint.source_slide_start,
-      sourceEnd: checkpoint.source_slide_end
-    })),
-    {
-      style: DECK_STYLE,
-      script: DECK_SCRIPT
-    }
+    teachingSlides.length,
+    mappings,
+    coverage,
+    true
   );
-
-  // All model output, checkpoint coverage and HTML are validated before this
-  // first write. Only the five metadata columns can change.
-  for (const mapping of mappings) {
-    const metadataColumns = checkpointMetadataColumns(mapping.metadata);
-    const { data: updated, error: updateError } = await db
-      .from("questions")
-      .update(metadataColumns)
-      .eq("id", mapping.questionId)
-      .eq("question_bank_id", bank.id)
-      .select("id")
-      .maybeSingle();
-    if (updateError) throw updateError;
-    if (!updated) throw new Error(`Question ${mapping.questionId} could not be updated.`);
-  }
-
-  // Same-path private storage replacement is deliberately the final operation.
-  // Therefore model, validation and database failures leave the working deck.
-  const { error: uploadError } = await db.storage
-    .from(bucket)
-    .upload(
-      item.source_ref,
-      new Blob([preparedHtml], { type: "text/html; charset=utf-8" }),
-      { contentType: "text/html; charset=utf-8", upsert: true }
-    );
-  if (uploadError) throw uploadError;
-
-  return {
-    content_item_id: String(item.id),
-    question_bank_id: String(bank.id),
-    storage_path: String(item.source_ref),
-    teaching_slide_count: teachingSlides.length,
-    checkpoint_count: coverage.length,
-    mapped_question_count: mappings.length
-  };
 }

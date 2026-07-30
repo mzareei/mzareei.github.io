@@ -120,7 +120,7 @@ export function renderCheckpointSection(checkpoint: DeckCheckpoint): string {
   );
 }
 
-const sectionPattern = /<section\b[^>]*>[\s\S]*?<\/section\s*>/gi;
+const sectionTagPattern = /<\/?section\b[^>]*>/gi;
 const stylePattern = /<style\b[^>]*>[\s\S]*?<\/style\s*>/gi;
 const scriptPattern = /<script\b[^>]*>[\s\S]*?<\/script\s*>/gi;
 const anchorPattern = /<a\b[^>]*>[\s\S]*?<\/a\s*>/gi;
@@ -137,10 +137,6 @@ type DeckAssets = {
   script: string;
 };
 
-function openingTag(section: string): string {
-  return section.match(/^<section\b[^>]*>/i)?.[0] || "";
-}
-
 function attributeValue(tag: string, name: string): string {
   const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, (character) => `\\${character}`);
   const match = tag.match(
@@ -153,9 +149,70 @@ function classNames(tag: string): string[] {
   return attributeValue(tag, "class").split(/\s+/).filter(Boolean);
 }
 
-function isTeachingSection(section: string): boolean {
-  const classes = classNames(openingTag(section));
+function isTeachingOpeningTag(tag: string): boolean {
+  const classes = classNames(tag);
   return classes.includes("slide") && !classes.includes("checkpoint-slide");
+}
+
+type SectionSpan = {
+  start: number;
+  end: number;
+  openingTag: string;
+  html: string;
+  teaching: boolean;
+  checkpoint: boolean;
+};
+
+function scanTopLevelSections(html: string): SectionSpan[] {
+  const stack: Array<{
+    start: number;
+    openingTag: string;
+    teaching: boolean;
+    checkpoint: boolean;
+  }> = [];
+  const sections: SectionSpan[] = [];
+
+  for (const match of html.matchAll(sectionTagPattern)) {
+    const tag = match[0];
+    const start = match.index ?? 0;
+    if (/^<\s*\/section\b/i.test(tag)) {
+      const opened = stack.pop();
+      if (!opened) {
+        throw new Error("The deck contains an unmatched </section> tag.");
+      }
+      if (!stack.length) {
+        const end = start + tag.length;
+        sections.push({
+          start: opened.start,
+          end,
+          openingTag: opened.openingTag,
+          html: html.slice(opened.start, end),
+          teaching: opened.teaching,
+          checkpoint: opened.checkpoint
+        });
+      }
+      continue;
+    }
+
+    const classes = classNames(tag);
+    const teaching = isTeachingOpeningTag(tag);
+    if (
+      stack.some((opened) => opened.teaching)
+      || (stack.length > 0 && teaching)
+    ) {
+      throw new Error("A nested <section> inside a teaching slide is not supported.");
+    }
+    stack.push({
+      start,
+      openingTag: tag,
+      teaching,
+      checkpoint: classes.includes("checkpoint-slide")
+    });
+  }
+  if (stack.length) {
+    throw new Error("The deck contains an unclosed <section> tag.");
+  }
+  return sections;
 }
 
 function decodeHtmlEntities(text: string): string {
@@ -201,12 +258,11 @@ export function extractTeachingSlides(html: string): Array<{
   text: string;
 }> {
   const slides: Array<{ number: number; text: string }> = [];
-  for (const match of html.matchAll(sectionPattern)) {
-    const section = match[0];
-    if (!isTeachingSection(section)) continue;
+  for (const section of scanTopLevelSections(html)) {
+    if (!section.teaching) continue;
     slides.push({
       number: slides.length + 1,
-      text: visibleSlideText(section)
+      text: visibleSlideText(section.html)
     });
   }
   return slides;
@@ -262,14 +318,10 @@ export function injectCheckpointSections(
   html: string,
   checkpoints: LegacyCheckpoint[]
 ): string {
-  const teachingSlides = extractTeachingSlides(html);
+  const sections = scanTopLevelSections(html);
+  const teachingSlides = sections.filter((section) => section.teaching);
   if (!teachingSlides.length) {
     throw new Error("The legacy deck has no teaching slides.");
-  }
-  if ([...html.matchAll(sectionPattern)].some((match) =>
-    classNames(openingTag(match[0])).includes("checkpoint-slide")
-  )) {
-    throw new Error("The legacy deck already contains checkpoint sections.");
   }
 
   const ordered = validateLegacyCheckpoints(checkpoints, teachingSlides.length);
@@ -282,11 +334,19 @@ export function injectCheckpointSections(
   }
 
   let teachingSlideNumber = 0;
-  const transformed = html.replace(sectionPattern, (section) => {
-    if (!isTeachingSection(section)) return section;
+  let cursor = 0;
+  let transformed = "";
+  for (const section of sections) {
+    transformed += html.slice(cursor, section.start);
+    cursor = section.end;
+    if (section.checkpoint) continue;
+    if (!section.teaching) {
+      transformed += section.html;
+      continue;
+    }
     teachingSlideNumber += 1;
 
-    const originalOpeningTag = openingTag(section);
+    const originalOpeningTag = section.openingTag;
     const unnumberedOpeningTag = originalOpeningTag.replace(
       /\s+data-teaching-slide\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/i,
       () => ""
@@ -295,7 +355,7 @@ export function injectCheckpointSections(
       />$/,
       () => ` data-teaching-slide="${teachingSlideNumber}">`
     );
-    const numberedSection = section.replace(
+    const numberedSection = section.html.replace(
       originalOpeningTag,
       () => numberedOpeningTag
     );
@@ -308,8 +368,9 @@ export function injectCheckpointSections(
         source_slide_end: checkpoint.sourceEnd
       }))
       .join("\n");
-    return following ? `${numberedSection}\n${following}` : numberedSection;
-  });
+    transformed += following ? `${numberedSection}\n${following}` : numberedSection;
+  }
+  transformed += html.slice(cursor);
 
   if (teachingSlideNumber !== teachingSlides.length) {
     throw new Error("The teaching-slide count changed while checkpoints were inserted.");
@@ -320,12 +381,20 @@ export function injectCheckpointSections(
 function isLegacyDestination(anchor: string): boolean {
   const classes = classNames(anchor.match(/^<a\b[^>]*>/i)?.[0] || "");
   if (!classes.includes("ui-btn")) return false;
-  const href = attributeValue(anchor, "href").toLowerCase();
+  const rawHref = attributeValue(anchor, "href").trim();
+  let hrefPath = rawHref.split(/[?#]/, 1)[0].toLowerCase().replace(/\\/g, "/");
+  if (/^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(rawHref)) {
+    try {
+      hrefPath = new URL(rawHref, "https://deck.invalid/").pathname.toLowerCase();
+    } catch {
+      return false;
+    }
+  }
   return (
-    /\/teaching\/information-security\/?(?:[?#].*)?$/.test(href)
-    || /\/mission-(?:\d+|bridge)\/?(?:[?#].*)?$/.test(href)
-    || /(?:^|\/)quiz\/teacher\.html(?:[?#].*)?$/.test(href)
-    || /\/exit-ticket\/?(?:[?#].*)?$/.test(href)
+    /(?:^|\/)teaching\/information-security\/?$/.test(hrefPath)
+    || /(?:^|\/)mission-(?:\d+|bridge)\/?$/.test(hrefPath)
+    || /(?:^|\/)quiz\/teacher\.html\/?$/.test(hrefPath)
+    || /(?:^|\/)exit-ticket\/?$/.test(hrefPath)
   );
 }
 
@@ -358,7 +427,10 @@ export function replaceLegacyDeckAssets(html: string, assets: DeckAssets): strin
   let transformed = html.replace(stylePattern, (styleBlock) => {
     if (
       styleReplaced
-      || !/TC2007B\s+—\s+Lecture deck theme\s+\(shared design; copy per lecture\)/.test(styleBlock)
+      || !(
+        /data-course-deck-engine\s*=\s*(?:"current"|'current'|current)/i.test(styleBlock)
+        || /TC2007B\s+—\s+Lecture deck theme\s+\(shared design; copy per lecture\)/.test(styleBlock)
+      )
     ) {
       return styleBlock;
     }
@@ -379,7 +451,10 @@ export function replaceLegacyDeckAssets(html: string, assets: DeckAssets): strin
   transformed = transformed.replace(scriptPattern, (scriptBlock) => {
     if (
       scriptReplaced
-      || !/TC2007B\s*-\s*W1\s*-\s*L1\s*-\s*Presenter engine/.test(scriptBlock)
+      || !(
+        /data-course-deck-engine\s*=\s*(?:"current"|'current'|current)/i.test(scriptBlock)
+        || /TC2007B\s*-\s*W1\s*-\s*L1\s*-\s*Presenter engine/.test(scriptBlock)
+      )
     ) {
       return scriptBlock;
     }

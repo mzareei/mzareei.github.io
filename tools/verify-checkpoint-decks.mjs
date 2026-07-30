@@ -89,6 +89,69 @@ assert.match(withoutLegacyNavigation, /id="prevBtn"/);
 assert.match(withoutLegacyNavigation, /id="nextBtn"/);
 assert.match(withoutLegacyNavigation, /href="#source-note"/);
 
+const navigationVariants = {
+  home: [
+    "teaching/information-security/",
+    "../teaching/information-security/?from=deck",
+    "/teaching/information-security/#today",
+    "https://mzareei.github.io/teaching/information-security/?from=deck#today"
+  ],
+  mission: [
+    "mission-01/",
+    "../mission-bridge/?from=deck",
+    "/assets/course-materials/information-security/week-01/mission-02/#task",
+    "https://mzareei.github.io/assets/course-materials/information-security/week-01/mission-03/?from=deck#task"
+  ],
+  quiz: [
+    "quiz/teacher.html",
+    "../quiz/teacher.html?lecture=one",
+    "/assets/course-materials/information-security/week-01/quiz/teacher.html#start",
+    "https://mzareei.github.io/assets/course-materials/information-security/week-01/quiz/teacher.html?lecture=one#start"
+  ],
+  exit: [
+    "exit-ticket/",
+    "../../exit-ticket/?lecture=one",
+    "/assets/course-materials/information-security/exit-ticket/#reflect",
+    "https://mzareei.github.io/assets/course-materials/information-security/exit-ticket/?lecture=one#reflect"
+  ]
+};
+const navigationFixture = [
+  ...Object.entries(navigationVariants).flatMap(([destination, hrefs]) =>
+    hrefs.map((href, index) =>
+      `<a class="ui-btn" data-legacy="${destination}-${index}" href="${href}">Old control</a>`
+    )
+  ),
+  '<a class="ui-btn" data-keep="course" href="../information-security/resources/">Resources</a>',
+  '<a class="ui-btn" data-keep="quiz" href="quiz/index.html">Quiz index</a>',
+  '<a class="reference-link" data-keep="reference" href="mission-01/">Mission reference</a>'
+].join("\n");
+const navigationMatrixResult = removeLegacyDeckNavigation(navigationFixture);
+assert.doesNotMatch(
+  navigationMatrixResult,
+  /data-legacy=/,
+  "all bare, parent-relative, root-relative, absolute, query and hash legacy controls must be removed"
+);
+assert.match(navigationMatrixResult, /data-keep="course"/);
+assert.match(navigationMatrixResult, /data-keep="quiz"/);
+assert.match(navigationMatrixResult, /data-keep="reference"/);
+
+const nestedTeachingFixture = legacyFixture.replace(
+  "<h2>Two</h2><p>Markup <strong>stays text</strong>.</p>",
+  '<h2>Two</h2><section class="nested"><p>Nested teaching markup</p></section>'
+);
+assert.throws(
+  () => extractTeachingSlides(nestedTeachingFixture),
+  /nested <section>/i,
+  "nested sections inside teaching slides must fail closed"
+);
+assert.throws(
+  () => prepareLegacyDeckHtml(nestedTeachingFixture, checkpoints, {
+    style: DECK_STYLE,
+    script: DECK_SCRIPT
+  }),
+  /nested <section>/i
+);
+
 const injected = injectCheckpointSections(legacyFixture, checkpoints);
 assert.equal((injected.match(/data-teaching-slide="/g) || []).length, 4);
 assert.equal((injected.match(/data-checkpoint-key=/g) || []).length, 1);
@@ -146,6 +209,15 @@ assert.deepEqual(
   extractTeachingSlides(upgraded).map(({ number, text }) => ({ number, text })),
   extracted
 );
+const retriedUpgrade = prepareLegacyDeckHtml(upgraded, checkpoints, {
+  style: DECK_STYLE,
+  script: DECK_SCRIPT
+});
+assert.equal((retriedUpgrade.match(/data-checkpoint-key=/g) || []).length, 1);
+assert.deepEqual(
+  extractTeachingSlides(retriedUpgrade).map(({ number, text }) => ({ number, text })),
+  extracted
+);
 
 const backfillPath = path.join(
   root,
@@ -169,9 +241,15 @@ assert.equal(
 assert.match(backfillSource, /validateCheckpointBank\(/);
 assert.match(backfillSource, /candidate_count < 2/);
 assert.match(backfillSource, /checkpointMetadataState\(/);
-assert.match(backfillSource, /status !== "missing"/);
+assert.match(backfillSource, /checkpoint_preparation_state/);
 assert.match(backfillSource, /prepareLegacyDeckHtml\([\s\S]*style: DECK_STYLE[\s\S]*script: DECK_SCRIPT/);
-assert.match(backfillSource, /\.from\("questions"\)\s*\.update\(metadataColumns\)/);
+assert.match(backfillSource, /\.rpc\("begin_question_bank_checkpoint_preparation"/);
+assert.match(backfillSource, /\.rpc\("complete_question_bank_checkpoint_preparation"/);
+assert.doesNotMatch(
+  backfillSource,
+  /\.from\("questions"\)\s*\.update\(/,
+  "question metadata must be committed through one transactional RPC"
+);
 assert.doesNotMatch(
   backfillSource,
   /\.from\("question_options"\)\s*\.(?:insert|update|upsert|delete)\(/,
@@ -179,17 +257,81 @@ assert.doesNotMatch(
 );
 
 const validationIndex = backfillSource.indexOf("validateCheckpointBank(");
-const metadataWriteIndex = backfillSource.indexOf('.from("questions")\n      .update(metadataColumns)');
+const metadataWriteIndex = backfillSource.indexOf(
+  '.rpc("begin_question_bank_checkpoint_preparation"'
+);
 const storageWriteIndex = backfillSource.indexOf(".upload(\n      item.source_ref");
+const completionWriteIndex = backfillSource.indexOf(
+  '.rpc("complete_question_bank_checkpoint_preparation"'
+);
 assert.ok(validationIndex >= 0 && metadataWriteIndex > validationIndex);
 assert.ok(
   storageWriteIndex > metadataWriteIndex,
-  "all metadata validation and database writes must precede the same-path storage upload"
+  "validated metadata and durable pending state must precede the same-path storage upload"
+);
+assert.ok(
+  completionWriteIndex > storageWriteIndex,
+  "the bank can only become ready after its same-path deck upload succeeds"
+);
+const generateIndex = backfillSource.indexOf("await generateStructured(");
+const pendingBranchIndex = backfillSource.indexOf(
+  'bank.checkpoint_preparation_state === "pending_upload"'
+);
+assert.ok(
+  pendingBranchIndex >= 0 && pendingBranchIndex < generateIndex,
+  "a pending retry must be selected before the model call"
+);
+assert.match(
+  backfillSource.slice(pendingBranchIndex, generateIndex),
+  /persistedMappings\(questions[\s\S]*return persistPreparedDeck/,
+  "pending retries must reconstruct the deck from persisted question metadata"
+);
+
+const migrationSource = fs.readFileSync(
+  path.join(root, "supabase/migrations/0022_checkpoint_preparation_state.sql"),
+  "utf8"
+);
+assert.match(
+  migrationSource,
+  /checkpoint_preparation_state[\s\S]*pending_upload[\s\S]*ready/
+);
+assert.match(
+  migrationSource,
+  /create or replace function public\.begin_question_bank_checkpoint_preparation/
+);
+assert.match(
+  migrationSource,
+  /jsonb_array_length\(p_mappings\)\s*<>\s*18/
+);
+assert.match(
+  migrationSource,
+  /segment_key\s*=[\s\S]*source_slide_numbers\s*=[\s\S]*source_slide_start\s*=[\s\S]*source_slide_end\s*=[\s\S]*checkpoint_after_slide\s*=/,
+  "the begin RPC must write exactly the five checkpoint metadata fields"
+);
+assert.match(
+  migrationSource,
+  /checkpoint_preparation_state\s*=\s*'pending_upload'/
+);
+assert.match(
+  migrationSource,
+  /create or replace function public\.complete_question_bank_checkpoint_preparation/
+);
+assert.match(
+  migrationSource,
+  /checkpoint_preparation_state\s*=\s*'ready'/
 );
 assert.doesNotMatch(
-  backfillSource.slice(storageWriteIndex),
-  /\.from\(/,
-  "the storage upload must be the final database/storage operation"
+  migrationSource,
+  /\bset\s+(?:[\s\S]{0,300},\s*)?(?:prompt|prompt_es|option_text|status)\s*=/i,
+  "checkpoint preparation must not rewrite prompts, options, or lifecycle status"
+);
+assert.match(
+  migrationSource,
+  /grant execute on function public\.begin_question_bank_checkpoint_preparation[\s\S]*to service_role/
+);
+assert.match(
+  migrationSource,
+  /grant execute on function public\.complete_question_bank_checkpoint_preparation[\s\S]*to service_role/
 );
 
 const configSource = fs.readFileSync(path.join(root, "supabase/config.toml"), "utf8");
@@ -206,6 +348,11 @@ assert.match(
   bankSource,
   /content_item_id: bank\.content_item_id/,
   "the Content UI needs the real content item id returned by list_banks"
+);
+assert.match(
+  bankSource,
+  /checkpoint_preparation_state: bank\.checkpoint_preparation_state/,
+  "list_banks must expose the durable preparation state"
 );
 
 console.log("verify-checkpoint-decks: OK");

@@ -294,7 +294,7 @@ async function importBank(db: Db, courseId: string, actorProfileId: string, body
 async function listBanks(db: Db, courseId: string) {
   const { data: banks, error } = await db
     .from("question_banks")
-    .select("id, title, content_item_id, bank_type, status, updated_at")
+    .select("id, title, content_item_id, bank_type, status, checkpoint_preparation_state, checkpoint_preparation_updated_at, updated_at")
     .eq("course_id", courseId)
     .eq("status", "active");
   if (error) throw error;
@@ -327,6 +327,8 @@ async function listBanks(db: Db, courseId: string) {
           content_slug: item?.slug ?? null,
           content_title: item?.title ?? null,
           content_type: item?.content_type ?? null,
+          checkpoint_preparation_state: bank.checkpoint_preparation_state,
+          checkpoint_preparation_updated_at: bank.checkpoint_preparation_updated_at,
           updated_at: bank.updated_at,
           total: mine.length,
           checkpoint_metadata_status: metadataState.status,
