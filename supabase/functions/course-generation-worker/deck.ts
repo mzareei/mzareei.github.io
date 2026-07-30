@@ -5,6 +5,10 @@
 // ones, and means a bad generation can't inject arbitrary HTML into a page that
 // students open.
 import { DECK_SKELETON, DECK_SCRIPT, DECK_STYLE } from "./deck-assets.ts";
+import {
+  renderCheckpointSection,
+  type DeckCheckpoint
+} from "../_shared/checkpoint-deck.ts";
 
 export interface Slide {
   slide_number: number;
@@ -133,7 +137,7 @@ function renderSlide(slide: Slide, index: number) {
 
   return (
     `  <section class="${classes.join(" ")}" data-section="${esAttr(slide.section)}" ` +
-    `data-section-es="${esAttr(slide.section_es)}">\n` +
+    `data-section-es="${esAttr(slide.section_es)}" data-teaching-slide="${slide.slide_number}">\n` +
     `    <div class="slide-inner">\n` +
     badge +
     body(slide) +
@@ -142,8 +146,42 @@ function renderSlide(slide: Slide, index: number) {
   );
 }
 
-export async function assembleDeck(input: { title: string; slides: Slide[] }): Promise<string> {
-  const slides = input.slides.map(renderSlide).join("\n");
+export async function assembleDeck(input: {
+  title: string;
+  slides: Slide[];
+  checkpoints: DeckCheckpoint[];
+}): Promise<string> {
+  const teachingSlideNumbers = new Set(input.slides.map((slide) => slide.slide_number));
+  const seenCheckpointKeys = new Set<string>();
+  const checkpoints = [...input.checkpoints].sort((a, b) =>
+    a.after_slide - b.after_slide || a.segment_key.localeCompare(b.segment_key)
+  );
+  for (const checkpoint of checkpoints) {
+    if (!teachingSlideNumbers.has(checkpoint.after_slide)) {
+      throw new Error(
+        `Checkpoint "${checkpoint.key}" does not match a finalized teaching slide.`
+      );
+    }
+    if (seenCheckpointKeys.has(checkpoint.key)) {
+      throw new Error(`Checkpoint key "${checkpoint.key}" is duplicated.`);
+    }
+    seenCheckpointKeys.add(checkpoint.key);
+  }
+
+  const checkpointsBySlide = new Map<number, DeckCheckpoint[]>();
+  for (const checkpoint of checkpoints) {
+    checkpointsBySlide.set(checkpoint.after_slide, [
+      ...(checkpointsBySlide.get(checkpoint.after_slide) || []),
+      checkpoint
+    ]);
+  }
+
+  const slides = input.slides.map((slide, index) => {
+    const checkpointSections = (checkpointsBySlide.get(slide.slide_number) || [])
+      .map(renderCheckpointSection)
+      .join("\n");
+    return renderSlide(slide, index) + (checkpointSections ? `\n${checkpointSections}` : "");
+  }).join("\n");
   return DECK_SKELETON
     .replace(/\{\{TITLE\}\}/g, esc(input.title))
     .replace(/\{\{DESCRIPTION\}\}/g, esc(input.title))

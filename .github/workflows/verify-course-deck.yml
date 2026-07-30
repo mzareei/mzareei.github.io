@@ -1,0 +1,31 @@
+name: Verify generated course decks
+
+on:
+  push:
+    paths:
+      - "supabase/functions/_shared/checkpoint-deck.ts"
+      - "supabase/functions/_shared/checkpoints.ts"
+      - "supabase/functions/_shared/templates/**"
+      - "supabase/functions/course-generation-worker/**"
+      - "tools/build-deck-assets.mjs"
+      - "tools/verify-slide-checkpoints.mjs"
+      - ".github/workflows/verify-course-deck.yml"
+  pull_request:
+    paths:
+      - "supabase/functions/_shared/checkpoint-deck.ts"
+      - "supabase/functions/_shared/checkpoints.ts"
+      - "supabase/functions/_shared/templates/**"
+      - "supabase/functions/course-generation-worker/**"
+      - "tools/build-deck-assets.mjs"
+      - "tools/verify-slide-checkpoints.mjs"
+      - ".github/workflows/verify-course-deck.yml"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node tools/verify-slide-checkpoints.mjs

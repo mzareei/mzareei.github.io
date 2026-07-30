@@ -19,6 +19,7 @@ import {
   checkpointMetadataFromQuestion,
   validateCheckpointBank
 } from "../_shared/checkpoints.ts";
+import { deckCheckpointsFromQuestions } from "../_shared/checkpoint-deck.ts";
 import { assembleDeck, type Slide } from "./deck.ts";
 import { OUTLINE_SCHEMA, SLIDES_SCHEMA, QUESTIONS_SCHEMA } from "./schemas.ts";
 
@@ -360,7 +361,11 @@ async function stepAssemble(db: Db, job: Record<string, unknown>, stepState: Rec
   }
 
   // 1. Deck HTML into Storage, beside every other gated deck.
-  const html = await assembleDeck({ title: String(job.lecture_title), slides });
+  const html = await assembleDeck({
+    title: String(job.lecture_title),
+    slides,
+    checkpoints: deckCheckpointsFromQuestions(questions)
+  });
   const storagePath = `courses/${courseId}/items/${slug}/deck.html`;
   const { error: uploadError } = await db.storage
     .from(bucket)

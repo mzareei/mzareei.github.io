@@ -1,5 +1,5 @@
 /* =====================================================================
-   TC2007B - W1 - L1 - Presenter engine
+   Generated lecture deck presenter engine
    Navigation + click-to-reveal fragments + EN/ES language + light/dark.
    No dependency on side panels or hidden notes.
    ===================================================================== */
@@ -52,7 +52,10 @@
   };
   var uiText = {
     ovTitle:  ["Slide overview", "Vista general de diapositivas"],
-    fragHint: ["click to reveal", "clic para revelar"]
+    fragHint: ["click to reveal", "clic para revelar"],
+    checkpointReady: ["Ready to send from the class controls.", "Lista para enviar desde los controles de la clase."],
+    checkpointSent: ["Question sent to students.", "Pregunta enviada a estudiantes."],
+    checkpointRevealed: ["Answer revealed.", "Respuesta mostrada."]
   };
 
   function captureEnglish() {
@@ -80,6 +83,7 @@
     ovTitle.textContent    = uiText.ovTitle[idx];
     fragHintTx.textContent = uiText.fragHint[idx];
     updateSecName();
+    updateCheckpointSlot();
     save("tc-lang", l);
   }
   function toggleLang() { applyLang(lang === "es" ? "en" : "es"); }
@@ -108,6 +112,19 @@
     s.classList.add("active");
     setFragments(s, dir !== "forward");
     updateChrome();
+    notifyParent({
+      type: "deck.slide_changed",
+      slide: current + 1,
+      teaching_slide: Number(s.getAttribute("data-teaching-slide")) || null
+    });
+    var checkpointKey = s.getAttribute("data-checkpoint-key");
+    if (checkpointKey) {
+      notifyParent({
+        type: "deck.checkpoint_entered",
+        checkpoint_key: checkpointKey,
+        after_slide: Number(s.getAttribute("data-after-slide"))
+      });
+    }
   }
 
   function next() {
@@ -138,12 +155,94 @@
     var more = !!slides[current].querySelector(".fragment:not(.revealed)");
     fragHint.classList.toggle("show", more);
   }
+  function updateCheckpointSlot() {
+    var slide = slides[current];
+    var slot = slide && slide.querySelector(".checkpoint-slot");
+    if (!slot) return;
+    var state = slide.getAttribute("data-checkpoint-state");
+    var copy = state === "ready" ? uiText.checkpointReady
+      : state === "sent" ? uiText.checkpointSent
+      : state === "revealed" ? uiText.checkpointRevealed
+      : null;
+    slot.textContent = copy ? copy[lang === "es" ? 1 : 0] : "";
+  }
+
+  /* ---- Same-origin parent bridge ---- */
+  function notifyParent(message) {
+    if (parent === window) return;
+    var payload = {};
+    Object.keys(message).forEach(function (key) { payload[key] = message[key]; });
+    payload.version = 1;
+    parent.postMessage(payload, location.origin);
+  }
+
+  function validParentMessage(value) {
+    if (!value || typeof value !== "object") return false;
+    var proto = Object.getPrototypeOf(value);
+    if (proto !== Object.prototype && proto !== null) return false;
+    if (Object.getOwnPropertySymbols(value).length) return false;
+    var keys = Object.keys(value).sort();
+    if (keys.join(",") !== "checkpoint_key,type,version") return false;
+    var descriptors = Object.getOwnPropertyDescriptors(value);
+    if (keys.some(function (key) {
+      return !Object.prototype.hasOwnProperty.call(descriptors[key], "value")
+        || typeof descriptors[key].value === "function";
+    })) return false;
+    if (value.version !== 1 || typeof value.checkpoint_key !== "string" || !value.checkpoint_key.trim()) {
+      return false;
+    }
+    return [
+      "checkpoint.question_ready",
+      "checkpoint.question_sent",
+      "checkpoint.answer_revealed",
+      "checkpoint.resume"
+    ].indexOf(value.type) >= 0;
+  }
+
+  window.addEventListener("message", function (event) {
+    if (event.origin !== location.origin || event.source !== parent) return;
+    if (!validParentMessage(event.data)) return;
+    var slide = slides[current];
+    var checkpointKey = slide.getAttribute("data-checkpoint-key");
+    if (!checkpointKey || event.data.checkpoint_key !== checkpointKey) return;
+
+    if (event.data.type === "checkpoint.resume") {
+      next();
+      return;
+    }
+    var state = event.data.type === "checkpoint.question_ready" ? "ready"
+      : event.data.type === "checkpoint.question_sent" ? "sent"
+      : "revealed";
+    slide.setAttribute("data-checkpoint-state", state);
+    updateCheckpointSlot();
+  });
 
   /* ---- Keyboard / presenter remote ---- */
   document.addEventListener("keydown", function (e) {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     switch (e.key) {
-      case "ArrowRight": case "ArrowDown": case "PageDown": case " ":
+      case "ArrowRight":
+        e.preventDefault();
+        var checkpointKey = slides[current].getAttribute("data-checkpoint-key");
+        if (checkpointKey) {
+          notifyParent({
+            type: "deck.checkpoint_skipped",
+            checkpoint_key: checkpointKey
+          });
+        }
+        next();
+        break;
+      case " ":
+        e.preventDefault();
+        var checkpointKey = slides[current].getAttribute("data-checkpoint-key");
+        if (checkpointKey) {
+          notifyParent({
+            type: "deck.checkpoint_action",
+            checkpoint_key: checkpointKey
+          });
+        } else next();
+        break;
+      case "ArrowDown": case "PageDown":
         e.preventDefault(); next(); break;
       case "ArrowLeft": case "ArrowUp": case "PageUp":
         e.preventDefault(); prev(); break;
@@ -248,4 +347,5 @@
 
   var startN = parseInt((location.hash || "").replace("#", ""), 10);
   show(isNaN(startN) ? 0 : startN - 1, "back");
+  notifyParent({ type: "deck.ready", slide: current + 1 });
 })();
