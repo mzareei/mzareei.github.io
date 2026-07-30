@@ -145,7 +145,7 @@ Deno.serve(async (request) => {
       allowed_domains: defaultAllowedDomains
     });
   } catch (error) {
-    const message = error.message || "Unable to manage roster.";
+    const message = error instanceof Error ? error.message : "Unable to manage roster.";
     if (message.includes("not allowed")) return json({ error: message }, { status: 403 });
     return json({ error: message }, { status: 400 });
   }
@@ -287,6 +287,7 @@ async function validateRosterRows(db: ReturnType<typeof adminClient>, courseId: 
     }
     seenEmails.add(row.institutional_email);
     const section = sectionByCode.get(row.section_code.toLowerCase());
+    if (!section) throw new Error("Section code does not exist for this course.");
     accepted_rows.push({
       ...row,
       role: row.role || "student",
@@ -1004,24 +1005,24 @@ async function listRoster(db: ReturnType<typeof adminClient>, courseId: string) 
   }
 
   return (memberships || []).map((membership) => {
-    const profile = profileById.get(membership.profile_id) || {};
+    const profile = profileById.get(membership.profile_id);
     const sectionsForProfile = (enrollmentByProfile.get(membership.profile_id) || []).map((enrollment) => {
-      const section = sectionById.get(enrollment.section_id) || {};
+      const section = sectionById.get(enrollment.section_id);
       return {
         section_id: enrollment.section_id,
-        section_code: section.section_code || "",
-        section_name: section.section_name || "",
+        section_code: section?.section_code || "",
+        section_name: section?.section_name || "",
         role: enrollment.role,
         status: enrollment.status
       };
     });
     return {
       profile_id: membership.profile_id,
-      institutional_email: profile.institutional_email || "",
-      student_identifier: profile.student_identifier || "",
-      full_name: profile.full_name || "",
-      claimed: Boolean(profile.auth_user_id),
-      profile_status: profile.status || "",
+      institutional_email: profile?.institutional_email || "",
+      student_identifier: profile?.student_identifier || "",
+      full_name: profile?.full_name || "",
+      claimed: Boolean(profile?.auth_user_id),
+      profile_status: profile?.status || "",
       course_role: membership.role,
       membership_status: membership.status,
       sections: sectionsForProfile
