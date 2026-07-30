@@ -43,6 +43,7 @@ Deno.serve(async (request) => {
         sectionId: cleanUuid(body.section_id, "A valid section id is required."),
         title: cleanSessionTitle(body.title),
         plannedDate: cleanPlannedDate(body.planned_date),
+        contentItemId: cleanOptionalUuid(body.content_item_id, "A valid lecture id is required."),
         actorProfileId: profile.id,
         permissions
       });
@@ -55,6 +56,15 @@ Deno.serve(async (request) => {
         sessionId: cleanUuid(body.session_id, "A valid session id is required."),
         nextState: cleanSessionState(body.next_state),
         reason: cleanReason(body.reason),
+        actorProfileId: profile.id,
+        permissions
+      });
+      return json({ session });
+    }
+
+    if (body.action === "start_session") {
+      const session = await startSession(db, courseId, {
+        sessionId: cleanUuid(body.session_id, "A valid session id is required."),
         actorProfileId: profile.id,
         permissions
       });
@@ -101,7 +111,7 @@ Deno.serve(async (request) => {
       sessions,
       allowedSessionTransitions,
       allowedActivityTransitions,
-      actions: ["list_sessions", "create_session", "update_session_state", "continue_session", "update_activity_state", "extend_activity_window"]
+      actions: ["list_sessions", "create_session", "start_session", "update_session_state", "continue_session", "update_activity_state", "extend_activity_window"]
     });
   } catch (error) {
     const message = error.message || "Unable to manage class sessions.";
@@ -129,6 +139,11 @@ function cleanUuid(value: unknown, message: string) {
     throw new Error(message);
   }
   return text;
+}
+
+function cleanOptionalUuid(value: unknown, message: string) {
+  const text = String(value || "").trim();
+  return text ? cleanUuid(text, message) : undefined;
 }
 
 function cleanUuidList(value: unknown) {
@@ -201,6 +216,7 @@ async function createSession(db: ReturnType<typeof adminClient>, courseId: strin
   sectionId: string;
   title: string;
   plannedDate: string;
+  contentItemId?: string;
   actorProfileId: string;
   permissions: { isCourseInstructor: boolean; permittedSectionIds: string[] };
 }) {
@@ -214,6 +230,19 @@ async function createSession(db: ReturnType<typeof adminClient>, courseId: strin
     .maybeSingle();
   if (sectionError) throw sectionError;
   if (!section) throw new Error("That section is not part of this course.");
+
+  const { data: item, error: itemError } = input.contentItemId
+    ? await db
+        .from("content_items")
+        .select("id, course_id, content_type, slug, title, source_kind, source_ref")
+        .eq("id", input.contentItemId)
+        .eq("course_id", courseId)
+        .maybeSingle()
+    : { data: null, error: null };
+  if (itemError) throw itemError;
+  if (input.contentItemId && (!item || item.content_type !== "lecture")) {
+    throw new Error("Choose a lecture from this course.");
+  }
 
   const { data: last, error: lastError } = await db
     .from("class_sessions")
@@ -233,9 +262,11 @@ async function createSession(db: ReturnType<typeof adminClient>, courseId: strin
       sequence_number: sequenceNumber,
       title: input.title,
       planned_date: input.plannedDate,
-      state: "planned"
+      state: "planned",
+      join_code: generateJoinCode(),
+      content_item_id: input.contentItemId || null
     })
-    .select("id, course_id, section_id, sequence_number, title, planned_date, state")
+    .select("id, course_id, section_id, sequence_number, title, planned_date, actual_start_at, actual_end_at, state, join_code, content_item_id")
     .single();
   if (createError) {
     if (String(createError.code) === "23505") {
@@ -254,14 +285,100 @@ async function createSession(db: ReturnType<typeof adminClient>, courseId: strin
       section_id: input.sectionId,
       sequence_number: sequenceNumber,
       title: input.title,
-      planned_date: input.plannedDate
+      planned_date: input.plannedDate,
+      content_item_id: input.contentItemId || null
     }
   });
 
   // listSessions calls this field `session_id`. Returning `id` here would mean
   // one concept with two names depending on which call you made — exactly the
   // cross-boundary mismatch that keeps costing time.
-  return { ...created, session_id: created.id };
+  return {
+    ...created,
+    session_id: created.id,
+    content_item_id: created.content_item_id || null,
+    content_slug: item?.slug || null,
+    content_title: item?.title || null,
+    source_kind: item?.source_kind || null,
+    source_ref: item?.source_ref || null
+  };
+}
+
+async function startSession(
+  db: ReturnType<typeof adminClient>,
+  courseId: string,
+  input: {
+    sessionId: string;
+    actorProfileId: string;
+    permissions: {
+      isCourseInstructor: boolean;
+      permittedSectionIds: string[];
+    };
+  }
+) {
+  const { data: session, error } = await db
+    .from("class_sessions")
+    .select("id, course_id, section_id, sequence_number, title, planned_date, actual_start_at, actual_end_at, state, join_code, content_item_id")
+    .eq("id", input.sessionId)
+    .eq("course_id", courseId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!session) throw new Error("Class session not found.");
+  assertSectionAllowed(input.permissions, session.section_id);
+
+  const currentState = String(session.state || "");
+  if (!["planned", "open", "continued"].includes(currentState)) {
+    throw new Error(`Transition from ${currentState} to live is not allowed.`);
+  }
+
+  const now = new Date().toISOString();
+  const { data: updated, error: updateError } = await db
+    .from("class_sessions")
+    .update({
+      state: "live",
+      actual_start_at: now,
+      join_code: session.join_code || generateJoinCode(),
+      updated_at: now
+    })
+    .eq("id", input.sessionId)
+    .eq("state", currentState)
+    .select("id, course_id, section_id, sequence_number, title, planned_date, actual_start_at, actual_end_at, state, join_code, content_item_id")
+    .maybeSingle();
+  if (updateError) throw updateError;
+  if (!updated) throw new Error("The class changed before it could be started. Refresh and try again.");
+
+  const { data: item, error: itemError } = updated.content_item_id
+    ? await db
+        .from("content_items")
+        .select("id, slug, title, source_kind, source_ref")
+        .eq("id", updated.content_item_id)
+        .eq("course_id", courseId)
+        .maybeSingle()
+    : { data: null, error: null };
+  if (itemError) throw itemError;
+
+  await insertAudit(db, {
+    courseId,
+    actorProfileId: input.actorProfileId,
+    targetType: "class_session",
+    targetId: input.sessionId,
+    action: "session_state_changed",
+    metadata: {
+      old_state: currentState,
+      new_state: "live",
+      reason: null
+    }
+  });
+
+  return {
+    ...updated,
+    session_id: updated.id,
+    content_item_id: updated.content_item_id || null,
+    content_slug: item?.slug || null,
+    content_title: item?.title || null,
+    source_kind: item?.source_kind || null,
+    source_ref: item?.source_ref || null
+  };
 }
 
 async function requireInstructor(db: ReturnType<typeof adminClient>, token: string, courseId: string) {
@@ -313,7 +430,7 @@ async function listSessions(db: ReturnType<typeof adminClient>, courseId: string
 }) {
   let sessionQuery = db
     .from("class_sessions")
-    .select("id, course_id, section_id, sequence_number, title, planned_date, actual_start_at, actual_end_at, state, continued_from_session_id, teacher_notes, updated_at")
+    .select("id, course_id, section_id, sequence_number, title, planned_date, actual_start_at, actual_end_at, state, join_code, content_item_id, continued_from_session_id, teacher_notes, updated_at")
     .eq("course_id", courseId)
     .order("planned_date", { ascending: true })
     .order("sequence_number", { ascending: true });
@@ -339,11 +456,14 @@ async function listSessions(db: ReturnType<typeof adminClient>, courseId: string
   if (sectionError) throw sectionError;
   if (releaseError) throw releaseError;
 
-  const contentIds = unique((releases || []).map((release) => release.content_item_id));
+  const contentIds = unique([
+    ...(releases || []).map((release) => release.content_item_id),
+    ...(sessions || []).map((session) => session.content_item_id)
+  ]);
   const { data: items, error: itemError } = contentIds.length
     ? await db
         .from("content_items")
-        .select("id, title, content_type")
+        .select("id, title, content_type, slug, source_kind, source_ref")
         .in("id", contentIds)
     : { data: [], error: null };
   if (itemError) throw itemError;
@@ -428,6 +548,7 @@ async function listSessions(db: ReturnType<typeof adminClient>, courseId: string
   return (sessions || []).map((session) => {
     const section = sectionById.get(session.section_id) || {};
     const origin = session.continued_from_session_id ? sessionById.get(session.continued_from_session_id) || {} : {};
+    const item = itemById.get(session.content_item_id) || {};
     const continuationCount = (sessions || []).filter((row) => row.continued_from_session_id === session.id).length;
     return {
       session_id: session.id,
@@ -441,6 +562,12 @@ async function listSessions(db: ReturnType<typeof adminClient>, courseId: string
       actual_start_at: session.actual_start_at,
       actual_end_at: session.actual_end_at,
       state: session.state,
+      join_code: session.join_code || "",
+      content_item_id: session.content_item_id || null,
+      content_slug: item.slug || null,
+      content_title: item.title || null,
+      source_kind: item.source_kind || null,
+      source_ref: item.source_ref || null,
       continued_from_session_id: session.continued_from_session_id,
       continued_from_session_title: origin.title || "",
       teacher_notes: session.teacher_notes || "",
@@ -796,4 +923,10 @@ async function insertAudit(db: ReturnType<typeof adminClient>, input: {
 
 function unique(values: unknown[]) {
   return Array.from(new Set(values.filter(Boolean))) as string[];
+}
+
+function generateJoinCode() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = crypto.getRandomValues(new Uint8Array(8));
+  return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
 }

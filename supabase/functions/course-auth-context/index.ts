@@ -35,6 +35,8 @@ Deno.serve(async (request) => {
         memberships: [],
         sections: [],
         releases: [],
+        student_sessions: [],
+        teacher_sessions: [],
         roster_status: "missing_profile"
       });
     }
@@ -42,7 +44,11 @@ Deno.serve(async (request) => {
     const memberships = await loadMemberships(db, courseId, profile.id);
     const sections = await loadSections(db, courseId, profile.id);
     const releases = await loadVisibleReleases(db, courseId, sections.map((section) => section.id));
-    const teacherSessions = isTeacherContext(memberships, sections)
+    const teacherContext = isTeacherContext(memberships, sections);
+    const studentSessions = teacherContext
+      ? []
+      : await loadStudentSessions(db, courseId, profile.id, sections);
+    const teacherSessions = teacherContext
       ? await loadTeacherSessions(db, courseId, profile.id, memberships, sections)
       : [];
 
@@ -52,6 +58,7 @@ Deno.serve(async (request) => {
       memberships,
       sections,
       releases,
+      student_sessions: studentSessions,
       teacher_sessions: teacherSessions,
       roster_status: memberships.length || sections.length ? "active" : "not_enrolled"
     });
@@ -307,6 +314,57 @@ function isTeacherContext(memberships: Record<string, unknown>[], sections: Reco
     || sections.some((section) => String(section.role) === "teaching_assistant");
 }
 
+async function loadStudentSessions(
+  db: ReturnType<typeof adminClient>,
+  courseId: string,
+  profileId: string,
+  sections: Record<string, unknown>[]
+) {
+  if (!profileId) return [];
+  const sectionIds = unique(sections.map((section) => section.id));
+  if (!sectionIds.length) return [];
+
+  const { data: sessions, error } = await db
+    .from("class_sessions")
+    .select("id, section_id, title, planned_date, state, join_code, content_item_id")
+    .eq("course_id", courseId)
+    .in("section_id", sectionIds)
+    .in("state", ["planned", "open", "live", "paused", "continued"])
+    .order("planned_date", { ascending: true })
+    .order("sequence_number", { ascending: true });
+  if (error) throw error;
+  if (!(sessions || []).length) return [];
+
+  const contentIds = unique((sessions || []).map((session) => session.content_item_id));
+  const { data: items, error: itemError } = contentIds.length
+    ? await db
+        .from("content_items")
+        .select("id, slug, title")
+        .eq("course_id", courseId)
+        .in("id", contentIds)
+    : { data: [], error: null };
+  if (itemError) throw itemError;
+
+  const sectionById = new Map(sections.map((section) => [section.id, section]));
+  const itemById = new Map((items || []).map((item) => [item.id, item]));
+  return (sessions || []).map((session) => {
+    const section = sectionById.get(session.section_id) || {};
+    const item = itemById.get(session.content_item_id) || {};
+    return {
+      session_id: session.id,
+      section_id: session.section_id,
+      section_code: section.section_code || "",
+      title: session.title,
+      planned_date: session.planned_date,
+      state: session.state,
+      join_code: session.join_code || "",
+      content_item_id: session.content_item_id || null,
+      content_slug: item.slug || null,
+      content_title: item.title || null
+    };
+  });
+}
+
 async function loadTeacherSessions(
   db: ReturnType<typeof adminClient>,
   courseId: string,
@@ -324,7 +382,7 @@ async function loadTeacherSessions(
 
   let query = db
     .from("class_sessions")
-    .select("id, course_id, section_id, sequence_number, title, planned_date, state, continued_from_session_id")
+    .select("id, course_id, section_id, sequence_number, title, planned_date, state, join_code, content_item_id, continued_from_session_id")
     .eq("course_id", courseId)
     .order("planned_date", { ascending: true })
     .order("sequence_number", { ascending: true });
@@ -336,7 +394,12 @@ async function loadTeacherSessions(
 
   const sectionIds = unique((sessions || []).map((session) => session.section_id));
   const originIds = unique((sessions || []).map((session) => session.continued_from_session_id));
-  const [{ data: sectionRows, error: sectionError }, { data: originRows, error: originError }] = await Promise.all([
+  const contentIds = unique((sessions || []).map((session) => session.content_item_id));
+  const [
+    { data: sectionRows, error: sectionError },
+    { data: originRows, error: originError },
+    { data: itemRows, error: itemError }
+  ] = await Promise.all([
     sectionIds.length
       ? db
           .from("course_sections")
@@ -348,16 +411,26 @@ async function loadTeacherSessions(
           .from("class_sessions")
           .select("id, title, planned_date, state")
           .in("id", originIds)
+      : Promise.resolve({ data: [], error: null }),
+    contentIds.length
+      ? db
+          .from("content_items")
+          .select("id, slug, title, source_kind, source_ref")
+          .eq("course_id", courseId)
+          .in("id", contentIds)
       : Promise.resolve({ data: [], error: null })
   ]);
   if (sectionError) throw sectionError;
   if (originError) throw originError;
+  if (itemError) throw itemError;
 
   const sectionById = new Map((sectionRows || []).map((section) => [section.id, section]));
   const originById = new Map((originRows || []).map((session) => [session.id, session]));
+  const itemById = new Map((itemRows || []).map((item) => [item.id, item]));
   return (sessions || []).map((session) => {
     const section = sectionById.get(session.section_id) || {};
     const origin = session.continued_from_session_id ? originById.get(session.continued_from_session_id) || {} : {};
+    const item = itemById.get(session.content_item_id) || {};
     return {
       session_id: session.id,
       course_id: session.course_id,
@@ -368,6 +441,12 @@ async function loadTeacherSessions(
       title: session.title,
       planned_date: session.planned_date,
       state: session.state,
+      join_code: session.join_code || "",
+      content_item_id: session.content_item_id || null,
+      content_slug: item.slug || null,
+      content_title: item.title || null,
+      source_kind: item.source_kind || null,
+      source_ref: item.source_ref || null,
       continued_from_session_id: session.continued_from_session_id || null,
       continued_from_session_title: origin.title || ""
     };
