@@ -1,7 +1,11 @@
+alter table public.class_sessions
+  add constraint class_sessions_course_id_id_key
+  unique (course_id, id);
+
 create table public.class_student_notes (
   id uuid primary key default gen_random_uuid(),
   course_id text not null references public.courses(id) on delete cascade,
-  class_session_id uuid not null references public.class_sessions(id) on delete cascade,
+  class_session_id uuid not null,
   profile_id uuid not null references public.profiles(id) on delete cascade,
   author_profile_id uuid references public.profiles(id) on delete set null,
   note_text text not null check (length(note_text) between 1 and 4000),
@@ -9,7 +13,10 @@ create table public.class_student_notes (
   resolved_at timestamptz,
   resolved_by uuid references public.profiles(id) on delete set null,
   created_at timestamptz not null default now(),
-  check ((resolved_at is null) = (resolved_by is null))
+  check ((resolved_at is null) = (resolved_by is null)),
+  foreign key (course_id, class_session_id)
+    references public.class_sessions(course_id, id)
+    on delete cascade
 );
 
 create index class_student_notes_session_profile_created_idx

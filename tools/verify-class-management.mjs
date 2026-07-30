@@ -20,6 +20,16 @@ const notesFn = fs.readFileSync(
 assert.match(sql, /create table[^;]+class_student_notes/is);
 assert.match(sql, /needs_follow_up boolean not null default false/i);
 assert.match(sql, /alter table public\.class_student_notes enable row level security/i);
+assert.match(
+  sql,
+  /alter table public\.class_sessions\s+add constraint class_sessions_course_id_id_key\s+unique\s*\(\s*course_id\s*,\s*id\s*\)/i,
+  "class sessions need a full course/id key for a course-scoped note reference"
+);
+assert.match(
+  sql,
+  /foreign key\s*\(\s*course_id\s*,\s*class_session_id\s*\)\s+references public\.class_sessions\s*\(\s*course_id\s*,\s*id\s*\)\s+on delete cascade/i,
+  "notes must enforce that their course and session belong together and retain session-delete cascading"
+);
 assert.match(sql, /close_class_session_with_review/i);
 assert.match(sql, /for update/i);
 assert.match(sql, /section_id[\s\S]+review_only/i);
