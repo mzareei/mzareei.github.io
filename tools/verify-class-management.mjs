@@ -12,6 +12,10 @@ const fn = fs.readFileSync(
   path.join(root, "supabase/functions/course-session-management/index.ts"),
   "utf8"
 );
+const notesFn = fs.readFileSync(
+  path.join(root, "supabase/functions/course-student-notes/index.ts"),
+  "utf8"
+);
 
 assert.match(sql, /create table[^;]+class_student_notes/is);
 assert.match(sql, /needs_follow_up boolean not null default false/i);
@@ -47,5 +51,22 @@ assert.match(sql, /locked_session\.state not in \('planned', 'open', 'continued'
 assert.match(sql, /p_content_item_id[\s\S]+content_type = 'lecture'/i);
 assert.match(sql, /grant execute on function public\.update_class_session_atomic\(uuid, text, uuid, uuid, text, date, uuid\)\s*to service_role/i);
 assert.match(fn, /\.rpc\("update_class_session_atomic"/);
+
+assert.match(notesFn, /const instructorRoles = \["platform_owner", "instructor"\]/);
+assert.match(notesFn, /\.from\("profiles"\)[\s\S]+\.eq\("status", "active"\)/);
+assert.match(notesFn, /\.from\("course_memberships"\)[\s\S]+\.eq\("course_id", courseId\)[\s\S]+\.in\("role", instructorRoles\)/);
+assert.match(notesFn, /body\.action === "list_session"/);
+assert.match(notesFn, /body\.action === "list_student"/);
+assert.match(notesFn, /body\.action === "create"/);
+assert.match(notesFn, /body\.action === "resolve"/);
+assert.doesNotMatch(notesFn, /body\.action === "student/);
+assert.match(notesFn, /\.from\("class_sessions"\)[\s\S]+\.eq\("course_id", courseId\)/);
+assert.match(notesFn, /\.from\("section_enrollments"\)[\s\S]+\.eq\("section_id", session\.section_id\)[\s\S]+\.eq\("profile_id", profileId\)[\s\S]+\.eq\("role", "student"\)[\s\S]+\.eq\("status", "active"\)/);
+assert.match(notesFn, /\.from\("class_student_notes"\)\s*\.insert\(/);
+assert.match(notesFn, /\.from\("class_student_notes"\)\s*\.update\(\{\s*resolved_at:[\s\S]+resolved_by:/);
+assert.doesNotMatch(notesFn, /\.from\("class_student_notes"\)[\s\S]{0,160}\.update\([\s\S]{0,160}note_text/);
+assert.match(notesFn, /action: "class_student_note_created"/);
+assert.match(notesFn, /action: "class_student_note_resolved"/);
+assert.match(notesFn, /return json\(\{ notes \}\)/);
 
 console.log("verify-class-management: OK");
