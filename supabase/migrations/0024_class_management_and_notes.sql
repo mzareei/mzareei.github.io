@@ -275,3 +275,183 @@ revoke all on function public.update_class_session_atomic(uuid, text, uuid, uuid
   from public, anon, authenticated;
 grant execute on function public.update_class_session_atomic(uuid, text, uuid, uuid, text, date, uuid)
   to service_role;
+
+create or replace function public.create_class_student_note_atomic(
+  p_class_session_id uuid,
+  p_course_id text,
+  p_profile_id uuid,
+  p_author_profile_id uuid,
+  p_note_text text,
+  p_needs_follow_up boolean
+)
+returns public.class_student_notes
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  locked_session public.class_sessions%rowtype;
+  created_note public.class_student_notes%rowtype;
+begin
+  select *
+    into locked_session
+    from public.class_sessions
+    where id = p_class_session_id
+      and course_id = p_course_id
+    for update;
+
+  if not found then
+    raise exception 'Class session not found.';
+  end if;
+
+  if not exists (
+    select 1
+      from public.profiles profile
+      join public.section_enrollments enrollment
+        on enrollment.profile_id = profile.id
+      where profile.id = p_profile_id
+        and profile.status = 'active'
+        and enrollment.section_id = locked_session.section_id
+        and enrollment.role = 'student'
+        and enrollment.status = 'active'
+  ) then
+    raise exception 'That student is not active in this class group.';
+  end if;
+
+  insert into public.class_student_notes (
+    course_id,
+    class_session_id,
+    profile_id,
+    author_profile_id,
+    note_text,
+    needs_follow_up
+  )
+  values (
+    locked_session.course_id,
+    locked_session.id,
+    p_profile_id,
+    p_author_profile_id,
+    p_note_text,
+    p_needs_follow_up
+  )
+  returning * into created_note;
+
+  insert into public.audit_log (
+    course_id,
+    actor_profile_id,
+    target_type,
+    target_id,
+    action,
+    metadata
+  )
+  values (
+    locked_session.course_id,
+    p_author_profile_id,
+    'class_student_note',
+    created_note.id,
+    'class_student_note_created',
+    jsonb_build_object(
+      'class_session_id', locked_session.id,
+      'profile_id', p_profile_id,
+      'needs_follow_up', created_note.needs_follow_up
+    )
+  );
+
+  return created_note;
+end;
+$$;
+
+revoke all on function public.create_class_student_note_atomic(uuid, text, uuid, uuid, text, boolean)
+  from public, anon, authenticated;
+grant execute on function public.create_class_student_note_atomic(uuid, text, uuid, uuid, text, boolean)
+  to service_role;
+
+create or replace function public.resolve_class_student_note_atomic(
+  p_note_id uuid,
+  p_course_id text,
+  p_actor_profile_id uuid
+)
+returns public.class_student_notes
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  locked_note public.class_student_notes%rowtype;
+  locked_session public.class_sessions%rowtype;
+begin
+  select *
+    into locked_note
+    from public.class_student_notes
+    where id = p_note_id
+    for update;
+
+  if not found then
+    raise exception 'Class student note not found.';
+  end if;
+
+  select *
+    into locked_session
+    from public.class_sessions
+    where id = locked_note.class_session_id
+      and course_id = locked_note.course_id
+      and course_id = p_course_id
+    for update;
+
+  if not found then
+    raise exception 'Class student note is not linked to its session course.';
+  end if;
+
+  if locked_note.resolved_at is not null then
+    raise exception 'This class student note is already resolved.';
+  end if;
+
+  if not exists (
+    select 1
+      from public.profiles profile
+      join public.section_enrollments enrollment
+        on enrollment.profile_id = profile.id
+      where profile.id = locked_note.profile_id
+        and profile.status = 'active'
+        and enrollment.section_id = locked_session.section_id
+        and enrollment.role = 'student'
+        and enrollment.status = 'active'
+  ) then
+    raise exception 'That student is not active in this class group.';
+  end if;
+
+  update public.class_student_notes
+    set resolved_at = now(),
+        resolved_by = p_actor_profile_id
+    where id = locked_note.id
+    returning * into locked_note;
+
+  insert into public.audit_log (
+    course_id,
+    actor_profile_id,
+    target_type,
+    target_id,
+    action,
+    metadata
+  )
+  values (
+    locked_session.course_id,
+    p_actor_profile_id,
+    'class_student_note',
+    locked_note.id,
+    'class_student_note_resolved',
+    jsonb_build_object(
+      'class_session_id', locked_session.id,
+      'profile_id', locked_note.profile_id,
+      'resolved_at', locked_note.resolved_at
+    )
+  );
+
+  return locked_note;
+end;
+$$;
+
+revoke all on function public.resolve_class_student_note_atomic(uuid, text, uuid)
+  from public, anon, authenticated;
+grant execute on function public.resolve_class_student_note_atomic(uuid, text, uuid)
+  to service_role;

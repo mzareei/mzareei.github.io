@@ -61,12 +61,28 @@ assert.match(notesFn, /body\.action === "create"/);
 assert.match(notesFn, /body\.action === "resolve"/);
 assert.doesNotMatch(notesFn, /body\.action === "student/);
 assert.match(notesFn, /\.from\("class_sessions"\)[\s\S]+\.eq\("course_id", courseId\)/);
-assert.match(notesFn, /\.from\("section_enrollments"\)[\s\S]+\.eq\("section_id", session\.section_id\)[\s\S]+\.eq\("profile_id", profileId\)[\s\S]+\.eq\("role", "student"\)[\s\S]+\.eq\("status", "active"\)/);
-assert.match(notesFn, /\.from\("class_student_notes"\)\s*\.insert\(/);
-assert.match(notesFn, /\.from\("class_student_notes"\)\s*\.update\(\{\s*resolved_at:[\s\S]+resolved_by:/);
-assert.doesNotMatch(notesFn, /\.from\("class_student_notes"\)[\s\S]{0,160}\.update\([\s\S]{0,160}note_text/);
-assert.match(notesFn, /action: "class_student_note_created"/);
-assert.match(notesFn, /action: "class_student_note_resolved"/);
 assert.match(notesFn, /return json\(\{ notes \}\)/);
+assert.match(sql, /create or replace function public\.create_class_student_note_atomic/i);
+assert.match(
+  sql,
+  /create_class_student_note_atomic[\s\S]+p_course_id text[\s\S]+course_id = p_course_id[\s\S]+for update[\s\S]+section_enrollments[\s\S]+role = 'student'[\s\S]+status = 'active'[\s\S]+insert into public\.class_student_notes[\s\S]+insert into public\.audit_log/i,
+  "note creation must derive the session course, validate active group membership, write the note, and audit in one RPC"
+);
+assert.match(sql, /create_class_student_note_atomic[\s\S]+insert into public\.class_student_notes[\s\S]+locked_session\.course_id/i);
+assert.match(sql, /create or replace function public\.resolve_class_student_note_atomic/i);
+assert.match(
+  sql,
+  /resolve_class_student_note_atomic[\s\S]+p_course_id text[\s\S]+for update[\s\S]+class_sessions[\s\S]+course_id = locked_note\.course_id[\s\S]+course_id = p_course_id[\s\S]+section_enrollments[\s\S]+role = 'student'[\s\S]+status = 'active'[\s\S]+update public\.class_student_notes[\s\S]+insert into public\.audit_log/i,
+  "note resolution must validate the persisted session/course/group relationship and audit in one RPC"
+);
+assert.match(sql, /grant execute on function public\.create_class_student_note_atomic\(uuid, text, uuid, uuid, text, boolean\)\s*to service_role/i);
+assert.match(sql, /grant execute on function public\.resolve_class_student_note_atomic\(uuid, text, uuid\)\s*to service_role/i);
+assert.match(notesFn, /\.rpc\("create_class_student_note_atomic"/);
+assert.match(notesFn, /\.rpc\("resolve_class_student_note_atomic"/);
+assert.match(notesFn, /p_course_id: courseId/);
+assert.doesNotMatch(notesFn, /\.from\("class_student_notes"\)\s*\.insert\(/, "the edge function must not bypass transactional note creation");
+assert.doesNotMatch(notesFn, /\.from\("class_student_notes"\)\s*\.update\(/, "the edge function must not bypass transactional note resolution");
+assert.match(notesFn, /\.eq\("class_session_id", session\.id\)[\s\S]{0,180}\.eq\("course_id", courseId\)/);
+assert.match(notesFn, /\.eq\("profile_id", profileId\)[\s\S]{0,180}\.eq\("course_id", courseId\)[\s\S]{0,180}\.in\("class_session_id", sessionIds\)/);
 
 console.log("verify-class-management: OK");

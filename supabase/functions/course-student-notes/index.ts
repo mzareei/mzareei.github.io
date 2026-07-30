@@ -35,7 +35,7 @@ Deno.serve(async (request) => {
 
     if (body.action === "list_session") {
       const session = await loadSession(db, courseId, cleanUuid(body.class_session_id, "class session id"));
-      return json({ notes: await listSessionNotes(db, session) });
+      return json({ notes: await listSessionNotes(db, courseId, session) });
     }
 
     if (body.action === "list_student") {
@@ -44,81 +44,33 @@ Deno.serve(async (request) => {
     }
 
     if (body.action === "create") {
-      const session = await loadSession(db, courseId, cleanUuid(body.class_session_id, "class session id"));
       const profileId = cleanUuid(body.profile_id, "student profile id");
-      await requireStudentInSessionGroup(db, session, profileId);
-
       const { data: note, error: noteError } = await db
-        .from("class_student_notes")
-        .insert({
-          course_id: courseId,
-          class_session_id: session.id,
-          profile_id: profileId,
-          author_profile_id: profile.id,
-          note_text: cleanNoteText(body.note_text),
-          needs_follow_up: cleanNeedsFollowUp(body.needs_follow_up)
+        .rpc("create_class_student_note_atomic", {
+          p_class_session_id: cleanUuid(body.class_session_id, "class session id"),
+          p_course_id: courseId,
+          p_profile_id: profileId,
+          p_author_profile_id: profile.id,
+          p_note_text: cleanNoteText(body.note_text),
+          p_needs_follow_up: cleanNeedsFollowUp(body.needs_follow_up)
         })
-        .select("id, class_session_id, profile_id, note_text, needs_follow_up, resolved_at, created_at")
         .single();
       if (noteError) throw noteError;
-
-      await insertAudit(db, {
-        courseId,
-        actorProfileId: profile.id,
-        targetId: note.id,
-        action: "class_student_note_created",
-        metadata: {
-          class_session_id: session.id,
-          profile_id: profileId,
-          needs_follow_up: note.needs_follow_up
-        }
-      });
-
-      return json({ notes: await listSessionNotes(db, session) });
+      const session = await loadSession(db, courseId, String(note.class_session_id));
+      return json({ notes: await listSessionNotes(db, courseId, session) });
     }
 
     if (body.action === "resolve") {
-      const noteId = cleanUuid(body.note_id, "note id");
-      const { data: existing, error: existingError } = await db
-        .from("class_student_notes")
-        .select("id, course_id, class_session_id, profile_id, resolved_at")
-        .eq("id", noteId)
-        .eq("course_id", courseId)
-        .maybeSingle();
-      if (existingError) throw existingError;
-      if (!existing) throw new Error("Class student note not found.");
-      if (existing.resolved_at) throw new Error("This class student note is already resolved.");
-
-      const session = await loadSession(db, courseId, String(existing.class_session_id));
-      await requireStudentInSessionGroup(db, session, String(existing.profile_id));
-      const resolvedAt = new Date().toISOString();
       const { data: resolved, error: resolveError } = await db
-        .from("class_student_notes")
-        .update({
-          resolved_at: resolvedAt,
-          resolved_by: profile.id
+        .rpc("resolve_class_student_note_atomic", {
+          p_note_id: cleanUuid(body.note_id, "note id"),
+          p_course_id: courseId,
+          p_actor_profile_id: profile.id
         })
-        .eq("id", noteId)
-        .eq("course_id", courseId)
-        .is("resolved_at", null)
-        .select("id")
-        .maybeSingle();
+        .single();
       if (resolveError) throw resolveError;
-      if (!resolved) throw new Error("This class student note was resolved by another request.");
-
-      await insertAudit(db, {
-        courseId,
-        actorProfileId: profile.id,
-        targetId: noteId,
-        action: "class_student_note_resolved",
-        metadata: {
-          class_session_id: session.id,
-          profile_id: existing.profile_id,
-          resolved_at: resolvedAt
-        }
-      });
-
-      return json({ notes: await listSessionNotes(db, session) });
+      const session = await loadSession(db, courseId, String(resolved.class_session_id));
+      return json({ notes: await listSessionNotes(db, courseId, session) });
     }
 
     return json({ error: "Unknown action." }, { status: 400 });
@@ -200,24 +152,12 @@ async function loadSession(db: Db, courseId: string, sessionId: string) {
   return session;
 }
 
-async function requireStudentInSessionGroup(db: Db, session: { id: string; section_id: string }, profileId: string) {
-  const { data: enrollment, error } = await db
-    .from("section_enrollments")
-    .select("profile_id")
-    .eq("section_id", session.section_id)
-    .eq("profile_id", profileId)
-    .eq("role", "student")
-    .eq("status", "active")
-    .maybeSingle();
-  if (error) throw error;
-  if (!enrollment) throw new Error("That student is not active in this class group.");
-}
-
-async function listSessionNotes(db: Db, session: { id: string; section_id: string; title: string; planned_date: string }) {
+async function listSessionNotes(db: Db, courseId: string, session: { id: string; section_id: string; title: string; planned_date: string }) {
   const { data: rows, error } = await db
     .from("class_student_notes")
     .select("id, class_session_id, profile_id, author_profile_id, note_text, needs_follow_up, resolved_at, created_at")
     .eq("class_session_id", session.id)
+    .eq("course_id", courseId)
     .order("created_at", { ascending: false });
   if (error) throw error;
   await assertStoredNotesMatchSessionGroup(db, session, rows || []);
@@ -248,6 +188,7 @@ async function listStudentNotes(db: Db, courseId: string, profileId: string) {
     .from("class_student_notes")
     .select("id, class_session_id, profile_id, author_profile_id, note_text, needs_follow_up, resolved_at, created_at")
     .eq("profile_id", profileId)
+    .eq("course_id", courseId)
     .in("class_session_id", sessionIds)
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -302,26 +243,6 @@ async function formatNotes(
       created_at: String(row.created_at)
     };
   });
-}
-
-async function insertAudit(db: Db, input: {
-  courseId: string;
-  actorProfileId: string;
-  targetId: string;
-  action: string;
-  metadata: Record<string, unknown>;
-}) {
-  const { error } = await db
-    .from("audit_log")
-    .insert({
-      course_id: input.courseId,
-      actor_profile_id: input.actorProfileId,
-      target_type: "class_student_note",
-      target_id: input.targetId,
-      action: input.action,
-      metadata: input.metadata
-    });
-  if (error) throw new Error(`Required class student note audit write failed: ${error.message || "unknown error"}`);
 }
 
 function unique(values: string[]) {
