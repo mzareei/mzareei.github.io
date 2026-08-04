@@ -47,7 +47,8 @@ Deno.serve(async (request) => {
         scoreId: cleanRequiredUuid(body.score_id, "score id"),
         actorProfileId: profile.id,
         newScoreFinal: cleanScore(body.new_score_final),
-        reason: cleanReason(body.reason)
+        reason: cleanReason(body.reason),
+        permissions
       });
       return json({ score });
     }
@@ -57,7 +58,8 @@ Deno.serve(async (request) => {
       const score = await lockScore(db, courseId, {
         scoreId: cleanRequiredUuid(body.score_id, "score id"),
         actorProfileId: profile.id,
-        reason: cleanReason(body.reason)
+        reason: cleanReason(body.reason),
+        permissions
       });
       return json({ score });
     }
@@ -71,7 +73,8 @@ Deno.serve(async (request) => {
         status: cleanScoreStatus(body.score_status),
         scoreFinal: body.score_final,
         actorProfileId: profile.id,
-        reason: cleanReason(body.reason)
+        reason: cleanReason(body.reason),
+        permissions
       });
       return json({ score });
     }
@@ -316,8 +319,9 @@ async function adjustScore(db: Db, courseId: string, input: {
   actorProfileId: string;
   newScoreFinal: number;
   reason: string;
+  permissions: { isCourseInstructor: boolean; isGlobalCourseInstructor: boolean; permittedSectionIds: string[] };
 }) {
-  const score = await loadScoreForCourse(db, courseId, input.scoreId);
+  const score = await loadScoreForCourse(db, courseId, input.scoreId, input.permissions);
   if (String(score.status) === "locked") {
     throw new Error("This score is locked and cannot be adjusted.");
   }
@@ -359,8 +363,9 @@ async function lockScore(db: Db, courseId: string, input: {
   scoreId: string;
   actorProfileId: string;
   reason: string;
+  permissions: { isCourseInstructor: boolean; isGlobalCourseInstructor: boolean; permittedSectionIds: string[] };
 }) {
-  const score = await loadScoreForCourse(db, courseId, input.scoreId);
+  const score = await loadScoreForCourse(db, courseId, input.scoreId, input.permissions);
   if (String(score.status) === "locked") {
     return score;
   }
@@ -393,9 +398,11 @@ async function setScoreStatus(db: Db, courseId: string, input: {
   scoreFinal: unknown;
   actorProfileId: string;
   reason: string;
+  permissions: { isCourseInstructor: boolean; isGlobalCourseInstructor: boolean; permittedSectionIds: string[] };
 }) {
   // The database enforces unique (gradebook_item_id, profile_id).
   await assertGradebookItemInCourse(db, courseId, input.gradebookItemId);
+  assertSectionAllowed(input.permissions, input.sectionId);
   await assertSectionInCourse(db, courseId, input.sectionId);
   await assertStudentInSection(db, input.profileId, input.sectionId);
 
@@ -453,7 +460,7 @@ async function setScoreStatus(db: Db, courseId: string, input: {
   return score;
 }
 
-async function loadScoreForCourse(db: Db, courseId: string, scoreId: string) {
+async function loadScoreForCourse(db: Db, courseId: string, scoreId: string, permissions: { isCourseInstructor: boolean; isGlobalCourseInstructor: boolean; permittedSectionIds: string[] }) {
   const { data: score, error: scoreError } = await db
     .from("gradebook_scores")
     .select("id, gradebook_item_id, profile_id, section_id, source_attempt_id, score_raw, score_percent, score_final, status, locked_at, updated_at")
@@ -461,6 +468,7 @@ async function loadScoreForCourse(db: Db, courseId: string, scoreId: string) {
     .maybeSingle();
   if (scoreError) throw scoreError;
   if (!score) throw new Error("Score not found.");
+  assertSectionAllowed(permissions, String(score.section_id));
 
   const { data: item, error: itemError } = await db
     .from("gradebook_items")
