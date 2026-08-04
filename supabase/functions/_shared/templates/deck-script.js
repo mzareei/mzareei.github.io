@@ -277,7 +277,7 @@
         if (!option || typeof option !== "object" || Object.getPrototypeOf(option) !== Object.prototype) return false;
         var optionKeys = Object.getOwnPropertyNames(option).sort();
         return optionKeys.join(",") === "key,text,text_es"
-          && typeof option.key === "string" && option.key.length > 0 && option.key.length < 20
+          && typeof option.key === "string" && option.key.length > 0 && option.key.length <= 80
           && typeof option.text === "string" && option.text.length > 0 && option.text.length <= 1000
           && (option.text_es === null || typeof option.text_es === "string");
       });
