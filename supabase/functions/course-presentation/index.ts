@@ -47,11 +47,14 @@ Deno.serve(async (request) => {
         p_phase: phase
       });
       if (error) throw error;
-      return json(controllerView({
+      const input = {
         session_id: sessionId,
         state: data,
         pulse: await loadPulse(db, courseId, sessionId, actor.sectionId)
-      }));
+      };
+      return json(String(body.surface || "") === "projector"
+        ? projectorView(input)
+        : controllerView(input));
     }
 
     if (action === "acknowledge_slide" || action === "checkpoint_reached" || action === "heartbeat") {
