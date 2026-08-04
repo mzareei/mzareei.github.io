@@ -517,6 +517,17 @@ const bankSource = fs.readFileSync(
   path.join(root, "supabase/functions/course-question-bank/index.ts"),
   "utf8"
 );
+const identitySource = fs.readFileSync(
+  path.join(root, "supabase/functions/_shared/identity.ts"),
+  "utf8"
+);
+const adminSource = fs.readFileSync(
+  path.join(root, "supabase/functions/course-admin/index.ts"),
+  "utf8"
+);
+assert.match(identitySource, /hasInstructorMembership/, "external instructors need a server-side role check");
+assert.match(identitySource, /instructor.*platform_owner|platform_owner.*instructor/, "external instructor roles must be explicit");
+assert.match(adminSource, /assertInstructorEmailAllowed/, "admin invitations must accept external instructor emails");
 assert.match(bankSource, /checkpoint_coverage:\s*checkpointCoverage\(/);
 assert.match(bankSource, /checkpoint_metadata_status:\s*metadataState\.status/);
 assert.match(bankSource, /checkpoint_metadata_present:\s*metadataState\.presentCount/);

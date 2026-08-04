@@ -333,6 +333,7 @@ async function validateRosterRows(db: ReturnType<typeof adminClient>, courseId: 
 function validateRosterRow(row: ReturnType<typeof cleanRosterRows>[number], allowedDomains: string[], sectionByCode: Map<string, Record<string, unknown>>, seenEmails: Set<string>, grantedEmails: Set<string> = new Set()) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.institutional_email)) return "Invalid institutional email.";
   if (
+    row.role !== "instructor" &&
     !grantedEmails.has(row.institutional_email) &&
     !isTestAccessEmail(row.institutional_email) &&
     !allowedDomains.some((domain) => row.institutional_email.endsWith(`@${domain}`))

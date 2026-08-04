@@ -5,7 +5,7 @@
 // they sign in with that email (see course-auth-context's loadOrClaimProfile).
 import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
-import { assertCourseEmailAllowed } from "../_shared/identity.ts";
+import { assertCourseEmailAllowed, assertInstructorEmailAllowed } from "../_shared/identity.ts";
 
 type Db = ReturnType<typeof adminClient>;
 
@@ -174,7 +174,11 @@ async function inviteProfessor(db: Db, body: Record<string, unknown>) {
     throw new Error("Role must be instructor or teaching_assistant.");
   }
   if (!courseId) throw new Error("A course is required.");
-  await assertCourseEmailAllowed(db, email);
+  if (role === "instructor") {
+    assertInstructorEmailAllowed(email);
+  } else {
+    await assertCourseEmailAllowed(db, email);
+  }
 
   const { data: course, error: courseError } = await db
     .from("courses").select("id").eq("id", courseId).maybeSingle();

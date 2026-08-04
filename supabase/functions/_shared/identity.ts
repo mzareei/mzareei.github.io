@@ -43,6 +43,38 @@ export function assertInstitutionalEmailAllowed(email: unknown, allowedDomains =
   return cleaned;
 }
 
+/** External domains are valid for an instructor who has already been invited
+ * into a course. Students still use the institutional/external-grant guard. */
+export function assertInstructorEmailAllowed(email: unknown) {
+  const cleaned = cleanInstitutionalEmail(email);
+  if (!emailPattern.test(cleaned)) throw new Error("A valid instructor email address is required.");
+  return cleaned;
+}
+
+export async function hasInstructorMembership(db: { from: (table: string) => any }, email: unknown) {
+  const cleaned = cleanInstitutionalEmail(email);
+  if (!emailPattern.test(cleaned)) return false;
+  const { data: profile, error: profileError } = await db
+    .from("profiles")
+    .select("id")
+    .eq("institutional_email", cleaned)
+    .in("status", ["invited", "active"])
+    .limit(1)
+    .maybeSingle();
+  if (profileError) throw profileError;
+  if (!profile) return false;
+  const { data: membership, error: membershipError } = await db
+    .from("course_memberships")
+    .select("id")
+    .eq("profile_id", profile.id)
+    .eq("status", "active")
+    .in("role", ["platform_owner", "instructor"])
+    .limit(1)
+    .maybeSingle();
+  if (membershipError) throw membershipError;
+  return Boolean(membership);
+}
+
 export async function hasExternalAccessGrant(db: { from: (table: string) => any }, email: unknown) {
   const cleaned = cleanInstitutionalEmail(email);
   if (!cleaned) return false;
@@ -58,8 +90,9 @@ export async function hasExternalAccessGrant(db: { from: (table: string) => any 
 }
 
 // The guard used by every trusted function. An address gets in when it is institutional,
-// when it is listed in COURSE_TEST_EMAILS, or when an instructor recorded an external
-// access grant for it. Course memberships still decide what the account can see.
+// when it is listed in COURSE_TEST_EMAILS, when it belongs to an invited instructor, or
+// when an instructor recorded an external access grant for it. Course memberships still
+// decide what the account can see.
 export async function assertCourseEmailAllowed(
   db: { from: (table: string) => any },
   email: unknown,
@@ -69,6 +102,7 @@ export async function assertCourseEmailAllowed(
   try {
     return assertInstitutionalEmailAllowed(cleaned, allowedDomains);
   } catch (error) {
+    if (await hasInstructorMembership(db, cleaned)) return cleaned;
     if (await hasExternalAccessGrant(db, cleaned)) return cleaned;
     throw error;
   }
