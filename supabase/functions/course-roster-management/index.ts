@@ -1,6 +1,7 @@
 import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 import { isTestAccessEmail } from "../_shared/identity.ts";
+import { sendInstructorInvitation } from "../_shared/instructor-invitation.ts";
 
 const teacherRoles = ["platform_owner", "instructor"];
 const rosterRoles = ["student", "teaching_assistant", "instructor", "observer"];
@@ -78,6 +79,15 @@ Deno.serve(async (request) => {
         profileId: cleanUuid(body.profile_id, "A valid profile id is required."),
         reason: cleanOptionalReason(body.reason) || "Removed from the People screen.",
         actorProfileId: String(profile.id)
+      });
+      return json(result);
+    }
+
+    if (body.action === "resend_instructor_invitation") {
+      const result = await resendInstructorInvitation(db, {
+        courseId,
+        profileId: cleanUuid(body.profile_id, "A valid profile id is required."),
+        actorProfileId: profile.id
       });
       return json(result);
     }
@@ -938,10 +948,17 @@ async function addPerson(db: ReturnType<typeof adminClient>, input: {
 
   const { data: addedProfile, error: addedError } = await db
     .from("profiles")
-    .select("id, institutional_email, full_name, student_identifier, status")
+    .select("id, institutional_email, full_name, student_identifier, auth_user_id, status")
     .eq("institutional_email", person.institutional_email)
     .maybeSingle();
   if (addedError) throw addedError;
+
+  const shouldInviteInstructor =
+    preview.accepted_rows[0].role === "instructor" &&
+    (!addedProfile?.auth_user_id || addedProfile.status === "invited");
+  const invitation = shouldInviteInstructor
+    ? await sendInstructorInvitation(db, person.institutional_email)
+    : null;
 
   await insertAudit(db, {
     courseId: input.courseId,
@@ -962,8 +979,54 @@ async function addPerson(db: ReturnType<typeof adminClient>, input: {
     needs_external_access: false,
     person: { ...preview.accepted_rows[0], profile_id: addedProfile?.id || null },
     profile: addedProfile || null,
+    invite_email_sent: invitation?.sent ?? null,
+    invite_email_method: invitation?.method ?? null,
     external_access_grant: grant,
     ...preview
+  };
+}
+
+async function resendInstructorInvitation(db: ReturnType<typeof adminClient>, input: {
+  courseId: string;
+  profileId: string;
+  actorProfileId: string;
+}) {
+  const { data: profile, error: profileError } = await db
+    .from("profiles")
+    .select("id, institutional_email, full_name, auth_user_id, status")
+    .eq("id", input.profileId)
+    .maybeSingle();
+  if (profileError) throw profileError;
+  if (!profile) throw new Error("That person was not found.");
+
+  const { data: membership, error: membershipError } = await db
+    .from("course_memberships")
+    .select("id, role, status")
+    .eq("course_id", input.courseId)
+    .eq("profile_id", input.profileId)
+    .eq("role", "instructor")
+    .eq("status", "active")
+    .maybeSingle();
+  if (membershipError) throw membershipError;
+  if (!membership) throw new Error("That person is not an active instructor on this course.");
+  if (profile.status !== "invited" || profile.auth_user_id) {
+    throw new Error("This instructor has already claimed the account.");
+  }
+
+  const invitation = await sendInstructorInvitation(db, profile.institutional_email);
+  await insertAudit(db, {
+    courseId: input.courseId,
+    actorProfileId: input.actorProfileId,
+    targetType: "profile",
+    targetId: input.profileId,
+    action: "instructor_invitation_resent",
+    metadata: { email_sent: invitation.sent, method: invitation.method }
+  });
+  return {
+    sent: invitation.sent,
+    method: invitation.method,
+    email: profile.institutional_email,
+    full_name: profile.full_name
   };
 }
 

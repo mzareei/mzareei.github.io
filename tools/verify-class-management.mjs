@@ -20,6 +20,10 @@ const rosterFn = fs.readFileSync(
   path.join(root, "supabase/functions/course-roster-management/index.ts"),
   "utf8"
 );
+const invitationFn = fs.readFileSync(
+  path.join(root, "supabase/functions/_shared/instructor-invitation.ts"),
+  "utf8"
+);
 const assignmentSql = fs.readFileSync(
   path.join(root, "supabase/migrations/0025_assign_student_section.sql"),
   "utf8"
@@ -160,6 +164,13 @@ assert.match(
 );
 
 assert.match(rosterFn, /const teacherRoles = \["platform_owner", "instructor"\]/);
+assert.match(invitationFn, /auth\.admin\.inviteUserByEmail/);
+assert.match(invitationFn, /auth\.signInWithOtp/);
+assert.match(
+  rosterFn,
+  /sendInstructorInvitation\(db,\s*person\.institutional_email\)/,
+  "adding an instructor must send an invitation email"
+);
 assert.match(
   rosterFn,
   /requireInstructor\(db, token, courseId\)[\s\S]+body\.action === "assign_person_section"/,

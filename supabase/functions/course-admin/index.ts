@@ -6,6 +6,7 @@
 import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertInstructorEmailAllowed } from "../_shared/identity.ts";
+import { sendInstructorInvitation } from "../_shared/instructor-invitation.ts";
 
 type Db = ReturnType<typeof adminClient>;
 
@@ -197,7 +198,22 @@ async function inviteProfessor(db: Db, body: Record<string, unknown>) {
     .maybeSingle();
   if (membershipError) throw membershipError;
 
-  return { membership, profile_id: profileId };
+  const { data: profile, error: profileError } = await db
+    .from("profiles")
+    .select("auth_user_id, status")
+    .eq("id", profileId)
+    .maybeSingle();
+  if (profileError) throw profileError;
+  const invitation = role === "instructor" && (!profile?.auth_user_id || profile.status === "invited")
+    ? await sendInstructorInvitation(db, email)
+    : null;
+
+  return {
+    membership,
+    profile_id: profileId,
+    invite_email_sent: invitation?.sent ?? null,
+    invite_email_method: invitation?.method ?? null
+  };
 }
 
 async function deactivateMembership(db: Db, body: Record<string, unknown>) {
