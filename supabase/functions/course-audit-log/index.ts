@@ -17,7 +17,8 @@ Deno.serve(async (request) => {
     const body = await request.json().catch(() => ({}));
     const courseId = cleanCourseId(body.course_id) || "tc2007b";
     const db = adminClient();
-    await requireInstructor(db, token, courseId);
+    const permissions = await requireInstructor(db, token, courseId);
+    if (!permissions.isGlobalOwner) throw new Error("Only the platform owner can review course audit events.");
 
     const audit_events = await loadAuditEvents(db, courseId, {
       targetType: cleanTargetType(body.target_type),
@@ -95,7 +96,7 @@ async function requireInstructor(db: Db, token: string, courseId: string) {
   if (membershipError) throw membershipError;
   if (!(memberships || []).length) throw new Error("You are not allowed to review course audit events.");
 
-  return { profile, user: userData.user };
+  return { profile, user: userData.user, isGlobalOwner: (memberships || []).some((membership) => String(membership.role) === "platform_owner") };
 }
 
 async function loadAuditEvents(db: Db, courseId: string, filters: {

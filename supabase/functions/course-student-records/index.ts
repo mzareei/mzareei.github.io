@@ -82,7 +82,7 @@ async function requireTeacher(db: Db, token: string, courseId: string) {
   if (membershipError) throw membershipError;
   if (!(memberships || []).length) throw new Error("You are not allowed to review student records for this course.");
 
-  const isCourseInstructor = (memberships || []).some((membership) => instructorRoles.includes(String(membership.role)));
+  const isCourseInstructor = (memberships || []).some((membership) => String(membership.role) === "platform_owner");
   const permittedSectionIds = isCourseInstructor ? [] : await loadPermittedSectionIds(db, String(profile.id), courseId);
   if (!isCourseInstructor && !permittedSectionIds.length) {
     throw new Error("You are not allowed to review student records for this course.");
@@ -96,7 +96,7 @@ async function loadPermittedSectionIds(db: Db, profileId: string, courseId: stri
     .from("section_enrollments")
     .select("section_id, course_sections!inner(course_id)")
     .eq("profile_id", profileId)
-    .eq("role", "teaching_assistant")
+    .in("role", ["instructor", "teaching_assistant"])
     .eq("status", "active")
     .eq("course_sections.course_id", courseId);
   if (error) throw error;

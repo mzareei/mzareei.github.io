@@ -24,7 +24,7 @@ Deno.serve(async (request) => {
     const body = await request.json().catch(() => ({}));
     const courseId = cleanCourseId(body.course_id) || "tc2007b";
     const db = adminClient();
-    const { profile } = await requireInstructor(db, token, courseId);
+    const { profile, permissions } = await requireInstructor(db, token, courseId);
 
     if (body.action === "save_content_item") {
       const result = await saveContentItem(db, courseId, {
@@ -41,13 +41,14 @@ Deno.serve(async (request) => {
         draft_section_id: cleanOptionalUuid(body.release?.section_id),
         draft_session_id: cleanOptionalUuid(body.release?.class_session_id),
         allowed_attempts: cleanAllowedAttempts(body.release?.allowed_attempts),
-        actorProfileId: String(profile.id)
+        actorProfileId: String(profile.id),
+        permissions
       });
-      const library = await listContentLibrary(db, courseId);
+      const library = await listContentLibrary(db, courseId, permissions);
       return json({ ...result, ...library });
     }
 
-    const library = await listContentLibrary(db, courseId);
+    const library = await listContentLibrary(db, courseId, permissions);
     return json({
       ...library,
       actions: ["list_content_items", "save_content_item", "create_draft_release"]
@@ -169,10 +170,25 @@ async function requireInstructor(db: Db, token: string, courseId: string) {
     throw new Error("You are not allowed to manage content for this course.");
   }
 
-  return { profile, user: userData.user };
+  const isGlobalOwner = roles.includes("platform_owner");
+  const permittedSectionIds = isGlobalOwner ? [] : await loadPermittedSectionIds(db, String(profile.id), courseId);
+  if (!isGlobalOwner && !permittedSectionIds.length) throw new Error("You are not allowed to manage content for this course.");
+  return { profile, user: userData.user, permissions: { isGlobalOwner, permittedSectionIds } };
 }
 
-async function listContentLibrary(db: Db, courseId: string) {
+async function loadPermittedSectionIds(db: Db, profileId: string, courseId: string) {
+  const { data, error } = await db
+    .from("section_enrollments")
+    .select("section_id, course_sections!inner(course_id)")
+    .eq("profile_id", profileId)
+    .eq("role", "instructor")
+    .eq("status", "active")
+    .eq("course_sections.course_id", courseId);
+  if (error) throw error;
+  return Array.from(new Set((data || []).map((row) => String(row.section_id))));
+}
+
+async function listContentLibrary(db: Db, courseId: string, permissions: { isGlobalOwner: boolean; permittedSectionIds: string[] }) {
   const [
     { data: items, error: itemError },
     { data: sections, error: sectionError },
@@ -217,14 +233,29 @@ async function listContentLibrary(db: Db, courseId: string) {
     releaseCounts.set(release.content_item_id, current);
   });
 
+  const visibleSections = permissions.isGlobalOwner ? (sections || []) : (sections || []).filter((section) => permissions.permittedSectionIds.includes(String(section.id)));
+  const visibleSectionIds = new Set(visibleSections.map((section) => String(section.id)));
+  const visibleSessions = permissions.isGlobalOwner ? (sessions || []) : (sessions || []).filter((session) => visibleSectionIds.has(String(session.section_id)));
+  const visibleReleases = permissions.isGlobalOwner ? (releases || []) : (releases || []).filter((release) => !release.section_id || visibleSectionIds.has(String(release.section_id)));
   return {
     content_items: (items || []).map((item) => ({
       ...item,
-      release_counts: releaseCounts.get(item.id) || { draft: 0, active: 0, total: 0 }
+      release_counts: permissions.isGlobalOwner
+        ? releaseCounts.get(item.id) || { draft: 0, active: 0, total: 0 }
+        : countReleaseStates(visibleReleases.filter((release) => release.content_item_id === item.id))
     })),
-    sections: sections || [],
-    sessions: sessions || []
+    sections: visibleSections,
+    sessions: visibleSessions
   };
+}
+
+function countReleaseStates(releases: Array<{ state?: string }>) {
+  return releases.reduce((counts, release) => {
+    counts.total += 1;
+    if (release.state === "draft") counts.draft += 1;
+    if (["scheduled", "released", "live", "review_only"].includes(String(release.state))) counts.active += 1;
+    return counts;
+  }, { draft: 0, active: 0, total: 0 });
 }
 
 async function saveContentItem(db: Db, courseId: string, input: {
@@ -242,6 +273,7 @@ async function saveContentItem(db: Db, courseId: string, input: {
   draft_session_id: string;
   allowed_attempts: number;
   actorProfileId: string;
+  permissions: { isGlobalOwner: boolean; permittedSectionIds: string[] };
 }) {
   const updatedAt = new Date().toISOString();
   let before: Record<string, unknown> | null = null;
@@ -330,8 +362,9 @@ async function createDraftRelease(db: Db, courseId: string, contentItemId: strin
   draft_session_id: string;
   allowed_attempts: number;
   actorProfileId: string;
+  permissions: { isGlobalOwner: boolean; permittedSectionIds: string[] };
 }) {
-  const scope = await validateDraftScope(db, courseId, input.draft_section_id, input.draft_session_id);
+  const scope = await validateDraftScope(db, courseId, input.draft_section_id, input.draft_session_id, input.permissions);
   const existing = await findExistingDraftRelease(db, courseId, contentItemId, scope.section_id, scope.class_session_id);
   const updatedAt = new Date().toISOString();
   let release;
@@ -402,7 +435,7 @@ async function createDraftRelease(db: Db, courseId: string, contentItemId: strin
   return release;
 }
 
-async function validateDraftScope(db: Db, courseId: string, sectionId: string, sessionId: string) {
+async function validateDraftScope(db: Db, courseId: string, sectionId: string, sessionId: string, permissions: { isGlobalOwner: boolean; permittedSectionIds: string[] }) {
   let cleanSectionId = sectionId || "";
   let cleanSessionId = sessionId || "";
 
@@ -422,6 +455,9 @@ async function validateDraftScope(db: Db, courseId: string, sectionId: string, s
   }
 
   if (cleanSectionId) {
+    if (!permissions.isGlobalOwner && !permissions.permittedSectionIds.includes(String(cleanSectionId))) {
+      throw new Error("You are not allowed to create releases for this section.");
+    }
     const { data: section, error: sectionError } = await db
       .from("course_sections")
       .select("id")

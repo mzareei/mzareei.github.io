@@ -31,23 +31,27 @@ Deno.serve(async (request) => {
     const body = await request.json().catch(() => ({}));
     const courseId = cleanCourseId(body.course_id) || "tc2007b";
     const db = adminClient();
-    const { profile } = await requireInstructor(db, token, courseId);
+    const { profile, permissions } = await requireInstructor(db, token, courseId);
 
     if (body.action === "list_session") {
       const session = await loadSession(db, courseId, cleanUuid(body.class_session_id, "class session id"));
+      assertSessionAllowed(permissions, session.section_id);
       return json({ notes: await listSessionNotes(db, courseId, session) });
     }
 
     if (body.action === "list_student") {
-      const notes = await listStudentNotes(db, courseId, cleanUuid(body.profile_id, "student profile id"));
+      const notes = await listStudentNotes(db, courseId, cleanUuid(body.profile_id, "student profile id"), permissions);
       return json({ notes });
     }
 
     if (body.action === "create") {
       const profileId = cleanUuid(body.profile_id, "student profile id");
+      const sessionId = cleanUuid(body.class_session_id, "class session id");
+      const targetSession = await loadSession(db, courseId, sessionId);
+      assertSessionAllowed(permissions, targetSession.section_id);
       const { data: note, error: noteError } = await db
         .rpc("create_class_student_note_atomic", {
-          p_class_session_id: cleanUuid(body.class_session_id, "class session id"),
+          p_class_session_id: sessionId,
           p_course_id: courseId,
           p_profile_id: profileId,
           p_author_profile_id: profile.id,
@@ -61,15 +65,27 @@ Deno.serve(async (request) => {
     }
 
     if (body.action === "resolve") {
+      const noteId = cleanUuid(body.note_id, "note id");
+      const { data: note, error: noteLookupError } = await db
+        .from("class_student_notes")
+        .select("class_session_id")
+        .eq("id", noteId)
+        .eq("course_id", courseId)
+        .maybeSingle();
+      if (noteLookupError) throw noteLookupError;
+      if (!note) throw new Error("That student note was not found.");
+      const targetSession = await loadSession(db, courseId, String(note.class_session_id));
+      assertSessionAllowed(permissions, targetSession.section_id);
       const { data: resolved, error: resolveError } = await db
         .rpc("resolve_class_student_note_atomic", {
-          p_note_id: cleanUuid(body.note_id, "note id"),
+          p_note_id: noteId,
           p_course_id: courseId,
           p_actor_profile_id: profile.id
         })
         .single();
       if (resolveError) throw resolveError;
       const session = await loadSession(db, courseId, rpcSessionId(resolved));
+      assertSessionAllowed(permissions, session.section_id);
       return json({ notes: await listSessionNotes(db, courseId, session) });
     }
 
@@ -137,7 +153,27 @@ async function requireInstructor(db: Db, token: string, courseId: string) {
   if (membershipError) throw membershipError;
   if (!(memberships || []).length) throw new Error("You are not allowed to manage class student notes for this course.");
 
-  return { profile };
+  const isGlobalOwner = (memberships || []).some((membership) => String(membership.role) === "platform_owner");
+  const permittedSectionIds = isGlobalOwner ? [] : await loadPermittedSectionIds(db, String(profile.id), courseId);
+  if (!isGlobalOwner && !permittedSectionIds.length) throw new Error("You are not allowed to manage class student notes for this course.");
+  return { profile, permissions: { isGlobalOwner, permittedSectionIds } };
+}
+
+async function loadPermittedSectionIds(db: Db, profileId: string, courseId: string) {
+  const { data, error } = await db
+    .from("section_enrollments")
+    .select("section_id, course_sections!inner(course_id)")
+    .eq("profile_id", profileId)
+    .eq("role", "instructor")
+    .eq("status", "active")
+    .eq("course_sections.course_id", courseId);
+  if (error) throw error;
+  return unique((data || []).map((row) => String(row.section_id)));
+}
+
+function assertSessionAllowed(permissions: { isGlobalOwner: boolean; permittedSectionIds: string[] }, sectionId: string) {
+  if (permissions.isGlobalOwner || permissions.permittedSectionIds.includes(String(sectionId))) return;
+  throw new Error("You are not allowed to manage notes for this class section.");
 }
 
 async function loadSession(db: Db, courseId: string, sessionId: string) {
@@ -163,7 +199,7 @@ async function listSessionNotes(db: Db, courseId: string, session: { id: string;
   return formatNotes(db, rows || [], new Map([[session.id, session]]));
 }
 
-async function listStudentNotes(db: Db, courseId: string, profileId: string) {
+async function listStudentNotes(db: Db, courseId: string, profileId: string, permissions: { isGlobalOwner: boolean; permittedSectionIds: string[] }) {
   // Notes are the durable semester history. A normal group move drops the old
   // enrollment, so deriving history from only today's active group silently
   // hid earlier class notes.
@@ -183,7 +219,11 @@ async function listStudentNotes(db: Db, courseId: string, profileId: string) {
     .eq("course_id", courseId)
     .in("id", sessionIds);
   if (sessionError) throw sessionError;
-  return formatNotes(db, rows || [], new Map((sessions || []).map((session) => [session.id, session])));
+  const visibleSessions = permissions.isGlobalOwner
+    ? sessions || []
+    : (sessions || []).filter((session) => permissions.permittedSectionIds.includes(String(session.section_id)));
+  const visibleIds = new Set(visibleSessions.map((session) => String(session.id)));
+  return formatNotes(db, (rows || []).filter((row) => visibleIds.has(String(row.class_session_id))), new Map(visibleSessions.map((session) => [session.id, session])));
 }
 
 async function formatNotes(

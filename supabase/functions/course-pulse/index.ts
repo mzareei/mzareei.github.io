@@ -43,6 +43,17 @@ Deno.serve(async (request) => {
     const roles = await loadRoles(db, courseId, String(profile.id));
     const isTeacher = roles.some((role) => teacherRoles.includes(role));
     const isInstructor = roles.some((role) => instructorRoles.includes(role));
+    const isGlobalOwner = roles.includes("platform_owner");
+    const permittedSectionIds = isGlobalOwner ? [] : await loadPermittedSectionIds(db, String(profile.id), courseId);
+    if (isTeacher && !isGlobalOwner && !permittedSectionIds.length) {
+      throw new Error("You are not allowed to run pulses for this course.");
+    }
+    if (isTeacher && body.action !== "answer") {
+      const sectionId = await pulseSectionForRequest(db, courseId, body);
+      if (!isGlobalOwner && !permittedSectionIds.includes(sectionId)) {
+        throw new Error("You are not allowed to run pulses for this class section.");
+      }
+    }
 
     switch (body.action) {
       case "push": {
@@ -127,6 +138,35 @@ async function loadRoles(db: Db, courseId: string, profileId: string) {
     .eq("status", "active");
   if (error) throw error;
   return (data || []).map((row) => String(row.role));
+}
+
+async function loadPermittedSectionIds(db: Db, profileId: string, courseId: string) {
+  const { data, error } = await db
+    .from("section_enrollments")
+    .select("section_id, course_sections!inner(course_id)")
+    .eq("profile_id", profileId)
+    .in("role", ["instructor", "teaching_assistant"])
+    .eq("status", "active")
+    .eq("course_sections.course_id", courseId);
+  if (error) throw error;
+  return Array.from(new Set((data || []).map((row) => String(row.section_id))));
+}
+
+async function pulseSectionForRequest(db: Db, courseId: string, body: Record<string, unknown>) {
+  if (["push", "rounds", "current"].includes(String(body.action))) {
+    const session = await loadSession(db, courseId, cleanUuid(body.class_session_id, "class session id"));
+    return String(session.section_id);
+  }
+  const roundId = cleanUuid(body.round_id, "round id");
+  const { data: round, error } = await db
+    .from("pulse_rounds")
+    .select("section_id, course_id")
+    .eq("id", roundId)
+    .eq("course_id", courseId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!round) throw new Error("That pulse round was not found.");
+  return String(round.section_id);
 }
 
 async function loadSession(db: Db, courseId: string, sessionId: string) {
