@@ -522,6 +522,11 @@ assert.match(bankSource, /checkpoint_metadata_status:\s*metadataState\.status/);
 assert.match(bankSource, /checkpoint_metadata_present:\s*metadataState\.presentCount/);
 assert.match(bankSource, /checkpoint_metadata_valid:\s*metadataState\.validRows\.length/);
 assert.match(bankSource, /\.eq\("checkpoint_after_slide", checkpointAfterSlide\)/);
+assert.match(bankSource, /case "list_questions"/, "question banks must expose instructor review");
+assert.match(bankSource, /case "update_question"/, "question banks must support expert edits");
+assert.match(bankSource, /case "delete_question"/, "question banks must support safe removal");
+assert.match(bankSource, /source:\s*"generated_edited"/, "edits must be marked as hand-reviewed");
+assert.match(bankSource, /status:\s*"archived"/, "deletion must preserve historical question references");
 for (const property of [
   "segment_key",
   "source_slide_numbers",

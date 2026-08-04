@@ -11,6 +11,9 @@
 //     Anything an instructor edited by hand is marked generated_edited and left
 //     alone unless replace_edited is explicitly set.
 //   list_banks     { }                                   (teacher)
+//   list_questions { question_bank_id }                  (instructor)
+//   update_question { question_bank_id, question_id, ... } (instructor)
+//   delete_question { question_bank_id, question_id }    (instructor)
 //   draw_question  { content_slug, difficulty?, checkpoint_after_slide?, exclude_keys? }  (teacher)
 //     Picks one question for a live pulse. Returns the correct option too — only
 //     the instructor's own screen calls this, and course-pulse re-snapshots it.
@@ -57,6 +60,18 @@ Deno.serve(async (request) => {
         if (!isTeacher) throw new Error("Question banks are not allowed for this role.");
         return json(await listBanks(db, courseId));
       }
+      case "list_questions": {
+        if (!isInstructor) throw new Error("Question review is not allowed for this role.");
+        return json(await listQuestions(db, courseId, body));
+      }
+      case "update_question": {
+        if (!isInstructor) throw new Error("Question editing is not allowed for this role.");
+        return json(await updateQuestion(db, courseId, String(profile.id), body));
+      }
+      case "delete_question": {
+        if (!isInstructor) throw new Error("Question deletion is not allowed for this role.");
+        return json(await deleteQuestion(db, courseId, String(profile.id), body));
+      }
       case "draw_question": {
         if (!isTeacher) throw new Error("Drawing a question is not allowed for this role.");
         return json(await drawQuestion(db, courseId, body));
@@ -78,6 +93,14 @@ function bearerToken(value: string | null) {
 
 function cleanCourseId(value: unknown) {
   return String(value || "").trim().toLowerCase().replace(/[^a-z0-9._-]/g, "").slice(0, 80);
+}
+
+function cleanUuid(value: unknown, label: string) {
+  const text = String(value || "").trim();
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text)) {
+    throw new Error(`A valid ${label} is required.`);
+  }
+  return text;
 }
 
 async function loadProfileForToken(db: Db, token: string) {
@@ -347,6 +370,155 @@ async function listBanks(db: Db, courseId: string) {
       .filter((bank) => bank.content_slug)
       .sort((a, b) => String(a.content_slug).localeCompare(String(b.content_slug)))
   };
+}
+
+async function loadQuestionBank(db: Db, courseId: string, value: unknown) {
+  const bankId = cleanUuid(value, "question bank id");
+  const { data, error } = await db
+    .from("question_banks")
+    .select("id, title, content_item_id, bank_type, status")
+    .eq("id", bankId)
+    .eq("course_id", courseId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data || data.status !== "active") throw new Error("That question bank is not active.");
+  return data;
+}
+
+async function listQuestions(db: Db, courseId: string, body: Record<string, unknown>) {
+  const bank = await loadQuestionBank(db, courseId, body.question_bank_id);
+  const { data, error } = await db
+    .from("questions")
+    .select("id, generation_key, prompt, prompt_es, explanation, explanation_es, difficulty, segment_key, source_slide_numbers, source_slide_start, source_slide_end, checkpoint_after_slide, status, source, updated_at, question_options(id, option_text, option_text_es, is_correct, position)")
+    .eq("question_bank_id", bank.id)
+    .eq("status", "active")
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return {
+    bank_id: bank.id,
+    bank_title: bank.title,
+    questions: (data || []).map((question) => ({
+      ...question,
+      question_options: (question.question_options || [])
+        .slice()
+        .sort((a, b) => Number(a.position) - Number(b.position))
+    }))
+  };
+}
+
+async function loadQuestionForEdit(db: Db, courseId: string, body: Record<string, unknown>) {
+  const bank = await loadQuestionBank(db, courseId, body.question_bank_id);
+  const questionId = cleanUuid(body.question_id, "question id");
+  const { data: question, error } = await db
+    .from("questions")
+    .select("id, question_bank_id, generation_key, prompt, prompt_es, explanation, explanation_es, difficulty, segment_key, source_slide_numbers, source_slide_start, source_slide_end, checkpoint_after_slide, status")
+    .eq("id", questionId)
+    .eq("question_bank_id", bank.id)
+    .eq("status", "active")
+    .maybeSingle();
+  if (error) throw error;
+  if (!question) throw new Error("That question is no longer active.");
+  const { data: options, error: optionError } = await db
+    .from("question_options")
+    .select("id, option_text, option_text_es, is_correct, position")
+    .eq("question_id", questionId)
+    .order("position", { ascending: true });
+  if (optionError) throw optionError;
+  if ((options || []).length !== 4) throw new Error("This question does not have four editable options.");
+  return { bank, question, options: options || [] };
+}
+
+function editedQuestionInput(
+  current: Record<string, any>,
+  currentOptions: Array<Record<string, any>>,
+  body: Record<string, unknown>
+) {
+  const submittedOptions = Array.isArray(body.options)
+    ? body.options
+    : currentOptions.map((option) => ({
+      text: option.option_text,
+      text_es: option.option_text_es,
+      is_correct: option.is_correct
+    }));
+  return validateQuestion({
+    key: current.generation_key,
+    difficulty: body.difficulty ?? current.difficulty,
+    prompt: body.prompt ?? current.prompt,
+    prompt_es: body.prompt_es ?? current.prompt_es,
+    explanation: body.explanation ?? current.explanation,
+    explanation_es: body.explanation_es ?? current.explanation_es,
+    segment_key: current.segment_key,
+    source_slide_numbers: current.source_slide_numbers,
+    source_slide_start: current.source_slide_start,
+    source_slide_end: current.source_slide_end,
+    checkpoint_after_slide: current.checkpoint_after_slide,
+    options: submittedOptions
+  }, 0);
+}
+
+async function updateQuestion(db: Db, courseId: string, actorProfileId: string, body: Record<string, unknown>) {
+  const { bank, question, options } = await loadQuestionForEdit(db, courseId, body);
+  const edited = editedQuestionInput(question, options, body);
+  const now = new Date().toISOString();
+  const { error: questionError } = await db
+    .from("questions")
+    .update({
+      prompt: edited.prompt,
+      prompt_es: edited.prompt_es,
+      explanation: edited.explanation,
+      explanation_es: edited.explanation_es,
+      difficulty: edited.difficulty,
+      source: "generated_edited",
+      updated_at: now
+    })
+    .eq("id", question.id)
+    .eq("question_bank_id", bank.id);
+  if (questionError) throw questionError;
+
+  for (let index = 0; index < options.length; index += 1) {
+    const option = edited.options[index];
+    const { error: optionError } = await db
+      .from("question_options")
+      .update({
+        option_text: option.text,
+        option_text_es: option.text_es,
+        is_correct: option.is_correct,
+        position: index,
+        updated_at: now
+      })
+      .eq("id", options[index].id)
+      .eq("question_id", question.id);
+    if (optionError) throw optionError;
+  }
+
+  await db.from("audit_log").insert({
+    course_id: courseId,
+    actor_profile_id: actorProfileId,
+    target_type: "question",
+    target_id: question.id,
+    action: "question_edited",
+    metadata: { question_bank_id: bank.id, generation_key: question.generation_key }
+  });
+  return { question_id: question.id, bank_id: bank.id, updated: true };
+}
+
+async function deleteQuestion(db: Db, courseId: string, actorProfileId: string, body: Record<string, unknown>) {
+  const { bank, question } = await loadQuestionForEdit(db, courseId, body);
+  const { error } = await db
+    .from("questions")
+    .update({ status: "archived", updated_at: new Date().toISOString() })
+    .eq("id", question.id)
+    .eq("question_bank_id", bank.id);
+  if (error) throw error;
+  await db.from("audit_log").insert({
+    course_id: courseId,
+    actor_profile_id: actorProfileId,
+    target_type: "question",
+    target_id: question.id,
+    action: "question_archived",
+    metadata: { question_bank_id: bank.id, generation_key: question.generation_key }
+  });
+  return { question_id: question.id, bank_id: bank.id, deleted: true };
 }
 
 async function drawQuestion(db: Db, courseId: string, body: Record<string, unknown>) {
