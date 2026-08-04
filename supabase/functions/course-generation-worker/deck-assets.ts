@@ -615,7 +615,7 @@ table.compare .map-to { color: var(--good); font-weight: 600; }
 export const DECK_SCRIPT = `/* =====================================================================
    Generated lecture deck presenter engine
    Navigation + click-to-reveal fragments + EN/ES language + light/dark.
-   course-platform-question-display:v1
+   course-platform-question-display:v2
    No dependency on side panels or hidden notes.
    ===================================================================== */
 (function () {
@@ -821,12 +821,12 @@ export const DECK_SCRIPT = `/* =================================================
     shell.appendChild(instruction);
     var options = document.createElement("div");
     options.className = "classroom-question-options";
-    message.options.forEach(function (option) {
+    message.options.forEach(function (option, index) {
       var item = document.createElement("div");
       item.className = "classroom-question-option";
       var key = document.createElement("span");
       key.className = "classroom-question-key";
-      key.textContent = option.key;
+      key.textContent = String.fromCharCode(65 + index);
       var copy = document.createElement("span");
       copy.textContent = option.text;
       if (option.text_es) {
