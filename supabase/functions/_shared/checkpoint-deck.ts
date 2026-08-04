@@ -6,6 +6,17 @@ export type DeckCheckpoint = {
   source_slide_end: number;
 };
 
+export const DECK_PROTOCOL_MARKER = "course-platform-deck-protocol:v2";
+
+export function deckHasCurrentProtocol(html: string): boolean {
+  const currentEngineScripts = String(html).match(
+    /<script\b[^>]*\bdata-course-deck-engine\s*=\s*(?:"current"|'current'|current)[^>]*>[\s\S]*?<\/script\s*>/gi
+  ) || [];
+  return currentEngineScripts.some((script) =>
+    script.includes(DECK_PROTOCOL_MARKER)
+  );
+}
+
 type CheckpointQuestionRow = {
   segment_key?: unknown;
   checkpoint_after_slide?: unknown;
