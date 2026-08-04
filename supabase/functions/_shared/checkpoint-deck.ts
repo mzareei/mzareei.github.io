@@ -10,7 +10,7 @@ export const DECK_PROTOCOL_MARKER = "course-platform-deck-protocol:v2";
 // v2 decks predate the answer-neutral question layer. Keep the protocol
 // marker stable for compatibility, but require the new bridge command before
 // treating an existing storage object as fully upgraded.
-export const DECK_QUESTION_DISPLAY_MARKER = "checkpoint.question_display";
+export const DECK_QUESTION_DISPLAY_MARKER = "course-platform-question-display:v1";
 
 export function deckHasCurrentProtocol(html: string): boolean {
   const currentEngineScripts = String(html).match(

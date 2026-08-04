@@ -615,6 +615,7 @@ table.compare .map-to { color: var(--good); font-weight: 600; }
 export const DECK_SCRIPT = `/* =====================================================================
    Generated lecture deck presenter engine
    Navigation + click-to-reveal fragments + EN/ES language + light/dark.
+   course-platform-question-display:v1
    No dependency on side panels or hidden notes.
    ===================================================================== */
 (function () {
