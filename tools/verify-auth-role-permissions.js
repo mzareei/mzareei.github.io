@@ -56,11 +56,35 @@ for (const file of scopedFunctions) {
     "teaching_assistant",
     "section_enrollments",
     "permittedSectionIds",
-    "isCourseInstructor",
     "assertSectionAllowed"
   ];
   for (const marker of markers) {
     if (!source.includes(marker)) fail(`${file} missing role-scope marker: ${marker}`);
+  }
+  if (!/isCourseInstructor|isGlobalCourseInstructor/.test(source)) {
+    fail(`${file} missing instructor-scope marker.`);
+  }
+}
+
+const authContextPath = "supabase/functions/course-auth-context/index.ts";
+if (exists(authContextPath)) {
+  const authContext = read(authContextPath);
+  for (const marker of ["teacher_sessions", "loadTeacherSessions", "section_enrollments", "permittedSectionIds"]) {
+    if (!authContext.includes(marker)) fail(`${authContextPath} missing role-scope marker: ${marker}`);
+  }
+  if (!/isGlobalCourseInstructor|isGlobalOwner/.test(authContext)) {
+    fail(`${authContextPath} must keep regular instructors section-scoped; only platform owners are global.`);
+  }
+}
+
+for (const file of scopedFunctions) {
+  if (!exists(file)) continue;
+  const source = read(file);
+  if (!/platform_owner/.test(source) || !/instructor/.test(source)) {
+    fail(`${file} must distinguish platform-owner and instructor scope.`);
+  }
+  if (!/isGlobalCourseInstructor|isGlobalOwner/.test(source)) {
+    fail(`${file} must keep regular instructors section-scoped; only platform owners are global.`);
   }
 }
 

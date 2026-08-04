@@ -19,10 +19,10 @@ Deno.serve(async (request) => {
     const body = await request.json().catch(() => ({}));
     const courseId = cleanCourseId(body.course_id) || "tc2007b";
     const db = adminClient();
-    const { profile } = await requireInstructor(db, token, courseId);
+    const { profile, permissions } = await requireInstructor(db, token, courseId);
 
     if (body.action === "preview_roster") {
-      const result = await validateRosterRows(db, courseId, cleanRosterRows(body.rows), cleanAllowedDomains(body.allowed_domains));
+      const result = await validateRosterRows(db, courseId, cleanRosterRows(body.rows), cleanAllowedDomains(body.allowed_domains), permissions);
       return json(result);
     }
 
@@ -32,12 +32,14 @@ Deno.serve(async (request) => {
         rows: cleanRosterRows(body.rows),
         allowedDomains: cleanAllowedDomains(body.allowed_domains),
         sourceFilename: cleanSourceFilename(body.source_filename),
-        actorProfileId: profile.id
+        actorProfileId: profile.id,
+        permissions
       });
       return json(result);
     }
 
     if (body.action === "correct_roster_profile") {
+      assertGlobalOwner(permissions);
       const result = await correctRosterProfile(db, {
         courseId,
         profileId: cleanUuid(body.profile_id, "A valid profile id is required."),
@@ -52,6 +54,7 @@ Deno.serve(async (request) => {
     }
 
     if (body.action === "merge_roster_profile") {
+      assertGlobalOwner(permissions);
       const result = await mergeRosterProfile(db, {
         courseId,
         sourceProfileId: cleanUuid(body.source_profile_id, "A valid source profile id is required."),
@@ -68,7 +71,8 @@ Deno.serve(async (request) => {
         person: cleanRosterRows([body.person || body])[0],
         allowedDomains: cleanAllowedDomains(body.allowed_domains),
         externalAccessReason: cleanOptionalReason(body.external_access_reason),
-        actorProfileId: profile.id
+        actorProfileId: profile.id,
+        permissions
       });
       return json(result);
     }
@@ -78,21 +82,26 @@ Deno.serve(async (request) => {
         courseId,
         profileId: cleanUuid(body.profile_id, "A valid profile id is required."),
         reason: cleanOptionalReason(body.reason) || "Removed from the People screen.",
-        actorProfileId: String(profile.id)
+        actorProfileId: String(profile.id),
+        permissions
       });
       return json(result);
     }
 
     if (body.action === "resend_instructor_invitation") {
+      const targetProfileId = cleanUuid(body.profile_id, "A valid profile id is required.");
+      await assertSectionInstructorTargetAllowed(db, permissions, courseId, targetProfileId);
       const result = await resendInstructorInvitation(db, {
         courseId,
-        profileId: cleanUuid(body.profile_id, "A valid profile id is required."),
+        profileId: targetProfileId,
         actorProfileId: profile.id
       });
       return json(result);
     }
 
     if (body.action === "assign_person_section") {
+      const targetSectionId = cleanUuid(body.section_id, "A valid section id is required.");
+      assertSectionAllowed(permissions, targetSectionId);
       const { data: assignment, error: assignmentError } = await db
         .rpc("assign_student_section_atomic", {
           p_course_id: courseId,
@@ -103,11 +112,12 @@ Deno.serve(async (request) => {
       if (assignmentError) throw assignmentError;
       return json({
         assignment,
-        roster: await listRoster(db, courseId)
+        roster: await listRoster(db, courseId, permissions)
       });
     }
 
     if (body.action === "grant_external_access") {
+      assertGlobalOwner(permissions);
       const result = await grantExternalAccess(db, {
         courseId,
         email: cleanEmail(body.email),
@@ -118,6 +128,7 @@ Deno.serve(async (request) => {
     }
 
     if (body.action === "revoke_external_access") {
+      assertGlobalOwner(permissions);
       const result = await revokeExternalAccess(db, {
         courseId,
         email: cleanEmail(body.email),
@@ -128,16 +139,17 @@ Deno.serve(async (request) => {
     }
 
     if (body.action === "list_external_access") {
+      assertGlobalOwner(permissions);
       return json({ external_access: await listExternalAccess(db, courseId) });
     }
 
     const [roster, externalAccess] = await Promise.all([
-      listRoster(db, courseId),
+      listRoster(db, courseId, permissions),
       listExternalAccess(db, courseId)
     ]);
     return json({
       roster,
-      external_access: externalAccess,
+      external_access: permissions.isGlobalOwner ? externalAccess : [],
       actions: [
         "list_roster",
         "preview_roster",
@@ -294,10 +306,64 @@ async function requireInstructor(db: ReturnType<typeof adminClient>, token: stri
   if (membershipError) throw membershipError;
   if (!(memberships || []).length) throw new Error("You are not allowed to manage the roster for this course.");
 
-  return { profile, user: userData.user };
+  const isGlobalOwner = (memberships || []).some((membership) => String(membership.role) === "platform_owner");
+  const permittedSectionIds = isGlobalOwner
+    ? []
+    : await loadPermittedSectionIds(db, String(profile.id), courseId);
+  if (!isGlobalOwner && !permittedSectionIds.length) {
+    throw new Error("You are not allowed to manage the roster for this course.");
+  }
+  return { profile, user: userData.user, permissions: { isGlobalOwner, permittedSectionIds } };
 }
 
-async function validateRosterRows(db: ReturnType<typeof adminClient>, courseId: string, rows: ReturnType<typeof cleanRosterRows>, allowedDomains: string[]) {
+async function loadPermittedSectionIds(db: ReturnType<typeof adminClient>, profileId: string, courseId: string) {
+  const { data, error } = await db
+    .from("section_enrollments")
+    .select("section_id, course_sections!inner(course_id)")
+    .eq("profile_id", profileId)
+    .eq("role", "instructor")
+    .eq("status", "active")
+    .eq("course_sections.course_id", courseId);
+  if (error) throw error;
+  return Array.from(new Set((data || []).map((row) => String(row.section_id))));
+}
+
+function assertSectionAllowed(permissions: { isGlobalOwner: boolean; permittedSectionIds: string[] }, sectionId: string) {
+  if (permissions.isGlobalOwner || permissions.permittedSectionIds.includes(String(sectionId))) return;
+  throw new Error("You are not allowed to manage this section.");
+}
+
+function assertGlobalOwner(permissions: { isGlobalOwner: boolean }) {
+  if (!permissions.isGlobalOwner) throw new Error("Only the platform owner can perform this roster action.");
+}
+
+async function assertSectionInstructorTargetAllowed(
+  db: ReturnType<typeof adminClient>,
+  permissions: { isGlobalOwner: boolean; permittedSectionIds: string[] },
+  courseId: string,
+  profileId: string
+) {
+  if (permissions.isGlobalOwner) return;
+  const { data, error } = await db
+    .from("section_enrollments")
+    .select("section_id, course_sections!inner(course_id)")
+    .eq("profile_id", profileId)
+    .eq("role", "instructor")
+    .eq("status", "active")
+    .eq("course_sections.course_id", courseId)
+    .in("section_id", permissions.permittedSectionIds)
+    .limit(1);
+  if (error) throw error;
+  if (!(data || []).length) throw new Error("You are not allowed to manage this instructor.");
+}
+
+async function validateRosterRows(
+  db: ReturnType<typeof adminClient>,
+  courseId: string,
+  rows: ReturnType<typeof cleanRosterRows>,
+  allowedDomains: string[],
+  permissions: { isGlobalOwner: boolean; permittedSectionIds: string[] }
+) {
   const { data: sections, error } = await db
     .from("course_sections")
     .select("id, section_code, section_name, status")
@@ -322,6 +388,12 @@ async function validateRosterRows(db: ReturnType<typeof adminClient>, courseId: 
     seenEmails.add(row.institutional_email);
     const section = sectionByCode.get(row.section_code.toLowerCase());
     if (!section) throw new Error("Section code does not exist for this course.");
+    try {
+      assertSectionAllowed(permissions, String(section.id));
+    } catch {
+      rejected_rows.push({ ...row, reason: "This section is outside your teaching assignment." });
+      continue;
+    }
     accepted_rows.push({
       ...row,
       role: row.role || "student",
@@ -364,8 +436,9 @@ async function applyRoster(db: ReturnType<typeof adminClient>, input: {
   allowedDomains: string[];
   sourceFilename: string;
   actorProfileId: string;
+  permissions: { isGlobalOwner: boolean; permittedSectionIds: string[] };
 }) {
-  const preview = await validateRosterRows(db, input.courseId, input.rows, input.allowedDomains);
+  const preview = await validateRosterRows(db, input.courseId, input.rows, input.allowedDomains, input.permissions);
 
   const { data: importRow, error: importError } = await db
     .from("roster_imports")
@@ -818,6 +891,7 @@ async function removePerson(db: ReturnType<typeof adminClient>, input: {
   profileId: string;
   reason: string;
   actorProfileId: string;
+  permissions: { isGlobalOwner: boolean; permittedSectionIds: string[] };
 }) {
   if (input.profileId === input.actorProfileId) {
     throw new Error("You cannot remove yourself from the course.");
@@ -842,6 +916,17 @@ async function removePerson(db: ReturnType<typeof adminClient>, input: {
   }
   if ((memberships || []).some((m) => String(m.role) === "platform_owner")) {
     throw new Error("A platform owner cannot be removed from the course.");
+  }
+  if (!input.permissions.isGlobalOwner) {
+    const { data: enrollments, error: enrollmentError } = await db
+      .from("section_enrollments")
+      .select("section_id")
+      .eq("profile_id", input.profileId)
+      .eq("role", "student")
+      .eq("status", "active")
+      .in("section_id", input.permissions.permittedSectionIds);
+    if (enrollmentError) throw enrollmentError;
+    if (!(enrollments || []).length) throw new Error("You are not allowed to manage this person's roster record.");
   }
 
   const now = new Date().toISOString();
@@ -890,7 +975,7 @@ async function removePerson(db: ReturnType<typeof adminClient>, input: {
   });
 
   const [roster, externalAccess] = await Promise.all([
-    listRoster(db, input.courseId),
+    listRoster(db, input.courseId, input.permissions),
     listExternalAccess(db, input.courseId)
   ]);
   return {
@@ -908,12 +993,13 @@ async function addPerson(db: ReturnType<typeof adminClient>, input: {
   allowedDomains: string[];
   externalAccessReason: string;
   actorProfileId: string;
+  permissions: { isGlobalOwner: boolean; permittedSectionIds: string[] };
 }) {
   const person = input.person;
   if (!person) throw new Error("Person details are required.");
 
   let grant = null;
-  let preview = await validateRosterRows(db, input.courseId, [person], input.allowedDomains);
+  let preview = await validateRosterRows(db, input.courseId, [person], input.allowedDomains, input.permissions);
   const rejection = preview.rejected_rows[0];
 
   if (rejection && rejection.reason === "Email is outside the allowed institutional domains.") {
@@ -931,7 +1017,7 @@ async function addPerson(db: ReturnType<typeof adminClient>, input: {
       reason: input.externalAccessReason,
       actorProfileId: input.actorProfileId
     })).grant;
-    preview = await validateRosterRows(db, input.courseId, [person], input.allowedDomains);
+    preview = await validateRosterRows(db, input.courseId, [person], input.allowedDomains, input.permissions);
   }
 
   if (!preview.accepted_rows.length) {
@@ -1051,25 +1137,40 @@ async function insertAudit(db: ReturnType<typeof adminClient>, input: {
   if (error) throw error;
 }
 
-async function listRoster(db: ReturnType<typeof adminClient>, courseId: string) {
-  const { data: memberships, error } = await db
+async function listRoster(db: ReturnType<typeof adminClient>, courseId: string, permissions: { isGlobalOwner: boolean; permittedSectionIds: string[] }) {
+  let profileIds: string[] = [];
+  if (!permissions.isGlobalOwner) {
+    const { data: assigned, error: assignedError } = await db
+      .from("section_enrollments")
+      .select("profile_id")
+      .in("section_id", permissions.permittedSectionIds)
+      .in("role", ["student", "instructor", "teaching_assistant"])
+      .in("status", ["active", "dropped"]);
+    if (assignedError) throw assignedError;
+    profileIds = Array.from(new Set((assigned || []).map((row) => String(row.profile_id))));
+    if (!profileIds.length) return [];
+  }
+
+  let membershipQuery = db
     .from("course_memberships")
     .select("id, profile_id, role, status, updated_at")
     .eq("course_id", courseId)
     .order("role", { ascending: true });
+  if (!permissions.isGlobalOwner) membershipQuery = membershipQuery.in("profile_id", profileIds);
+  const { data: memberships, error } = await membershipQuery;
   if (error) throw error;
   if (!(memberships || []).length) return [];
 
-  const profileIds = unique((memberships || []).map((membership) => membership.profile_id));
+  const membershipProfileIds = unique((memberships || []).map((membership) => membership.profile_id));
   const [{ data: profiles, error: profileError }, { data: enrollments, error: enrollmentError }] = await Promise.all([
     db
       .from("profiles")
       .select("id, institutional_email, student_identifier, full_name, auth_user_id, status")
-      .in("id", profileIds),
+      .in("id", membershipProfileIds),
     db
       .from("section_enrollments")
       .select("id, section_id, profile_id, role, status")
-      .in("profile_id", profileIds)
+      .in("profile_id", membershipProfileIds)
   ]);
   if (profileError) throw profileError;
   if (enrollmentError) throw enrollmentError;

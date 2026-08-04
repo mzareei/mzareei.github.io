@@ -134,12 +134,13 @@ async function requireInstructor(db: ReturnType<typeof adminClient>, token: stri
   if (!(memberships || []).length) throw new Error("You are not allowed to manage releases for this course.");
 
   const isCourseInstructor = (memberships || []).some((membership) => instructorRoles.includes(String(membership.role)));
-  const permittedSectionIds = isCourseInstructor ? [] : await loadPermittedSectionIds(db, String(profile.id), courseId);
-  if (!isCourseInstructor && !permittedSectionIds.length) {
+  const isGlobalCourseInstructor = (memberships || []).some((membership) => String(membership.role) === "platform_owner");
+  const permittedSectionIds = isGlobalCourseInstructor ? [] : await loadPermittedSectionIds(db, String(profile.id), courseId);
+  if (!isCourseInstructor || (!isGlobalCourseInstructor && !permittedSectionIds.length)) {
     throw new Error("You are not allowed to manage releases for this course.");
   }
 
-  return { profile, user: userData.user, isCourseInstructor, permittedSectionIds };
+  return { profile, user: userData.user, isCourseInstructor, isGlobalCourseInstructor, permittedSectionIds };
 }
 
 async function loadPermittedSectionIds(db: ReturnType<typeof adminClient>, profileId: string, courseId: string) {
@@ -147,7 +148,7 @@ async function loadPermittedSectionIds(db: ReturnType<typeof adminClient>, profi
     .from("section_enrollments")
     .select("section_id, course_sections!inner(course_id)")
     .eq("profile_id", profileId)
-    .eq("role", "teaching_assistant")
+    .in("role", ["instructor", "teaching_assistant"])
     .eq("status", "active")
     .eq("course_sections.course_id", courseId);
   if (error) throw error;
@@ -156,6 +157,7 @@ async function loadPermittedSectionIds(db: ReturnType<typeof adminClient>, profi
 
 async function listReleases(db: ReturnType<typeof adminClient>, courseId: string, permissions: {
   isCourseInstructor: boolean;
+  isGlobalCourseInstructor: boolean;
   permittedSectionIds: string[];
 }) {
   const { data: releases, error } = await db
@@ -164,7 +166,7 @@ async function listReleases(db: ReturnType<typeof adminClient>, courseId: string
     .eq("course_id", courseId)
     .order("created_at", { ascending: true });
   if (error) throw error;
-  const scopedReleases = permissions.isCourseInstructor
+  const scopedReleases = permissions.isGlobalCourseInstructor
     ? releases || []
     : (releases || []).filter((release) => release.section_id && permissions.permittedSectionIds.includes(String(release.section_id)));
   if (!scopedReleases.length) return [];
@@ -247,7 +249,7 @@ async function createRelease(db: ReturnType<typeof adminClient>, courseId: strin
   sectionId: string;
   classSessionId: string;
   actorProfileId: string;
-  permissions: { isCourseInstructor: boolean; permittedSectionIds: string[] };
+  permissions: { isCourseInstructor: boolean; isGlobalCourseInstructor: boolean; permittedSectionIds: string[] };
 }) {
   assertInstructorOnly(input.permissions);
 
@@ -327,6 +329,7 @@ async function updateReleaseState(db: ReturnType<typeof adminClient>, input: {
   actorProfileId: string;
   permissions: {
     isCourseInstructor: boolean;
+    isGlobalCourseInstructor: boolean;
     permittedSectionIds: string[];
   };
 }) {
@@ -385,9 +388,10 @@ function assertInstructorOnly(permissions: { isCourseInstructor: boolean }) {
 
 async function assertSectionAllowed(db: ReturnType<typeof adminClient>, permissions: {
   isCourseInstructor: boolean;
+  isGlobalCourseInstructor: boolean;
   permittedSectionIds: string[];
 }, sectionId: string | null, classSessionId: string | null) {
-  if (permissions.isCourseInstructor) return;
+  if (permissions.isGlobalCourseInstructor) return;
   if (sectionId && permissions.permittedSectionIds.includes(String(sectionId))) return;
   if (classSessionId) {
     const { data, error } = await db

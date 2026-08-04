@@ -440,13 +440,13 @@ async function requireInstructor(db: ReturnType<typeof adminClient>, token: stri
   if (membershipError) throw membershipError;
   if (!(memberships || []).length) throw new Error("You are not allowed to manage class sessions for this course.");
 
-  const isCourseInstructor = (memberships || []).some((membership) => instructorRoles.includes(String(membership.role)));
-  const permittedSectionIds = isCourseInstructor ? [] : await loadPermittedSectionIds(db, String(profile.id), courseId);
-  if (!isCourseInstructor && !permittedSectionIds.length) {
+  const isGlobalCourseInstructor = (memberships || []).some((membership) => String(membership.role) === "platform_owner");
+  const permittedSectionIds = isGlobalCourseInstructor ? [] : await loadPermittedSectionIds(db, String(profile.id), courseId);
+  if (!isGlobalCourseInstructor && !permittedSectionIds.length) {
     throw new Error("You are not allowed to manage class sessions for this course.");
   }
 
-  return { profile, user: userData.user, isCourseInstructor, permittedSectionIds };
+  return { profile, user: userData.user, isCourseInstructor: isGlobalCourseInstructor, permittedSectionIds };
 }
 
 async function loadPermittedSectionIds(db: ReturnType<typeof adminClient>, profileId: string, courseId: string) {
@@ -454,7 +454,7 @@ async function loadPermittedSectionIds(db: ReturnType<typeof adminClient>, profi
     .from("section_enrollments")
     .select("section_id, course_sections!inner(course_id)")
     .eq("profile_id", profileId)
-    .eq("role", "teaching_assistant")
+    .in("role", ["instructor", "teaching_assistant"])
     .eq("status", "active")
     .eq("course_sections.course_id", courseId);
   if (error) throw error;

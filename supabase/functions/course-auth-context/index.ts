@@ -4,7 +4,6 @@ import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_sha
 
 const visibleReleaseStates = ["released", "live", "paused", "review_only", "scheduled"];
 const teacherRoles = ["platform_owner", "instructor", "teaching_assistant"];
-const courseInstructorRoles = ["platform_owner", "instructor"];
 
 Deno.serve(async (request) => {
   const options = handleOptions(request);
@@ -372,13 +371,13 @@ async function loadTeacherSessions(
   memberships: Record<string, unknown>[],
   sections: Record<string, unknown>[]
 ) {
-  const isCourseInstructor = memberships.some((membership) => courseInstructorRoles.includes(String(membership.role)));
-  const permittedSectionIds = isCourseInstructor
+  const isGlobalCourseInstructor = memberships.some((membership) => String(membership.role) === "platform_owner");
+  const permittedSectionIds = isGlobalCourseInstructor
     ? []
     : unique(sections
-        .filter((section) => String(section.role) === "teaching_assistant")
+        .filter((section) => ["instructor", "teaching_assistant"].includes(String(section.role)))
         .map((section) => section.id));
-  if (!isCourseInstructor && !permittedSectionIds.length) return [];
+  if (!isGlobalCourseInstructor && !permittedSectionIds.length) return [];
 
   let query = db
     .from("class_sessions")
@@ -386,7 +385,7 @@ async function loadTeacherSessions(
     .eq("course_id", courseId)
     .order("planned_date", { ascending: true })
     .order("sequence_number", { ascending: true });
-  if (!isCourseInstructor) query = query.in("section_id", permittedSectionIds);
+  if (!isGlobalCourseInstructor) query = query.in("section_id", permittedSectionIds);
 
   const { data: sessions, error } = await query;
   if (error) throw error;

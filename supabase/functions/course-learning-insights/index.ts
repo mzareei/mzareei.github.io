@@ -33,7 +33,7 @@ Deno.serve(async (request) => {
     sectionIds.forEach((sectionId) => assertSectionAllowed(permissions, sectionId));
     const scores = await loadScores(db, catalog.items.map((item) => String(item.id)), sectionIds);
     const topicSummaries = await loadTopicSummaries(db, catalog.sections.map((section) => String(section.id)));
-    const exitTicketTrends = await loadExitTicketTrends(db, courseId, sectionIds, permissions.isCourseInstructor && !selectedSectionId);
+    const exitTicketTrends = await loadExitTicketTrends(db, courseId, sectionIds, permissions.isGlobalCourseInstructor && !selectedSectionId);
 
     const result = {
       section_summaries: sectionSummaries(catalog.sections, scores),
@@ -100,13 +100,13 @@ async function requireInstructor(db: Db, token: string, courseId: string) {
   if (membershipError) throw membershipError;
   if (!(memberships || []).length) throw new Error("You are not allowed to review learning insights for this course.");
 
-  const isCourseInstructor = (memberships || []).some((membership) => instructorRoles.includes(String(membership.role)));
-  const permittedSectionIds = isCourseInstructor ? [] : await loadPermittedSectionIds(db, String(profile.id), courseId);
-  if (!isCourseInstructor && !permittedSectionIds.length) {
+  const isGlobalCourseInstructor = (memberships || []).some((membership) => String(membership.role) === "platform_owner");
+  const permittedSectionIds = isGlobalCourseInstructor ? [] : await loadPermittedSectionIds(db, String(profile.id), courseId);
+  if (!isGlobalCourseInstructor && !permittedSectionIds.length) {
     throw new Error("You are not allowed to review learning insights for this course.");
   }
 
-  return { profile, user: userData.user, isCourseInstructor, permittedSectionIds };
+  return { profile, user: userData.user, isGlobalCourseInstructor, permittedSectionIds };
 }
 
 async function loadPermittedSectionIds(db: Db, profileId: string, courseId: string) {
@@ -114,7 +114,7 @@ async function loadPermittedSectionIds(db: Db, profileId: string, courseId: stri
     .from("section_enrollments")
     .select("section_id, course_sections!inner(course_id)")
     .eq("profile_id", profileId)
-    .eq("role", "teaching_assistant")
+    .in("role", ["instructor", "teaching_assistant"])
     .eq("status", "active")
     .eq("course_sections.course_id", courseId);
   if (error) throw error;
@@ -122,7 +122,7 @@ async function loadPermittedSectionIds(db: Db, profileId: string, courseId: stri
 }
 
 async function loadCatalog(db: Db, courseId: string, permissions: {
-  isCourseInstructor: boolean;
+  isGlobalCourseInstructor: boolean;
   permittedSectionIds: string[];
 }) {
   let sectionQuery = db
@@ -130,7 +130,7 @@ async function loadCatalog(db: Db, courseId: string, permissions: {
     .select("id, section_code, section_name, status")
     .eq("course_id", courseId)
     .order("section_code", { ascending: true });
-  if (!permissions.isCourseInstructor) sectionQuery = sectionQuery.in("id", permissions.permittedSectionIds);
+  if (!permissions.isGlobalCourseInstructor) sectionQuery = sectionQuery.in("id", permissions.permittedSectionIds);
 
   const [{ data: sections, error: sectionError }, { data: categories, error: categoryError }, { data: items, error: itemError }] = await Promise.all([
     sectionQuery,
@@ -187,10 +187,10 @@ function sectionSummaries(sections: Record<string, unknown>[], scores: Record<st
 }
 
 function assertSectionAllowed(permissions: {
-  isCourseInstructor: boolean;
+  isGlobalCourseInstructor: boolean;
   permittedSectionIds: string[];
 }, sectionId: string) {
-  if (permissions.isCourseInstructor) return;
+  if (permissions.isGlobalCourseInstructor) return;
   if (permissions.permittedSectionIds.includes(String(sectionId))) return;
   throw new Error("You are not allowed to review learning insights for this section.");
 }

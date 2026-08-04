@@ -219,12 +219,13 @@ async function requireInstructor(db: Db, token: string, courseId: string) {
   if (!(memberships || []).length) throw new Error("You are not allowed to review this gradebook.");
 
   const isCourseInstructor = (memberships || []).some((membership) => instructorRoles.includes(String(membership.role)));
-  const permittedSectionIds = isCourseInstructor ? [] : await loadPermittedSectionIds(db, String(profile.id), courseId);
-  if (!isCourseInstructor && !permittedSectionIds.length) {
+  const isGlobalCourseInstructor = (memberships || []).some((membership) => String(membership.role) === "platform_owner");
+  const permittedSectionIds = isGlobalCourseInstructor ? [] : await loadPermittedSectionIds(db, String(profile.id), courseId);
+  if (!isCourseInstructor || (!isGlobalCourseInstructor && !permittedSectionIds.length)) {
     throw new Error("You are not allowed to review this gradebook.");
   }
 
-  return { profile, user: userData.user, isCourseInstructor, permittedSectionIds };
+  return { profile, user: userData.user, isCourseInstructor, isGlobalCourseInstructor, permittedSectionIds };
 }
 
 async function loadPermittedSectionIds(db: Db, profileId: string, courseId: string) {
@@ -232,7 +233,7 @@ async function loadPermittedSectionIds(db: Db, profileId: string, courseId: stri
     .from("section_enrollments")
     .select("section_id, course_sections!inner(course_id)")
     .eq("profile_id", profileId)
-    .eq("role", "teaching_assistant")
+    .in("role", ["instructor", "teaching_assistant"])
     .eq("status", "active")
     .eq("course_sections.course_id", courseId);
   if (error) throw error;
@@ -535,6 +536,7 @@ async function writeAuditLog(
 
 async function loadCatalog(db: Db, courseId: string, permissions: {
   isCourseInstructor: boolean;
+  isGlobalCourseInstructor: boolean;
   permittedSectionIds: string[];
 }) {
   let sectionQuery = db
@@ -542,7 +544,7 @@ async function loadCatalog(db: Db, courseId: string, permissions: {
     .select("id, course_id, section_code, section_name, status")
     .eq("course_id", courseId)
     .order("section_code", { ascending: true });
-  if (!permissions.isCourseInstructor) sectionQuery = sectionQuery.in("id", permissions.permittedSectionIds);
+  if (!permissions.isGlobalCourseInstructor) sectionQuery = sectionQuery.in("id", permissions.permittedSectionIds);
 
   const [{ data: categories, error: categoryError }, { data: items, error: itemError }, { data: sections, error: sectionError }] = await Promise.all([
     db
@@ -609,6 +611,7 @@ async function loadGradebookRows(db: Db, courseId: string, filters: {
   gradebook_item_id: string;
 }, permissions: {
   isCourseInstructor: boolean;
+  isGlobalCourseInstructor: boolean;
   permittedSectionIds: string[];
 }) {
   if (filters.section_id) assertSectionAllowed(permissions, filters.section_id);
@@ -630,7 +633,7 @@ async function loadGradebookRows(db: Db, courseId: string, filters: {
     .in("gradebook_item_id", itemIds)
     .order("updated_at", { ascending: false });
   if (filters.section_id) scoreQuery = scoreQuery.eq("section_id", filters.section_id);
-  if (!filters.section_id && !permissions.isCourseInstructor) scoreQuery = scoreQuery.in("section_id", permissions.permittedSectionIds);
+  if (!filters.section_id && !permissions.isGlobalCourseInstructor) scoreQuery = scoreQuery.in("section_id", permissions.permittedSectionIds);
 
   const { data: scores, error: scoreError } = await scoreQuery;
   if (scoreError) throw scoreError;
@@ -723,9 +726,10 @@ async function loadGradebookRows(db: Db, courseId: string, filters: {
 
 function assertSectionAllowed(permissions: {
   isCourseInstructor: boolean;
+  isGlobalCourseInstructor: boolean;
   permittedSectionIds: string[];
 }, sectionId: string) {
-  if (permissions.isCourseInstructor) return;
+  if (permissions.isGlobalCourseInstructor) return;
   if (permissions.permittedSectionIds.includes(String(sectionId))) return;
   throw new Error("You are not allowed to review this section.");
 }

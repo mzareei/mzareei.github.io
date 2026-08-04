@@ -17,7 +17,7 @@ Deno.serve(async (request) => {
     const body = await request.json().catch(() => ({}));
     const courseId = cleanCourseId(body.course_id) || "tc2007b";
     const db = adminClient();
-    const { profile } = await requireInstructor(db, token, courseId);
+    const { profile, permissions } = await requireInstructor(db, token, courseId);
 
     if (body.action === "save_section") {
       const section = await saveSection(db, courseId, {
@@ -27,13 +27,14 @@ Deno.serve(async (request) => {
         meetingPattern: cleanMeetingPattern(body.meeting_pattern),
         campus: cleanCampus(body.campus),
         status: cleanSectionStatus(body.status),
-        actorProfileId: profile.id
+        actorProfileId: profile.id,
+        permissions
       });
-      const sections = await listSections(db, courseId);
+      const sections = await listSections(db, courseId, permissions);
       return json({ section, sections });
     }
 
-    const sections = await listSections(db, courseId);
+    const sections = await listSections(db, courseId, permissions);
     return json({
       sections,
       actions: ["list_sections", "save_section"]
@@ -119,15 +120,36 @@ async function requireInstructor(db: Db, token: string, courseId: string) {
   if (membershipError) throw membershipError;
   if (!(memberships || []).length) throw new Error("You are not allowed to manage sections for this course.");
 
-  return { profile, user: userData.user };
+  const isGlobalOwner = (memberships || []).some((membership) => String(membership.role) === "platform_owner");
+  const permittedSectionIds = isGlobalOwner
+    ? []
+    : await loadPermittedSectionIds(db, String(profile.id), courseId);
+  if (!isGlobalOwner && !permittedSectionIds.length) {
+    throw new Error("You are not allowed to manage sections for this course.");
+  }
+  return { profile, user: userData.user, permissions: { isGlobalOwner, permittedSectionIds } };
 }
 
-async function listSections(db: Db, courseId: string) {
+async function loadPermittedSectionIds(db: Db, profileId: string, courseId: string) {
   const { data, error } = await db
+    .from("section_enrollments")
+    .select("section_id, course_sections!inner(course_id)")
+    .eq("profile_id", profileId)
+    .in("role", ["instructor", "teaching_assistant"])
+    .eq("status", "active")
+    .eq("course_sections.course_id", courseId);
+  if (error) throw error;
+  return Array.from(new Set((data || []).map((row) => String(row.section_id))));
+}
+
+async function listSections(db: Db, courseId: string, permissions: { isGlobalOwner: boolean; permittedSectionIds: string[] }) {
+  let query = db
     .from("course_sections")
     .select("id, course_id, section_code, section_name, meeting_pattern, campus, status, created_at, updated_at")
     .eq("course_id", courseId)
     .order("section_code", { ascending: true });
+  if (!permissions.isGlobalOwner) query = query.in("id", permissions.permittedSectionIds);
+  const { data, error } = await query;
   if (error) throw error;
   return data || [];
 }
@@ -140,6 +162,7 @@ async function saveSection(db: Db, courseId: string, input: {
   campus: string | null;
   status: string;
   actorProfileId: string;
+  permissions: { isGlobalOwner: boolean; permittedSectionIds: string[] };
 }) {
   const updatedAt = new Date().toISOString();
   let before: Record<string, unknown> | null = null;
@@ -154,6 +177,9 @@ async function saveSection(db: Db, courseId: string, input: {
       .maybeSingle();
     if (existingError) throw existingError;
     if (!existing) throw new Error("Section is not part of this course.");
+    if (!input.permissions.isGlobalOwner && !input.permissions.permittedSectionIds.includes(String(input.sectionId))) {
+      throw new Error("You are not allowed to manage this section.");
+    }
     before = existing;
 
     const { data, error } = await db
@@ -173,6 +199,9 @@ async function saveSection(db: Db, courseId: string, input: {
     if (error) throw error;
     section = data;
   } else {
+    if (!input.permissions.isGlobalOwner) {
+      throw new Error("Only the platform owner can create new course sections.");
+    }
     const { data, error } = await db
       .from("course_sections")
       .insert({
