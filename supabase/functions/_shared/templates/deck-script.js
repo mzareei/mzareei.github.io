@@ -10,6 +10,7 @@
   var slides  = Array.prototype.slice.call(document.querySelectorAll(".slide"));
   var total   = slides.length;
   var current = 0;
+  var lastAppliedRevision = 0;
 
   var elProgress = document.getElementById("progress");
   var elCur      = document.getElementById("cur");
@@ -104,7 +105,7 @@
     });
   }
 
-  function show(i, dir) {
+  function show(i, dir, appliedRevision, acknowledgedTeachingSlide) {
     i = Math.max(0, Math.min(total - 1, i));
     slides[current].classList.remove("active");
     current = i;
@@ -115,7 +116,10 @@
     notifyParent({
       type: "deck.slide_changed",
       slide: current + 1,
-      teaching_slide: Number(s.getAttribute("data-teaching-slide")) || null
+      teaching_slide: Number.isInteger(acknowledgedTeachingSlide)
+        ? acknowledgedTeachingSlide
+        : Number(s.getAttribute("data-teaching-slide")) || null,
+      appliedRevision: Number.isInteger(appliedRevision) ? appliedRevision : null
     });
     var checkpointKey = s.getAttribute("data-checkpoint-key");
     if (checkpointKey) {
@@ -167,6 +171,71 @@
     slot.textContent = copy ? copy[lang === "es" ? 1 : 0] : "";
   }
 
+  var classroomQuestionLayer = null;
+
+  function clearQuestionDisplay() {
+    if (classroomQuestionLayer) classroomQuestionLayer.remove();
+    classroomQuestionLayer = null;
+  }
+
+  function showQuestionDisplay(message) {
+    clearQuestionDisplay();
+    var layer = document.createElement("section");
+    layer.className = "classroom-question-layer";
+    layer.setAttribute("aria-live", "polite");
+    var shell = document.createElement("div");
+    shell.className = "classroom-question-shell";
+    var kicker = document.createElement("p");
+    kicker.className = "kicker";
+    kicker.textContent = lang === "es" ? "Pregunta en vivo" : "Live question";
+    var prompt = document.createElement("h1");
+    prompt.textContent = message.prompt;
+    shell.appendChild(kicker);
+    shell.appendChild(prompt);
+    if (message.prompt_es) {
+      var promptEs = document.createElement("p");
+      promptEs.className = "classroom-question-es";
+      promptEs.textContent = message.prompt_es;
+      shell.appendChild(promptEs);
+    }
+    var instruction = document.createElement("p");
+    instruction.className = "classroom-question-instruction";
+    instruction.textContent = lang === "es"
+      ? "Elige la mejor respuesta en tu teléfono."
+      : "Choose the best answer on your phone.";
+    shell.appendChild(instruction);
+    var options = document.createElement("div");
+    options.className = "classroom-question-options";
+    message.options.forEach(function (option) {
+      var item = document.createElement("div");
+      item.className = "classroom-question-option";
+      var key = document.createElement("span");
+      key.className = "classroom-question-key";
+      key.textContent = option.key;
+      var copy = document.createElement("span");
+      copy.textContent = option.text;
+      if (option.text_es) {
+        var copyEs = document.createElement("span");
+        copyEs.className = "classroom-question-option-es";
+        copyEs.textContent = option.text_es;
+        copy.appendChild(copyEs);
+      }
+      item.appendChild(key);
+      item.appendChild(copy);
+      options.appendChild(item);
+    });
+    shell.appendChild(options);
+    var hint = document.createElement("p");
+    hint.className = "classroom-question-hint";
+    hint.textContent = lang === "es"
+      ? "Continúa la clase cuando estés listo."
+      : "Continue the lecture when you are ready.";
+    shell.appendChild(hint);
+    layer.appendChild(shell);
+    document.body.appendChild(layer);
+    classroomQuestionLayer = layer;
+  }
+
   /* ---- Same-origin parent bridge ---- */
   function notifyParent(message) {
     if (parent === window) return;
@@ -188,8 +257,38 @@
         || !descriptors[key].enumerable
         || typeof descriptors[key].value === "function";
     })) return false;
-    var keys = Object.getOwnPropertyNames(value).sort();
-    if (keys.join(",") !== "checkpoint_key,type,version") return false;
+    var keys = Object.getOwnPropertyNames(value).sort().join(",");
+    // This command intentionally has no protocol version so it matches the
+    // presentation-state wire contract shared by controller and projector.
+    if (value.type === "course-platform:goto-slide") {
+      return keys === "revision,teachingSlide,type"
+        && Number.isInteger(value.teachingSlide)
+        && value.teachingSlide > 0
+        && Number.isInteger(value.revision)
+        && value.revision > 0;
+    }
+    if (value.type === "checkpoint.question_display") {
+      if (keys !== "checkpoint_key,options,prompt,prompt_es,type,version") return false;
+      if (value.version !== 1 || typeof value.checkpoint_key !== "string" || !value.checkpoint_key.trim()) return false;
+      if (typeof value.prompt !== "string" || value.prompt.length < 1 || value.prompt.length > 2000) return false;
+      if (value.prompt_es !== null && typeof value.prompt_es !== "string") return false;
+      if (!Array.isArray(value.options) || value.options.length < 2 || value.options.length > 8) return false;
+      return value.options.every(function (option) {
+        if (!option || typeof option !== "object" || Object.getPrototypeOf(option) !== Object.prototype) return false;
+        var optionKeys = Object.getOwnPropertyNames(option).sort();
+        return optionKeys.join(",") === "key,text,text_es"
+          && typeof option.key === "string" && option.key.length > 0 && option.key.length < 20
+          && typeof option.text === "string" && option.text.length > 0 && option.text.length <= 1000
+          && (option.text_es === null || typeof option.text_es === "string");
+      });
+    }
+    if (value.type === "checkpoint.question_clear") {
+      return keys === "checkpoint_key,type,version"
+        && value.version === 1
+        && typeof value.checkpoint_key === "string"
+        && !!value.checkpoint_key.trim();
+    }
+    if (keys !== "checkpoint_key,type,version") return false;
     if (value.version !== 1 || typeof value.checkpoint_key !== "string" || !value.checkpoint_key.trim()) {
       return false;
     }
@@ -201,12 +300,41 @@
     ].indexOf(value.type) >= 0;
   }
 
+  function remoteTargetIndex(teachingSlide) {
+    var visible = slides[current];
+    if (Number(visible.getAttribute("data-after-slide")) === teachingSlide) return current;
+    if (Number(visible.getAttribute("data-teaching-slide")) === teachingSlide) {
+      var boundary = slides[current + 1];
+      if (boundary && Number(boundary.getAttribute("data-after-slide")) === teachingSlide) return current + 1;
+    }
+    return slides.findIndex(function (slide) {
+      return Number(slide.getAttribute("data-teaching-slide")) === teachingSlide;
+    });
+  }
+
   window.addEventListener("message", function (event) {
     if (event.origin !== location.origin || event.source !== parent) return;
     if (!validParentMessage(event.data)) return;
+    if (event.data.type === "course-platform:goto-slide") {
+      if (event.data.revision <= lastAppliedRevision) return;
+      var targetIndex = remoteTargetIndex(event.data.teachingSlide);
+      if (targetIndex < 0) return;
+      show(targetIndex, "back", event.data.revision, event.data.teachingSlide);
+      lastAppliedRevision = event.data.revision;
+      return;
+    }
     var slide = slides[current];
     var checkpointKey = slide.getAttribute("data-checkpoint-key");
     if (!checkpointKey || event.data.checkpoint_key !== checkpointKey) return;
+
+    if (event.data.type === "checkpoint.question_display") {
+      showQuestionDisplay(event.data);
+      return;
+    }
+    if (event.data.type === "checkpoint.question_clear") {
+      clearQuestionDisplay();
+      return;
+    }
 
     if (event.data.type === "checkpoint.resume") {
       next();

@@ -297,6 +297,78 @@ table.compare .map-to { color: var(--good); font-weight: 600; }
   font-size: var(--fs-body);
 }
 
+/* Audience-facing live question. It lives inside the deck document so it
+   remains visible when the presenter enters browser fullscreen. */
+.classroom-question-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: var(--pad);
+  overflow: auto;
+  background: var(--bg);
+  color: var(--ink);
+}
+.classroom-question-shell {
+  width: min(1120px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.classroom-question-shell .kicker {
+  color: var(--accent-2);
+  font-size: var(--fs-kicker);
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.classroom-question-shell h1 {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 4.8rem);
+  line-height: 1.08;
+}
+.classroom-question-es,
+.classroom-question-instruction,
+.classroom-question-hint { color: var(--ink-soft); }
+.classroom-question-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: .6rem;
+}
+.classroom-question-option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .9rem;
+  align-items: start;
+  padding: 1.2rem 1.3rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-2);
+  font-size: var(--fs-body);
+}
+.classroom-question-key {
+  display: grid;
+  place-items: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 999px;
+  background: var(--bg-3);
+  color: var(--ink-soft);
+  font-weight: 900;
+}
+.classroom-question-option-es {
+  display: block;
+  margin-top: .25rem;
+  color: var(--ink-soft);
+  font-size: .86em;
+}
+.classroom-question-hint { margin-top: .4rem; }
+@media (max-width: 680px) {
+  .classroom-question-options { grid-template-columns: 1fr; }
+}
+
 /* Section divider slides */
 .slide.section { text-align: center; align-items: center; }
 .slide.section .slide-inner { display:grid; place-items:center; }

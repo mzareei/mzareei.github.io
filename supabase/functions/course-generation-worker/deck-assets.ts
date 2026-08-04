@@ -377,6 +377,78 @@ table.compare .map-to { color: var(--good); font-weight: 600; }
   font-size: var(--fs-body);
 }
 
+/* Audience-facing live question. It lives inside the deck document so it
+   remains visible when the presenter enters browser fullscreen. */
+.classroom-question-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: var(--pad);
+  overflow: auto;
+  background: var(--bg);
+  color: var(--ink);
+}
+.classroom-question-shell {
+  width: min(1120px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.classroom-question-shell .kicker {
+  color: var(--accent-2);
+  font-size: var(--fs-kicker);
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.classroom-question-shell h1 {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 4.8rem);
+  line-height: 1.08;
+}
+.classroom-question-es,
+.classroom-question-instruction,
+.classroom-question-hint { color: var(--ink-soft); }
+.classroom-question-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: .6rem;
+}
+.classroom-question-option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .9rem;
+  align-items: start;
+  padding: 1.2rem 1.3rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-2);
+  font-size: var(--fs-body);
+}
+.classroom-question-key {
+  display: grid;
+  place-items: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 999px;
+  background: var(--bg-3);
+  color: var(--ink-soft);
+  font-weight: 900;
+}
+.classroom-question-option-es {
+  display: block;
+  margin-top: .25rem;
+  color: var(--ink-soft);
+  font-size: .86em;
+}
+.classroom-question-hint { margin-top: .4rem; }
+@media (max-width: 680px) {
+  .classroom-question-options { grid-template-columns: 1fr; }
+}
+
 /* Section divider slides */
 .slide.section { text-align: center; align-items: center; }
 .slide.section .slide-inner { display:grid; place-items:center; }
@@ -542,7 +614,6 @@ table.compare .map-to { color: var(--good); font-weight: 600; }
 
 export const DECK_SCRIPT = `/* =====================================================================
    Generated lecture deck presenter engine
-   course-platform-deck-protocol:v2
    Navigation + click-to-reveal fragments + EN/ES language + light/dark.
    No dependency on side panels or hidden notes.
    ===================================================================== */
@@ -714,6 +785,71 @@ export const DECK_SCRIPT = `/* =================================================
     slot.textContent = copy ? copy[lang === "es" ? 1 : 0] : "";
   }
 
+  var classroomQuestionLayer = null;
+
+  function clearQuestionDisplay() {
+    if (classroomQuestionLayer) classroomQuestionLayer.remove();
+    classroomQuestionLayer = null;
+  }
+
+  function showQuestionDisplay(message) {
+    clearQuestionDisplay();
+    var layer = document.createElement("section");
+    layer.className = "classroom-question-layer";
+    layer.setAttribute("aria-live", "polite");
+    var shell = document.createElement("div");
+    shell.className = "classroom-question-shell";
+    var kicker = document.createElement("p");
+    kicker.className = "kicker";
+    kicker.textContent = lang === "es" ? "Pregunta en vivo" : "Live question";
+    var prompt = document.createElement("h1");
+    prompt.textContent = message.prompt;
+    shell.appendChild(kicker);
+    shell.appendChild(prompt);
+    if (message.prompt_es) {
+      var promptEs = document.createElement("p");
+      promptEs.className = "classroom-question-es";
+      promptEs.textContent = message.prompt_es;
+      shell.appendChild(promptEs);
+    }
+    var instruction = document.createElement("p");
+    instruction.className = "classroom-question-instruction";
+    instruction.textContent = lang === "es"
+      ? "Elige la mejor respuesta en tu teléfono."
+      : "Choose the best answer on your phone.";
+    shell.appendChild(instruction);
+    var options = document.createElement("div");
+    options.className = "classroom-question-options";
+    message.options.forEach(function (option) {
+      var item = document.createElement("div");
+      item.className = "classroom-question-option";
+      var key = document.createElement("span");
+      key.className = "classroom-question-key";
+      key.textContent = option.key;
+      var copy = document.createElement("span");
+      copy.textContent = option.text;
+      if (option.text_es) {
+        var copyEs = document.createElement("span");
+        copyEs.className = "classroom-question-option-es";
+        copyEs.textContent = option.text_es;
+        copy.appendChild(copyEs);
+      }
+      item.appendChild(key);
+      item.appendChild(copy);
+      options.appendChild(item);
+    });
+    shell.appendChild(options);
+    var hint = document.createElement("p");
+    hint.className = "classroom-question-hint";
+    hint.textContent = lang === "es"
+      ? "Continúa la clase cuando estés listo."
+      : "Continue the lecture when you are ready.";
+    shell.appendChild(hint);
+    layer.appendChild(shell);
+    document.body.appendChild(layer);
+    classroomQuestionLayer = layer;
+  }
+
   /* ---- Same-origin parent bridge ---- */
   function notifyParent(message) {
     if (parent === window) return;
@@ -745,8 +881,31 @@ export const DECK_SCRIPT = `/* =================================================
         && Number.isInteger(value.revision)
         && value.revision > 0;
     }
+    if (value.type === "checkpoint.question_display") {
+      if (keys !== "checkpoint_key,options,prompt,prompt_es,type,version") return false;
+      if (value.version !== 1 || typeof value.checkpoint_key !== "string" || !value.checkpoint_key.trim()) return false;
+      if (typeof value.prompt !== "string" || value.prompt.length < 1 || value.prompt.length > 2000) return false;
+      if (value.prompt_es !== null && typeof value.prompt_es !== "string") return false;
+      if (!Array.isArray(value.options) || value.options.length < 2 || value.options.length > 8) return false;
+      return value.options.every(function (option) {
+        if (!option || typeof option !== "object" || Object.getPrototypeOf(option) !== Object.prototype) return false;
+        var optionKeys = Object.getOwnPropertyNames(option).sort();
+        return optionKeys.join(",") === "key,text,text_es"
+          && typeof option.key === "string" && option.key.length > 0 && option.key.length < 20
+          && typeof option.text === "string" && option.text.length > 0 && option.text.length <= 1000
+          && (option.text_es === null || typeof option.text_es === "string");
+      });
+    }
+    if (value.type === "checkpoint.question_clear") {
+      return keys === "checkpoint_key,type,version"
+        && value.version === 1
+        && typeof value.checkpoint_key === "string"
+        && !!value.checkpoint_key.trim();
+    }
     if (keys !== "checkpoint_key,type,version") return false;
-    if (value.version !== 1 || typeof value.checkpoint_key !== "string" || !value.checkpoint_key.trim()) return false;
+    if (value.version !== 1 || typeof value.checkpoint_key !== "string" || !value.checkpoint_key.trim()) {
+      return false;
+    }
     return [
       "checkpoint.question_ready",
       "checkpoint.question_sent",
@@ -757,15 +916,10 @@ export const DECK_SCRIPT = `/* =================================================
 
   function remoteTargetIndex(teachingSlide) {
     var visible = slides[current];
-    if (Number(visible.getAttribute("data-after-slide")) === teachingSlide) {
-      return current;
-    }
+    if (Number(visible.getAttribute("data-after-slide")) === teachingSlide) return current;
     if (Number(visible.getAttribute("data-teaching-slide")) === teachingSlide) {
       var boundary = slides[current + 1];
-      if (
-        boundary
-        && Number(boundary.getAttribute("data-after-slide")) === teachingSlide
-      ) return current + 1;
+      if (boundary && Number(boundary.getAttribute("data-after-slide")) === teachingSlide) return current + 1;
     }
     return slides.findIndex(function (slide) {
       return Number(slide.getAttribute("data-teaching-slide")) === teachingSlide;
@@ -786,6 +940,15 @@ export const DECK_SCRIPT = `/* =================================================
     var slide = slides[current];
     var checkpointKey = slide.getAttribute("data-checkpoint-key");
     if (!checkpointKey || event.data.checkpoint_key !== checkpointKey) return;
+
+    if (event.data.type === "checkpoint.question_display") {
+      showQuestionDisplay(event.data);
+      return;
+    }
+    if (event.data.type === "checkpoint.question_clear") {
+      clearQuestionDisplay();
+      return;
+    }
 
     if (event.data.type === "checkpoint.resume") {
       next();
