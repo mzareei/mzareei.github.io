@@ -542,6 +542,7 @@ table.compare .map-to { color: var(--good); font-weight: 600; }
 
 export const DECK_SCRIPT = `/* =====================================================================
    Generated lecture deck presenter engine
+   course-platform-deck-protocol:v2
    Navigation + click-to-reveal fragments + EN/ES language + light/dark.
    No dependency on side panels or hidden notes.
    ===================================================================== */
@@ -552,6 +553,7 @@ export const DECK_SCRIPT = `/* =================================================
   var slides  = Array.prototype.slice.call(document.querySelectorAll(".slide"));
   var total   = slides.length;
   var current = 0;
+  var lastAppliedRevision = 0;
 
   var elProgress = document.getElementById("progress");
   var elCur      = document.getElementById("cur");
@@ -646,7 +648,7 @@ export const DECK_SCRIPT = `/* =================================================
     });
   }
 
-  function show(i, dir) {
+  function show(i, dir, appliedRevision, acknowledgedTeachingSlide) {
     i = Math.max(0, Math.min(total - 1, i));
     slides[current].classList.remove("active");
     current = i;
@@ -657,7 +659,10 @@ export const DECK_SCRIPT = `/* =================================================
     notifyParent({
       type: "deck.slide_changed",
       slide: current + 1,
-      teaching_slide: Number(s.getAttribute("data-teaching-slide")) || null
+      teaching_slide: Number.isInteger(acknowledgedTeachingSlide)
+        ? acknowledgedTeachingSlide
+        : Number(s.getAttribute("data-teaching-slide")) || null,
+      appliedRevision: Number.isInteger(appliedRevision) ? appliedRevision : null
     });
     var checkpointKey = s.getAttribute("data-checkpoint-key");
     if (checkpointKey) {
@@ -730,11 +735,18 @@ export const DECK_SCRIPT = `/* =================================================
         || !descriptors[key].enumerable
         || typeof descriptors[key].value === "function";
     })) return false;
-    var keys = Object.getOwnPropertyNames(value).sort();
-    if (keys.join(",") !== "checkpoint_key,type,version") return false;
-    if (value.version !== 1 || typeof value.checkpoint_key !== "string" || !value.checkpoint_key.trim()) {
-      return false;
+    var keys = Object.getOwnPropertyNames(value).sort().join(",");
+    // This command intentionally has no protocol version so it matches the
+    // presentation-state wire contract shared by controller and projector.
+    if (value.type === "course-platform:goto-slide") {
+      return keys === "revision,teachingSlide,type"
+        && Number.isInteger(value.teachingSlide)
+        && value.teachingSlide > 0
+        && Number.isInteger(value.revision)
+        && value.revision > 0;
     }
+    if (keys !== "checkpoint_key,type,version") return false;
+    if (value.version !== 1 || typeof value.checkpoint_key !== "string" || !value.checkpoint_key.trim()) return false;
     return [
       "checkpoint.question_ready",
       "checkpoint.question_sent",
@@ -743,9 +755,34 @@ export const DECK_SCRIPT = `/* =================================================
     ].indexOf(value.type) >= 0;
   }
 
+  function remoteTargetIndex(teachingSlide) {
+    var visible = slides[current];
+    if (Number(visible.getAttribute("data-after-slide")) === teachingSlide) {
+      return current;
+    }
+    if (Number(visible.getAttribute("data-teaching-slide")) === teachingSlide) {
+      var boundary = slides[current + 1];
+      if (
+        boundary
+        && Number(boundary.getAttribute("data-after-slide")) === teachingSlide
+      ) return current + 1;
+    }
+    return slides.findIndex(function (slide) {
+      return Number(slide.getAttribute("data-teaching-slide")) === teachingSlide;
+    });
+  }
+
   window.addEventListener("message", function (event) {
     if (event.origin !== location.origin || event.source !== parent) return;
     if (!validParentMessage(event.data)) return;
+    if (event.data.type === "course-platform:goto-slide") {
+      if (event.data.revision <= lastAppliedRevision) return;
+      var targetIndex = remoteTargetIndex(event.data.teachingSlide);
+      if (targetIndex < 0) return;
+      show(targetIndex, "back", event.data.revision, event.data.teachingSlide);
+      lastAppliedRevision = event.data.revision;
+      return;
+    }
     var slide = slides[current];
     var checkpointKey = slide.getAttribute("data-checkpoint-key");
     if (!checkpointKey || event.data.checkpoint_key !== checkpointKey) return;

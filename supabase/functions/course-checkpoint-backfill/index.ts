@@ -6,6 +6,7 @@
 import { generateStructured, textBlock } from "../_shared/anthropic.ts";
 import { adminClient } from "../_shared/client.ts";
 import {
+  deckHasCurrentProtocol,
   deckCheckpointsFromQuestions,
   extractTeachingSlides,
   prepareLegacyDeckHtml
@@ -51,6 +52,7 @@ export type BackfillResult = {
   checkpoint_count: number;
   mapped_question_count: number;
   preparation_state: "ready";
+  deck_upgraded: boolean;
 };
 
 const bucket = "course-content";
@@ -121,7 +123,9 @@ Deno.serve(async (request) => {
     await requireInstructor(db, token, courseId);
     return json(await prepareCheckpoints(db, courseId, body));
   } catch (error) {
-    const message = error?.message || "Unable to prepare lecture checkpoints.";
+    const message = error instanceof Error
+      ? error.message || "Unable to prepare lecture checkpoints."
+      : "Unable to prepare lecture checkpoints.";
     if (message.includes("not allowed")) {
       return json({ error: message }, { status: 403 });
     }
@@ -296,11 +300,12 @@ function persistedMappings(
 }
 
 function backfillResult(
-  item: { id: unknown; source_ref: unknown },
+  item: { id: unknown; source_ref: string },
   bank: { id: unknown },
   teachingSlideCount: number,
   mappedQuestionCount: number,
-  checkpointCount: number
+  checkpointCount: number,
+  deckUpgraded: boolean
 ): BackfillResult {
   return {
     content_item_id: String(item.id),
@@ -309,14 +314,15 @@ function backfillResult(
     teaching_slide_count: teachingSlideCount,
     checkpoint_count: checkpointCount,
     mapped_question_count: mappedQuestionCount,
-    preparation_state: "ready"
+    preparation_state: "ready",
+    deck_upgraded: deckUpgraded
   };
 }
 
 async function persistPreparedDeck(
   db: Db,
   courseId: string,
-  item: { id: unknown; source_ref: unknown },
+  item: { id: unknown; source_ref: string },
   bank: { id: unknown },
   currentHtml: string,
   teachingSlideCount: number,
@@ -382,7 +388,8 @@ async function persistPreparedDeck(
     bank,
     teachingSlideCount,
     mappings.length,
-    coverage.length
+    coverage.length,
+    true
   );
 }
 
@@ -407,9 +414,11 @@ async function prepareCheckpoints(
     throw new Error("Only private storage-backed lectures can be prepared.");
   }
   const expectedPrefix = `courses/${courseId}/items/`;
-  if (!String(item.source_ref || "").startsWith(expectedPrefix)) {
+  const storagePath = String(item.source_ref || "");
+  if (!storagePath.startsWith(expectedPrefix)) {
     throw new Error("The lecture does not point to this course's private content path.");
   }
+  const storageItem = { id: item.id, source_ref: storagePath };
 
   const { data: banks, error: bankError } = await db
     .from("question_banks")
@@ -425,7 +434,7 @@ async function prepareCheckpoints(
 
   const { data: deckBlob, error: downloadError } = await db.storage
     .from(bucket)
-    .download(item.source_ref);
+    .download(storagePath);
   if (downloadError) throw downloadError;
   const legacyHtml = await deckBlob.text();
   const teachingSlides = extractTeachingSlides(legacyHtml);
@@ -455,7 +464,7 @@ async function prepareCheckpoints(
     return persistPreparedDeck(
       db,
       courseId,
-      item,
+      storageItem,
       bank,
       legacyHtml,
       teachingSlides.length,
@@ -469,12 +478,26 @@ async function prepareCheckpoints(
       throw new Error("A ready checkpoint bank has invalid persisted metadata.");
     }
     const ready = persistedMappings(questions, teachingSlides.length);
+    if (!deckHasCurrentProtocol(legacyHtml)) {
+      return persistPreparedDeck(
+        db,
+        courseId,
+        storageItem,
+        bank,
+        legacyHtml,
+        teachingSlides.length,
+        ready.mappings,
+        ready.coverage,
+        false
+      );
+    }
     return backfillResult(
-      item,
+      storageItem,
       bank,
       teachingSlides.length,
       ready.mappings.length,
-      ready.coverage.length
+      ready.coverage.length,
+      false
     );
   }
   if (bank.checkpoint_preparation_state !== "none") {
@@ -551,7 +574,7 @@ async function prepareCheckpoints(
   return persistPreparedDeck(
     db,
     courseId,
-    item,
+    storageItem,
     bank,
     legacyHtml,
     teachingSlides.length,
