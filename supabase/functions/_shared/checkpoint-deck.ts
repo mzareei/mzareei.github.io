@@ -568,7 +568,13 @@ const navigationControlClasses = ["ui-btn", "btn", "back-link"];
 function isLegacyDestination(anchor: string): boolean {
   const classes = classNames(anchor.match(/^<a\b[^>]*>/i)?.[0] || "");
   if (!classes.some((name) => navigationControlClasses.includes(name))) return false;
-  const rawHref = attributeValue(anchor, "href").trim();
+  return isLegacyDestinationHref(attributeValue(anchor, "href"));
+}
+
+/** The destination test on its own, so the engine script can reuse it. */
+function isLegacyDestinationHref(href: string): boolean {
+  const rawHref = String(href || "").trim();
+  if (!rawHref) return false;
   let hrefPath = rawHref.split(/[?#]/, 1)[0].toLowerCase().replace(/\\/g, "/");
   if (/^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(rawHref)) {
     try {
@@ -586,13 +592,40 @@ function isLegacyDestination(anchor: string): boolean {
   return (
     /(?:^|\/)teaching\/information-security\/?$/.test(hrefPath)
     || /(?:^|\/)mission-(?:\d+|bridge)\/?$/.test(hrefPath)
-    || /(?:^|\/)quiz\/teacher\.html\/?$/.test(hrefPath)
+    || /(?:^|\/)quiz\/(?:teacher|index)\.html\/?$/.test(hrefPath)
     || /(?:^|\/)exit-ticket\/?$/.test(hrefPath)
     // Added with the mission sweep. The public progress app, and the public
     // copy of a lecture — the second is the one that matters, because it is a
     // link from inside the gate to the ungated copy of the same material.
     || /(?:^|\/)progress\/?$/.test(hrefPath)
     || /(?:^|\/)lecture(?:-\d+)?\/?$/.test(hrefPath)
+  );
+}
+
+/**
+ * Remove the legacy presenter engine's own navigation.
+ *
+ * Anchor removal is not enough for a lecture. The legacy engine binds M / Q / E
+ * to `window.location.href = "<public url>"` inside its keydown switch, so a
+ * student pressing M in a gated lecture still lands on the public site. Running
+ * the anchor pass over all 23 real decks took every mission to zero public
+ * references and left exactly three per lecture — all of them here.
+ *
+ * The assignment is replaced with `void 0` rather than deleted, so the switch
+ * arm stays syntactically valid. Removing the statement outright can leave
+ * `case "m": case "M": ; break;` or worse, and a syntax error means the engine
+ * throws on load and the deck renders with a dead presenter — the exact silent
+ * failure mode of pitfall #2.
+ *
+ * Only assignments inside <script> blocks are touched, and only to destinations
+ * `isLegacyDestinationHref` recognises, so an unrelated redirect survives.
+ */
+export function removeLegacyDeckScriptNavigation(html: string): string {
+  return String(html).replace(scriptPattern, (scriptBlock) =>
+    scriptBlock.replace(
+      /window\s*\.\s*location\s*(?:\.\s*href\s*)?=\s*(["'])((?:(?!\1)[^\\]|\\.)*)\1/g,
+      (assignment, _quote, href) => (isLegacyDestinationHref(href) ? "void 0" : assignment)
+    )
   );
 }
 

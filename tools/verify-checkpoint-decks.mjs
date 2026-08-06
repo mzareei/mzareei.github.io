@@ -7,6 +7,7 @@ import {
   injectCheckpointSections,
   prepareLegacyDeckHtml,
   removeLegacyDeckNavigation,
+  removeLegacyDeckScriptNavigation,
   replaceLegacyDeckAssets
 } from "../supabase/functions/_shared/checkpoint-deck.ts";
 import {
@@ -147,7 +148,11 @@ const navigationFixture = [
     )
   ),
   '<a class="ui-btn" data-keep="course" href="../information-security/resources/">Resources</a>',
-  '<a class="ui-btn" data-keep="quiz" href="quiz/index.html">Quiz index</a>',
+  // quiz/index.html was a keep-case while the first-generation quiz app was
+  // still live. It is being retired with the rest of the public course tree,
+  // so a control pointing at it is a link out of the gate to a page that is
+  // about to 404. It joins quiz/teacher.html as a legacy destination.
+  '<a class="ui-btn" data-legacy="quiz-index" href="quiz/index.html">Quiz index</a>',
   '<a class="reference-link" data-keep="reference" href="mission-01/">Mission reference</a>'
 ].join("\n");
 const navigationMatrixResult = removeLegacyDeckNavigation(navigationFixture);
@@ -157,7 +162,6 @@ assert.doesNotMatch(
   "all bare, parent-relative, root-relative, absolute, query and hash legacy controls must be removed"
 );
 assert.match(navigationMatrixResult, /data-keep="course"/);
-assert.match(navigationMatrixResult, /data-keep="quiz"/);
 assert.match(navigationMatrixResult, /data-keep="reference"/);
 
 // --- mission decks use different control classes and two more destinations --
@@ -190,6 +194,58 @@ assert.doesNotMatch(
 );
 assert.match(missionNavigationResult, /data-keep="mission-reference"/);
 assert.match(missionNavigationResult, /data-keep="mission-external"/);
+
+// --- the engine script navigates too, and anchors cannot see it -----------
+// Legacy lecture decks bind M / Q / E to window.location.href assignments in
+// the presenter engine. Stripping the anchors leaves those bindings intact, so
+// a student pressing M inside a gated lecture still lands on the public site.
+// Anchor removal alone got every mission to zero public references but left
+// exactly three per lecture, all of them here.
+const scriptNavigationFixture = `<script>
+  switch (event.key) {
+    case "O": toggleOverview(); break;
+    case "m": case "M": window.location.href = "https://mzareei.github.io/assets/course-materials/information-security/week-05/mission-05/"; break;
+    case "q": case "Q": window.location.href = "https://mzareei.github.io/assets/course-materials/information-security/week-01/lecture/quiz/teacher.html?lecture=tc2007b-w5-l1"; break;
+    case "e": case "E": window.location.href = "../../exit-ticket/?lecture=tc2007b-w5-l1"; break;
+    case "h": window.location.href = "https://example.org/help"; break;
+  }
+</script>`;
+const scriptNavigationResult = removeLegacyDeckScriptNavigation(scriptNavigationFixture);
+assert.doesNotMatch(
+  scriptNavigationResult,
+  /mzareei\.github\.io/,
+  "legacy public destinations must not survive in the engine script"
+);
+assert.doesNotMatch(
+  scriptNavigationResult,
+  /exit-ticket/,
+  "relative legacy destinations in script must be removed too"
+);
+assert.match(
+  scriptNavigationResult,
+  /https:\/\/example\.org\/help/,
+  "an unrelated destination in the engine script must be left alone"
+);
+assert.match(
+  scriptNavigationResult,
+  /toggleOverview\(\)/,
+  "the rest of the key handler must be untouched"
+);
+// The replacement has to keep the switch arms syntactically valid, or the
+// engine throws on load and the deck renders with a dead presenter.
+assert.match(
+  scriptNavigationResult,
+  /case "m": case "M": void 0; break;/,
+  "a removed binding must leave valid JavaScript in place"
+);
+
+// Markup outside <script> is the other function's job and must be untouched
+// here, so the two transformations stay independently testable.
+assert.match(
+  removeLegacyDeckScriptNavigation('<a class="ui-btn" href="../../exit-ticket/">Exit</a>'),
+  /exit-ticket/,
+  "script cleanup must not touch markup anchors"
+);
 
 const nestedTeachingFixture = legacyFixture.replace(
   "<h2>Two</h2><p>Markup <strong>stays text</strong>.</p>",
