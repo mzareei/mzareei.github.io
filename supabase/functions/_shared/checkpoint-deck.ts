@@ -555,14 +555,30 @@ export function injectCheckpointSections(
   return transformed;
 }
 
+// The classes a deck uses for a navigation control, as opposed to a link
+// inside teaching prose. Lectures style their top controls `ui-btn`; every
+// mission and bridge mission in the course uses `btn` / `btn-secondary` plus a
+// `back-link`. The original list was written from the lecture decks alone, so
+// no mission has ever been cleaned by this function.
+//
+// A prose anchor (`reference-link`, or no class at all) is teaching content
+// and is preserved even when it points at one of these destinations.
+const navigationControlClasses = ["ui-btn", "btn", "back-link"];
+
 function isLegacyDestination(anchor: string): boolean {
   const classes = classNames(anchor.match(/^<a\b[^>]*>/i)?.[0] || "");
-  if (!classes.includes("ui-btn")) return false;
+  if (!classes.some((name) => navigationControlClasses.includes(name))) return false;
   const rawHref = attributeValue(anchor, "href").trim();
   let hrefPath = rawHref.split(/[?#]/, 1)[0].toLowerCase().replace(/\\/g, "/");
   if (/^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(rawHref)) {
     try {
-      hrefPath = new URL(rawHref, "https://deck.invalid/").pathname.toLowerCase();
+      const url = new URL(rawHref, "https://deck.invalid/");
+      // An external teaching reference (a standards body, a vendor advisory)
+      // is content, not course navigation. Only the course's own public origin
+      // and same-document relative paths are candidates for removal — widening
+      // the class list would otherwise start eating cited sources.
+      if (url.hostname !== "deck.invalid" && url.hostname !== "mzareei.github.io") return false;
+      hrefPath = url.pathname.toLowerCase();
     } catch {
       return false;
     }
@@ -572,10 +588,15 @@ function isLegacyDestination(anchor: string): boolean {
     || /(?:^|\/)mission-(?:\d+|bridge)\/?$/.test(hrefPath)
     || /(?:^|\/)quiz\/teacher\.html\/?$/.test(hrefPath)
     || /(?:^|\/)exit-ticket\/?$/.test(hrefPath)
+    // Added with the mission sweep. The public progress app, and the public
+    // copy of a lecture — the second is the one that matters, because it is a
+    // link from inside the gate to the ungated copy of the same material.
+    || /(?:^|\/)progress\/?$/.test(hrefPath)
+    || /(?:^|\/)lecture(?:-\d+)?\/?$/.test(hrefPath)
   );
 }
 
-/** Remove only the four obsolete top-control destinations from old decks. */
+/** Remove the obsolete public-site navigation controls from old decks. */
 export function removeLegacyDeckNavigation(html: string): string {
   return html.replace(anchorPattern, (anchor) =>
     isLegacyDestination(anchor) ? "" : anchor

@@ -160,6 +160,37 @@ assert.match(navigationMatrixResult, /data-keep="course"/);
 assert.match(navigationMatrixResult, /data-keep="quiz"/);
 assert.match(navigationMatrixResult, /data-keep="reference"/);
 
+// --- mission decks use different control classes and two more destinations --
+// The matcher was written from the lecture decks, which style their top
+// controls `ui-btn`. Every mission in the course uses `btn` / `btn-secondary`
+// and a `back-link`, and adds two destinations the lecture list never had:
+// the public `progress/` app, and — the one that matters — the public copy of
+// its own lecture. So no mission has ever been cleaned by this function, and
+// as written none ever would be.
+const missionNavigationFixture = [
+  '<a class="btn" data-legacy="mission-lecture" href="../lecture/">Return to lecture</a>',
+  '<a class="btn" data-legacy="mission-lecture-2" href="../lecture-2/">Return to lecture</a>',
+  '<a class="btn btn-secondary" data-legacy="mission-progress" href="../../progress/">My progress</a>',
+  '<a href="../lecture/" data-legacy="mission-backlink" class="back-link">Lecture</a>',
+  '<a class="btn" data-legacy="mission-lecture-abs" '
+    + 'href="https://mzareei.github.io/assets/course-materials/information-security/week-05/lecture/">Lecture</a>',
+  '<a class="btn btn-secondary" data-legacy="mission-progress-abs" '
+    + 'href="https://mzareei.github.io/assets/course-materials/information-security/progress/">Progress</a>',
+  // Teaching content keeps its links. A prose anchor is not a nav control, and
+  // an external reference has nothing to do with the public course site.
+  '<a class="reference-link" data-keep="mission-reference" href="../lecture/">see the lecture</a>',
+  '<a class="btn" data-keep="mission-external" href="https://owasp.org/">OWASP</a>'
+].join("\n");
+const missionNavigationResult = removeLegacyDeckNavigation(missionNavigationFixture);
+assert.doesNotMatch(
+  missionNavigationResult,
+  /data-legacy=/,
+  "mission controls must be removed for btn/back-link classes, and for the "
+  + "public lecture and progress destinations"
+);
+assert.match(missionNavigationResult, /data-keep="mission-reference"/);
+assert.match(missionNavigationResult, /data-keep="mission-external"/);
+
 const nestedTeachingFixture = legacyFixture.replace(
   "<h2>Two</h2><p>Markup <strong>stays text</strong>.</p>",
   '<h2>Two</h2><section class="nested"><p>Nested teaching markup</p></section>'
