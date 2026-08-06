@@ -360,13 +360,78 @@ async function stepAssemble(db: Db, job: Record<string, unknown>, stepState: Rec
     );
   }
 
+  // 0. Ownership and the rollback snapshot, BEFORE anything is written.
+  const storagePath = `courses/${courseId}/items/${slug}/deck.html`;
+  // The upsert is on (course_id, slug), and create_job's collision check ran a
+  // long time and possibly several minutes ago. Two jobs created concurrently
+  // both pass that check; without this, the second to arrive here silently
+  // overwrites the first professor's lecture and rebinds its question bank.
+  // The check is advisory; the guarantee lives at the write.
+  const { data: existingItem, error: existingItemError } = await db
+    .from("content_items")
+    .select("id, owner_profile_id, source_ref")
+    .eq("course_id", courseId)
+    .eq("slug", slug)
+    .maybeSingle();
+  if (existingItemError) throw existingItemError;
+  const generatedBy = job.created_by ? String(job.created_by) : null;
+  if (
+    existingItem
+    && existingItem.owner_profile_id != null
+    && generatedBy
+    && String(existingItem.owner_profile_id) !== generatedBy
+  ) {
+    throw new Error("generation_slug_not_owned");
+  }
+
+  // Regenerating replaces a deck that already exists. Keep the bytes it is
+  // replacing, so a regeneration that comes out worse than the original is
+  // recoverable — the same rule every other write to this bucket follows.
+  if (existingItem) {
+    try {
+      const { data: priorBlob } = await db.storage.from(bucket).download(storagePath);
+      if (priorBlob) {
+        const priorText = await priorBlob.text();
+        const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(priorText));
+        const sha = Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+        const { data: latest } = await db
+          .from("content_versions")
+          .select("version")
+          .eq("content_item_id", existingItem.id)
+          .order("version", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const version = Number(latest?.version || 0) + 1;
+        const backupPath = `courses/${courseId}/items/${slug}/.versions/${version}-${sha.slice(0, 8)}.html`;
+        await db.storage.from(bucket).upload(
+          backupPath,
+          new Blob([priorText], { type: "text/html; charset=utf-8" }),
+          { contentType: "text/html; charset=utf-8", upsert: true }
+        );
+        await db.from("content_versions").insert({
+          content_item_id: existingItem.id,
+          version,
+          storage_path: backupPath,
+          content_sha256: sha,
+          content_bytes: new TextEncoder().encode(priorText).length,
+          published_by: generatedBy,
+          published_from: "generation",
+          note: "Snapshot taken before regeneration."
+        });
+      }
+    } catch {
+      // A missing prior object is normal on the first assemble for this slug.
+      // Never let snapshotting block the generation it is protecting.
+    }
+  }
+
+
   // 1. Deck HTML into Storage, beside every other gated deck.
   const html = await assembleDeck({
     title: String(job.lecture_title),
     slides,
     checkpoints: deckCheckpointsFromQuestions(questions)
   });
-  const storagePath = `courses/${courseId}/items/${slug}/deck.html`;
   const { error: uploadError } = await db.storage
     .from(bucket)
     .upload(storagePath, new Blob([html], { type: "text/html; charset=utf-8" }), {
@@ -382,6 +447,7 @@ async function stepAssemble(db: Db, job: Record<string, unknown>, stepState: Rec
       course_id: courseId,
       slug,
       title: String(job.lecture_title),
+      owner_profile_id: generatedBy,
       summary: String((stepState.outline as Record<string, unknown>)?.summary || "").slice(0, 500) || null,
       content_type: "lecture",
       source_kind: "storage_object",
