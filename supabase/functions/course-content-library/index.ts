@@ -55,6 +55,11 @@ Deno.serve(async (request) => {
     });
   } catch (error) {
     const message = error.message || "Unable to manage content library.";
+    // Stable code, returned as error_code because that is the field the SPA's
+    // callFn reads. Naming it `code` compiles and renders the raw string.
+    if (message === "content_item_not_owned") {
+      return json({ error: message, error_code: "content_item_not_owned" }, { status: 403 });
+    }
     if (message.includes("not allowed") || message.includes("teaching_assistant")) {
       return json({ error: message }, { status: 403 });
     }
@@ -173,10 +178,64 @@ async function requireInstructor(db: Db, token: string, courseId: string) {
   const isGlobalOwner = roles.includes("platform_owner");
   const permittedSectionIds = isGlobalOwner ? [] : await loadPermittedSectionIds(db, String(profile.id), courseId);
   if (!isGlobalOwner && !permittedSectionIds.length) throw new Error("You are not allowed to manage content for this course.");
-  return { profile, user: userData.user, permissions: { isGlobalOwner, permittedSectionIds } };
+  return {
+    profile,
+    user: userData.user,
+    permissions: { isGlobalOwner, permittedSectionIds, profileId: String(profile.id) }
+  };
 }
 
-async function loadPermittedSectionIds(db: Db, profileId: string, courseId: string) {
+// Requirement 7. Content is private to its owner; a share makes it visible to
+// another group's instructors but never writable — they take a copy instead.
+//
+// The null-owner case is load-bearing and is NOT a defensive fallback. Every
+// item that existed before the ownership migration has owner_profile_id null,
+// because register_item never set created_by either. Until the backfill runs,
+// unowned content must behave exactly as it did before: visible and editable
+// by any course instructor. Hiding it instead would empty the professor's own
+// Content screen the moment this deploys.
+type ContentPermissions = {
+  isGlobalOwner: boolean;
+  permittedSectionIds: string[];
+  profileId: string;
+};
+
+/** May this caller write to this item? Owner, platform owner, or unowned.
+ *  Deliberately has no `shared` branch: a share grants visibility and release,
+ *  never edit. A receiving instructor copies the item and owns the copy. */
+function canEditContentItem(
+  item: { owner_profile_id?: string | null },
+  permissions: ContentPermissions
+) {
+  if (permissions.isGlobalOwner) return true;
+  // Unowned legacy content — see the note above. Remove this branch only once
+  // the backfill has run and every row has an owner.
+  if (item.owner_profile_id == null) return true;
+  return String(item.owner_profile_id) === String(permissions.profileId);
+}
+
+/** May this caller see this item? Everything they can edit, plus shares. */
+function isVisibleContentItem(
+  item: { owner_profile_id?: string | null; id: unknown },
+  permissions: ContentPermissions,
+  sharedItemIds: Set<string>
+) {
+  if (canEditContentItem(item, permissions)) return true;
+  return sharedItemIds.has(String(item.id));
+}
+
+async function loadSharedContentItemIds(db: Db, permissions: ContentPermissions): Promise<Set<string>> {
+  if (permissions.isGlobalOwner || !permissions.permittedSectionIds.length) return new Set<string>();
+  const { data, error } = await db
+    .from("content_shares")
+    .select("content_item_id")
+    .in("section_id", permissions.permittedSectionIds);
+  if (error) throw error;
+  const ids: string[] = (data || []).map((row: { content_item_id: unknown }) => String(row.content_item_id));
+  return new Set(ids);
+}
+
+async function loadPermittedSectionIds(db: Db, profileId: string, courseId: string): Promise<string[]> {
   const { data, error } = await db
     .from("section_enrollments")
     .select("section_id, course_sections!inner(course_id)")
@@ -185,10 +244,11 @@ async function loadPermittedSectionIds(db: Db, profileId: string, courseId: stri
     .eq("status", "active")
     .eq("course_sections.course_id", courseId);
   if (error) throw error;
-  return Array.from(new Set((data || []).map((row) => String(row.section_id))));
+  const ids: string[] = (data || []).map((row: { section_id: unknown }) => String(row.section_id));
+  return Array.from(new Set(ids));
 }
 
-async function listContentLibrary(db: Db, courseId: string, permissions: { isGlobalOwner: boolean; permittedSectionIds: string[] }) {
+async function listContentLibrary(db: Db, courseId: string, permissions: ContentPermissions) {
   const [
     { data: items, error: itemError },
     { data: sections, error: sectionError },
@@ -196,7 +256,7 @@ async function listContentLibrary(db: Db, courseId: string, permissions: { isGlo
   ] = await Promise.all([
     db
       .from("content_items")
-      .select("id, course_id, content_type, slug, title, summary, source_kind, source_ref, contains_sensitive_content, default_points, created_at, updated_at")
+      .select("id, course_id, content_type, slug, title, summary, source_kind, source_ref, contains_sensitive_content, default_points, owner_profile_id, visibility, forked_from_content_item_id, created_at, updated_at")
       .eq("course_id", courseId)
       .order("updated_at", { ascending: false }),
     db
@@ -214,7 +274,13 @@ async function listContentLibrary(db: Db, courseId: string, permissions: { isGlo
   if (sectionError) throw sectionError;
   if (sessionError) throw sessionError;
 
-  const itemIds = unique((items || []).map((item) => item.id));
+  // Scope the library to what this caller owns, plus anything shared with a
+  // group they teach. Before this, every instructor saw — and could overwrite —
+  // every item in the course.
+  const sharedItemIds = await loadSharedContentItemIds(db, permissions);
+  const visibleItems = (items || []).filter((item) => isVisibleContentItem(item, permissions, sharedItemIds));
+
+  const itemIds = unique(visibleItems.map((item) => item.id));
   const { data: releases, error: releaseError } = itemIds.length
     ? await db
         .from("content_releases")
@@ -238,8 +304,12 @@ async function listContentLibrary(db: Db, courseId: string, permissions: { isGlo
   const visibleSessions = permissions.isGlobalOwner ? (sessions || []) : (sessions || []).filter((session) => visibleSectionIds.has(String(session.section_id)));
   const visibleReleases = permissions.isGlobalOwner ? (releases || []) : (releases || []).filter((release) => !release.section_id || visibleSectionIds.has(String(release.section_id)));
   return {
-    content_items: (items || []).map((item) => ({
+    content_items: visibleItems.map((item) => ({
       ...item,
+      // The screen needs to render a shared item read-only with a Copy action
+      // rather than an Edit control that would 403. Same fact, one source.
+      can_edit: canEditContentItem(item, permissions),
+      is_shared_with_me: !canEditContentItem(item, permissions),
       release_counts: permissions.isGlobalOwner
         ? releaseCounts.get(item.id) || { draft: 0, active: 0, total: 0 }
         : countReleaseStates(visibleReleases.filter((release) => release.content_item_id === item.id))
@@ -273,7 +343,7 @@ async function saveContentItem(db: Db, courseId: string, input: {
   draft_session_id: string;
   allowed_attempts: number;
   actorProfileId: string;
-  permissions: { isGlobalOwner: boolean; permittedSectionIds: string[] };
+  permissions: ContentPermissions;
 }) {
   const updatedAt = new Date().toISOString();
   let before: Record<string, unknown> | null = null;
@@ -282,12 +352,18 @@ async function saveContentItem(db: Db, courseId: string, input: {
   if (input.itemId) {
     const { data: existing, error: existingError } = await db
       .from("content_items")
-      .select("id, course_id, content_type, slug, title, summary, source_kind, source_ref, contains_sensitive_content, default_points")
+      .select("id, course_id, content_type, slug, title, summary, source_kind, source_ref, contains_sensitive_content, default_points, owner_profile_id")
       .eq("id", input.itemId)
       .eq("course_id", courseId)
       .maybeSingle();
     if (existingError) throw existingError;
     if (!existing) throw new Error("Content item is not part of this course.");
+    // Requirement 7: only the owner (or the platform owner) may write. A share
+    // never grants edit — the receiving instructor takes a copy. This runs
+    // before the update, so a crafted request never reaches content_items.
+    if (!canEditContentItem(existing, input.permissions)) {
+      throw new Error("content_item_not_owned");
+    }
     before = existing;
 
     const { data, error } = await db
@@ -323,6 +399,7 @@ async function saveContentItem(db: Db, courseId: string, input: {
         contains_sensitive_content: input.contains_sensitive_content,
         default_points: input.default_points,
         created_by: input.actorProfileId,
+        owner_profile_id: input.actorProfileId,
         updated_at: updatedAt
       })
       .select("id, course_id, content_type, slug, title, summary, source_kind, source_ref, contains_sensitive_content, default_points, created_at, updated_at")
