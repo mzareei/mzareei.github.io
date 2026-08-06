@@ -26,6 +26,16 @@ Deno.serve(async (request) => {
     const db = adminClient();
     const { profile, permissions } = await requireInstructor(db, token, courseId);
 
+    if (body.action === "copy_content_item") {
+      const result = await copyContentItem(db, courseId, {
+        sourceItemId: cleanOptionalUuid(body.content_item_id),
+        actorProfileId: String(profile.id),
+        permissions
+      });
+      const library = await listContentLibrary(db, courseId, permissions);
+      return json({ ...result, ...library });
+    }
+
     if (body.action === "save_content_item") {
       const result = await saveContentItem(db, courseId, {
         itemId: cleanOptionalUuid(body.content_item?.id || body.content_item_id),
@@ -51,14 +61,14 @@ Deno.serve(async (request) => {
     const library = await listContentLibrary(db, courseId, permissions);
     return json({
       ...library,
-      actions: ["list_content_items", "save_content_item", "create_draft_release"]
+      actions: ["list_content_items", "save_content_item", "copy_content_item", "create_draft_release"]
     });
   } catch (error) {
     const message = error.message || "Unable to manage content library.";
     // Stable code, returned as error_code because that is the field the SPA's
     // callFn reads. Naming it `code` compiles and renders the raw string.
-    if (message === "content_item_not_owned") {
-      return json({ error: message, error_code: "content_item_not_owned" }, { status: 403 });
+    if (message === "content_item_not_owned" || message === "content_item_not_visible") {
+      return json({ error: message, error_code: message }, { status: 403 });
     }
     if (message.includes("not allowed") || message.includes("teaching_assistant")) {
       return json({ error: message }, { status: 403 });
@@ -590,4 +600,214 @@ async function insertAudit(db: Db, input: {
 
 function unique(values: unknown[]) {
   return Array.from(new Set(values.filter(Boolean))) as string[];
+}
+
+
+// ---------------------------------------------------------------- copying
+// Sharing on this platform means "you may take a copy", not "you may edit
+// mine" (decided 2026-08-05). The copy is a new content item owned by whoever
+// made it, with its own storage object and its own question bank, and it
+// records what it came from. The owner's later improvements deliberately do
+// not propagate — nobody's copy changes under them, and nobody can write to
+// the original.
+//
+// The bank travels with the deck because a lecture without its bank is not a
+// usable teaching artifact here: no checkpoints during class, no end-of-class
+// quiz. A copy that dropped it would look successful and be useless.
+//
+// Ordering: copy the storage object to a brand new path first, then insert the
+// rows. Every write targets something that did not exist a moment ago, so a
+// failure anywhere leaves the source untouched and at worst an orphan object
+// behind. Nothing pre-existing is ever overwritten.
+async function copyContentItem(db: Db, courseId: string, input: {
+  sourceItemId: string;
+  actorProfileId: string;
+  permissions: ContentPermissions;
+}) {
+  if (!input.sourceItemId) throw new Error("A content item id is required.");
+
+  const { data: source, error: sourceError } = await db
+    .from("content_items")
+    .select("id, course_id, content_type, slug, title, summary, source_kind, source_ref, contains_sensitive_content, default_points, owner_profile_id")
+    .eq("id", input.sourceItemId)
+    .eq("course_id", courseId)
+    .maybeSingle();
+  if (sourceError) throw sourceError;
+  if (!source) throw new Error("Content item is not part of this course.");
+
+  // Visibility, not edit rights. Requiring ownership here would make sharing
+  // pointless — being able to copy is the entire privilege a share grants.
+  const sharedItemIds = await loadSharedContentItemIds(db, input.permissions);
+  if (!isVisibleContentItem(source, input.permissions, sharedItemIds)) {
+    throw new Error("content_item_not_visible");
+  }
+  if (source.source_kind !== "storage_object") {
+    throw new Error("Only stored lectures and missions can be copied.");
+  }
+
+  const slug = await availableSlug(db, courseId, String(source.slug));
+  const sourcePath = String(source.source_ref);
+  const filename = sourcePath.split("/").pop() || "deck.html";
+  const targetPath = `courses/${courseId}/items/${slug}/${filename}`;
+
+  // 1. The object, to a path nothing uses yet.
+  const { data: blob, error: downloadError } = await db.storage.from("course-content").download(sourcePath);
+  if (downloadError) throw downloadError;
+  const { error: uploadError } = await db.storage
+    .from("course-content")
+    .upload(targetPath, blob, { contentType: "text/html; charset=utf-8", upsert: false });
+  if (uploadError) throw uploadError;
+
+  // 2. The item, owned by the copier and private to them. A copy does not
+  //    inherit the source's sharing — that is the new owner's decision.
+  const { data: copy, error: copyError } = await db
+    .from("content_items")
+    .insert({
+      course_id: courseId,
+      content_type: source.content_type,
+      slug,
+      title: source.title,
+      summary: source.summary,
+      source_kind: "storage_object",
+      source_ref: targetPath,
+      contains_sensitive_content: source.contains_sensitive_content,
+      default_points: source.default_points,
+      created_by: input.actorProfileId,
+      owner_profile_id: input.actorProfileId,
+      visibility: "owner_private",
+      forked_from_content_item_id: source.id,
+      updated_at: new Date().toISOString()
+    })
+    .select("id, course_id, content_type, slug, title, summary, source_kind, source_ref, default_points, owner_profile_id, forked_from_content_item_id, created_at, updated_at")
+    .single();
+  if (copyError) throw copyError;
+
+  // 3. The bank, its questions and their options.
+  const bankSummary = await copyQuestionBank(db, courseId, {
+    sourceItemId: String(source.id),
+    targetItemId: String(copy.id),
+    actorProfileId: input.actorProfileId
+  });
+
+  await insertAudit(db, {
+    courseId,
+    actorProfileId: input.actorProfileId,
+    targetType: "content_item",
+    targetId: copy.id,
+    action: "content_item_copied",
+    metadata: {
+      source_content_item_id: source.id,
+      source_slug: source.slug,
+      slug,
+      storage_path: targetPath,
+      ...bankSummary
+    }
+  });
+
+  return { item: copy, copied_from: { id: source.id, slug: source.slug }, ...bankSummary };
+}
+
+/** A slug that is free in this course. Two instructors copying the same
+ *  lecture must not land on one slug, and the copier should not have to
+ *  invent a name to get past a collision. */
+async function availableSlug(db: Db, courseId: string, baseSlug: string) {
+  const { data, error } = await db
+    .from("content_items")
+    .select("slug")
+    .eq("course_id", courseId)
+    .like("slug", `${baseSlug}%`);
+  if (error) throw error;
+  const taken = new Set((data || []).map((row: { slug: unknown }) => String(row.slug)));
+  let candidate = `${baseSlug}-copy`.slice(0, 160);
+  let suffix = 2;
+  while (taken.has(candidate)) {
+    candidate = `${baseSlug}-copy-${suffix}`.slice(0, 160);
+    suffix += 1;
+  }
+  return candidate;
+}
+
+async function copyQuestionBank(db: Db, courseId: string, input: {
+  sourceItemId: string;
+  targetItemId: string;
+  actorProfileId: string;
+}) {
+  const { data: banks, error: bankError } = await db
+    .from("question_banks")
+    .select("id, title, bank_type, status, checkpoint_preparation_state")
+    .eq("course_id", courseId)
+    .eq("content_item_id", input.sourceItemId)
+    .eq("status", "active");
+  if (bankError) throw bankError;
+  const bank = (banks || [])[0];
+  if (!bank) return { questions_copied: 0, bank_copied: false };
+
+  const { data: newBank, error: newBankError } = await db
+    .from("question_banks")
+    .insert({
+      course_id: courseId,
+      content_item_id: input.targetItemId,
+      title: bank.title,
+      bank_type: bank.bank_type,
+      status: "active",
+      checkpoint_preparation_state: bank.checkpoint_preparation_state,
+      created_by: input.actorProfileId,
+      updated_at: new Date().toISOString()
+    })
+    .select("id")
+    .single();
+  if (newBankError) throw newBankError;
+
+  const { data: questions, error: questionError } = await db
+    .from("questions")
+    .select("id, prompt, prompt_es, question_type, difficulty, topic_tags, points, explanation, explanation_es, status, source, segment_key, source_slide_numbers, source_slide_start, source_slide_end, checkpoint_after_slide")
+    .eq("question_bank_id", bank.id)
+    .eq("status", "active");
+  if (questionError) throw questionError;
+
+  let copied = 0;
+  for (const question of questions || []) {
+    const { data: newQuestion, error: insertError } = await db
+      .from("questions")
+      .insert({
+        question_bank_id: newBank.id,
+        prompt: question.prompt,
+        prompt_es: question.prompt_es,
+        question_type: question.question_type,
+        difficulty: question.difficulty,
+        topic_tags: question.topic_tags,
+        points: question.points,
+        explanation: question.explanation,
+        explanation_es: question.explanation_es,
+        status: "active",
+        source: question.source,
+        // Checkpoint metadata is what makes the deck presentable. Dropping it
+        // leaves checkpoint sections in the copied HTML referencing nothing.
+        segment_key: question.segment_key,
+        source_slide_numbers: question.source_slide_numbers,
+        source_slide_start: question.source_slide_start,
+        source_slide_end: question.source_slide_end,
+        checkpoint_after_slide: question.checkpoint_after_slide,
+        updated_at: new Date().toISOString()
+      })
+      .select("id")
+      .single();
+    if (insertError) throw insertError;
+
+    const { data: options, error: optionError } = await db
+      .from("question_options")
+      .select("option_text, option_text_es, is_correct, position, feedback, feedback_es")
+      .eq("question_id", question.id)
+      .order("position", { ascending: true });
+    if (optionError) throw optionError;
+    if ((options || []).length) {
+      const { error: optionInsertError } = await db
+        .from("question_options")
+        .insert((options || []).map((option) => ({ ...option, question_id: newQuestion.id })));
+      if (optionInsertError) throw optionInsertError;
+    }
+    copied += 1;
+  }
+
+  return { questions_copied: copied, bank_copied: true, question_bank_id: newBank.id };
 }
