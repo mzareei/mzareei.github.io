@@ -26,6 +26,30 @@ Deno.serve(async (request) => {
     const db = adminClient();
     const { profile, permissions } = await requireInstructor(db, token, courseId);
 
+    if (body.action === "share_content_item") {
+      const result = await shareContentItem(db, courseId, {
+        sourceItemId: cleanOptionalUuid(body.content_item_id),
+        targetSectionId: cleanOptionalUuid(body.section_id),
+        canRelease: body.can_release === false ? false : true,
+        canCopy: body.can_copy === false ? false : true,
+        actorProfileId: String(profile.id),
+        permissions
+      });
+      const library = await listContentLibrary(db, courseId, permissions);
+      return json({ ...result, ...library });
+    }
+
+    if (body.action === "unshare_content_item") {
+      const result = await unshareContentItem(db, courseId, {
+        sourceItemId: cleanOptionalUuid(body.content_item_id),
+        targetSectionId: cleanOptionalUuid(body.section_id),
+        actorProfileId: String(profile.id),
+        permissions
+      });
+      const library = await listContentLibrary(db, courseId, permissions);
+      return json({ ...result, ...library });
+    }
+
     if (body.action === "copy_content_item") {
       const result = await copyContentItem(db, courseId, {
         sourceItemId: cleanOptionalUuid(body.content_item_id),
@@ -61,14 +85,19 @@ Deno.serve(async (request) => {
     const library = await listContentLibrary(db, courseId, permissions);
     return json({
       ...library,
-      actions: ["list_content_items", "save_content_item", "copy_content_item", "create_draft_release"]
+      actions: ["list_content_items", "save_content_item", "copy_content_item", "share_content_item", "unshare_content_item", "create_draft_release"]
     });
   } catch (error) {
     const message = error.message || "Unable to manage content library.";
     // Stable code, returned as error_code because that is the field the SPA's
     // callFn reads. Naming it `code` compiles and renders the raw string.
-    if (message === "content_item_not_owned" || message === "content_item_not_visible") {
-      return json({ error: message, error_code: message }, { status: 403 });
+    if (
+      message === "content_item_not_owned"
+      || message === "content_item_not_visible"
+      || message === "content_share_target_invalid"
+    ) {
+      const status = message === "content_share_target_invalid" ? 400 : 403;
+      return json({ error: message, error_code: message }, { status });
     }
     if (message.includes("not allowed") || message.includes("teaching_assistant")) {
       return json({ error: message }, { status: 403 });
@@ -262,7 +291,8 @@ async function listContentLibrary(db: Db, courseId: string, permissions: Content
   const [
     { data: items, error: itemError },
     { data: sections, error: sectionError },
-    { data: sessions, error: sessionError }
+    { data: sessions, error: sessionError },
+    { data: allShares, error: shareError }
   ] = await Promise.all([
     db
       .from("content_items")
@@ -278,11 +308,19 @@ async function listContentLibrary(db: Db, courseId: string, permissions: Content
       .from("class_sessions")
       .select("id, course_id, section_id, title, planned_date, state")
       .eq("course_id", courseId)
-      .order("planned_date", { ascending: true })
+      .order("planned_date", { ascending: true }),
+    // Every share in the course, joined for display. Small table, and the
+    // owner-only filter happens below when attaching shares to items — this
+    // one query avoids an N+1 per owned item.
+    db
+      .from("content_shares")
+      .select("content_item_id, section_id, can_release, can_copy, course_sections!inner(course_id, section_code, section_name)")
+      .eq("course_sections.course_id", courseId)
   ]);
   if (itemError) throw itemError;
   if (sectionError) throw sectionError;
   if (sessionError) throw sessionError;
+  if (shareError) throw shareError;
 
   // Scope the library to what this caller owns, plus anything shared with a
   // group they teach. Before this, every instructor saw — and could overwrite —
@@ -313,18 +351,57 @@ async function listContentLibrary(db: Db, courseId: string, permissions: Content
   const visibleSectionIds = new Set(visibleSections.map((section) => String(section.id)));
   const visibleSessions = permissions.isGlobalOwner ? (sessions || []) : (sessions || []).filter((session) => visibleSectionIds.has(String(session.section_id)));
   const visibleReleases = permissions.isGlobalOwner ? (releases || []) : (releases || []).filter((release) => !release.section_id || visibleSectionIds.has(String(release.section_id)));
+
+  // Sharing needs its own section list, deliberately wider than `sections`
+  // above. course-section-management hides a group you do not teach
+  // (pitfall #38, correctly, so you cannot see its roster or sessions) — but
+  // sharing means naming a group you do NOT teach, to reach the instructor who
+  // does. This exposes only id, code and name: no roster, no sessions, no
+  // release data. Archived/completed groups are excluded — nothing is served
+  // by sharing into a group that can no longer receive students.
+  const shareableSections = (sections || [])
+    .filter((section) => ["planned", "active"].includes(String(section.status)))
+    .map((section) => ({
+      id: section.id,
+      section_code: section.section_code,
+      section_name: section.section_name
+    }));
+
+  const sharesByItem = new Map<string, Array<{ section_id: string; section_code: string; section_name: string; can_release: boolean; can_copy: boolean }>>();
+  for (const share of allShares || []) {
+    const key = String(share.content_item_id);
+    const list = sharesByItem.get(key) || [];
+    const section = (share as { course_sections?: { section_code?: string; section_name?: string } }).course_sections;
+    list.push({
+      section_id: String(share.section_id),
+      section_code: section?.section_code || "",
+      section_name: section?.section_name || "",
+      can_release: Boolean(share.can_release),
+      can_copy: Boolean(share.can_copy)
+    });
+    sharesByItem.set(key, list);
+  }
+
   return {
-    content_items: visibleItems.map((item) => ({
-      ...item,
-      // The screen needs to render a shared item read-only with a Copy action
-      // rather than an Edit control that would 403. Same fact, one source.
-      can_edit: canEditContentItem(item, permissions),
-      is_shared_with_me: !canEditContentItem(item, permissions),
-      release_counts: permissions.isGlobalOwner
-        ? releaseCounts.get(item.id) || { draft: 0, active: 0, total: 0 }
-        : countReleaseStates(visibleReleases.filter((release) => release.content_item_id === item.id))
-    })),
+    content_items: visibleItems.map((item) => {
+      const canEdit = canEditContentItem(item, permissions);
+      return {
+        ...item,
+        // The screen needs to render a shared item read-only with a Copy
+        // action rather than an Edit control that would 403. Same fact, one
+        // source.
+        can_edit: canEdit,
+        is_shared_with_me: !canEdit,
+        // Only the owner needs to know who else can see this. A recipient
+        // cannot re-share and gains nothing from the list.
+        shares: canEdit ? (sharesByItem.get(String(item.id)) || []) : [],
+        release_counts: permissions.isGlobalOwner
+          ? releaseCounts.get(item.id) || { draft: 0, active: 0, total: 0 }
+          : countReleaseStates(visibleReleases.filter((release) => release.content_item_id === item.id))
+      };
+    }),
     sections: visibleSections,
+    shareable_sections: shareableSections,
     sessions: visibleSessions
   };
 }
@@ -619,6 +696,121 @@ function unique(values: unknown[]) {
 // rows. Every write targets something that did not exist a moment ago, so a
 // failure anywhere leaves the source untouched and at worst an orphan object
 // behind. Nothing pre-existing is ever overwritten.
+// ---------------------------------------------------------------- sharing
+// The half of requirement 7 that consuming a share depends on, and that never
+// existed: an owner granting one in the first place. canEditContentItem,
+// isVisibleContentItem and copy_content_item all assumed a content_shares row
+// could exist; nothing ever wrote one.
+//
+// Sharing requires edit rights on the source (the owner, or the platform
+// owner) — never mere visibility. A recipient sees the item because someone
+// shared it with their group; that is not a licence to reshare it further.
+async function shareContentItem(db: Db, courseId: string, input: {
+  sourceItemId: string;
+  targetSectionId: string;
+  canRelease: boolean;
+  canCopy: boolean;
+  actorProfileId: string;
+  permissions: ContentPermissions;
+}) {
+  if (!input.sourceItemId) throw new Error("A content item id is required.");
+  if (!input.targetSectionId) throw new Error("A group to share with is required.");
+
+  const { data: source, error: sourceError } = await db
+    .from("content_items")
+    .select("id, owner_profile_id")
+    .eq("id", input.sourceItemId)
+    .eq("course_id", courseId)
+    .maybeSingle();
+  if (sourceError) throw sourceError;
+  if (!source) throw new Error("Content item is not part of this course.");
+  if (!canEditContentItem(source, input.permissions)) {
+    throw new Error("content_item_not_owned");
+  }
+
+  // The target must be a real, currently assignable group in this course.
+  // Archived/completed groups mirror the rule already applied to student
+  // assignment: nothing is served by sharing into a group that is done.
+  const { data: target, error: targetError } = await db
+    .from("course_sections")
+    .select("id, status")
+    .eq("id", input.targetSectionId)
+    .eq("course_id", courseId)
+    .maybeSingle();
+  if (targetError) throw targetError;
+  if (!target || !["planned", "active"].includes(String(target.status))) {
+    throw new Error("content_share_target_invalid");
+  }
+
+  // Idempotent: sharing again with the same group updates the existing grant
+  // rather than creating a duplicate row or throwing on the unique
+  // constraint.
+  const { error: shareError } = await db
+    .from("content_shares")
+    .upsert(
+      {
+        content_item_id: source.id,
+        section_id: target.id,
+        can_release: input.canRelease,
+        can_copy: input.canCopy,
+        shared_by: input.actorProfileId
+      },
+      { onConflict: "content_item_id,section_id" }
+    );
+  if (shareError) throw shareError;
+
+  await insertAudit(db, {
+    courseId,
+    actorProfileId: input.actorProfileId,
+    targetType: "content_item",
+    targetId: source.id,
+    action: "content_item_shared",
+    metadata: { section_id: target.id, can_release: input.canRelease, can_copy: input.canCopy }
+  });
+
+  return { shared: true };
+}
+
+async function unshareContentItem(db: Db, courseId: string, input: {
+  sourceItemId: string;
+  targetSectionId: string;
+  actorProfileId: string;
+  permissions: ContentPermissions;
+}) {
+  if (!input.sourceItemId) throw new Error("A content item id is required.");
+  if (!input.targetSectionId) throw new Error("A group is required.");
+
+  const { data: source, error: sourceError } = await db
+    .from("content_items")
+    .select("id, owner_profile_id")
+    .eq("id", input.sourceItemId)
+    .eq("course_id", courseId)
+    .maybeSingle();
+  if (sourceError) throw sourceError;
+  if (!source) throw new Error("Content item is not part of this course.");
+  if (!canEditContentItem(source, input.permissions)) {
+    throw new Error("content_item_not_owned");
+  }
+
+  const { error: deleteError } = await db
+    .from("content_shares")
+    .delete()
+    .eq("content_item_id", source.id)
+    .eq("section_id", input.targetSectionId);
+  if (deleteError) throw deleteError;
+
+  await insertAudit(db, {
+    courseId,
+    actorProfileId: input.actorProfileId,
+    targetType: "content_item",
+    targetId: source.id,
+    action: "content_item_unshared",
+    metadata: { section_id: input.targetSectionId }
+  });
+
+  return { shared: false };
+}
+
 async function copyContentItem(db: Db, courseId: string, input: {
   sourceItemId: string;
   actorProfileId: string;
