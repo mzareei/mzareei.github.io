@@ -41,6 +41,16 @@ Deno.serve(async (request) => {
     });
   } catch (error) {
     const message = error.message || "Unable to manage course sections.";
+    // A stable code the client can localize, rather than a prose message it has
+    // to string-match (pitfall #41). Group lifecycle is platform-owner only.
+    // The SPA's callFn reads `error_code`, not `code`. Naming it anything else
+    // compiles, ships, and silently renders the raw string (pitfall #3, #12).
+    if (message === "section_management_owner_only") {
+      return json(
+        { error: message, error_code: "section_management_owner_only" },
+        { status: 403 }
+      );
+    }
     if (message.includes("not allowed")) return json({ error: message }, { status: 403 });
     return json({ error: message }, { status: 400 });
   }
@@ -177,8 +187,13 @@ async function saveSection(db: Db, courseId: string, input: {
       .maybeSingle();
     if (existingError) throw existingError;
     if (!existing) throw new Error("Section is not part of this course.");
-    if (!input.permissions.isGlobalOwner && !input.permissions.permittedSectionIds.includes(String(input.sectionId))) {
-      throw new Error("You are not allowed to manage this section.");
+    // Requirement 8: renaming, archiving or otherwise modifying a group is
+    // platform-owner only. Teaching a group is not the same as owning its
+    // lifecycle — an assigned instructor could previously rename it or set its
+    // status to archived. This runs before the update, so a crafted request
+    // never reaches course_sections.
+    if (!input.permissions.isGlobalOwner) {
+      throw new Error("section_management_owner_only");
     }
     before = existing;
 
@@ -200,7 +215,7 @@ async function saveSection(db: Db, courseId: string, input: {
     section = data;
   } else {
     if (!input.permissions.isGlobalOwner) {
-      throw new Error("Only the platform owner can create new course sections.");
+      throw new Error("section_management_owner_only");
     }
     const { data, error } = await db
       .from("course_sections")

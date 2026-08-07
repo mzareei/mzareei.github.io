@@ -113,12 +113,31 @@ async function requireInstructor(db: Db, token: string, courseId: string) {
   return profile;
 }
 
+/** A slug free in this course. Used when the requested one is taken by another
+ *  owner's item — the caller must never be told that item exists. */
+async function availableSlug(db: Db, courseId: string, baseSlug: string) {
+  const { data, error } = await db
+    .from("content_items")
+    .select("slug")
+    .eq("course_id", courseId)
+    .like("slug", `${baseSlug}%`);
+  if (error) throw error;
+  const taken = new Set((data || []).map((row: { slug: unknown }) => String(row.slug)));
+  let candidate = baseSlug;
+  let suffix = 2;
+  while (taken.has(candidate)) {
+    candidate = `${baseSlug}-${suffix}`.slice(0, 160);
+    suffix += 1;
+  }
+  return candidate;
+}
+
 async function createJob(db: Db, courseId: string, actorProfileId: string, body: Record<string, unknown>) {
   const uploadId = String(body.upload_id || "").trim();
   if (!uploadId) throw new Error("An upload id is required.");
   const lectureTitle = String(body.lecture_title || "").trim().slice(0, 180);
   if (lectureTitle.length < 2) throw new Error("A lecture title is required.");
-  const lectureSlug = cleanSlug(body.lecture_slug || lectureTitle);
+  let lectureSlug = cleanSlug(body.lecture_slug || lectureTitle);
   if (lectureSlug.length < 2) throw new Error("A valid lecture slug is required.");
 
   const { data: upload, error: uploadError } = await db
@@ -131,10 +150,25 @@ async function createJob(db: Db, courseId: string, actorProfileId: string, body:
   if (!upload) throw new Error("That upload was not found.");
   if (upload.status !== "uploaded") throw new Error("Confirm the PDF upload before starting generation.");
 
+  // A slug clash means different things depending on who owns the clashing
+  // item. Your own duplicate title is advice you can act on, so refuse by name.
+  // Someone else's is content you are not allowed to see: naming it leaks its
+  // existence and blocks a title you have every right to use. Resolve instead.
   const { data: clash, error: clashError } = await db
-    .from("content_items").select("id").eq("course_id", courseId).eq("slug", lectureSlug).maybeSingle();
+    .from("content_items")
+    .select("id, owner_profile_id")
+    .eq("course_id", courseId)
+    .eq("slug", lectureSlug)
+    .maybeSingle();
   if (clashError) throw clashError;
-  if (clash) throw new Error(`A content item with slug "${lectureSlug}" already exists — choose a different one.`);
+  if (clash) {
+    const yours = clash.owner_profile_id == null
+      || String(clash.owner_profile_id) === String(actorProfileId);
+    if (yours) {
+      throw new Error(`A content item with slug "${lectureSlug}" already exists — choose a different one.`);
+    }
+    lectureSlug = await availableSlug(db, courseId, lectureSlug);
+  }
 
   const { data: job, error } = await db
     .from("generation_jobs")

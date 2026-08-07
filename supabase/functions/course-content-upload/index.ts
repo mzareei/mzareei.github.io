@@ -51,6 +51,10 @@ Deno.serve(async (request) => {
     if (body.action === "create_upload_url") {
       const slug = cleanSlug(body.slug);
       const filename = cleanFilename(body.filename);
+      // A signed upload URL is a write, and it is minted with upsert enabled.
+      // Scoping only the library would leave the storage object itself wide
+      // open: any course instructor could overwrite any other's deck by slug.
+      await assertSlugWritable(db, courseId, slug, String(profile.id));
       const path = `courses/${courseId}/items/${slug}/${filename}`;
       const { data, error } = await db.storage.from(bucket).createSignedUploadUrl(path, { upsert: true });
       if (error) throw error;
@@ -73,6 +77,9 @@ Deno.serve(async (request) => {
     return json({ error: "Unknown action." }, { status: 400 });
   } catch (error) {
     const message = error.message || "Unable to manage content uploads.";
+    if (message === "content_upload_not_owned") {
+      return json({ error: message, error_code: "content_upload_not_owned" }, { status: 403 });
+    }
     if (message.includes("not allowed")) return json({ error: message }, { status: 403 });
     return json({ error: message }, { status: 400 });
   }
@@ -151,6 +158,34 @@ async function requireInstructor(db: Db, token: string, courseId: string) {
   return profile;
 }
 
+// Requirement 7. Writing to a slug means writing to whatever content item owns
+// it. An unowned item stays writable by any course instructor until the
+// ownership backfill runs — see course-content-library for why that fail-open
+// is load-bearing rather than defensive.
+async function assertSlugWritable(db: Db, courseId: string, slug: string, actorProfileId: string) {
+  const [{ data: existing, error }, { data: memberships, error: membershipError }] = await Promise.all([
+    db
+      .from("content_items")
+      .select("id, owner_profile_id")
+      .eq("course_id", courseId)
+      .eq("slug", slug)
+      .maybeSingle(),
+    db
+      .from("course_memberships")
+      .select("role")
+      .eq("course_id", courseId)
+      .eq("profile_id", actorProfileId)
+      .eq("status", "active")
+  ]);
+  if (error) throw error;
+  if (membershipError) throw membershipError;
+  if ((memberships || []).some((m) => String(m.role) === "platform_owner")) return;
+  if (!existing) return;
+  if (existing.owner_profile_id == null) return;
+  if (String(existing.owner_profile_id) === String(actorProfileId)) return;
+  throw new Error("content_upload_not_owned");
+}
+
 async function createPdfUpload(db: Db, courseId: string, actorProfileId: string, body: Record<string, unknown>) {
   const originalFilename = String(body.filename || "").trim().slice(0, 300);
   if (!originalFilename.toLowerCase().endsWith(".pdf")) {
@@ -227,6 +262,7 @@ async function registerItem(db: Db, courseId: string, actorProfileId: string, bo
   if (!contentTypes.includes(contentType)) {
     throw new Error(`A valid content type is required (${contentTypes.join(", ")}).`);
   }
+  await assertSlugWritable(db, courseId, slug, actorProfileId);
   const storagePath = String(body.storage_path || "").trim();
   const expectedPrefix = `courses/${courseId}/items/${slug}/`;
   if (!storagePath.startsWith(expectedPrefix)) {
@@ -273,6 +309,7 @@ async function registerItem(db: Db, courseId: string, actorProfileId: string, bo
         source_ref: storagePath,
         contains_sensitive_content: Boolean(body.contains_sensitive_content),
         default_points: defaultPoints,
+        owner_profile_id: actorProfileId,
         updated_at: new Date().toISOString()
       },
       { onConflict: "course_id,slug" }
