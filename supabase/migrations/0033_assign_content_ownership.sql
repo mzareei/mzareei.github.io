@@ -34,8 +34,15 @@ begin
   -- has nothing meaningful to assign; more than one means picking a winner,
   -- which would silently hand the entire course library to an arbitrary
   -- account. Refuse both.
-  select count(*), min(p.id)
-    into owner_count, owner_profile
+  --
+  -- Deliberately not `min(p.id)`: Postgres has no built-in min()/max()
+  -- aggregate for uuid, even though uuid supports ordinary comparison and
+  -- ORDER BY. Discovered live against production, where it aborted this
+  -- statement with "function min(uuid) does not exist" after 0030-0032 had
+  -- already applied cleanly — harmless because the whole DO block is one
+  -- statement in one transaction, so nothing here had run yet.
+  select count(*)
+    into owner_count
     from public.course_memberships cm
     join public.profiles p on p.id = cm.profile_id
    where cm.course_id = 'tc2007b'
@@ -48,6 +55,18 @@ begin
       'Expected exactly one active platform owner for tc2007b, found %. Refusing to guess an owner for the course library.',
       owner_count;
   end if;
+
+  -- owner_count = 1 above guarantees this matches exactly one row, so LIMIT 1
+  -- is deterministic rather than an arbitrary pick among ties.
+  select p.id
+    into owner_profile
+    from public.course_memberships cm
+    join public.profiles p on p.id = cm.profile_id
+   where cm.course_id = 'tc2007b'
+     and cm.role = 'platform_owner'
+     and cm.status = 'active'
+     and p.status = 'active'
+   limit 1;
 
   select count(*)
     into unowned_before
