@@ -112,6 +112,10 @@ verify_jwt = false
 # per call, keeping a rollback copy in .versions/ before overwriting.
 verify_jwt = false
 
+[functions.course-content-sync]
+# Instructor-only. Reads the private authoring repository with a server-side secret.
+verify_jwt = false
+
 [functions.course-checkpoint-backfill]
 # Instructor-only metadata mapping and same-path private deck preparation.
 verify_jwt = false
