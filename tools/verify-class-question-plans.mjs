@@ -16,6 +16,10 @@ const planFunction = fs.readFileSync(
   path.join(root, "supabase/functions/course-class-question-plan/index.ts"),
   "utf8"
 );
+const pulseFunction = fs.readFileSync(
+  path.join(root, "supabase/functions/course-pulse/index.ts"),
+  "utf8"
+);
 const config = fs.readFileSync(
   path.join(root, "supabase/config.toml"),
   "utf8"
@@ -108,6 +112,31 @@ assert.match(
 assert.match(
   planFunction,
   /\.rpc\("replace_class_question_plan_candidates",\s*\{\s*p_checkpoint_id:\s*checkpoint\.id\s*,\s*p_question_bank_id:\s*plan\.question_bank_id\s*,\s*p_question_ids:\s*questionIds\s*,\s*p_updated_by:\s*actorProfileId\s*\}\)/
+);
+assert.match(
+  pulseFunction,
+  /async function loadPlanCandidate\s*\(/,
+  "course-pulse must have a dedicated plan-candidate loader"
+);
+assert.match(
+  pulseFunction,
+  /if\s*\(\s*planCheckpointId\s*\)\s*\{[^]*loadPlanCandidate\s*\(\s*db\s*,\s*courseId\s*,\s*sessionId\s*,\s*planCheckpointId\s*,\s*questionId\s*\)[^]*\}\s*else if\s*\(\s*bankQuestion\s*\)\s*\{[^]*assertCheckpointPushMatches\s*\(/,
+  "plan sends must bypass deck checkpoint enforcement, while legacy sends must still enforce it"
+);
+assert.match(
+  pulseFunction,
+  /if\s*\(\s*planCheckpointId\s*&&\s*hasCheckpoint\s*\)\s*\{[^]*throw new Error\("A plan checkpoint cannot be combined with a slide checkpoint\."\)/,
+  "plan sends must reject payloads that mix plan_checkpoint_id and checkpoint_after_slide"
+);
+assert.match(
+  pulseFunction,
+  /plan_checkpoint_id:\s*planCheckpointId\s*\|\|\s*null/,
+  "course-pulse must persist the plan checkpoint provenance on the created round"
+);
+assert.match(
+  pulseFunction,
+  /\.from\("class_question_plan_checkpoints"\)\s*\.update\(\{[^}]*state:\s*"sent"[^}]*\}\)\s*\.eq\("id",\s*planCheckpointId\)/,
+  "course-pulse must mark the selected plan checkpoint sent after inserting the round"
 );
 assert.doesNotMatch(
   planFunction,
