@@ -91,8 +91,8 @@ assert.match(
 );
 assert.match(
   sql,
-  /create or replace function public\.push_class_question_plan_round[^]*for update[^]*locked_checkpoint_state\s*<>\s*'planned'[^]*exists\s*\(\s*select 1\s+from public\.pulse_rounds\s+where plan_checkpoint_id\s*=\s*locked_checkpoint_id\s*\)[^]*raise exception 'class_question_plan_checkpoint_locked'[^]*exists\s*\(\s*select 1\s+from public\.class_question_plan_candidates[^]*checkpoint_id\s*=\s*locked_checkpoint_id[^]*question_id\s*=\s*p_question_id[^]*\)[^]*raise exception 'class_question_plan_question_not_candidate'[^]*insert into public\.pulse_rounds[^]*plan_checkpoint_id[^]*update public\.class_question_plan_checkpoints[^]*state\s*=\s*'sent'/i,
-  "plan-send RPC must lock, validate, insert the round, and mark the checkpoint sent in one transaction"
+  /create or replace function public\.push_class_question_plan_round[^]*for update[^]*locked_checkpoint_state\s*<>\s*'planned'[^]*exists\s*\(\s*select 1\s+from public\.pulse_rounds\s+where plan_checkpoint_id\s*=\s*locked_checkpoint_id\s*\)[^]*raise exception 'class_question_plan_checkpoint_locked'[^]*exists\s*\(\s*select 1\s+from public\.class_question_plan_candidates[^]*checkpoint_id\s*=\s*locked_checkpoint_id[^]*question_id\s*=\s*p_question_id[^]*\)[^]*raise exception 'class_question_plan_question_not_candidate'[^]*update public\.pulse_rounds[^]*state\s*=\s*'closed'[^]*class_session_id\s*=\s*p_class_session_id[^]*state\s*=\s*'open'[^]*insert into public\.pulse_rounds[^]*plan_checkpoint_id[^]*update public\.class_question_plan_checkpoints[^]*state\s*=\s*'sent'/i,
+  "plan-send RPC must validate first, then close prior live rounds, insert the replacement round, and mark the checkpoint sent in one transaction"
 );
 assert.match(
   sql,
@@ -137,6 +137,11 @@ assert.match(
   pulseFunction,
   /if\s*\(\s*planCheckpointId\s*\)\s*\{[^]*rpc\("push_class_question_plan_round"/,
   "plan sends must use the atomic RPC"
+);
+assert.match(
+  pulseFunction,
+  /if\s*\(\s*planCheckpointId\s*\)\s*\{[^]*rpc\("push_class_question_plan_round"[^]*return \{ round: teacherRound\(round\) \};[^]*await db\s*\.from\("pulse_rounds"\)\s*\.update\(\{\s*state:\s*"closed",\s*closed_at:\s*new Date\(\)\.toISOString\(\)\s*\}\)/,
+  "course-pulse must not close existing rounds before plan RPC validation succeeds"
 );
 assert.match(
   pulseFunction,

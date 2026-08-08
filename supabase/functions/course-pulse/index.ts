@@ -363,20 +363,9 @@ async function pushRound(db: Db, courseId: string, actorProfileId: string, body:
     Math.max(0, body.answer_points === undefined ? points / 2 : Number(body.answer_points))
   );
 
-  // Only one question can be open at a time — close any leftovers first so a
-  // student phone is never showing two questions.
-  await db
-    .from("pulse_rounds")
-    .update({ state: "closed", closed_at: new Date().toISOString() })
-    .eq("class_session_id", sessionId)
-    .eq("state", "open");
-
   const now = new Date();
   const endsAt = new Date(now.getTime() + timeLimit * 1000).toISOString();
   if (planCheckpointId) {
-    const snapshot = bankQuestion
-      ? bankQuestion.snapshot
-      : buildSnapshot((body.question as Record<string, unknown>) || {});
     const { data: round, error } = await db
       .rpc("push_class_question_plan_round", {
         p_course_id: courseId,
@@ -413,6 +402,14 @@ async function pushRound(db: Db, courseId: string, actorProfileId: string, body:
 
     return { round: teacherRound(round) };
   }
+
+  // Only one question can be open at a time — close any leftovers first so a
+  // student phone is never showing two questions.
+  await db
+    .from("pulse_rounds")
+    .update({ state: "closed", closed_at: new Date().toISOString() })
+    .eq("class_session_id", sessionId)
+    .eq("state", "open");
 
   const { data: round, error } = await db
     .from("pulse_rounds")

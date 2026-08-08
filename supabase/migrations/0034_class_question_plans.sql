@@ -184,6 +184,12 @@ begin
     raise exception 'class_question_plan_question_not_candidate';
   end if;
 
+  update public.pulse_rounds
+    set state = 'closed',
+        closed_at = coalesce(p_opened_at, now())
+    where class_session_id = p_class_session_id
+      and state = 'open';
+
   insert into public.pulse_rounds (
     course_id,
     class_session_id,
