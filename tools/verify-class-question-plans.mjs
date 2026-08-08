@@ -8,6 +8,10 @@ const sql = fs.readFileSync(
   path.join(root, "supabase/migrations/0034_class_question_plans.sql"),
   "utf8"
 );
+const helper = fs.readFileSync(
+  path.join(root, "supabase/functions/_shared/class-question-plan.ts"),
+  "utf8"
+);
 
 assert.match(sql, /create table if not exists public\.class_question_plans/i);
 assert.match(sql, /create table if not exists public\.class_question_plan_checkpoints/i);
@@ -31,3 +35,6 @@ assert.match(
   sql,
   /create index if not exists class_question_plan_candidates_checkpoint_id_idx on public\.class_question_plan_candidates\s*\(\s*checkpoint_id\s*\)/i
 );
+assert.match(helper, /throw new Error\("class_question_plan_topic_required"\)/);
+assert.match(helper, /throw new Error\("class_question_plan_slide_hint_invalid"\)/);
+assert.match(helper, /throw new Error\("class_question_plan_checkpoint_locked"\)/);
