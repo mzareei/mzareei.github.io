@@ -27,15 +27,20 @@ create table if not exists public.class_question_plan_candidates (
   checkpoint_id uuid not null references public.class_question_plan_checkpoints(id) on delete cascade,
   question_bank_id uuid references public.question_banks(id),
   question_id uuid not null references public.questions(id),
+  position int not null check (position >= 1),
   updated_by uuid references public.profiles(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (checkpoint_id, question_id)
 );
 
+alter table public.pulse_rounds
+  add column if not exists plan_checkpoint_id uuid references public.class_question_plan_checkpoints(id) on delete restrict;
+
 create index if not exists class_question_plans_class_session_id_idx on public.class_question_plans(class_session_id);
 
 create index if not exists class_question_plan_candidates_checkpoint_id_idx on public.class_question_plan_candidates(checkpoint_id);
+create index if not exists pulse_rounds_plan_checkpoint_id_idx on public.pulse_rounds(plan_checkpoint_id);
 
 alter table public.class_question_plans enable row level security;
 alter table public.class_question_plan_checkpoints enable row level security;

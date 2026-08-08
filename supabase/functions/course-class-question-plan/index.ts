@@ -269,14 +269,24 @@ async function loadAccessibleCheckpoint(
   if (!data) throw new Error("class_question_plan_checkpoint_not_found");
 
   const { plan, session } = await loadAccessiblePlanById(db, courseId, permissions, String(data.plan_id));
+  const sentRoundCount = await loadSentRoundCount(db, checkpointId);
   return {
     plan,
     session,
     checkpoint: {
       ...data,
-      sentRoundCount: String(data.state || "") === "sent" ? 1 : 0
+      sentRoundCount
     } as CheckpointContext
   };
+}
+
+async function loadSentRoundCount(db: Db, checkpointId: string) {
+  const { count, error } = await db
+    .from("pulse_rounds")
+    .select("id", { count: "exact", head: true })
+    .eq("plan_checkpoint_id", checkpointId);
+  if (error) throw error;
+  return Number(count || 0);
 }
 
 async function serializePlan(db: Db, plan: PlanRecord) {
@@ -292,34 +302,24 @@ async function serializePlan(db: Db, plan: PlanRecord) {
   const { data: candidateRows, error: candidateError } = checkpointIds.length
     ? await db
         .from("class_question_plan_candidates")
-        .select("checkpoint_id, question_id")
+        .select("checkpoint_id, question_id, position")
         .in("checkpoint_id", checkpointIds)
+        .order("position", { ascending: true })
     : { data: [], error: null };
   if (candidateError) throw candidateError;
 
-  const questionIds = Array.from(new Set((candidateRows || []).map((row) => String(row.question_id))));
-  const { data: questions, error: questionError } = questionIds.length
-    ? await db
-        .from("questions")
-        .select("id, created_at")
-        .in("id", questionIds)
-        .order("created_at", { ascending: true })
-    : { data: [], error: null };
-  if (questionError) throw questionError;
-
-  const questionOrder = new Map((questions || []).map((row, index) => [String(row.id), index]));
   const candidateByCheckpoint = new Map<string, string[]>();
 
   for (const checkpointId of checkpointIds) {
     const ordered = (candidateRows || [])
       .filter((row) => String(row.checkpoint_id) === checkpointId)
-      .map((row) => String(row.question_id))
+      .slice()
       .sort((left, right) => {
-        const leftIndex = questionOrder.get(left) ?? Number.MAX_SAFE_INTEGER;
-        const rightIndex = questionOrder.get(right) ?? Number.MAX_SAFE_INTEGER;
-        if (leftIndex !== rightIndex) return leftIndex - rightIndex;
-        return left.localeCompare(right);
-      });
+        const positionDelta = Number(left.position || 0) - Number(right.position || 0);
+        if (positionDelta !== 0) return positionDelta;
+        return String(left.question_id).localeCompare(String(right.question_id));
+      })
+      .map((row) => String(row.question_id));
     candidateByCheckpoint.set(checkpointId, ordered);
   }
 
@@ -454,7 +454,7 @@ async function copyPlan(
     const { data: sourceCandidates, error: sourceCandidateError } = sourceCheckpointIds.length
       ? await db
           .from("class_question_plan_candidates")
-          .select("checkpoint_id, question_id")
+          .select("checkpoint_id, question_id, position")
           .in("checkpoint_id", sourceCheckpointIds)
       : { data: [], error: null };
     if (sourceCandidateError) throw sourceCandidateError;
@@ -467,6 +467,7 @@ async function copyPlan(
         checkpoint_id: targetCheckpointId,
         question_bank_id: sourceBankId,
         question_id: candidate.question_id,
+        position: Number(candidate.position || 1),
         updated_by: actorProfileId
       }];
     });
@@ -590,22 +591,31 @@ async function setCandidates(
     throw new Error("class_question_plan_question_not_in_bank");
   }
 
-  const { error: deleteError } = await db
-    .from("class_question_plan_candidates")
-    .delete()
-    .eq("checkpoint_id", checkpoint.id);
-  if (deleteError) throw deleteError;
-
   if (questionIds.length) {
-    const { error: insertError } = await db
+    const { error: upsertError } = await db
       .from("class_question_plan_candidates")
-      .insert(questionIds.map((questionId) => ({
+      .upsert(questionIds.map((questionId, index) => ({
         checkpoint_id: checkpoint.id,
         question_bank_id: plan.question_bank_id,
         question_id: questionId,
+        position: index + 1,
         updated_by: actorProfileId
-      })));
-    if (insertError) throw insertError;
+      })), { onConflict: "checkpoint_id,question_id" });
+    if (upsertError) throw upsertError;
+
+    const staleCandidateFilter = formatUuidInFilter(questionIds);
+    const { error: deleteStaleError } = await db
+      .from("class_question_plan_candidates")
+      .delete()
+      .eq("checkpoint_id", checkpoint.id)
+      .not("question_id", "in", staleCandidateFilter);
+    if (deleteStaleError) throw deleteStaleError;
+  } else {
+    const { error: deleteAllError } = await db
+      .from("class_question_plan_candidates")
+      .delete()
+      .eq("checkpoint_id", checkpoint.id);
+    if (deleteAllError) throw deleteAllError;
   }
 
   await touchPlan(db, plan.id, actorProfileId);
@@ -685,4 +695,8 @@ async function touchPlan(db: Db, planId: string, actorProfileId: string) {
     })
     .eq("id", planId);
   if (error) throw error;
+}
+
+function formatUuidInFilter(ids: string[]) {
+  return `(${ids.map((id) => `"${id}"`).join(",")})`;
 }

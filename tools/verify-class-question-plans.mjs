@@ -24,9 +24,17 @@ const config = fs.readFileSync(
 assert.match(sql, /create table if not exists public\.class_question_plans/i);
 assert.match(sql, /create table if not exists public\.class_question_plan_checkpoints/i);
 assert.match(sql, /create table if not exists public\.class_question_plan_candidates/i);
+assert.match(
+  sql,
+  /alter table public\.pulse_rounds\s+add column if not exists plan_checkpoint_id uuid references public\.class_question_plan_checkpoints\(id\) on delete restrict/i
+);
 assert.match(sql, /unique\s*\(\s*class_session_id\s*\)/i);
 assert.match(sql, /position\s+int[^;]*check\s*\(\s*position\s*>=\s*1\s*\)/i);
 assert.match(sql, /slide_hint\s+int[^;]*check\s*\(\s*slide_hint\s+is\s+null\s+or\s+slide_hint\s*>=\s*1\s*\)/i);
+assert.match(
+  sql,
+  /create table if not exists public\.class_question_plan_candidates[^]*position\s+int\s+not null[^;]*check\s*\(\s*position\s*>=\s*1\s*\)/i
+);
 assert.match(
   sql,
   /unique\s*\(\s*checkpoint_id\s*,\s*question_id\s*\)/i,
@@ -42,6 +50,10 @@ assert.match(
 assert.match(
   sql,
   /create index if not exists class_question_plan_candidates_checkpoint_id_idx on public\.class_question_plan_candidates\s*\(\s*checkpoint_id\s*\)/i
+);
+assert.match(
+  sql,
+  /create index if not exists pulse_rounds_plan_checkpoint_id_idx on public\.pulse_rounds\s*\(\s*plan_checkpoint_id\s*\)/i
 );
 assert.match(helper, /throw new Error\("class_question_plan_topic_required"\)/);
 assert.match(helper, /throw new Error\("class_question_plan_slide_hint_invalid"\)/);
@@ -68,6 +80,20 @@ assert.match(
 assert.match(
   planFunction,
   /assertMutableCheckpoint\s*\(\s*checkpoint\.state\s*,\s*checkpoint\.sentRoundCount\s*\)/
+);
+assert.match(
+  planFunction,
+  /\.from\("pulse_rounds"\)[^]*select\("id",\s*\{\s*count:\s*"exact",\s*head:\s*true\s*\}\)[^]*\.eq\("plan_checkpoint_id",\s*checkpointId\)/
+);
+assert.match(planFunction, /\.from\("class_question_plan_candidates"\)[^]*\.upsert\(/);
+assert.match(
+  planFunction,
+  /\.delete\(\)[^]*\.eq\("checkpoint_id",\s*checkpoint\.id\)[^]*\.not\("question_id",\s*"in",/
+);
+assert.doesNotMatch(
+  planFunction,
+  /\.from\("class_question_plan_candidates"\)[^]*\.delete\(\)[^]*\.eq\("checkpoint_id",\s*checkpoint\.id\)[^]*if \(questionIds\.length\)[^]*\.from\("class_question_plan_candidates"\)[^]*\.insert\(/,
+  "set_candidates must not delete the old list before replacement rows have been persisted"
 );
 assert.match(config, /\[functions\.course-class-question-plan\][^\[]*verify_jwt\s*=\s*true/i);
 
