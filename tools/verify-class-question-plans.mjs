@@ -12,6 +12,14 @@ const helper = fs.readFileSync(
   path.join(root, "supabase/functions/_shared/class-question-plan.ts"),
   "utf8"
 );
+const planFunction = fs.readFileSync(
+  path.join(root, "supabase/functions/course-class-question-plan/index.ts"),
+  "utf8"
+);
+const config = fs.readFileSync(
+  path.join(root, "supabase/config.toml"),
+  "utf8"
+);
 
 assert.match(sql, /create table if not exists public\.class_question_plans/i);
 assert.match(sql, /create table if not exists public\.class_question_plan_checkpoints/i);
@@ -38,3 +46,29 @@ assert.match(
 assert.match(helper, /throw new Error\("class_question_plan_topic_required"\)/);
 assert.match(helper, /throw new Error\("class_question_plan_slide_hint_invalid"\)/);
 assert.match(helper, /throw new Error\("class_question_plan_checkpoint_locked"\)/);
+
+for (const action of [
+  "get",
+  "create",
+  "copy",
+  "add_checkpoint",
+  "update_checkpoint",
+  "remove_checkpoint",
+  "set_candidates",
+  "mark_skipped"
+]) {
+  assert.match(planFunction, new RegExp(`body\\.action === "${action}"|case "${action}"`));
+}
+
+assert.match(planFunction, /assertSectionAllowed\s*\(/);
+assert.match(
+  planFunction,
+  /\.eq\("question_bank_id",\s*plan\.question_bank_id\)|question\.question_bank_id\s*!==\s*plan\.question_bank_id/
+);
+assert.match(
+  planFunction,
+  /assertMutableCheckpoint\s*\(\s*checkpoint\.state\s*,\s*checkpoint\.sentRoundCount\s*\)/
+);
+assert.match(config, /\[functions\.course-class-question-plan\][^\[]*verify_jwt\s*=\s*true/i);
+
+console.log("verify-class-question-plans: ok");
