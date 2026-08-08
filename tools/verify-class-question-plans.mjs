@@ -40,6 +40,21 @@ assert.match(
   /unique\s*\(\s*checkpoint_id\s*,\s*question_id\s*\)/i,
   "candidate rows must prevent duplicate question picks per checkpoint"
 );
+assert.match(
+  sql,
+  /unique\s*\(\s*checkpoint_id\s*,\s*position\s*\)/i,
+  "candidate rows must prevent two questions from claiming the same position"
+);
+assert.match(
+  sql,
+  /create or replace function public\.replace_class_question_plan_candidates\s*\(\s*p_checkpoint_id uuid\s*,\s*p_question_bank_id uuid\s*,\s*p_question_ids uuid\[\]\s*,\s*p_updated_by uuid\s*\)[^]*for update[^]*delete from public\.class_question_plan_candidates[^]*insert into public\.class_question_plan_candidates/i,
+  "candidate replacement must lock its checkpoint and replace rows in one database transaction"
+);
+assert.match(
+  sql,
+  /grant execute on function public\.replace_class_question_plan_candidates\s*\(\s*uuid\s*,\s*uuid\s*,\s*uuid\[\]\s*,\s*uuid\s*\)\s*to service_role/i,
+  "only the service role should execute the atomic candidate replacement RPC"
+);
 assert.match(sql, /alter table public\.class_question_plans enable row level security/i);
 assert.match(sql, /alter table public\.class_question_plan_checkpoints enable row level security/i);
 assert.match(sql, /alter table public\.class_question_plan_candidates enable row level security/i);
@@ -85,15 +100,14 @@ assert.match(
   planFunction,
   /\.from\("pulse_rounds"\)[^]*select\("id",\s*\{\s*count:\s*"exact",\s*head:\s*true\s*\}\)[^]*\.eq\("plan_checkpoint_id",\s*checkpointId\)/
 );
-assert.match(planFunction, /\.from\("class_question_plan_candidates"\)[^]*\.upsert\(/);
 assert.match(
   planFunction,
-  /\.delete\(\)[^]*\.eq\("checkpoint_id",\s*checkpoint\.id\)[^]*\.not\("question_id",\s*"in",/
+  /\.rpc\("replace_class_question_plan_candidates",\s*\{\s*p_checkpoint_id:\s*checkpoint\.id\s*,\s*p_question_bank_id:\s*plan\.question_bank_id\s*,\s*p_question_ids:\s*questionIds\s*,\s*p_updated_by:\s*actorProfileId\s*\}\)/
 );
 assert.doesNotMatch(
   planFunction,
-  /\.from\("class_question_plan_candidates"\)[^]*\.delete\(\)[^]*\.eq\("checkpoint_id",\s*checkpoint\.id\)[^]*if \(questionIds\.length\)[^]*\.from\("class_question_plan_candidates"\)[^]*\.insert\(/,
-  "set_candidates must not delete the old list before replacement rows have been persisted"
+  /async function setCandidates[^]*\.from\("class_question_plan_candidates"\)/,
+  "set_candidates must delegate writes to the atomic replacement RPC"
 );
 assert.match(config, /\[functions\.course-class-question-plan\][^\[]*verify_jwt\s*=\s*true/i);
 

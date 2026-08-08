@@ -591,32 +591,14 @@ async function setCandidates(
     throw new Error("class_question_plan_question_not_in_bank");
   }
 
-  if (questionIds.length) {
-    const { error: upsertError } = await db
-      .from("class_question_plan_candidates")
-      .upsert(questionIds.map((questionId, index) => ({
-        checkpoint_id: checkpoint.id,
-        question_bank_id: plan.question_bank_id,
-        question_id: questionId,
-        position: index + 1,
-        updated_by: actorProfileId
-      })), { onConflict: "checkpoint_id,question_id" });
-    if (upsertError) throw upsertError;
-
-    const staleCandidateFilter = formatUuidInFilter(questionIds);
-    const { error: deleteStaleError } = await db
-      .from("class_question_plan_candidates")
-      .delete()
-      .eq("checkpoint_id", checkpoint.id)
-      .not("question_id", "in", staleCandidateFilter);
-    if (deleteStaleError) throw deleteStaleError;
-  } else {
-    const { error: deleteAllError } = await db
-      .from("class_question_plan_candidates")
-      .delete()
-      .eq("checkpoint_id", checkpoint.id);
-    if (deleteAllError) throw deleteAllError;
-  }
+  const { error } = await db
+    .rpc("replace_class_question_plan_candidates", {
+      p_checkpoint_id: checkpoint.id,
+      p_question_bank_id: plan.question_bank_id,
+      p_question_ids: questionIds,
+      p_updated_by: actorProfileId
+    });
+  if (error) throw error;
 
   await touchPlan(db, plan.id, actorProfileId);
   return await serializePlan(db, plan);
@@ -695,8 +677,4 @@ async function touchPlan(db: Db, planId: string, actorProfileId: string) {
     })
     .eq("id", planId);
   if (error) throw error;
-}
-
-function formatUuidInFilter(ids: string[]) {
-  return `(${ids.map((id) => `"${id}"`).join(",")})`;
 }

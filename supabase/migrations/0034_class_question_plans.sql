@@ -31,7 +31,8 @@ create table if not exists public.class_question_plan_candidates (
   updated_by uuid references public.profiles(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique (checkpoint_id, question_id)
+  unique (checkpoint_id, question_id),
+  unique (checkpoint_id, position)
 );
 
 alter table public.pulse_rounds
@@ -52,3 +53,52 @@ revoke all on table public.class_question_plan_checkpoints
   from public, anon, authenticated;
 revoke all on table public.class_question_plan_candidates
   from public, anon, authenticated;
+
+create or replace function public.replace_class_question_plan_candidates(
+  p_checkpoint_id uuid,
+  p_question_bank_id uuid,
+  p_question_ids uuid[],
+  p_updated_by uuid
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  locked_checkpoint_id uuid;
+begin
+  select id
+    into locked_checkpoint_id
+    from public.class_question_plan_checkpoints
+    where id = p_checkpoint_id
+    for update;
+
+  if not found then
+    raise exception 'class_question_plan_checkpoint_not_found';
+  end if;
+
+  delete from public.class_question_plan_candidates
+    where checkpoint_id = locked_checkpoint_id;
+
+  insert into public.class_question_plan_candidates (
+    checkpoint_id,
+    question_bank_id,
+    question_id,
+    position,
+    updated_by
+  )
+  select
+    locked_checkpoint_id,
+    p_question_bank_id,
+    question_id,
+    position::int,
+    p_updated_by
+  from unnest(p_question_ids) with ordinality as candidates(question_id, position);
+end;
+$$;
+
+revoke all on function public.replace_class_question_plan_candidates(uuid, uuid, uuid[], uuid)
+  from public, anon, authenticated;
+grant execute on function public.replace_class_question_plan_candidates(uuid, uuid, uuid[], uuid)
+  to service_role;
