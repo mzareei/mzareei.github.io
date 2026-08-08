@@ -42,6 +42,9 @@ create index if not exists class_question_plans_class_session_id_idx on public.c
 
 create index if not exists class_question_plan_candidates_checkpoint_id_idx on public.class_question_plan_candidates(checkpoint_id);
 create index if not exists pulse_rounds_plan_checkpoint_id_idx on public.pulse_rounds(plan_checkpoint_id);
+create unique index if not exists pulse_rounds_plan_checkpoint_id_unique_idx
+  on public.pulse_rounds(plan_checkpoint_id)
+  where plan_checkpoint_id is not null;
 
 alter table public.class_question_plans enable row level security;
 alter table public.class_question_plan_checkpoints enable row level security;
@@ -111,4 +114,146 @@ $$;
 revoke all on function public.replace_class_question_plan_candidates(uuid, uuid, uuid[], uuid)
   from public, anon, authenticated;
 grant execute on function public.replace_class_question_plan_candidates(uuid, uuid, uuid[], uuid)
+  to service_role;
+
+create or replace function public.push_class_question_plan_round(
+  p_course_id text,
+  p_class_session_id uuid,
+  p_section_id uuid,
+  p_question_id uuid,
+  p_plan_checkpoint_id uuid,
+  p_prompt_snapshot jsonb,
+  p_points numeric,
+  p_answer_points numeric,
+  p_time_limit_seconds int,
+  p_opened_at timestamptz,
+  p_ends_at timestamptz,
+  p_created_by uuid
+)
+returns public.pulse_rounds
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  locked_checkpoint_id uuid;
+  locked_checkpoint_state text;
+  locked_plan_session_id uuid;
+  locked_plan_question_bank_id uuid;
+  inserted_round public.pulse_rounds%rowtype;
+begin
+  select
+    checkpoint.id,
+    checkpoint.state,
+    plan.class_session_id,
+    plan.question_bank_id
+    into
+      locked_checkpoint_id,
+      locked_checkpoint_state,
+      locked_plan_session_id,
+      locked_plan_question_bank_id
+    from public.class_question_plan_checkpoints checkpoint
+    join public.class_question_plans plan
+      on plan.id = checkpoint.plan_id
+    where checkpoint.id = p_plan_checkpoint_id
+    for update of checkpoint;
+
+  if not found or locked_plan_session_id <> p_class_session_id then
+    raise exception 'class_question_plan_checkpoint_not_found';
+  end if;
+
+  if locked_checkpoint_state <> 'planned'
+    or exists (
+      select 1
+        from public.pulse_rounds
+        where plan_checkpoint_id = locked_checkpoint_id
+    ) then
+    raise exception 'class_question_plan_checkpoint_locked';
+  end if;
+
+  if not exists (
+    select 1
+      from public.class_question_plan_candidates candidate
+      where candidate.checkpoint_id = locked_checkpoint_id
+        and candidate.question_id = p_question_id
+        and (
+          locked_plan_question_bank_id is null
+          or candidate.question_bank_id = locked_plan_question_bank_id
+        )
+  ) then
+    raise exception 'class_question_plan_question_not_candidate';
+  end if;
+
+  insert into public.pulse_rounds (
+    course_id,
+    class_session_id,
+    section_id,
+    question_id,
+    plan_checkpoint_id,
+    prompt_snapshot,
+    state,
+    points,
+    answer_points,
+    time_limit_seconds,
+    opened_at,
+    ends_at,
+    created_by
+  )
+  values (
+    p_course_id,
+    p_class_session_id,
+    p_section_id,
+    p_question_id,
+    p_plan_checkpoint_id,
+    p_prompt_snapshot,
+    'open',
+    p_points,
+    p_answer_points,
+    p_time_limit_seconds,
+    p_opened_at,
+    p_ends_at,
+    p_created_by
+  )
+  returning *
+    into inserted_round;
+
+  update public.class_question_plan_checkpoints
+    set state = 'sent',
+        updated_by = p_created_by,
+        updated_at = coalesce(p_opened_at, now())
+    where id = locked_checkpoint_id;
+
+  return inserted_round;
+end;
+$$;
+
+revoke all on function public.push_class_question_plan_round(
+  text,
+  uuid,
+  uuid,
+  uuid,
+  uuid,
+  jsonb,
+  numeric,
+  numeric,
+  int,
+  timestamptz,
+  timestamptz,
+  uuid
+)
+  from public, anon, authenticated;
+grant execute on function public.push_class_question_plan_round(
+  text,
+  uuid,
+  uuid,
+  uuid,
+  uuid,
+  jsonb,
+  numeric,
+  numeric,
+  int,
+  timestamptz,
+  timestamptz,
+  uuid
+)
   to service_role;

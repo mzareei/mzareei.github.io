@@ -79,6 +79,26 @@ assert.match(
   sql,
   /create index if not exists pulse_rounds_plan_checkpoint_id_idx on public\.pulse_rounds\s*\(\s*plan_checkpoint_id\s*\)/i
 );
+assert.match(
+  sql,
+  /create unique index if not exists pulse_rounds_plan_checkpoint_id_unique_idx\s+on public\.pulse_rounds\s*\(\s*plan_checkpoint_id\s*\)\s*where\s+plan_checkpoint_id\s+is\s+not\s+null/i,
+  "plan-linked rounds must have a partial uniqueness guard on plan_checkpoint_id"
+);
+assert.match(
+  sql,
+  /create or replace function public\.push_class_question_plan_round\s*\([^)]*p_course_id text[^)]*p_class_session_id uuid[^)]*p_section_id uuid[^)]*p_question_id uuid[^)]*p_plan_checkpoint_id uuid[^)]*p_prompt_snapshot jsonb[^)]*p_points numeric[^)]*p_answer_points numeric[^)]*p_time_limit_seconds int[^)]*p_opened_at timestamptz[^)]*p_ends_at timestamptz[^)]*p_created_by uuid[^)]*\)/i,
+  "migration 0034 must define the atomic plan-send RPC with the actual pulse_round fields"
+);
+assert.match(
+  sql,
+  /create or replace function public\.push_class_question_plan_round[^]*for update[^]*locked_checkpoint_state\s*<>\s*'planned'[^]*exists\s*\(\s*select 1\s+from public\.pulse_rounds\s+where plan_checkpoint_id\s*=\s*locked_checkpoint_id\s*\)[^]*raise exception 'class_question_plan_checkpoint_locked'[^]*exists\s*\(\s*select 1\s+from public\.class_question_plan_candidates[^]*checkpoint_id\s*=\s*locked_checkpoint_id[^]*question_id\s*=\s*p_question_id[^]*\)[^]*raise exception 'class_question_plan_question_not_candidate'[^]*insert into public\.pulse_rounds[^]*plan_checkpoint_id[^]*update public\.class_question_plan_checkpoints[^]*state\s*=\s*'sent'/i,
+  "plan-send RPC must lock, validate, insert the round, and mark the checkpoint sent in one transaction"
+);
+assert.match(
+  sql,
+  /grant execute on function public\.push_class_question_plan_round\s*\(\s*text\s*,\s*uuid\s*,\s*uuid\s*,\s*uuid\s*,\s*uuid\s*,\s*jsonb\s*,\s*numeric\s*,\s*numeric\s*,\s*int\s*,\s*timestamptz\s*,\s*timestamptz\s*,\s*uuid\s*\)\s*to service_role/i,
+  "only the service role should execute the atomic plan-send RPC"
+);
 assert.match(helper, /throw new Error\("class_question_plan_topic_required"\)/);
 assert.match(helper, /throw new Error\("class_question_plan_slide_hint_invalid"\)/);
 assert.match(helper, /throw new Error\("class_question_plan_checkpoint_locked"\)/);
@@ -115,28 +135,43 @@ assert.match(
 );
 assert.match(
   pulseFunction,
-  /async function loadPlanCandidate\s*\(/,
-  "course-pulse must have a dedicated plan-candidate loader"
+  /if\s*\(\s*planCheckpointId\s*\)\s*\{[^]*rpc\("push_class_question_plan_round"/,
+  "plan sends must use the atomic RPC"
 );
 assert.match(
   pulseFunction,
-  /if\s*\(\s*planCheckpointId\s*\)\s*\{[^]*loadPlanCandidate\s*\(\s*db\s*,\s*courseId\s*,\s*sessionId\s*,\s*planCheckpointId\s*,\s*questionId\s*\)[^]*\}\s*else if\s*\(\s*bankQuestion\s*\)\s*\{[^]*assertCheckpointPushMatches\s*\(/,
-  "plan sends must bypass deck checkpoint enforcement, while legacy sends must still enforce it"
+  /if\s*\(\s*!planCheckpointId\s*&&\s*bankQuestion\s*\)\s*\{[^]*assertCheckpointPushMatches\s*\(/,
+  "legacy sends must still enforce deck checkpoint authorization"
 );
 assert.match(
   pulseFunction,
-  /if\s*\(\s*planCheckpointId\s*&&\s*hasCheckpoint\s*\)\s*\{[^]*throw new Error\("A plan checkpoint cannot be combined with a slide checkpoint\."\)/,
+  /if\s*\(\s*planCheckpointId\s*&&\s*hasCheckpoint\s*\)\s*\{[^]*throw new Error\("class_question_plan_payload_invalid"\)/,
   "plan sends must reject payloads that mix plan_checkpoint_id and checkpoint_after_slide"
 );
 assert.match(
   pulseFunction,
-  /plan_checkpoint_id:\s*planCheckpointId\s*\|\|\s*null/,
-  "course-pulse must persist the plan checkpoint provenance on the created round"
+  /rpc\("push_class_question_plan_round",\s*\{[^]*p_plan_checkpoint_id:\s*planCheckpointId[^]*p_prompt_snapshot:\s*snapshot[^]*p_created_by:\s*actorProfileId[^]*\}\)/,
+  "course-pulse must pass plan_checkpoint_id and the real pulse_round fields into the atomic RPC"
 );
 assert.match(
   pulseFunction,
-  /\.from\("class_question_plan_checkpoints"\)\s*\.update\(\{[^}]*state:\s*"sent"[^}]*\}\)\s*\.eq\("id",\s*planCheckpointId\)/,
-  "course-pulse must mark the selected plan checkpoint sent after inserting the round"
+  /const code = stablePulseErrorCode\(error\);[^]*return json\(\{ error: code, error_code: code \}, \{ status: 400 \}\)/,
+  "course-pulse must normalize plan-send failures into stable error codes"
+);
+assert.match(
+  pulseFunction,
+  /"class_question_plan_checkpoint_not_found"|"class_question_plan_checkpoint_locked"|"class_question_plan_question_not_candidate"/,
+  "course-pulse must recognize the stable plan-send error codes returned by the RPC"
+);
+assert.doesNotMatch(
+  pulseFunction,
+  /async function loadPlanCandidate\s*\(/,
+  "plan-send validation should live in the atomic RPC, not a pre-check helper"
+);
+assert.doesNotMatch(
+  pulseFunction,
+  /\.from\("class_question_plan_checkpoints"\)\s*\.update\(/,
+  "course-pulse should not update plan checkpoints directly after the atomic RPC is added"
 );
 assert.doesNotMatch(
   planFunction,

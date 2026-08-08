@@ -26,6 +26,15 @@ type Db = ReturnType<typeof adminClient>;
 
 const instructorRoles = ["platform_owner", "instructor"];
 const teacherRoles = ["platform_owner", "instructor", "teaching_assistant"];
+const stablePulsePlanErrorCodes = new Set([
+  "class_question_plan_checkpoint_id_invalid",
+  "class_question_plan_checkpoint_locked",
+  "class_question_plan_checkpoint_not_found",
+  "class_question_plan_payload_invalid",
+  "class_question_plan_question_id_invalid",
+  "class_question_plan_question_not_candidate",
+  "class_question_plan_question_unavailable"
+]);
 
 Deno.serve(async (request) => {
   const options = handleOptions(request);
@@ -83,6 +92,8 @@ Deno.serve(async (request) => {
         return json({ error: "Unknown action." }, { status: 400 });
     }
   } catch (error) {
+    const code = stablePulseErrorCode(error);
+    if (code) return json({ error: code, error_code: code }, { status: 400 });
     const message = error?.message || "Unable to run the pulse.";
     if (message.includes("not allowed") || message.includes("not enrolled")) {
       return json({ error: message }, { status: 403 });
@@ -110,6 +121,23 @@ function cleanUuid(value: unknown, label: string) {
     throw new Error(`A valid ${label} is required.`);
   }
   return text;
+}
+
+function cleanUuidCode(value: unknown, code: string) {
+  const text = String(value || "").trim();
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text)) {
+    throw new Error(code);
+  }
+  return text;
+}
+
+function stablePulseErrorCode(error: unknown) {
+  const message = error instanceof Error
+    ? error.message.trim()
+    : typeof error === "object" && error && "message" in error && typeof error.message === "string"
+    ? error.message.trim()
+    : "";
+  return stablePulsePlanErrorCodes.has(message) ? message : null;
 }
 
 async function loadProfileForToken(db: Db, token: string) {
@@ -263,67 +291,6 @@ async function loadBankQuestion(db: Db, courseId: string, questionId: string) {
   };
 }
 
-async function loadPlanCandidate(
-  db: Db,
-  courseId: string,
-  sessionId: string,
-  planCheckpointId: string,
-  questionId: string
-) {
-  const { data: checkpoint, error } = await db
-    .from("class_question_plan_checkpoints")
-    .select(`
-      id,
-      state,
-      class_question_plans!inner (
-        class_session_id,
-        question_bank_id
-      )
-    `)
-    .eq("id", planCheckpointId)
-    .eq("class_question_plans.class_session_id", sessionId)
-    .maybeSingle();
-  if (error) throw error;
-  if (!checkpoint) {
-    throw new Error("That class plan checkpoint was not found for this class session.");
-  }
-  if (String(checkpoint.state) !== "planned") {
-    throw new Error("That class plan checkpoint is locked.");
-  }
-
-  const { count: sentRoundCount, error: sentRoundError } = await db
-    .from("pulse_rounds")
-    .select("id", { count: "exact", head: true })
-    .eq("plan_checkpoint_id", planCheckpointId);
-  if (sentRoundError) throw sentRoundError;
-  if ((sentRoundCount || 0) > 0) {
-    throw new Error("That class plan checkpoint is locked.");
-  }
-
-  const { data: candidate, error: candidateError } = await db
-    .from("class_question_plan_candidates")
-    .select("question_id, question_bank_id")
-    .eq("checkpoint_id", planCheckpointId)
-    .eq("question_id", questionId)
-    .maybeSingle();
-  if (candidateError) throw candidateError;
-  if (!candidate) {
-    throw new Error("That question is not a candidate for this class plan checkpoint.");
-  }
-
-  const plan = (checkpoint.class_question_plans || {}) as Record<string, unknown>;
-  if (
-    plan.question_bank_id
-    && candidate.question_bank_id
-    && String(candidate.question_bank_id) !== String(plan.question_bank_id)
-  ) {
-    throw new Error("That question is not a candidate for this class plan checkpoint.");
-  }
-
-  const bankQuestion = await loadBankQuestion(db, courseId, questionId);
-  return { bankQuestion };
-}
-
 async function pushRound(db: Db, courseId: string, actorProfileId: string, body: Record<string, unknown>) {
   const sessionId = cleanUuid(body.class_session_id, "class session id");
   const session = await loadSession(db, courseId, sessionId);
@@ -334,23 +301,25 @@ async function pushRound(db: Db, courseId: string, actorProfileId: string, body:
   const hasQuestionId = body.question_id !== undefined && body.question_id !== null;
   const planCheckpointId = body.plan_checkpoint_id === undefined || body.plan_checkpoint_id === null
     ? null
-    : cleanUuid(body.plan_checkpoint_id, "plan checkpoint id");
+    : cleanUuidCode(body.plan_checkpoint_id, "class_question_plan_checkpoint_id_invalid");
   const hasCheckpoint = (
     body.checkpoint_after_slide !== undefined
     && body.checkpoint_after_slide !== null
   );
   if (planCheckpointId && hasCheckpoint) {
-    throw new Error("A plan checkpoint cannot be combined with a slide checkpoint.");
+    throw new Error("class_question_plan_payload_invalid");
   }
   if (planCheckpointId && !hasQuestionId) {
-    throw new Error("A plan checkpoint requires a bank question.");
+    throw new Error("class_question_plan_question_id_invalid");
   }
   if (!planCheckpointId && hasQuestionId !== hasCheckpoint) {
     throw new Error("A bank question and slide checkpoint must be supplied together.");
   }
 
   const questionId = hasQuestionId
-    ? cleanUuid(body.question_id, "question id")
+    ? planCheckpointId
+      ? cleanUuidCode(body.question_id, "class_question_plan_question_id_invalid")
+      : cleanUuid(body.question_id, "question id")
     : "";
   const requestedCheckpoint = hasCheckpoint
     ? Number(body.checkpoint_after_slide)
@@ -362,13 +331,17 @@ async function pushRound(db: Db, courseId: string, actorProfileId: string, body:
     throw new Error("The checkpoint slide must be a positive integer.");
   }
 
-  let bankQuestion = questionId && !planCheckpointId
-    ? await loadBankQuestion(db, courseId, questionId)
-    : null;
+  let bankQuestion = null;
   if (planCheckpointId) {
-    const selected = await loadPlanCandidate(db, courseId, sessionId, planCheckpointId, questionId);
-    bankQuestion = selected.bankQuestion;
-  } else if (bankQuestion) {
+    try {
+      bankQuestion = await loadBankQuestion(db, courseId, questionId);
+    } catch {
+      throw new Error("class_question_plan_question_unavailable");
+    }
+  } else if (questionId) {
+    bankQuestion = await loadBankQuestion(db, courseId, questionId);
+  }
+  if (!planCheckpointId && bankQuestion) {
     assertCheckpointPushMatches({
       sessionState: session.state,
       sessionContentItemId: session.content_item_id,
@@ -399,6 +372,48 @@ async function pushRound(db: Db, courseId: string, actorProfileId: string, body:
     .eq("state", "open");
 
   const now = new Date();
+  const endsAt = new Date(now.getTime() + timeLimit * 1000).toISOString();
+  if (planCheckpointId) {
+    const snapshot = bankQuestion
+      ? bankQuestion.snapshot
+      : buildSnapshot((body.question as Record<string, unknown>) || {});
+    const { data: round, error } = await db
+      .rpc("push_class_question_plan_round", {
+        p_course_id: courseId,
+        p_class_session_id: sessionId,
+        p_section_id: session.section_id,
+        p_question_id: bankQuestion ? bankQuestion.questionId : null,
+        p_plan_checkpoint_id: planCheckpointId,
+        p_prompt_snapshot: snapshot,
+        p_points: points,
+        p_answer_points: answerPoints,
+        p_time_limit_seconds: timeLimit,
+        p_opened_at: now.toISOString(),
+        p_ends_at: endsAt,
+        p_created_by: actorProfileId
+      })
+      .single();
+    if (error) throw error;
+
+    await db.from("audit_log").insert({
+      course_id: courseId,
+      actor_profile_id: actorProfileId,
+      target_type: "pulse_round",
+      target_id: round?.id || null,
+      action: "pulse_pushed",
+      metadata: {
+        class_session_id: sessionId,
+        question_id: bankQuestion?.questionId || null,
+        plan_checkpoint_id: planCheckpointId,
+        checkpoint_after_slide: requestedCheckpoint,
+        points,
+        time_limit_seconds: timeLimit
+      }
+    });
+
+    return { round: teacherRound(round) };
+  }
+
   const { data: round, error } = await db
     .from("pulse_rounds")
     .insert({
@@ -413,24 +428,12 @@ async function pushRound(db: Db, courseId: string, actorProfileId: string, body:
       answer_points: answerPoints,
       time_limit_seconds: timeLimit,
       opened_at: now.toISOString(),
-      ends_at: new Date(now.getTime() + timeLimit * 1000).toISOString(),
+      ends_at: endsAt,
       created_by: actorProfileId
     })
     .select("id, state, points, answer_points, time_limit_seconds, opened_at, ends_at, prompt_snapshot")
     .maybeSingle();
   if (error) throw error;
-
-  if (planCheckpointId) {
-    const { error: checkpointError } = await db
-      .from("class_question_plan_checkpoints")
-      .update({
-        state: "sent",
-        updated_at: new Date().toISOString(),
-        updated_by: actorProfileId
-      })
-      .eq("id", planCheckpointId);
-    if (checkpointError) throw checkpointError;
-  }
 
   await db.from("audit_log").insert({
     course_id: courseId,
