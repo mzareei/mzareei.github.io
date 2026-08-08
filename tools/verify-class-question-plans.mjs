@@ -52,6 +52,11 @@ assert.match(
 );
 assert.match(
   sql,
+  /create or replace function public\.replace_class_question_plan_candidates[^]*for update[^]*locked_checkpoint_state\s*<>\s*'planned'[^]*exists\s*\(\s*select 1\s+from public\.pulse_rounds\s+where plan_checkpoint_id\s*=\s*locked_checkpoint_id\s*\)[^]*raise exception 'class_question_plan_checkpoint_locked'[^]*delete from public\.class_question_plan_candidates/i,
+  "candidate replacement must check immutability while its checkpoint lock is held"
+);
+assert.match(
+  sql,
   /grant execute on function public\.replace_class_question_plan_candidates\s*\(\s*uuid\s*,\s*uuid\s*,\s*uuid\[\]\s*,\s*uuid\s*\)\s*to service_role/i,
   "only the service role should execute the atomic candidate replacement RPC"
 );
@@ -108,6 +113,30 @@ assert.doesNotMatch(
   planFunction,
   /async function setCandidates[^]*\.from\("class_question_plan_candidates"\)/,
   "set_candidates must delegate writes to the atomic replacement RPC"
+);
+for (const authCode of [
+  "class_question_plan_auth_required",
+  "class_question_plan_auth_invalid",
+  "class_question_plan_forbidden",
+  "class_question_plan_profile_not_found"
+]) {
+  assert.match(planFunction, new RegExp(`"${authCode}"`));
+}
+assert.match(
+  planFunction,
+  /if \(!token\) return planErrorResponse\("class_question_plan_auth_required"\)/
+);
+assert.match(
+  planFunction,
+  /if \(userError \|\| !userData\.user\) throw new Error\("class_question_plan_auth_invalid"\)/
+);
+assert.match(
+  planFunction,
+  /return json\(\{ error: code, error_code: code \}, \{ status \}\)/
+);
+assert.doesNotMatch(
+  planFunction,
+  /Sign in is required\.|Invalid or expired session\.|No active course profile is linked to this account\.|You are not allowed to manage question plans for this course\.|You are not allowed to manage this class section\./
 );
 assert.match(config, /\[functions\.course-class-question-plan\][^\[]*verify_jwt\s*=\s*true/i);
 

@@ -34,14 +34,19 @@ const teacherRoles = ["platform_owner", "instructor", "teaching_assistant"];
 const editableSessionStates = ["planned", "live"];
 const knownPlanCodes = new Set([
   "class_question_plan_action_invalid",
+  "class_question_plan_auth_invalid",
+  "class_question_plan_auth_required",
   "class_question_plan_bank_mismatch",
   "class_question_plan_checkpoint_id_invalid",
   "class_question_plan_checkpoint_not_found",
   "class_question_plan_checkpoint_locked",
   "class_question_plan_exists",
   "class_question_plan_failed",
+  "class_question_plan_forbidden",
+  "class_question_plan_method_not_allowed",
   "class_question_plan_not_found",
   "class_question_plan_plan_id_invalid",
+  "class_question_plan_profile_not_found",
   "class_question_plan_question_bank_id_invalid",
   "class_question_plan_question_bank_not_active",
   "class_question_plan_question_ids_duplicate",
@@ -59,11 +64,11 @@ const knownPlanCodes = new Set([
 Deno.serve(async (request) => {
   const options = handleOptions(request);
   if (options) return options;
-  if (request.method !== "POST") return json({ error: "Method not allowed." }, { status: 405 });
+  if (request.method !== "POST") return planErrorResponse("class_question_plan_method_not_allowed");
 
   try {
     const token = bearerToken(request.headers.get("Authorization"));
-    if (!token) return json({ error: "Sign in is required." }, { status: 401 });
+    if (!token) return planErrorResponse("class_question_plan_auth_required");
 
     const body = await request.json().catch(() => ({}));
     const db = adminClient();
@@ -91,12 +96,21 @@ Deno.serve(async (request) => {
         throw new Error("class_question_plan_action_invalid");
     }
   } catch (error) {
-    const message = safeErrorMessage(error, "class_question_plan_failed");
-    if (message.includes("not allowed")) return json({ error: message }, { status: 403 });
-    if (knownPlanCodes.has(message)) return json({ error: message, error_code: message }, { status: 400 });
-    return json({ error: "class_question_plan_failed", error_code: "class_question_plan_failed" }, { status: 400 });
+    const code = safeErrorMessage(error, "class_question_plan_failed");
+    return planErrorResponse(knownPlanCodes.has(code) ? code : "class_question_plan_failed");
   }
 });
+
+function planErrorResponse(code: string) {
+  const status = code === "class_question_plan_auth_required" || code === "class_question_plan_auth_invalid"
+    ? 401
+    : code === "class_question_plan_forbidden" || code === "class_question_plan_profile_not_found"
+    ? 403
+    : code === "class_question_plan_method_not_allowed"
+    ? 405
+    : 400;
+  return json({ error: code, error_code: code }, { status });
+}
 
 function safeErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Error && error.message.trim()) return error.message;
@@ -141,20 +155,27 @@ async function requireTeacher(db: Db, token: string, courseId: string) {
   const profile = await loadProfileForToken(db, token);
   const roles = await loadRoles(db, courseId, String(profile.id));
   if (!roles.some((role) => teacherRoles.includes(role))) {
-    throw new Error("You are not allowed to manage question plans for this course.");
+    throw new Error("class_question_plan_forbidden");
   }
   const isGlobalOwner = roles.includes("platform_owner");
   const permittedSectionIds = isGlobalOwner ? [] : await loadPermittedSectionIds(db, String(profile.id), courseId);
   if (!isGlobalOwner && !permittedSectionIds.length) {
-    throw new Error("You are not allowed to manage question plans for this course.");
+    throw new Error("class_question_plan_forbidden");
   }
   return { profile, permissions: { isGlobalOwner, permittedSectionIds } };
 }
 
 async function loadProfileForToken(db: Db, token: string) {
   const { data: userData, error: userError } = await db.auth.getUser(token);
-  if (userError || !userData.user) throw new Error("Invalid or expired session.");
-  await assertCourseEmailAllowed(db, userData.user.email || "");
+  if (userError || !userData.user) throw new Error("class_question_plan_auth_invalid");
+  try {
+    await assertCourseEmailAllowed(db, userData.user.email || "");
+  } catch (error) {
+    if (safeErrorMessage(error, "") === "Institutional email domain is not approved for this course.") {
+      throw new Error("class_question_plan_forbidden");
+    }
+    throw error;
+  }
 
   const { data: profile, error } = await db
     .from("profiles")
@@ -163,8 +184,12 @@ async function loadProfileForToken(db: Db, token: string) {
     .eq("status", "active")
     .maybeSingle();
   if (error) throw error;
-  if (!profile) throw new Error("No active course profile is linked to this account.");
-  assertProfileMatchesAuthEmail(profile, userData.user.email || "");
+  if (!profile) throw new Error("class_question_plan_profile_not_found");
+  try {
+    assertProfileMatchesAuthEmail(profile, userData.user.email || "");
+  } catch {
+    throw new Error("class_question_plan_profile_not_found");
+  }
   return profile;
 }
 
@@ -193,7 +218,7 @@ async function loadPermittedSectionIds(db: Db, profileId: string, courseId: stri
 
 function assertSectionAllowed(permissions: Permissions, sectionId: string) {
   if (permissions.isGlobalOwner || permissions.permittedSectionIds.includes(String(sectionId))) return;
-  throw new Error("You are not allowed to manage this class section.");
+  throw new Error("class_question_plan_forbidden");
 }
 
 function assertEditableSessionState(state: unknown) {

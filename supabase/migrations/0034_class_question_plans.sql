@@ -67,15 +67,25 @@ set search_path = public
 as $$
 declare
   locked_checkpoint_id uuid;
+  locked_checkpoint_state text;
 begin
-  select id
-    into locked_checkpoint_id
+  select id, state
+    into locked_checkpoint_id, locked_checkpoint_state
     from public.class_question_plan_checkpoints
     where id = p_checkpoint_id
     for update;
 
   if not found then
     raise exception 'class_question_plan_checkpoint_not_found';
+  end if;
+
+  if locked_checkpoint_state <> 'planned'
+    or exists (
+      select 1
+        from public.pulse_rounds
+        where plan_checkpoint_id = locked_checkpoint_id
+    ) then
+    raise exception 'class_question_plan_checkpoint_locked';
   end if;
 
   delete from public.class_question_plan_candidates
