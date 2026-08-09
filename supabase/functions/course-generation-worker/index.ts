@@ -222,6 +222,7 @@ async function stepSlides(db: Db, job: Record<string, unknown>, stepState: Recor
       "keep bullets short — they are projected, not read. Do not invent facts or numbers " +
       "beyond the source material. Open with a title slide and close with a summary slide.",
     content: [
+      textBlock(JSON.stringify({ teaching_brief: job.teaching_brief, approved_plan: outline })),
       textBlock(
         `Lecture title: ${job.lecture_title}\n\n` +
         `Extracted outline and content:\n${JSON.stringify(outline, null, 2)}\n\n` +
@@ -265,6 +266,7 @@ async function stepQuestions(db: Db, job: Record<string, unknown>, stepState: Re
       "Use no facts outside the cited finalized teaching slides. Cite every slide needed " +
       "to answer, and never place a cited slide after the question's checkpoint.",
     content: [
+      textBlock(JSON.stringify({ teaching_brief: job.teaching_brief, approved_plan: approvedPlan })),
       textBlock(
         `Lecture title: ${job.lecture_title}\n\n` +
         `Finalized teaching slides:\n${JSON.stringify(slides, null, 2)}\n\n` +
@@ -342,6 +344,21 @@ async function stepGrounding(db: Db, job: Record<string, unknown>, stepState: Re
   const slides = asArray<Slide>(stepState.slides);
   const questions = asArray<Record<string, unknown>>(stepState.questions);
   if (job.generation_mode === "deck_and_bank" && !slides.length) throw new Error("Generated slides are missing.");
+  const { data: upload, error: uploadError } = await db.from("content_uploads")
+    .select("storage_path").eq("id", job.content_upload_id).maybeSingle();
+  if (uploadError || !upload) throw uploadError || new Error("The uploaded PDF row is missing.");
+  const { data: blob, error: downloadError } = await db.storage.from(bucket).download(String(upload.storage_path));
+  if (downloadError) throw downloadError;
+  const base64 = toBase64(new Uint8Array(await blob.arrayBuffer()));
+  const grounding = await generateStructured({
+    system: "Independently verify every PDF page/order/source mapping and reject unsupported or reordered generated content.",
+    content: [pdfBlock(base64), textBlock(JSON.stringify({ approved_plan: plan, slides, questions }))],
+    toolName: "verify_pdf_grounding",
+    toolDescription: "Verify generated output against its original PDF.",
+    schema: { type: "object", properties: { passed: { type: "boolean" }, problems: { type: "array", items: { type: "string" } } }, required: ["passed", "problems"] },
+    maxTokens: 4000
+  });
+  if (!grounding.passed) throw new Error("Generated output rejected by PDF grounding: " + (grounding.problems || []).join("; "));
   const problems = validateQuestions(questions, plan.source_pages.map((page) => page.source_pdf_page));
   if (problems.length) throw new Error("Generated output rejected by PDF grounding: " + problems.join("; "));
   if (job.generation_mode === "deck_and_bank") {

@@ -126,7 +126,6 @@ function body(slide: Slide) {
 }
 
 function renderSlide(slide: Slide, index: number) {
-  // data-source-pdf-pages is emitted with each rendered section for grounding traceability.
   const classes = ["slide"];
   if (slide.kind === "title") classes.push("title-slide");
   if (slide.kind === "section" || slide.kind === "closing") classes.push("section");
@@ -139,7 +138,7 @@ function renderSlide(slide: Slide, index: number) {
 
   return (
     `  <section class="${classes.join(" ")}" data-section="${esAttr(slide.section)}" ` +
-    `data-section-es="${esAttr(slide.section_es)}" data-teaching-slide="${slide.slide_number}">\n` +
+    `data-section-es="${esAttr(slide.section_es)}" data-teaching-slide="${slide.slide_number}" data-source-pdf-pages="${slide.source_pdf_pages.join(",")}">\n` +
     `    <div class="slide-inner">\n` +
     badge +
     body(slide) +

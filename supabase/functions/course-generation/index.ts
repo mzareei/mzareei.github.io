@@ -211,7 +211,7 @@ async function createJob(db: Db, courseId: string, actorProfileId: string, body:
  *  so a stalled job resumes instead of sitting there looking alive. */
 async function advanceJob(db: Db, courseId: string, body: Record<string, unknown>) {
   const job = await loadJob(db, courseId, body.job_id);
-  if (["ready_for_review", "approved", "failed"].includes(String(job.status))) {
+  if (["ready_for_plan_review", "ready_for_review", "approved", "failed"].includes(String(job.status))) {
     return { job, advanced: false };
   }
   await invokeWorker(String(job.id));

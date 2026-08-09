@@ -13,7 +13,7 @@ alter table public.generation_jobs
   drop constraint if exists generation_jobs_status_check,
   add constraint generation_jobs_status_check check (status in (
     'queued', 'extracting', 'outlining', 'ready_for_plan_review',
-    'generating_deck', 'generating_questions', 'assembling',
+    'generating_deck', 'generating_questions', 'grounding', 'assembling',
     'ready_for_review', 'approved', 'failed'
   ));
 
