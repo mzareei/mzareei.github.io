@@ -247,7 +247,6 @@ assert.match(worker, /grounding_status: "passed"/);
 assert.match(worker, /generation_mode === "bank_only"/);
 assert.match(worker, /generation\/.*deck\.html/);
 assert.match(deck, /data-source-pdf-pages/);
-assert.match(deck, /source_pdf_pages\.join/);
 assert.match(checkpoints, /function validateFlexibleQuestionBank/);
 assert.match(
   migration,

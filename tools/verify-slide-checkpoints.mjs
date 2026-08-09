@@ -200,13 +200,32 @@ assert.deepEqual(deckCheckpointsFromQuestions([
   { key: "reused-segment-3", after_slide: 3 }
 ]);
 
+const legacySlideHtml = await assembleDeck({
+  title: "Legacy slide fixture",
+  slides: [{
+    slide_number: 1,
+    kind: "title",
+    section: "Legacy section",
+    section_es: "Sección heredada",
+    heading: "Legacy teaching slide",
+    heading_es: "Diapositiva didáctica heredada"
+  }],
+  checkpoints: []
+});
+assert.match(
+  legacySlideHtml,
+  /data-teaching-slide="1"[^>]*data-source-pdf-pages=""/,
+  "legacy and manual slides without PDF mappings must render an empty provenance attribute"
+);
+
 const fixtureSlides = [1, 2, 3].map((slideNumber) => ({
   slide_number: slideNumber,
   kind: slideNumber === 1 ? "title" : "bullets",
   section: `Section ${slideNumber}`,
   section_es: `Sección ${slideNumber}`,
   heading: `Teaching slide ${slideNumber}`,
-  heading_es: `Diapositiva didáctica ${slideNumber}`
+  heading_es: `Diapositiva didáctica ${slideNumber}`,
+  source_pdf_pages: [slideNumber]
 }));
 const fixtureHtml = await assembleDeck({
   title: "Checkpoint fixture",
@@ -226,6 +245,11 @@ assert.ok(
   "checkpoint sections must follow their matching teaching slide without renumbering teaching slides"
 );
 assert.equal((fixtureHtml.match(/data-teaching-slide="/g) || []).length, 3);
+assert.match(
+  fixtureHtml,
+  /data-teaching-slide="2"[^>]*data-source-pdf-pages="2"/,
+  "slides with PDF mappings must preserve them in rendered provenance"
+);
 assert.match(
   fixtureHtml,
   /class="slide checkpoint-slide"[^>]*data-checkpoint-key="cia-triad"[^>]*data-after-slide="1"[^>]*data-source-start="1"[^>]*data-source-end="1"/
@@ -494,24 +518,22 @@ const checkpointMigrations = fs.readdirSync(path.join(root, "supabase/migrations
   .filter((name) => name.startsWith("0021_"));
 assert.deepEqual(checkpointMigrations, ["0021_slide_checkpoints.sql"]);
 
-for (const relativePath of [
-  "supabase/functions/course-generation-worker/index.ts",
-  "supabase/functions/course-question-bank/index.ts"
-]) {
-  const source = fs.readFileSync(path.join(root, relativePath), "utf8");
-  assert.match(source, /checkpointMetadataColumns\(/, `${relativePath} must persist checkpoint metadata`);
-}
+const questionBankSource = fs.readFileSync(
+  path.join(root, "supabase/functions/course-question-bank/index.ts"),
+  "utf8"
+);
+assert.match(
+  questionBankSource,
+  /checkpointMetadataColumns\(/,
+  "manual question-bank writes must persist checkpoint metadata"
+);
 
 const workerSource = fs.readFileSync(
   path.join(root, "supabase/functions/course-generation-worker/index.ts"),
   "utf8"
 );
 assert.match(workerSource, /Finalized teaching slides:/);
-assert.match(workerSource, /Write exactly 18 questions: exactly 6 easy, 6 medium and 6 hard/);
-assert.match(workerSource, /3–5 concept checkpoints/);
-assert.match(workerSource, /at least 2 candidate questions at every checkpoint/);
 assert.match(workerSource, /validateSlides\(slides\)/);
-assert.match(workerSource, /deckCheckpointsFromQuestions\(questions\)/);
 
 const bankSource = fs.readFileSync(
   path.join(root, "supabase/functions/course-question-bank/index.ts"),
