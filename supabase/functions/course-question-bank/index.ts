@@ -317,22 +317,25 @@ async function importBank(db: Db, courseId: string, actorProfileId: string, body
 async function listBanks(db: Db, courseId: string) {
   const { data: banks, error } = await db
     .from("question_banks")
-    .select("id, title, content_item_id, bank_type, status, checkpoint_preparation_state, checkpoint_preparation_updated_at, updated_at")
+    .select("id, title, content_item_id, bank_type, status, generation_validation_profile, checkpoint_preparation_state, checkpoint_preparation_updated_at, updated_at")
     .eq("course_id", courseId)
     .eq("status", "active");
   if (error) throw error;
   if (!(banks || []).length) return { banks: [] };
 
-  const { data: items, error: itemError } = await db
-    .from("content_items")
-    .select("id, slug, title, content_type")
-    .in("id", (banks || []).map((bank) => bank.content_item_id).filter(Boolean));
+  const contentItemIds = (banks || []).map((bank) => bank.content_item_id).filter(Boolean);
+  const { data: items, error: itemError } = contentItemIds.length
+    ? await db
+      .from("content_items")
+      .select("id, slug, title, content_type")
+      .in("id", contentItemIds)
+    : { data: [], error: null };
   if (itemError) throw itemError;
   const itemById = new Map((items || []).map((item) => [String(item.id), item]));
 
   const { data: questions, error: questionError } = await db
     .from("questions")
-    .select("question_bank_id, difficulty, status, segment_key, source_slide_numbers, source_slide_start, source_slide_end, checkpoint_after_slide")
+    .select("question_bank_id, difficulty, status, segment_key, source_pdf_pages, source_slide_numbers, source_slide_start, source_slide_end, checkpoint_after_slide")
     .in("question_bank_id", (banks || []).map((bank) => bank.id))
     .eq("status", "active");
   if (questionError) throw questionError;
@@ -343,6 +346,15 @@ async function listBanks(db: Db, courseId: string) {
         const item = itemById.get(String(bank.content_item_id));
         const mine = (questions || []).filter((q) => String(q.question_bank_id) === String(bank.id));
         const metadataState = checkpointMetadataState(mine);
+        const sourcePdfPages = [...new Set(mine.flatMap((question) =>
+          Array.isArray(question.source_pdf_pages) ? question.source_pdf_pages : []
+        ))].filter((page) => Number.isInteger(page) && Number(page) > 0).sort((a, b) => Number(a) - Number(b));
+        const sourcePdfMappingStatus = mine.length > 0
+          && mine.every((question) => Array.isArray(question.source_pdf_pages)
+            && question.source_pdf_pages.length > 0
+            && question.source_pdf_pages.every((page) => Number.isInteger(page) && Number(page) > 0))
+          ? "valid"
+          : "missing";
         return {
           bank_id: bank.id,
           content_item_id: bank.content_item_id,
@@ -350,6 +362,7 @@ async function listBanks(db: Db, courseId: string) {
           content_slug: item?.slug ?? null,
           content_title: item?.title ?? null,
           content_type: item?.content_type ?? null,
+          generation_validation_profile: bank.generation_validation_profile,
           checkpoint_preparation_state: bank.checkpoint_preparation_state,
           checkpoint_preparation_updated_at: bank.checkpoint_preparation_updated_at,
           updated_at: bank.updated_at,
@@ -358,6 +371,8 @@ async function listBanks(db: Db, courseId: string) {
           checkpoint_metadata_present: metadataState.presentCount,
           checkpoint_metadata_valid: metadataState.validRows.length,
           checkpoint_coverage: checkpointCoverage(metadataState.validRows),
+          source_pdf_mapping_status: sourcePdfMappingStatus,
+          source_pdf_pages: sourcePdfPages,
           by_difficulty: difficulties.reduce(
             (acc, difficulty) => ({
               ...acc,
@@ -367,8 +382,7 @@ async function listBanks(db: Db, courseId: string) {
           )
         };
       })
-      .filter((bank) => bank.content_slug)
-      .sort((a, b) => String(a.content_slug).localeCompare(String(b.content_slug)))
+      .sort((a, b) => String(a.content_title || a.title).localeCompare(String(b.content_title || b.title)))
   };
 }
 
@@ -389,7 +403,7 @@ async function listQuestions(db: Db, courseId: string, body: Record<string, unkn
   const bank = await loadQuestionBank(db, courseId, body.question_bank_id);
   const { data, error } = await db
     .from("questions")
-    .select("id, generation_key, prompt, prompt_es, explanation, explanation_es, difficulty, segment_key, source_slide_numbers, source_slide_start, source_slide_end, checkpoint_after_slide, status, source, updated_at, question_options(id, option_text, option_text_es, is_correct, position)")
+    .select("id, generation_key, prompt, prompt_es, explanation, explanation_es, difficulty, segment_key, source_pdf_pages, source_slide_numbers, source_slide_start, source_slide_end, checkpoint_after_slide, status, source, updated_at, question_options(id, option_text, option_text_es, is_correct, position)")
     .eq("question_bank_id", bank.id)
     .eq("status", "active")
     .order("created_at", { ascending: true });
