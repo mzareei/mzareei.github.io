@@ -342,8 +342,27 @@ assert.match(
 );
 assert.match(
   cancellation,
+  /\.select\("\*"\)/,
+  "the cancellation response must preserve generation_mode for the typed frontend job contract"
+);
+assert.match(
+  cancellation,
   /if \(!data\)[\s\S]*loadJob\(db, courseId, job\.id\)/,
   "a lost cancellation race must return the current durable job state"
+);
+
+const listJobsStart = api.indexOf("async function listJobs(");
+assert.ok(listJobsStart >= 0 && listJobsStart < cancelStart, "list_jobs must be present before cancellation");
+const listedJobs = api.slice(listJobsStart, cancelStart);
+assert.match(
+  listedJobs,
+  /\.select\("[^"]*generation_mode[^"]*"\)/,
+  "list_jobs must return generation_mode for first-render review mode selection"
+);
+assert.match(
+  listedJobs,
+  /return \{ jobs: data \|\| \[\] \}/,
+  "list_jobs must return its complete selected job objects"
 );
 
 assert.doesNotMatch(

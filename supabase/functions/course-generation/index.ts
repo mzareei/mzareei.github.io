@@ -283,7 +283,7 @@ async function approvePlan(db: Db, courseId: string, body: Record<string, unknow
 async function listJobs(db: Db, courseId: string) {
   const { data, error } = await db
     .from("generation_jobs")
-    .select("id, status, lecture_title, lecture_slug, content_item_id, error, created_at, updated_at")
+    .select("id, status, lecture_title, lecture_slug, generation_mode, content_item_id, error, created_at, updated_at")
     .eq("course_id", courseId)
     .order("created_at", { ascending: false })
     .limit(50);
@@ -302,7 +302,7 @@ async function cancelJob(db: Db, courseId: string, body: Record<string, unknown>
     .update({ status: "failed", error: "Cancelled by instructor.", updated_at: new Date().toISOString() })
     .eq("id", job.id)
     .eq("status", expectedStatus)
-    .select("id, status, error")
+    .select("*")
     .maybeSingle();
   if (error) throw error;
   if (!data) return { job: await loadJob(db, courseId, job.id) };
