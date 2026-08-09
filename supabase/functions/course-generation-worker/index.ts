@@ -509,6 +509,7 @@ async function stepAssemble(db: Db, job: Record<string, unknown>, stepState: Rec
       bank_type: "graded",
       status: "draft",
       generation_job_id: job.id,
+      generation_validation_profile: "flexible",
       updated_at: new Date().toISOString()
     }, { onConflict: "course_id,content_item_id,bank_type" })
     .select("id")
@@ -538,6 +539,7 @@ async function stepAssemble(db: Db, job: Record<string, unknown>, stepState: Rec
         source: "generated",
         generation_key: `${slug}-gen-${index + 1}`,
         generation_job_id: job.id,
+        source_pdf_pages: question.source_pdf_pages,
         ...checkpointMetadataColumns(checkpoint)
       })
       .select("id")

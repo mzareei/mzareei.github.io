@@ -34,7 +34,11 @@ assert.match(worker, /grounding_status: "passed"/);
 assert.match(worker, /generation_mode === "bank_only"/);
 assert.match(worker, /generation\/.*deck\.html/);
 assert.match(deck, /data-source-pdf-pages/);
+assert.match(deck, /source_pdf_pages\.join/);
 assert.match(checkpoints, /function validateFlexibleQuestionBank/);
+assert.match(worker, /generation_validation_profile: "flexible"/);
+assert.match(worker, /source_pdf_pages: question\.source_pdf_pages/);
+assert.match(worker, /staging_deck_path/);
 assert.doesNotMatch(worker, /deckCheckpointsFromQuestions\(questions\)/);
 
 console.log("PDF teaching-plan contract: OK");

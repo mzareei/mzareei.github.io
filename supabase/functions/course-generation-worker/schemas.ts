@@ -152,10 +152,10 @@ export const QUESTIONS_SCHEMA = {
             description: "Original PDF pages supporting this question.",
             items: { type: "integer" }
           },
-          source_slide_start: { type: "integer" },
-          source_slide_end: { type: "integer" },
+          source_slide_start: { type: ["integer", "null"] },
+          source_slide_end: { type: ["integer", "null"] },
           checkpoint_after_slide: {
-            type: "integer",
+            type: ["integer", "null"],
             description: "Ask only after this finalized slide has been taught."
           },
           topic_tags: {
@@ -185,10 +185,6 @@ export const QUESTIONS_SCHEMA = {
           "difficulty",
           "segment_key",
           "source_pdf_pages",
-          "source_slide_numbers",
-          "source_slide_start",
-          "source_slide_end",
-          "checkpoint_after_slide",
           "options"
         ]
       }
