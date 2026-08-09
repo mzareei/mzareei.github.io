@@ -261,9 +261,10 @@ async function approvePlan(db: Db, courseId: string, body: Record<string, unknow
     throw new Error(`Only a job ready for plan review can be approved (status: ${job.status}).`);
   }
   const approvedPlan = validateTeachingPlan(body.approved_plan);
+  const nextStatus = job.generation_mode === "bank_only" ? "generating_questions" : "generating_deck";
   const { data: updated, error } = await db
     .from("generation_jobs")
-    .update({ approved_plan: approvedPlan, error: null, updated_at: new Date().toISOString() })
+    .update({ approved_plan: approvedPlan, status: nextStatus, error: null, updated_at: new Date().toISOString() })
     .eq("id", job.id)
     .select("*")
     .single();
@@ -363,10 +364,11 @@ async function approveJob(db: Db, courseId: string, actorProfileId: string, body
   if (job.status !== "ready_for_review") {
     throw new Error(`Only a job that is ready for review can be approved (status: ${job.status}).`);
   }
-  if (job.grounding_status !== "passed" || !job.approved_plan) {
+  const isLegacyJob = !job.teaching_brief;
+  if (!isLegacyJob && (job.grounding_status !== "passed" || !job.approved_plan)) {
     throw new Error("This PDF plan has not passed source grounding and approval.");
   }
-  if (job.generation_mode === "deck_and_bank" && !job.content_item_id) {
+  if ((!isLegacyJob && job.generation_mode === "deck_and_bank") && !job.content_item_id) {
     throw new Error("This deck-and-bank job has no generated deck.");
   }
   if (!job.question_bank_id) throw new Error("This job has no generated question bank.");
@@ -435,7 +437,7 @@ async function approveJob(db: Db, courseId: string, actorProfileId: string, body
 
 async function regenerateQuestions(db: Db, courseId: string, body: Record<string, unknown>) {
   const job = await loadJob(db, courseId, body.job_id);
-  if (!["ready_for_review", "failed"].includes(String(job.status))) {
+  if (job.status !== "ready_for_review") {
     throw new Error(`Questions can only be regenerated once the deck step has finished (status: ${job.status}).`);
   }
   if (job.question_bank_id) {

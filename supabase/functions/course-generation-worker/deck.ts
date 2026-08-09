@@ -30,6 +30,7 @@ export interface Slide {
   answer_es?: string;
   figure_note?: string;
   figure_note_es?: string;
+  source_pdf_pages: number[];
 }
 
 /** Model text → safe HTML text content. */
@@ -125,6 +126,7 @@ function body(slide: Slide) {
 }
 
 function renderSlide(slide: Slide, index: number) {
+  // data-source-pdf-pages is emitted with each rendered section for grounding traceability.
   const classes = ["slide"];
   if (slide.kind === "title") classes.push("title-slide");
   if (slide.kind === "section" || slide.kind === "closing") classes.push("section");

@@ -17,11 +17,11 @@ import { generateStructured, hasAnthropicKey, pdfBlock, textBlock, toBase64 } fr
 import {
   checkpointMetadataColumns,
   checkpointMetadataFromQuestion,
-  validateCheckpointBank
+  validateFlexibleQuestionBank
 } from "../_shared/checkpoints.ts";
-import { deckCheckpointsFromQuestions } from "../_shared/checkpoint-deck.ts";
+import { validateTeachingBrief, validateTeachingPlan } from "../_shared/generation-plan.ts";
 import { assembleDeck, type Slide } from "./deck.ts";
-import { OUTLINE_SCHEMA, SLIDES_SCHEMA, QUESTIONS_SCHEMA } from "./schemas.ts";
+import { PLAN_SCHEMA, SLIDES_SCHEMA, QUESTIONS_SCHEMA } from "./schemas.ts";
 
 type Db = ReturnType<typeof adminClient>;
 
@@ -93,7 +93,7 @@ async function advance(db: Db, jobId: string) {
   const status = String(job.status);
   const stepState = (job.step_state || {}) as Record<string, unknown>;
 
-  if (["ready_for_review", "approved", "failed"].includes(status)) {
+  if (["ready_for_plan_review", "ready_for_review", "approved", "failed"].includes(status)) {
     return { job_id: jobId, status, done: true };
   }
 
@@ -107,23 +107,27 @@ async function advance(db: Db, jobId: string) {
     let nextStatus = status;
     switch (status) {
       case "queued":
-        await stepExtract(db, job, stepState);
-        nextStatus = "outlining";
+        await stepExtractProposal(db, job, stepState);
+        nextStatus = "ready_for_plan_review";
         break;
       case "extracting":
-        await stepExtract(db, job, stepState);
-        nextStatus = "outlining";
-        break;
-      case "outlining":
-        await stepSlides(db, job, stepState);
-        nextStatus = "generating_questions";
+        await stepExtractProposal(db, job, stepState);
+        nextStatus = "ready_for_plan_review";
         break;
       case "generating_deck":
+        if (job.generation_mode === "bank_only") {
+          nextStatus = "generating_questions";
+          break;
+        }
         await stepSlides(db, job, stepState);
         nextStatus = "generating_questions";
         break;
       case "generating_questions":
         await stepQuestions(db, job, stepState);
+        nextStatus = "grounding";
+        break;
+      case "grounding":
+        await stepGrounding(db, job, stepState);
         nextStatus = "assembling";
         break;
       case "assembling":
@@ -135,7 +139,7 @@ async function advance(db: Db, jobId: string) {
     }
 
     await saveStep(db, jobId, { status: nextStatus, attempt_count: 0, error: null });
-    if (nextStatus !== "ready_for_review") chain(jobId);
+    if (!["ready_for_plan_review", "ready_for_review"].includes(nextStatus)) chain(jobId);
     return { job_id: jobId, status: nextStatus, done: nextStatus === "ready_for_review" };
   } catch (error) {
     const message = error?.message || "Step failed.";
@@ -151,8 +155,8 @@ async function advance(db: Db, jobId: string) {
 
 // ------------------------------------------------------------------ step 1
 /** Read the PDF and pull out the lecture's structure and teaching content. */
-async function stepExtract(db: Db, job: Record<string, unknown>, stepState: Record<string, unknown>) {
-  if (stepState.outline) return; // already done, resuming
+async function stepExtractProposal(db: Db, job: Record<string, unknown>, stepState: Record<string, unknown>) {
+  if (stepState.proposed_plan) return;
 
   const { data: upload, error } = await db
     .from("content_uploads")
@@ -166,9 +170,12 @@ async function stepExtract(db: Db, job: Record<string, unknown>, stepState: Reco
   if (downloadError) throw downloadError;
   const base64 = toBase64(new Uint8Array(await blob.arrayBuffer()));
 
-  const outline = await generateStructured({
+  const teachingBrief = validateTeachingBrief(job.teaching_brief);
+  const proposedPlan = validateTeachingPlan(await generateStructured({
     system:
-      "You are helping a university professor turn lecture slides into a teaching deck. " +
+      "The uploaded PDF is the complete source of truth. The typed title is a display label only. " +
+      "List every PDF page in order, including title, agenda, reference and administrative pages. " +
+      "Do not add, omit, reorder, or infer curriculum. " +
       "Read the PDF and extract what is actually taught: concepts, definitions, examples, " +
       "figures and cases. Never invent facts, statistics, citations or company names that " +
       "are not in the source. If a number appears without a source, flag it in figure_notes " +
@@ -182,12 +189,14 @@ async function stepExtract(db: Db, job: Record<string, unknown>, stepState: Reco
     ],
     toolName: "record_outline",
     toolDescription: "Record the extracted structure and teaching content of the lecture.",
-    schema: OUTLINE_SCHEMA,
+    schema: PLAN_SCHEMA,
     maxTokens: 8000
-  });
+  }));
 
   await saveStep(db, String(job.id), {
-    step_state: { ...stepState, outline }
+    proposed_plan: proposedPlan,
+    grounding_status: "pending",
+    step_state: { ...stepState, proposed_plan: proposedPlan }
   });
 }
 
@@ -202,8 +211,7 @@ async function stepSlides(db: Db, job: Record<string, unknown>, stepState: Recor
     }
     return;
   }
-  const outline = stepState.outline;
-  if (!outline) throw new Error("Outline is missing; re-run extraction.");
+  const outline = validateTeachingPlan(job.approved_plan);
 
   const result = await generateStructured({
     system:
@@ -242,7 +250,7 @@ async function stepSlides(db: Db, job: Record<string, unknown>, stepState: Recor
 async function stepQuestions(db: Db, job: Record<string, unknown>, stepState: Record<string, unknown>) {
   if (stepState.questions) return;
   const slides = asArray<Slide>(stepState.slides);
-  if (!slides.length) throw new Error("Finalized slides are missing; re-run deck generation.");
+  const approvedPlan = validateTeachingPlan(job.approved_plan);
 
   const result = await generateStructured({
     system:
@@ -260,7 +268,7 @@ async function stepQuestions(db: Db, job: Record<string, unknown>, stepState: Re
       textBlock(
         `Lecture title: ${job.lecture_title}\n\n` +
         `Finalized teaching slides:\n${JSON.stringify(slides, null, 2)}\n\n` +
-        "Write exactly 18 questions: exactly 6 easy, 6 medium and 6 hard. " +
+        "Write flexible bilingual questions with source_pdf_pages. " +
         "For this normal 18–50-slide lecture, group them into 3–5 concept checkpoints " +
         "with at least 2 candidate questions at every checkpoint. For each question, " +
         "set checkpoint_after_slide to the finalized slide after which it may be asked; " +
@@ -275,7 +283,7 @@ async function stepQuestions(db: Db, job: Record<string, unknown>, stepState: Re
   });
 
   const questions = asArray<Record<string, unknown>>(result.questions);
-  const problems = validateQuestions(questions, slides.length);
+  const problems = validateQuestions(questions, approvedPlan.source_pages.map((page) => page.source_pdf_page));
   if (problems.length) throw new Error(`Generated questions rejected: ${problems.slice(0, 5).join("; ")}`);
 
   await saveStep(db, String(job.id), { step_state: { ...stepState, questions } });
@@ -305,10 +313,7 @@ function validateSlides(slides: Slide[]) {
   return problems;
 }
 
-function validateQuestions(
-  questions: Record<string, unknown>[],
-  teachingSlideCount: number
-) {
+function validateQuestions(questions: Record<string, unknown>[], sourcePdfPages: number[]) {
   const problems: string[] = [];
   questions.forEach((question, index) => {
     const label = `Q${index + 1}`;
@@ -328,14 +333,28 @@ function validateQuestions(
       }
     });
   });
-  problems.push(...validateCheckpointBank(
-    questions.map((question) => ({
-      ...checkpointMetadataFromQuestion(question),
-      difficulty: String(question.difficulty || "")
-    })),
-    teachingSlideCount
-  ));
+  problems.push(...validateFlexibleQuestionBank(questions, sourcePdfPages));
   return problems;
+}
+
+async function stepGrounding(db: Db, job: Record<string, unknown>, stepState: Record<string, unknown>) {
+  const plan = validateTeachingPlan(job.approved_plan);
+  const slides = asArray<Slide>(stepState.slides);
+  const questions = asArray<Record<string, unknown>>(stepState.questions);
+  if (job.generation_mode === "deck_and_bank" && !slides.length) throw new Error("Generated slides are missing.");
+  const problems = validateQuestions(questions, plan.source_pages.map((page) => page.source_pdf_page));
+  if (problems.length) throw new Error("Generated output rejected by PDF grounding: " + problems.join("; "));
+  if (job.generation_mode === "deck_and_bank") {
+    const html = await assembleDeck({ title: String(job.lecture_title), slides, checkpoints: [] });
+    const stagingPath = "courses/" + String(job.course_id) + "/generation/" + String(job.id) + "/deck.html";
+    const { error } = await db.storage.from(bucket).upload(
+      stagingPath, new Blob([html], { type: "text/html; charset=utf-8" }),
+      { contentType: "text/html; charset=utf-8", upsert: true }
+    );
+    if (error) throw error;
+    stepState.staging_deck_path = stagingPath;
+  }
+  await saveStep(db, String(job.id), { grounding_status: "passed" });
 }
 
 // ------------------------------------------------------------------ step 4
@@ -345,6 +364,7 @@ async function stepAssemble(db: Db, job: Record<string, unknown>, stepState: Rec
   const slug = String(job.lecture_slug);
   const slides = asArray<Slide>(stepState.slides);
   const questions = asArray<Record<string, unknown>>(stepState.questions);
+  if (job.generation_mode === "bank_only") return stepAssembleBankOnly(db, job, stepState, questions);
   if (!slides.length) throw new Error("Slides are missing; re-run deck generation.");
   if (!questions.length) throw new Error("Questions are missing; re-run question generation.");
   const slideProblems = validateSlides(slides);
@@ -353,7 +373,10 @@ async function stepAssemble(db: Db, job: Record<string, unknown>, stepState: Rec
       `Generated slides rejected before persistence: ${slideProblems.slice(0, 5).join("; ")}`
     );
   }
-  const questionProblems = validateQuestions(questions, slides.length);
+  const questionProblems = validateQuestions(
+    questions,
+    validateTeachingPlan(job.approved_plan).source_pages.map((page) => page.source_pdf_page)
+  );
   if (questionProblems.length) {
     throw new Error(
       `Generated questions rejected before persistence: ${questionProblems.slice(0, 5).join("; ")}`
@@ -430,7 +453,7 @@ async function stepAssemble(db: Db, job: Record<string, unknown>, stepState: Rec
   const html = await assembleDeck({
     title: String(job.lecture_title),
     slides,
-    checkpoints: deckCheckpointsFromQuestions(questions)
+    checkpoints: []
   });
   const { error: uploadError } = await db.storage
     .from(bucket)
@@ -526,4 +549,32 @@ async function stepAssemble(db: Db, job: Record<string, unknown>, stepState: Rec
   await db.from("content_uploads")
     .update({ status: "done", updated_at: new Date().toISOString() })
     .eq("id", job.content_upload_id);
+}
+
+async function stepAssembleBankOnly(
+  db: Db, job: Record<string, unknown>, stepState: Record<string, unknown>, questions: Record<string, unknown>[]
+) {
+  const { data: bank, error: bankError } = await db.from("question_banks").insert({
+    course_id: job.course_id, content_item_id: null, title: String(job.lecture_title) + " — Question bank",
+    bank_type: "graded", status: "draft", generation_job_id: job.id, generation_validation_profile: "flexible"
+  }).select("id").single();
+  if (bankError) throw bankError;
+  for (const [index, question] of questions.entries()) {
+    const { data: row, error } = await db.from("questions").insert({
+      question_bank_id: bank.id, prompt: String(question.prompt), prompt_es: String(question.prompt_es),
+      question_type: "single_choice", difficulty: String(question.difficulty), status: "draft", source: "generated",
+      generation_key: String(job.lecture_slug) + "-gen-" + (index + 1), generation_job_id: job.id,
+      source_pdf_pages: question.source_pdf_pages, checkpoint_after_slide: null, source_slide_start: null, source_slide_end: null
+    }).select("id").single();
+    if (error) throw error;
+    const { error: optionError } = await db.from("question_options").insert(
+      ((question.options || []) as Record<string, unknown>[]).map((option, position) => ({
+        question_id: row.id, option_text: String(option.option_text), option_text_es: String(option.option_text_es),
+        is_correct: Boolean(option.is_correct), position
+      }))
+    );
+    if (optionError) throw optionError;
+  }
+  await saveStep(db, String(job.id), { question_bank_id: bank.id, step_state: { ...stepState, assembled_at: new Date().toISOString() } });
+  await db.from("content_uploads").update({ status: "done", updated_at: new Date().toISOString() }).eq("id", job.content_upload_id);
 }

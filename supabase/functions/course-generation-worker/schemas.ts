@@ -47,6 +47,21 @@ export const OUTLINE_SCHEMA = {
   required: ["title", "summary", "sections"]
 } as const;
 
+export const PLAN_SCHEMA = {
+  type: "object",
+  properties: {
+    source_pages: { type: "array", items: { type: "object", properties: {
+      source_pdf_page: { type: "integer" }, topic: { type: "string" }, topic_es: { type: "string" }, evidence: { type: "string" }
+    }, required: ["source_pdf_page", "topic", "topic_es", "evidence"] } },
+    checkpoints: { type: "array", items: { type: "object", properties: {
+      key: { type: "string" }, topic: { type: "string" }, source_pdf_pages: { type: "array", items: { type: "integer" } },
+      suggested_after_pdf_page: { type: ["integer", "null"] }, candidate_goal: { type: ["number", "null"] }
+    }, required: ["key", "topic", "source_pdf_pages", "suggested_after_pdf_page", "candidate_goal"] } },
+    end_quiz_goal: { type: ["number", "null"] }
+  },
+  required: ["source_pages", "checkpoints", "end_quiz_goal"]
+} as const;
+
 export const SLIDES_SCHEMA = {
   type: "object",
   properties: {
@@ -102,9 +117,10 @@ export const SLIDES_SCHEMA = {
           answer: { type: "string", description: "For activity slides: the answer, hidden until clicked." },
           answer_es: { type: "string" },
           figure_note: { type: "string", description: "Caveat shown in small print under the slide." },
-          figure_note_es: { type: "string" }
+          figure_note_es: { type: "string" },
+          source_pdf_pages: { type: "array", items: { type: "integer" } }
         },
-        required: ["slide_number", "kind", "section", "section_es", "heading", "heading_es"]
+        required: ["slide_number", "kind", "section", "section_es", "heading", "heading_es", "source_pdf_pages"]
       }
     }
   },
@@ -129,6 +145,11 @@ export const QUESTIONS_SCHEMA = {
           source_slide_numbers: {
             type: "array",
             description: "Finalized slide numbers containing every fact needed to answer.",
+            items: { type: "integer" }
+          },
+          source_pdf_pages: {
+            type: "array",
+            description: "Original PDF pages supporting this question.",
             items: { type: "integer" }
           },
           source_slide_start: { type: "integer" },
@@ -163,6 +184,7 @@ export const QUESTIONS_SCHEMA = {
           "prompt_es",
           "difficulty",
           "segment_key",
+          "source_pdf_pages",
           "source_slide_numbers",
           "source_slide_start",
           "source_slide_end",

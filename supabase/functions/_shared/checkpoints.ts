@@ -231,3 +231,24 @@ export function validateCheckpointBank(
   }
   return problems;
 }
+
+export function validateFlexibleQuestionBank(
+  questions: Array<Record<string, unknown>>,
+  sourcePdfPages: number[]
+): string[] {
+  const problems: string[] = [];
+  if (!questions.length) problems.push("At least one generated question is required.");
+  const allowedPages = new Set(sourcePdfPages);
+  questions.forEach((question, index) => {
+    const label = "Q" + (index + 1);
+    const options = Array.isArray(question.options) ? question.options as Array<Record<string, unknown>> : [];
+    if (options.length !== 4) problems.push(label + " must have exactly 4 options.");
+    if (options.filter((option) => option.is_correct === true).length !== 1) problems.push(label + " must have exactly 1 correct option.");
+    if (!String(question.prompt || "").trim() || !String(question.prompt_es || "").trim()) problems.push(label + " must be bilingual.");
+    const cited = Array.isArray(question.source_pdf_pages) ? question.source_pdf_pages.map(Number) : [];
+    if (!cited.length || cited.some((page) => !Number.isInteger(page) || !allowedPages.has(page))) {
+      problems.push(label + " cites a missing or out-of-range source_pdf_page.");
+    }
+  });
+  return problems;
+}
