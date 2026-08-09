@@ -18,6 +18,7 @@ import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
 import { mintContentToken } from "../_shared/content-token.ts";
+import { validateTeachingBrief, validateTeachingPlan } from "../_shared/generation-plan.ts";
 
 type Db = ReturnType<typeof adminClient>;
 
@@ -42,6 +43,10 @@ Deno.serve(async (request) => {
     switch (body.action) {
       case "create_job":
         return json(await createJob(db, courseId, String(profile.id), body));
+      case "review_plan":
+        return json(await reviewPlan(db, courseId, body));
+      case "approve_plan":
+        return json(await approvePlan(db, courseId, body));
       case "advance":
         return json(await advanceJob(db, courseId, body));
       case "status":
@@ -133,6 +138,7 @@ async function availableSlug(db: Db, courseId: string, baseSlug: string) {
 }
 
 async function createJob(db: Db, courseId: string, actorProfileId: string, body: Record<string, unknown>) {
+  const teachingBrief = validateTeachingBrief(body.teaching_brief);
   const uploadId = String(body.upload_id || "").trim();
   if (!uploadId) throw new Error("An upload id is required.");
   const lectureTitle = String(body.lecture_title || "").trim().slice(0, 180);
@@ -178,6 +184,8 @@ async function createJob(db: Db, courseId: string, actorProfileId: string, body:
       status: "queued",
       lecture_title: lectureTitle,
       lecture_slug: lectureSlug,
+      generation_mode: teachingBrief.generation_mode,
+      teaching_brief: teachingBrief,
       created_by: actorProfileId
     })
     .select("*")
@@ -226,13 +234,42 @@ async function loadJob(db: Db, courseId: string, jobIdRaw: unknown) {
   if (!jobId) throw new Error("A job id is required.");
   const { data, error } = await db
     .from("generation_jobs")
-    .select("id, course_id, content_upload_id, status, lecture_title, lecture_slug, content_item_id, question_bank_id, error, attempt_count, created_at, updated_at")
+    .select("id, course_id, content_upload_id, status, lecture_title, lecture_slug, generation_mode, teaching_brief, proposed_plan, approved_plan, grounding_status, content_item_id, question_bank_id, error, attempt_count, step_state, created_at, updated_at")
     .eq("id", jobId)
     .eq("course_id", courseId)
     .maybeSingle();
   if (error) throw error;
   if (!data) throw new Error("That generation job was not found.");
   return data;
+}
+
+async function reviewPlan(db: Db, courseId: string, body: Record<string, unknown>) {
+  const job = await loadJob(db, courseId, body.job_id);
+  return {
+    job: {
+      id: job.id,
+      status: job.status,
+      teaching_brief: job.teaching_brief,
+      proposed_plan: job.proposed_plan
+    }
+  };
+}
+
+async function approvePlan(db: Db, courseId: string, body: Record<string, unknown>) {
+  const job = await loadJob(db, courseId, body.job_id);
+  if (job.status !== "ready_for_plan_review") {
+    throw new Error(`Only a job ready for plan review can be approved (status: ${job.status}).`);
+  }
+  const approvedPlan = validateTeachingPlan(body.approved_plan);
+  const { data: updated, error } = await db
+    .from("generation_jobs")
+    .update({ approved_plan: approvedPlan, error: null, updated_at: new Date().toISOString() })
+    .eq("id", job.id)
+    .select("*")
+    .single();
+  if (error) throw error;
+  await invokeWorker(String(job.id));
+  return { job: updated };
 }
 
 async function listJobs(db: Db, courseId: string) {
@@ -326,16 +363,23 @@ async function approveJob(db: Db, courseId: string, actorProfileId: string, body
   if (job.status !== "ready_for_review") {
     throw new Error(`Only a job that is ready for review can be approved (status: ${job.status}).`);
   }
-  if (!job.content_item_id || !job.question_bank_id) {
-    throw new Error("This job has no generated content item or question bank to approve.");
+  if (job.grounding_status !== "passed" || !job.approved_plan) {
+    throw new Error("This PDF plan has not passed source grounding and approval.");
   }
+  if (job.generation_mode === "deck_and_bank" && !job.content_item_id) {
+    throw new Error("This deck-and-bank job has no generated deck.");
+  }
+  if (!job.question_bank_id) throw new Error("This job has no generated question bank.");
 
   // Flip everything from draft to its normal "exists but not released" resting
   // state. A content_release starts in 'draft' — the instructor still has to
-  // release it explicitly, same as content added any other way.
-  const { error: itemError } = await db
-    .from("content_items").update({ updated_at: new Date().toISOString() }).eq("id", job.content_item_id);
-  if (itemError) throw itemError;
+  // release it explicitly, same as content added any other way. Bank-only
+  // jobs intentionally have no deck or content release.
+  if (job.content_item_id) {
+    const { error: itemError } = await db
+      .from("content_items").update({ updated_at: new Date().toISOString() }).eq("id", job.content_item_id);
+    if (itemError) throw itemError;
+  }
 
   const { error: bankError } = await db
     .from("question_banks").update({ status: "active", updated_at: new Date().toISOString() }).eq("id", job.question_bank_id);
@@ -345,23 +389,25 @@ async function approveJob(db: Db, courseId: string, actorProfileId: string, body
     .from("questions").update({ status: "active", updated_at: new Date().toISOString() }).eq("question_bank_id", job.question_bank_id);
   if (questionsError) throw questionsError;
 
-  const { data: section, error: sectionError } = await db
-    .from("course_sections").select("id").eq("course_id", courseId).limit(1).maybeSingle();
-  if (sectionError) throw sectionError;
+  if (job.content_item_id) {
+    const { data: section, error: sectionError } = await db
+      .from("course_sections").select("id").eq("course_id", courseId).limit(1).maybeSingle();
+    if (sectionError) throw sectionError;
 
-  const { data: existingRelease, error: releaseCheckError } = await db
-    .from("content_releases").select("id").eq("content_item_id", job.content_item_id).maybeSingle();
-  if (releaseCheckError) throw releaseCheckError;
-  if (!existingRelease) {
-    const { error: releaseError } = await db.from("content_releases").insert({
-      content_item_id: job.content_item_id,
-      course_id: courseId,
-      section_id: section?.id || null,
-      state: "draft",
-      created_by: actorProfileId,
-      updated_by: actorProfileId
-    });
-    if (releaseError) throw releaseError;
+    const { data: existingRelease, error: releaseCheckError } = await db
+      .from("content_releases").select("id").eq("content_item_id", job.content_item_id).maybeSingle();
+    if (releaseCheckError) throw releaseCheckError;
+    if (!existingRelease) {
+      const { error: releaseError } = await db.from("content_releases").insert({
+        content_item_id: job.content_item_id,
+        course_id: courseId,
+        section_id: section?.id || null,
+        state: "draft",
+        created_by: actorProfileId,
+        updated_by: actorProfileId
+      });
+      if (releaseError) throw releaseError;
+    }
   }
 
   const { data: updated, error } = await db
