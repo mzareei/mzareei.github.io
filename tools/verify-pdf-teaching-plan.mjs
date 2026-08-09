@@ -14,6 +14,9 @@ const helper = read("supabase/functions/_shared/generation-plan.ts");
 const worker = read("supabase/functions/course-generation-worker/index.ts");
 const deck = read("supabase/functions/course-generation-worker/deck.ts");
 const checkpoints = read("supabase/functions/_shared/checkpoints.ts");
+const { hasUsableQuestionContext } = await import(
+  "../supabase/functions/_shared/generation-plan.ts"
+);
 
 const { assembleDeck } = await import(
   "../supabase/functions/course-generation-worker/deck.ts"
@@ -44,6 +47,77 @@ for (const field of [
 const { normalizeGeneratedQuestions } = await import(
   "../supabase/functions/course-generation-worker/questions.ts"
 );
+const { matchesFinalizedGeneration } = await import(
+  "../supabase/functions/course-generation-worker/finalization.ts"
+);
+
+const finalizedDeckProof = {
+  job: {
+    id: "job-1",
+    status: "ready_for_review",
+    generation_mode: "deck_and_bank",
+    content_item_id: "item-1",
+    question_bank_id: "bank-1",
+    step_state: { deck_storage_path: "courses/tc2007b/generation/job-1/deck.html" }
+  },
+  contentItem: {
+    id: "item-1",
+    generation_job_id: "job-1",
+    source_ref: "courses/tc2007b/generation/job-1/deck.html"
+  },
+  questionBank: { id: "bank-1", generation_job_id: "job-1" }
+};
+const finalizedDeckExpectation = {
+  jobId: "job-1",
+  mode: "deck_and_bank",
+  stagingDeckPath: "courses/tc2007b/generation/job-1/deck.html"
+};
+assert.equal(
+  matchesFinalizedGeneration(finalizedDeckProof, finalizedDeckExpectation),
+  true,
+  "a matching committed finalization must reconcile a lost RPC response"
+);
+assert.equal(
+  matchesFinalizedGeneration(
+    {
+      ...finalizedDeckProof,
+      contentItem: {
+        ...finalizedDeckProof.contentItem,
+        source_ref: "courses/tc2007b/items/old/deck.html"
+      }
+    },
+    finalizedDeckExpectation
+  ),
+  false,
+  "a mismatched serving path must not be treated as finalized"
+);
+assert.equal(
+  matchesFinalizedGeneration(
+    { ...finalizedDeckProof, questionBank: null },
+    finalizedDeckExpectation
+  ),
+  false,
+  "a missing matching bank must not be treated as finalized"
+);
+assert.equal(
+  matchesFinalizedGeneration(
+    {
+      job: {
+        id: "job-2",
+        status: "ready_for_review",
+        generation_mode: "bank_only",
+        content_item_id: null,
+        question_bank_id: "bank-2",
+        step_state: { deck_storage_path: null }
+      },
+      contentItem: null,
+      questionBank: { id: "bank-2", generation_job_id: "job-2" }
+    },
+    { jobId: "job-2", mode: "bank_only", stagingDeckPath: null }
+  ),
+  true,
+  "bank-only reconciliation must require its matching bank and no deck item"
+);
 const approvedPlan = {
   source_pages: [1, 2, 3, 4].map((source_pdf_page) => ({
     source_pdf_page,
@@ -60,6 +134,17 @@ const approvedPlan = {
   }],
   end_quiz_goal: 1
 };
+assert.equal(hasUsableQuestionContext(approvedPlan), true);
+assert.equal(
+  hasUsableQuestionContext({ ...approvedPlan, checkpoints: [], end_quiz_goal: 2 }),
+  true,
+  "an end quiz is a usable question-generation context"
+);
+assert.equal(
+  hasUsableQuestionContext({ ...approvedPlan, checkpoints: [], end_quiz_goal: null }),
+  false,
+  "a plan with no checkpoints and no end quiz must be rejected before generation"
+);
 const finalizedSlides = [1, 2, 3, 4].map((slide_number) => ({
   slide_number,
   kind: slide_number === 1 ? "title" : "bullets",
@@ -144,6 +229,11 @@ assert.match(migration, /teaching_brief/);
 assert.match(migration, /proposed_plan/);
 assert.match(api, /case "review_plan"/);
 assert.match(api, /case "approve_plan"/);
+assert.match(
+  api,
+  /async function approvePlan[\s\S]*hasUsableQuestionContext\(approvedPlan\)/,
+  "plan approval must reject an empty question-generation plan"
+);
 assert.match(helper, /function validateTeachingBrief/);
 assert.match(helper, /function validateTeachingPlan/);
 assert.match(worker, /stepExtractProposal/);
@@ -192,7 +282,7 @@ assert.ok(assembleStart >= 0 && bankOnlyStart > assembleStart, "assembly functio
 const deckAssembly = worker.slice(assembleStart, bankOnlyStart);
 assert.match(
   deckAssembly,
-  /\.rpc\("finalize_pdf_generation_bundle"/,
+  /finalizeOrReconcile\(db/,
   "deck publication must use one transactional database finalizer"
 );
 assert.doesNotMatch(
@@ -204,6 +294,31 @@ assert.match(
   migration,
   /create or replace function public\.finalize_pdf_generation_bundle[\s\S]*source_ref\s*=\s*p_staging_deck_path[\s\S]*status\s*=\s*'ready_for_review'/,
   "the live source pointer and successful job state must commit in the same SQL transaction"
+);
+assert.match(
+  migration,
+  /grant execute on function public\.finalize_pdf_generation_bundle\(uuid, text, jsonb, jsonb\)\s+to service_role;/,
+  "the service-role worker must be allowed to invoke the private finalizer"
+);
+assert.match(
+  worker,
+  /async function reconcileFinalization[\s\S]*matchesFinalizedGeneration/,
+  "an RPC error must re-read and verify the durable finalization"
+);
+assert.match(
+  worker,
+  /async function finalizeOrReconcile[\s\S]*try \{[\s\S]*await db\.rpc[\s\S]*catch \(error\)[\s\S]*reconcileFinalization/,
+  "returned and thrown RPC transport errors must both enter reconciliation"
+);
+assert.match(
+  worker,
+  /async function saveStepIfStatus[\s\S]*\.eq\("status", expectedStatus\)/,
+  "error transitions must be conditional on the status originally loaded"
+);
+assert.doesNotMatch(
+  worker,
+  /saveStep\(db, jobId, \{ status: "failed"/,
+  "a stale worker must never unconditionally mark a newer job state failed"
 );
 
 console.log("PDF teaching-plan contract: OK");

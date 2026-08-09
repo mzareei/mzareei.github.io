@@ -28,6 +28,11 @@ export type TeachingPlan = {
   end_quiz_goal: number | null;
 };
 
+export function hasUsableQuestionContext(plan: TeachingPlan) {
+  return plan.checkpoints.some((checkpoint) => checkpoint.source_pdf_pages.length > 0)
+    || (plan.end_quiz_goal != null && plan.end_quiz_goal > 0);
+}
+
 const maxFreeTextLength = 4_000;
 
 function asRecord(value: unknown, label: string): Record<string, unknown> {

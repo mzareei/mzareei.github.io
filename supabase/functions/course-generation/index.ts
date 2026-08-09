@@ -18,7 +18,11 @@ import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
 import { mintContentToken } from "../_shared/content-token.ts";
-import { validateTeachingBrief, validateTeachingPlan } from "../_shared/generation-plan.ts";
+import {
+  hasUsableQuestionContext,
+  validateTeachingBrief,
+  validateTeachingPlan
+} from "../_shared/generation-plan.ts";
 
 type Db = ReturnType<typeof adminClient>;
 
@@ -261,6 +265,9 @@ async function approvePlan(db: Db, courseId: string, body: Record<string, unknow
     throw new Error(`Only a job ready for plan review can be approved (status: ${job.status}).`);
   }
   const approvedPlan = validateTeachingPlan(body.approved_plan);
+  if (!hasUsableQuestionContext(approvedPlan)) {
+    throw new Error("Add at least one checkpoint or an end-quiz goal before approving this plan.");
+  }
   const nextStatus = job.generation_mode === "bank_only" ? "generating_questions" : "generating_deck";
   const { data: updated, error } = await db
     .from("generation_jobs")

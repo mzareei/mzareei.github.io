@@ -21,6 +21,10 @@ import {
 } from "../_shared/checkpoints.ts";
 import { validateTeachingBrief, validateTeachingPlan } from "../_shared/generation-plan.ts";
 import { assembleDeck, type Slide } from "./deck.ts";
+import {
+  matchesFinalizedGeneration,
+  type FinalizationExpectation
+} from "./finalization.ts";
 import { approvedQuestionContexts, normalizeGeneratedQuestions } from "./questions.ts";
 import {
   BANK_ONLY_QUESTIONS_SCHEMA,
@@ -79,8 +83,40 @@ async function saveStep(db: Db, jobId: string, patch: Record<string, unknown>) {
   if (error) throw error;
 }
 
-async function failJob(db: Db, jobId: string, message: string) {
-  await saveStep(db, jobId, { status: "failed", error: message.slice(0, 2000) });
+async function saveStepIfStatus(
+  db: Db,
+  jobId: string,
+  expectedStatus: string,
+  patch: Record<string, unknown>
+) {
+  const { data, error } = await db
+    .from("generation_jobs")
+    .update({ ...patch, updated_at: new Date().toISOString() })
+    .eq("id", jobId)
+    .eq("status", expectedStatus)
+    .select("*")
+    .maybeSingle();
+  if (error) throw error;
+  return data as Record<string, unknown> | null;
+}
+
+async function failJob(db: Db, jobId: string, expectedStatus: string, message: string) {
+  return saveStepIfStatus(db, jobId, expectedStatus, {
+    status: "failed",
+    error: message.slice(0, 2000)
+  });
+}
+
+function currentJobOutcome(jobId: string, job: Record<string, unknown>) {
+  const currentStatus = String(job.status);
+  const done = ["ready_for_plan_review", "ready_for_review", "approved", "failed"]
+    .includes(currentStatus);
+  return {
+    job_id: jobId,
+    status: currentStatus,
+    done,
+    ...(done ? {} : { superseded: true })
+  };
 }
 
 /** Fire-and-forget self-invocation so a job keeps moving without a cron. */
@@ -105,8 +141,10 @@ async function advance(db: Db, jobId: string) {
 
   const attempts = Number(job.attempt_count || 0);
   if (attempts >= maxAttemptsPerStep * 6) {
-    await failJob(db, jobId, "Too many retries; giving up.");
-    return { job_id: jobId, status: "failed", done: true };
+    const failed = await failJob(db, jobId, status, "Too many retries; giving up.");
+    return failed
+      ? { job_id: jobId, status: "failed", done: true }
+      : currentJobOutcome(jobId, await loadJob(db, jobId));
   }
 
   try {
@@ -153,12 +191,23 @@ async function advance(db: Db, jobId: string) {
   } catch (error) {
     const message = errorMessage(error, "Step failed.");
     const nextAttempts = attempts + 1;
-    if (nextAttempts >= maxAttemptsPerStep) {
-      await failJob(db, jobId, message);
-      return { job_id: jobId, status: "failed", error: message, done: true };
+    const current = await loadJob(db, jobId);
+    if (String(current.status) !== status) {
+      return currentJobOutcome(jobId, current);
     }
-    await saveStep(db, jobId, { attempt_count: nextAttempts, error: message.slice(0, 2000) });
-    return { job_id: jobId, status, error: message, retrying: true };
+    if (nextAttempts >= maxAttemptsPerStep) {
+      const failed = await failJob(db, jobId, status, message);
+      if (failed) {
+        return { job_id: jobId, status: "failed", error: message, done: true };
+      }
+      return currentJobOutcome(jobId, await loadJob(db, jobId));
+    }
+    const retrying = await saveStepIfStatus(db, jobId, status, {
+      attempt_count: nextAttempts,
+      error: message.slice(0, 2000)
+    });
+    if (!retrying) return currentJobOutcome(jobId, await loadJob(db, jobId));
+    return { job_id: jobId, status, error: message, retrying: true, done: false };
   }
 }
 
@@ -478,13 +527,16 @@ async function stepAssemble(db: Db, job: Record<string, unknown>, stepState: Rec
   const stagingDeckPath = String(stepState.staging_deck_path || "");
   if (!stagingDeckPath) throw new Error("The grounded staged deck is missing.");
   const priorVersion = await preparePriorVersion(db, job, stagingDeckPath);
-  const { error: finalizeError } = await db.rpc("finalize_pdf_generation_bundle", {
+  await finalizeOrReconcile(db, {
+    jobId: String(job.id),
+    mode: "deck_and_bank",
+    stagingDeckPath
+  }, {
     p_job_id: job.id,
     p_staging_deck_path: stagingDeckPath,
     p_questions: questions,
     p_prior_version: priorVersion
   });
-  if (finalizeError) throw finalizeError;
 }
 
 async function stepAssembleBankOnly(
@@ -500,13 +552,67 @@ async function stepAssembleBankOnly(
       `Generated questions rejected before persistence: ${questionProblems.slice(0, 5).join("; ")}`
     );
   }
-  const { error: finalizeError } = await db.rpc("finalize_pdf_generation_bundle", {
+  await finalizeOrReconcile(db, {
+    jobId: String(job.id),
+    mode: "bank_only",
+    stagingDeckPath: null
+  }, {
     p_job_id: job.id,
     p_staging_deck_path: null,
     p_questions: questions,
     p_prior_version: null
   });
-  if (finalizeError) throw finalizeError;
+}
+
+async function finalizeOrReconcile(
+  db: Db,
+  expected: FinalizationExpectation,
+  parameters: Record<string, unknown>
+) {
+  let rpcError: unknown = null;
+  try {
+    const { error } = await db.rpc("finalize_pdf_generation_bundle", parameters);
+    rpcError = error;
+  } catch (error) {
+    rpcError = error;
+  }
+  if (!rpcError) return;
+
+  const finalized = await reconcileFinalization(db, expected);
+  if (!finalized) throw rpcError;
+}
+
+async function reconcileFinalization(db: Db, expected: FinalizationExpectation) {
+  const job = await loadJob(db, expected.jobId);
+  const bankId = String(job.question_bank_id || "");
+  let questionBank: Record<string, unknown> | null = null;
+  if (bankId) {
+    const { data, error } = await db
+      .from("question_banks")
+      .select("id, generation_job_id")
+      .eq("id", bankId)
+      .eq("generation_job_id", expected.jobId)
+      .maybeSingle();
+    if (error) throw error;
+    questionBank = data as Record<string, unknown> | null;
+  }
+
+  const contentItemId = String(job.content_item_id || "");
+  let contentItem: Record<string, unknown> | null = null;
+  if (contentItemId) {
+    const { data, error } = await db
+      .from("content_items")
+      .select("id, generation_job_id, source_ref")
+      .eq("id", contentItemId)
+      .eq("generation_job_id", expected.jobId)
+      .maybeSingle();
+    if (error) throw error;
+    contentItem = data as Record<string, unknown> | null;
+  }
+
+  return matchesFinalizedGeneration({ job, contentItem, questionBank }, expected)
+    ? job
+    : null;
 }
 
 async function preparePriorVersion(
