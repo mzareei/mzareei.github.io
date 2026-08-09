@@ -321,4 +321,66 @@ assert.doesNotMatch(
   "a stale worker must never unconditionally mark a newer job state failed"
 );
 
+const cancelStart = api.indexOf("async function cancelJob(");
+const reviewBundleStart = api.indexOf("async function reviewBundle(");
+assert.ok(cancelStart >= 0 && reviewBundleStart > cancelStart, "cancellation handler must be present");
+const cancellation = api.slice(cancelStart, reviewBundleStart);
+assert.match(
+  cancellation,
+  /const expectedStatus = String\(job\.status\)/,
+  "cancellation must retain the status that it originally authorized"
+);
+assert.match(
+  cancellation,
+  /\.eq\("id", job\.id\)[\s\S]*\.eq\("status", expectedStatus\)/,
+  "cancellation must compare-and-set against the originally authorized status"
+);
+assert.match(
+  cancellation,
+  /\.maybeSingle\(\)/,
+  "a lost cancellation race must return no row instead of raising a false failure"
+);
+assert.match(
+  cancellation,
+  /if \(!data\)[\s\S]*loadJob\(db, courseId, job\.id\)/,
+  "a lost cancellation race must return the current durable job state"
+);
+
+assert.doesNotMatch(
+  worker,
+  /async function saveStep\(/,
+  "worker writes must never use an id-only save helper"
+);
+for (const [stepName, nextStepName] of [
+  ["stepExtractProposal", "stepSlides"],
+  ["stepSlides", "stepQuestions"],
+  ["stepQuestions", "asArray"],
+  ["stepGrounding", "stepAssemble"]
+]) {
+  const stepStart = worker.indexOf(`async function ${stepName}(`);
+  const nextStepStart = worker.indexOf(`function ${nextStepName}`, stepStart + 1);
+  assert.ok(stepStart >= 0 && nextStepStart > stepStart, `${stepName} must be present`);
+  const stepBody = worker.slice(stepStart, nextStepStart);
+  assert.match(
+    stepBody,
+    /expectedStatus: string/,
+    `${stepName} must receive the status loaded before its asynchronous work`
+  );
+  assert.match(
+    stepBody,
+    /saveStepIfStatus\(db, String\(job\.id\), expectedStatus/,
+    `${stepName} must conditionally persist successful output`
+  );
+}
+assert.match(
+  worker,
+  /const transitioned = await saveStepIfStatus\(db, jobId, status, \{[\s\S]*status: nextStatus/,
+  "advancing a successful step must compare-and-set the originally loaded status"
+);
+assert.match(
+  worker,
+  /if \(!transitioned\) return currentJobOutcome\(jobId, await loadJob\(db, jobId\)\)/,
+  "a stale successful worker must return the newer durable state without chaining"
+);
+
 console.log("PDF teaching-plan contract: OK");

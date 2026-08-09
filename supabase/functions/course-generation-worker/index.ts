@@ -75,14 +75,6 @@ async function loadJob(db: Db, jobId: string) {
   return data as Record<string, unknown>;
 }
 
-async function saveStep(db: Db, jobId: string, patch: Record<string, unknown>) {
-  const { error } = await db
-    .from("generation_jobs")
-    .update({ ...patch, updated_at: new Date().toISOString() })
-    .eq("id", jobId);
-  if (error) throw error;
-}
-
 async function saveStepIfStatus(
   db: Db,
   jobId: string,
@@ -151,11 +143,11 @@ async function advance(db: Db, jobId: string) {
     let nextStatus = status;
     switch (status) {
       case "queued":
-        await stepExtractProposal(db, job, stepState);
+        await stepExtractProposal(db, job, stepState, status);
         nextStatus = "ready_for_plan_review";
         break;
       case "extracting":
-        await stepExtractProposal(db, job, stepState);
+        await stepExtractProposal(db, job, stepState, status);
         nextStatus = "ready_for_plan_review";
         break;
       case "generating_deck":
@@ -163,15 +155,15 @@ async function advance(db: Db, jobId: string) {
           nextStatus = "generating_questions";
           break;
         }
-        await stepSlides(db, job, stepState);
+        await stepSlides(db, job, stepState, status);
         nextStatus = "generating_questions";
         break;
       case "generating_questions":
-        await stepQuestions(db, job, stepState);
+        await stepQuestions(db, job, stepState, status);
         nextStatus = "grounding";
         break;
       case "grounding":
-        await stepGrounding(db, job, stepState);
+        await stepGrounding(db, job, stepState, status);
         nextStatus = "assembling";
         break;
       case "assembling":
@@ -185,7 +177,12 @@ async function advance(db: Db, jobId: string) {
         throw new Error(`Unexpected job status "${status}".`);
     }
 
-    await saveStep(db, jobId, { status: nextStatus, attempt_count: 0, error: null });
+    const transitioned = await saveStepIfStatus(db, jobId, status, {
+      status: nextStatus,
+      attempt_count: 0,
+      error: null
+    });
+    if (!transitioned) return currentJobOutcome(jobId, await loadJob(db, jobId));
     if (!["ready_for_plan_review", "ready_for_review"].includes(nextStatus)) chain(jobId);
     return { job_id: jobId, status: nextStatus, done: nextStatus === "ready_for_review" };
   } catch (error) {
@@ -217,7 +214,12 @@ function errorMessage(error: unknown, fallback: string) {
 
 // ------------------------------------------------------------------ step 1
 /** Read the PDF and pull out the lecture's structure and teaching content. */
-async function stepExtractProposal(db: Db, job: Record<string, unknown>, stepState: Record<string, unknown>) {
+async function stepExtractProposal(
+  db: Db,
+  job: Record<string, unknown>,
+  stepState: Record<string, unknown>,
+  expectedStatus: string
+) {
   if (stepState.proposed_plan) return;
 
   const { data: upload, error } = await db
@@ -256,16 +258,22 @@ async function stepExtractProposal(db: Db, job: Record<string, unknown>, stepSta
     maxTokens: 8000
   }));
 
-  await saveStep(db, String(job.id), {
+  const saved = await saveStepIfStatus(db, String(job.id), expectedStatus, {
     proposed_plan: proposedPlan,
     grounding_status: "pending",
     step_state: { ...stepState, proposed_plan: proposedPlan }
   });
+  if (!saved) throw new Error("Job status changed while saving the extracted plan.");
 }
 
 // ------------------------------------------------------------------ step 2
 /** Turn the outline into concrete bilingual slides. */
-async function stepSlides(db: Db, job: Record<string, unknown>, stepState: Record<string, unknown>) {
+async function stepSlides(
+  db: Db,
+  job: Record<string, unknown>,
+  stepState: Record<string, unknown>,
+  expectedStatus: string
+) {
   if (stepState.slides) {
     const cachedSlides = asArray<Slide>(stepState.slides);
     const cachedProblems = validateSlides(cachedSlides);
@@ -305,12 +313,20 @@ async function stepSlides(db: Db, job: Record<string, unknown>, stepState: Recor
     throw new Error(`Generated slides rejected: ${slideProblems.slice(0, 5).join("; ")}`);
   }
 
-  await saveStep(db, String(job.id), { step_state: { ...stepState, slides } });
+  const saved = await saveStepIfStatus(db, String(job.id), expectedStatus, {
+    step_state: { ...stepState, slides }
+  });
+  if (!saved) throw new Error("Job status changed while saving generated slides.");
 }
 
 // ------------------------------------------------------------------ step 3
 /** Build a flexible bilingual bank from the instructor-approved PDF plan. */
-async function stepQuestions(db: Db, job: Record<string, unknown>, stepState: Record<string, unknown>) {
+async function stepQuestions(
+  db: Db,
+  job: Record<string, unknown>,
+  stepState: Record<string, unknown>,
+  expectedStatus: string
+) {
   if (stepState.questions) return;
   const slides = asArray<Slide>(stepState.slides);
   const approvedPlan = validateTeachingPlan(job.approved_plan);
@@ -382,7 +398,10 @@ async function stepQuestions(db: Db, job: Record<string, unknown>, stepState: Re
     : validateDeckQuestions(questions, sourcePdfPages, slides.length);
   if (problems.length) throw new Error(`Generated questions rejected: ${problems.slice(0, 5).join("; ")}`);
 
-  await saveStep(db, String(job.id), { step_state: { ...stepState, questions } });
+  const saved = await saveStepIfStatus(db, String(job.id), expectedStatus, {
+    step_state: { ...stepState, questions }
+  });
+  if (!saved) throw new Error("Job status changed while saving generated questions.");
 }
 
 /** The tool schema asks for an array, but a model can still answer with a bare
@@ -450,7 +469,12 @@ function validateDeckQuestions(
   return problems;
 }
 
-async function stepGrounding(db: Db, job: Record<string, unknown>, stepState: Record<string, unknown>) {
+async function stepGrounding(
+  db: Db,
+  job: Record<string, unknown>,
+  stepState: Record<string, unknown>,
+  expectedStatus: string
+) {
   const plan = validateTeachingPlan(job.approved_plan);
   const slides = asArray<Slide>(stepState.slides);
   const questions = asArray<Record<string, unknown>>(stepState.questions);
@@ -493,10 +517,11 @@ async function stepGrounding(db: Db, job: Record<string, unknown>, stepState: Re
     if (error) throw error;
     stepState.staging_deck_path = stagingPath;
   }
-  await saveStep(db, String(job.id), {
+  const saved = await saveStepIfStatus(db, String(job.id), expectedStatus, {
     grounding_status: "passed",
     step_state: stepState
   });
+  if (!saved) throw new Error("Job status changed while saving grounding results.");
 }
 
 // ------------------------------------------------------------------ step 4

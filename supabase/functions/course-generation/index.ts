@@ -293,16 +293,19 @@ async function listJobs(db: Db, courseId: string) {
 
 async function cancelJob(db: Db, courseId: string, body: Record<string, unknown>) {
   const job = await loadJob(db, courseId, body.job_id);
-  if (!cancellableStates.includes(String(job.status))) {
+  const expectedStatus = String(job.status);
+  if (!cancellableStates.includes(expectedStatus)) {
     throw new Error(`A job in status "${job.status}" can no longer be cancelled.`);
   }
   const { data, error } = await db
     .from("generation_jobs")
     .update({ status: "failed", error: "Cancelled by instructor.", updated_at: new Date().toISOString() })
     .eq("id", job.id)
+    .eq("status", expectedStatus)
     .select("id, status, error")
-    .single();
+    .maybeSingle();
   if (error) throw error;
+  if (!data) return { job: await loadJob(db, courseId, job.id) };
   return { job: data };
 }
 
