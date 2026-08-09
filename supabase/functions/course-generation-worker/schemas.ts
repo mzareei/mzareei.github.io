@@ -127,7 +127,66 @@ export const SLIDES_SCHEMA = {
   required: ["slides"]
 } as const;
 
-export const QUESTIONS_SCHEMA = {
+const QUESTION_PROPERTIES = {
+  prompt: { type: "string" },
+  prompt_es: { type: "string" },
+  difficulty: { type: "string", enum: ["easy", "medium", "hard"] },
+  segment_key: {
+    type: "string",
+    description: "Exact key of an instructor-approved concept checkpoint."
+  },
+  source_pdf_pages: {
+    type: "array",
+    description: "Original PDF pages supporting this question.",
+    items: { type: "integer" }
+  },
+  topic_tags: {
+    type: "array",
+    description: "Two or three lowercase-hyphenated topic tags, e.g. cia-triad.",
+    items: { type: "string" }
+  },
+  explanation: { type: "string", description: "Why the correct answer is correct." },
+  explanation_es: { type: "string" },
+  options: {
+    type: "array",
+    description: "Exactly 4, exactly one with is_correct true.",
+    items: {
+      type: "object",
+      properties: {
+        option_text: { type: "string" },
+        option_text_es: { type: "string" },
+        is_correct: { type: "boolean" }
+      },
+      required: ["option_text", "option_text_es", "is_correct"]
+    }
+  }
+} as const;
+
+const QUESTION_REQUIRED = [
+  "prompt",
+  "prompt_es",
+  "difficulty",
+  "segment_key",
+  "source_pdf_pages",
+  "options"
+] as const;
+
+export const BANK_ONLY_QUESTIONS_SCHEMA = {
+  type: "object",
+  properties: {
+    questions: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: QUESTION_PROPERTIES,
+        required: QUESTION_REQUIRED
+      }
+    }
+  },
+  required: ["questions"]
+} as const;
+
+export const DECK_QUESTIONS_SCHEMA = {
   type: "object",
   properties: {
     questions: {
@@ -135,60 +194,31 @@ export const QUESTIONS_SCHEMA = {
       items: {
         type: "object",
         properties: {
-          prompt: { type: "string" },
-          prompt_es: { type: "string" },
-          difficulty: { type: "string", enum: ["easy", "medium", "hard"] },
-          segment_key: {
-            type: "string",
-            description: "Stable lowercase-hyphenated key for the concept checkpoint."
-          },
+          ...QUESTION_PROPERTIES,
           source_slide_numbers: {
             type: "array",
             description: "Finalized slide numbers containing every fact needed to answer.",
             items: { type: "integer" }
           },
-          source_pdf_pages: {
-            type: "array",
-            description: "Original PDF pages supporting this question.",
-            items: { type: "integer" }
-          },
-          source_slide_start: { type: ["integer", "null"] },
-          source_slide_end: { type: ["integer", "null"] },
+          source_slide_start: { type: "integer" },
+          source_slide_end: { type: "integer" },
           checkpoint_after_slide: {
-            type: ["integer", "null"],
+            type: "integer",
             description: "Ask only after this finalized slide has been taught."
-          },
-          topic_tags: {
-            type: "array",
-            description: "Two or three lowercase-hyphenated topic tags, e.g. cia-triad.",
-            items: { type: "string" }
-          },
-          explanation: { type: "string", description: "Why the correct answer is correct." },
-          explanation_es: { type: "string" },
-          options: {
-            type: "array",
-            description: "Exactly 4, exactly one with is_correct true.",
-            items: {
-              type: "object",
-              properties: {
-                option_text: { type: "string" },
-                option_text_es: { type: "string" },
-                is_correct: { type: "boolean" }
-              },
-              required: ["option_text", "option_text_es", "is_correct"]
-            }
           }
         },
         required: [
-          "prompt",
-          "prompt_es",
-          "difficulty",
-          "segment_key",
-          "source_pdf_pages",
-          "options"
+          ...QUESTION_REQUIRED,
+          "source_slide_numbers",
+          "source_slide_start",
+          "source_slide_end",
+          "checkpoint_after_slide"
         ]
       }
     }
   },
   required: ["questions"]
 } as const;
+
+// Backward-compatible name for any caller that still expects deck mappings.
+export const QUESTIONS_SCHEMA = DECK_QUESTIONS_SCHEMA;

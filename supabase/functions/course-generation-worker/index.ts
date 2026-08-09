@@ -15,13 +15,19 @@ import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 import { generateStructured, hasAnthropicKey, pdfBlock, textBlock, toBase64 } from "../_shared/anthropic.ts";
 import {
-  checkpointMetadataColumns,
   checkpointMetadataFromQuestion,
+  validateCheckpointMetadata,
   validateFlexibleQuestionBank
 } from "../_shared/checkpoints.ts";
 import { validateTeachingBrief, validateTeachingPlan } from "../_shared/generation-plan.ts";
 import { assembleDeck, type Slide } from "./deck.ts";
-import { PLAN_SCHEMA, SLIDES_SCHEMA, QUESTIONS_SCHEMA } from "./schemas.ts";
+import { approvedQuestionContexts, normalizeGeneratedQuestions } from "./questions.ts";
+import {
+  BANK_ONLY_QUESTIONS_SCHEMA,
+  DECK_QUESTIONS_SCHEMA,
+  PLAN_SCHEMA,
+  SLIDES_SCHEMA
+} from "./schemas.ts";
 
 type Db = ReturnType<typeof adminClient>;
 
@@ -54,7 +60,7 @@ Deno.serve(async (request) => {
     const result = await advance(db, jobId);
     return json(result);
   } catch (error) {
-    return json({ error: error?.message || "The generation worker failed." }, { status: 400 });
+    return json({ error: errorMessage(error, "The generation worker failed.") }, { status: 400 });
   }
 });
 
@@ -132,8 +138,11 @@ async function advance(db: Db, jobId: string) {
         break;
       case "assembling":
         await stepAssemble(db, job, stepState);
-        nextStatus = "ready_for_review";
-        break;
+        // The transactional finalizer has already persisted the bundle,
+        // switched source_ref, and marked the job ready. There must be no
+        // fallible write after it succeeds: otherwise a catch below could mark
+        // a published bundle failed.
+        return { job_id: jobId, status: "ready_for_review", done: true };
       default:
         throw new Error(`Unexpected job status "${status}".`);
     }
@@ -142,7 +151,7 @@ async function advance(db: Db, jobId: string) {
     if (!["ready_for_plan_review", "ready_for_review"].includes(nextStatus)) chain(jobId);
     return { job_id: jobId, status: nextStatus, done: nextStatus === "ready_for_review" };
   } catch (error) {
-    const message = error?.message || "Step failed.";
+    const message = errorMessage(error, "Step failed.");
     const nextAttempts = attempts + 1;
     if (nextAttempts >= maxAttemptsPerStep) {
       await failJob(db, jobId, message);
@@ -151,6 +160,10 @@ async function advance(db: Db, jobId: string) {
     await saveStep(db, jobId, { attempt_count: nextAttempts, error: message.slice(0, 2000) });
     return { job_id: jobId, status, error: message, retrying: true };
   }
+}
+
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error && error.message ? error.message : fallback;
 }
 
 // ------------------------------------------------------------------ step 1
@@ -182,6 +195,7 @@ async function stepExtractProposal(db: Db, job: Record<string, unknown>, stepSta
       "rather than presenting it as established. Write in clear, plain academic English.",
     content: [
       pdfBlock(base64),
+      textBlock(JSON.stringify({ teaching_brief: teachingBrief })),
       textBlock(
         `This is the source material for a lecture titled "${job.lecture_title}". ` +
         "Extract its structure and teaching content so a slide deck can be built from it."
@@ -246,12 +260,48 @@ async function stepSlides(db: Db, job: Record<string, unknown>, stepState: Recor
 }
 
 // ------------------------------------------------------------------ step 3
-/** The tiered bilingual bank. Same contract as every hand-imported bank:
- *  4 options, exactly 1 correct, plausible distractors, 6 per difficulty. */
+/** Build a flexible bilingual bank from the instructor-approved PDF plan. */
 async function stepQuestions(db: Db, job: Record<string, unknown>, stepState: Record<string, unknown>) {
   if (stepState.questions) return;
   const slides = asArray<Slide>(stepState.slides);
   const approvedPlan = validateTeachingPlan(job.approved_plan);
+  const bankOnly = job.generation_mode === "bank_only";
+  if (!bankOnly && !slides.length) {
+    throw new Error("Finalized slides are missing; re-run deck generation.");
+  }
+  const questionContexts = approvedQuestionContexts(approvedPlan);
+  const contextInstructions =
+    "Use exactly the approved question contexts and their segment keys. " +
+    "When candidateGoal is present, generate that many questions for the context; " +
+    "do not invent additional checkpoint groups.";
+  const modeContent = bankOnly
+    ? [
+      textBlock(JSON.stringify({
+        teaching_brief: job.teaching_brief,
+        approved_plan: approvedPlan,
+        approved_question_contexts: questionContexts
+      })),
+      textBlock(
+        `Lecture label: ${job.lecture_title}\n\n` +
+        `${contextInstructions} Generate from the approved PDF curriculum only. ` +
+        "Cite source_pdf_pages and segment_key. There is no generated slide deck, " +
+        "so do not create or cite slide numbers or slide checkpoints."
+      )
+    ]
+    : [
+      textBlock(JSON.stringify({
+        teaching_brief: job.teaching_brief,
+        approved_plan: approvedPlan,
+        approved_question_contexts: questionContexts
+      })),
+      textBlock(
+        `Lecture label: ${job.lecture_title}\n\n` +
+        `Finalized teaching slides:\n${JSON.stringify(slides, null, 2)}\n\n` +
+        `${contextInstructions} Cite source_pdf_pages and the finalized slides containing ` +
+        "the answer. The worker will deterministically align each question with its approved " +
+        "checkpoint suggestion; use no facts outside those cited sources."
+      )
+    ];
 
   const result = await generateStructured({
     system:
@@ -263,29 +313,24 @@ async function stepQuestions(db: Db, job: Record<string, unknown>, stepState: Re
       "the lecture content given. Write each question and every option in both English and " +
       "Spanish. Vary what you assess: recall for easy, application for medium, analysis or " +
       "a scenario judgement for hard. Do not reuse the same stem across difficulties. " +
-      "Use no facts outside the cited finalized teaching slides. Cite every slide needed " +
-      "to answer, and never place a cited slide after the question's checkpoint.",
-    content: [
-      textBlock(JSON.stringify({ teaching_brief: job.teaching_brief, approved_plan: approvedPlan })),
-      textBlock(
-        `Lecture title: ${job.lecture_title}\n\n` +
-        `Finalized teaching slides:\n${JSON.stringify(slides, null, 2)}\n\n` +
-        "Write flexible bilingual questions with source_pdf_pages. " +
-        "For this normal 18–50-slide lecture, group them into 3–5 concept checkpoints " +
-        "with at least 2 candidate questions at every checkpoint. For each question, " +
-        "set checkpoint_after_slide to the finalized slide after which it may be asked; " +
-        "cite only source_slide_numbers at or before that checkpoint; set the source " +
-        "range to the minimum and maximum cited slide; and use no facts outside those cited slides."
-      )
-    ],
+      "Use no facts outside the approved PDF curriculum and cited source pages.",
+    content: modeContent,
     toolName: "record_questions",
     toolDescription: "Record the tiered bilingual question bank for this lecture.",
-    schema: QUESTIONS_SCHEMA,
+    schema: bankOnly ? BANK_ONLY_QUESTIONS_SCHEMA : DECK_QUESTIONS_SCHEMA,
     maxTokens: 16000
   });
 
-  const questions = asArray<Record<string, unknown>>(result.questions);
-  const problems = validateQuestions(questions, approvedPlan.source_pages.map((page) => page.source_pdf_page));
+  const questions = normalizeGeneratedQuestions({
+    mode: bankOnly ? "bank_only" : "deck_and_bank",
+    questions: asArray<Record<string, unknown>>(result.questions),
+    plan: approvedPlan,
+    slides
+  });
+  const sourcePdfPages = approvedPlan.source_pages.map((page) => page.source_pdf_page);
+  const problems = bankOnly
+    ? validateQuestions(questions, sourcePdfPages)
+    : validateDeckQuestions(questions, sourcePdfPages, slides.length);
   if (problems.length) throw new Error(`Generated questions rejected: ${problems.slice(0, 5).join("; ")}`);
 
   await saveStep(db, String(job.id), { step_state: { ...stepState, questions } });
@@ -339,6 +384,23 @@ function validateQuestions(questions: Record<string, unknown>[], sourcePdfPages:
   return problems;
 }
 
+function validateDeckQuestions(
+  questions: Record<string, unknown>[],
+  sourcePdfPages: number[],
+  teachingSlideCount: number
+) {
+  const problems = validateQuestions(questions, sourcePdfPages);
+  questions.forEach((question, index) => {
+    for (const problem of validateCheckpointMetadata(
+      checkpointMetadataFromQuestion(question),
+      teachingSlideCount
+    )) {
+      problems.push(`Q${index + 1}: ${problem}`);
+    }
+  });
+  return problems;
+}
+
 async function stepGrounding(db: Db, job: Record<string, unknown>, stepState: Record<string, unknown>) {
   const plan = validateTeachingPlan(job.approved_plan);
   const slides = asArray<Slide>(stepState.slides);
@@ -358,8 +420,19 @@ async function stepGrounding(db: Db, job: Record<string, unknown>, stepState: Re
     schema: { type: "object", properties: { passed: { type: "boolean" }, problems: { type: "array", items: { type: "string" } } }, required: ["passed", "problems"] },
     maxTokens: 4000
   });
-  if (!grounding.passed) throw new Error("Generated output rejected by PDF grounding: " + (grounding.problems || []).join("; "));
-  const problems = validateQuestions(questions, plan.source_pages.map((page) => page.source_pdf_page));
+  const groundingProblems = Array.isArray(grounding.problems)
+    ? grounding.problems.map(String)
+    : [];
+  if (grounding.passed !== true) {
+    throw new Error(
+      "Generated output rejected by PDF grounding: "
+      + (groundingProblems.join("; ") || "independent grounding did not pass")
+    );
+  }
+  const sourcePdfPages = plan.source_pages.map((page) => page.source_pdf_page);
+  const problems = job.generation_mode === "bank_only"
+    ? validateQuestions(questions, sourcePdfPages)
+    : validateDeckQuestions(questions, sourcePdfPages, slides.length);
   if (problems.length) throw new Error("Generated output rejected by PDF grounding: " + problems.join("; "));
   if (job.generation_mode === "deck_and_bank") {
     const html = await assembleDeck({ title: String(job.lecture_title), slides, checkpoints: [] });
@@ -371,14 +444,15 @@ async function stepGrounding(db: Db, job: Record<string, unknown>, stepState: Re
     if (error) throw error;
     stepState.staging_deck_path = stagingPath;
   }
-  await saveStep(db, String(job.id), { grounding_status: "passed" });
+  await saveStep(db, String(job.id), {
+    grounding_status: "passed",
+    step_state: stepState
+  });
 }
 
 // ------------------------------------------------------------------ step 4
 /** Assemble the single-file deck, upload it, and persist item + bank. */
 async function stepAssemble(db: Db, job: Record<string, unknown>, stepState: Record<string, unknown>) {
-  const courseId = String(job.course_id);
-  const slug = String(job.lecture_slug);
   const slides = asArray<Slide>(stepState.slides);
   const questions = asArray<Record<string, unknown>>(stepState.questions);
   if (job.generation_mode === "bank_only") return stepAssembleBankOnly(db, job, stepState, questions);
@@ -390,6 +464,33 @@ async function stepAssemble(db: Db, job: Record<string, unknown>, stepState: Rec
       `Generated slides rejected before persistence: ${slideProblems.slice(0, 5).join("; ")}`
     );
   }
+  const questionProblems = validateDeckQuestions(
+    questions,
+    validateTeachingPlan(job.approved_plan).source_pages.map((page) => page.source_pdf_page),
+    slides.length
+  );
+  if (questionProblems.length) {
+    throw new Error(
+      `Generated questions rejected before persistence: ${questionProblems.slice(0, 5).join("; ")}`
+    );
+  }
+
+  const stagingDeckPath = String(stepState.staging_deck_path || "");
+  if (!stagingDeckPath) throw new Error("The grounded staged deck is missing.");
+  const priorVersion = await preparePriorVersion(db, job, stagingDeckPath);
+  const { error: finalizeError } = await db.rpc("finalize_pdf_generation_bundle", {
+    p_job_id: job.id,
+    p_staging_deck_path: stagingDeckPath,
+    p_questions: questions,
+    p_prior_version: priorVersion
+  });
+  if (finalizeError) throw finalizeError;
+}
+
+async function stepAssembleBankOnly(
+  db: Db, job: Record<string, unknown>, stepState: Record<string, unknown>, questions: Record<string, unknown>[]
+) {
+  if (!questions.length) throw new Error("Questions are missing; re-run question generation.");
   const questionProblems = validateQuestions(
     questions,
     validateTeachingPlan(job.approved_plan).source_pages.map((page) => page.source_pdf_page)
@@ -399,201 +500,62 @@ async function stepAssemble(db: Db, job: Record<string, unknown>, stepState: Rec
       `Generated questions rejected before persistence: ${questionProblems.slice(0, 5).join("; ")}`
     );
   }
+  const { error: finalizeError } = await db.rpc("finalize_pdf_generation_bundle", {
+    p_job_id: job.id,
+    p_staging_deck_path: null,
+    p_questions: questions,
+    p_prior_version: null
+  });
+  if (finalizeError) throw finalizeError;
+}
 
-  // 0. Ownership and the rollback snapshot, BEFORE anything is written.
-  const storagePath = `courses/${courseId}/items/${slug}/deck.html`;
-  // The upsert is on (course_id, slug), and create_job's collision check ran a
-  // long time and possibly several minutes ago. Two jobs created concurrently
-  // both pass that check; without this, the second to arrive here silently
-  // overwrites the first professor's lecture and rebinds its question bank.
-  // The check is advisory; the guarantee lives at the write.
-  const { data: existingItem, error: existingItemError } = await db
+async function preparePriorVersion(
+  db: Db,
+  job: Record<string, unknown>,
+  stagingDeckPath: string
+) {
+  const courseId = String(job.course_id);
+  const slug = String(job.lecture_slug);
+  const { data: existingItem, error: itemError } = await db
     .from("content_items")
     .select("id, owner_profile_id, source_ref")
     .eq("course_id", courseId)
     .eq("slug", slug)
     .maybeSingle();
-  if (existingItemError) throw existingItemError;
+  if (itemError) throw itemError;
+  if (!existingItem || String(existingItem.source_ref) === stagingDeckPath) return null;
+
   const generatedBy = job.created_by ? String(job.created_by) : null;
   if (
-    existingItem
-    && existingItem.owner_profile_id != null
+    existingItem.owner_profile_id != null
     && generatedBy
     && String(existingItem.owner_profile_id) !== generatedBy
   ) {
     throw new Error("generation_slug_not_owned");
   }
 
-  // Regenerating replaces a deck that already exists. Keep the bytes it is
-  // replacing, so a regeneration that comes out worse than the original is
-  // recoverable — the same rule every other write to this bucket follows.
-  if (existingItem) {
-    try {
-      const { data: priorBlob } = await db.storage.from(bucket).download(storagePath);
-      if (priorBlob) {
-        const priorText = await priorBlob.text();
-        const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(priorText));
-        const sha = Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
-        const { data: latest } = await db
-          .from("content_versions")
-          .select("version")
-          .eq("content_item_id", existingItem.id)
-          .order("version", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        const version = Number(latest?.version || 0) + 1;
-        const backupPath = `courses/${courseId}/items/${slug}/.versions/${version}-${sha.slice(0, 8)}.html`;
-        await db.storage.from(bucket).upload(
-          backupPath,
-          new Blob([priorText], { type: "text/html; charset=utf-8" }),
-          { contentType: "text/html; charset=utf-8", upsert: true }
-        );
-        await db.from("content_versions").insert({
-          content_item_id: existingItem.id,
-          version,
-          storage_path: backupPath,
-          content_sha256: sha,
-          content_bytes: new TextEncoder().encode(priorText).length,
-          published_by: generatedBy,
-          published_from: "generation",
-          note: "Snapshot taken before regeneration."
-        });
-      }
-    } catch {
-      // A missing prior object is normal on the first assemble for this slug.
-      // Never let snapshotting block the generation it is protecting.
-    }
+  const sourceRef = String(existingItem.source_ref);
+  const { data: priorBlob, error: downloadError } = await db.storage.from(bucket).download(sourceRef);
+  if (downloadError || !priorBlob) {
+    throw downloadError || new Error("The currently served deck could not be snapshotted.");
   }
+  const priorBytes = new Uint8Array(await priorBlob.arrayBuffer());
+  const digest = await crypto.subtle.digest("SHA-256", priorBytes);
+  const sha = Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+  const backupPath = `courses/${courseId}/items/${slug}/.versions/generated-${job.id}-${sha.slice(0, 8)}.html`;
+  const { error: backupError } = await db.storage.from(bucket).upload(
+    backupPath,
+    new Blob([priorBytes], { type: "text/html; charset=utf-8" }),
+    { contentType: "text/html; charset=utf-8", upsert: true }
+  );
+  if (backupError) throw backupError;
 
-
-  // 1. Deck HTML into Storage, beside every other gated deck.
-  const html = await assembleDeck({
-    title: String(job.lecture_title),
-    slides,
-    checkpoints: []
-  });
-  const { error: uploadError } = await db.storage
-    .from(bucket)
-    .upload(storagePath, new Blob([html], { type: "text/html; charset=utf-8" }), {
-      contentType: "text/html; charset=utf-8",
-      upsert: true
-    });
-  if (uploadError) throw uploadError;
-
-  // 2. content_item pointing at it.
-  const { data: item, error: itemError } = await db
-    .from("content_items")
-    .upsert({
-      course_id: courseId,
-      slug,
-      title: String(job.lecture_title),
-      owner_profile_id: generatedBy,
-      summary: String((stepState.outline as Record<string, unknown>)?.summary || "").slice(0, 500) || null,
-      content_type: "lecture",
-      source_kind: "storage_object",
-      source_ref: storagePath,
-      generation_job_id: job.id,
-      updated_at: new Date().toISOString()
-    }, { onConflict: "course_id,slug" })
-    .select("id")
-    .single();
-  if (itemError) throw itemError;
-
-  // 3. Question bank — created inactive; approve() flips it on.
-  const { data: bank, error: bankError } = await db
-    .from("question_banks")
-    .upsert({
-      course_id: courseId,
-      content_item_id: item.id,
-      title: `${job.lecture_title} — Question bank`,
-      bank_type: "graded",
-      status: "draft",
-      generation_job_id: job.id,
-      generation_validation_profile: "flexible",
-      updated_at: new Date().toISOString()
-    }, { onConflict: "course_id,content_item_id,bank_type" })
-    .select("id")
-    .single();
-  if (bankError) throw bankError;
-
-  // Regenerating replaces the whole set rather than appending duplicates.
-  const { error: clearError } = await db
-    .from("questions").delete().eq("question_bank_id", bank.id).eq("generation_job_id", job.id);
-  if (clearError) throw clearError;
-
-  for (const [index, question] of questions.entries()) {
-    const checkpoint = checkpointMetadataFromQuestion(question);
-    const { data: row, error: questionError } = await db
-      .from("questions")
-      .insert({
-        question_bank_id: bank.id,
-        prompt: String(question.prompt),
-        prompt_es: String(question.prompt_es),
-        question_type: "single_choice",
-        difficulty: String(question.difficulty),
-        topic_tags: (question.topic_tags as string[]) || [],
-        points: 1,
-        explanation: question.explanation ? String(question.explanation) : null,
-        explanation_es: question.explanation_es ? String(question.explanation_es) : null,
-        status: "draft",
-        source: "generated",
-        generation_key: `${slug}-gen-${index + 1}`,
-        generation_job_id: job.id,
-        source_pdf_pages: question.source_pdf_pages,
-        ...checkpointMetadataColumns(checkpoint)
-      })
-      .select("id")
-      .single();
-    if (questionError) throw questionError;
-
-    const options = (question.options || []) as Record<string, unknown>[];
-    const { error: optionError } = await db.from("question_options").insert(
-      options.map((option, position) => ({
-        question_id: row.id,
-        option_text: String(option.option_text),
-        option_text_es: String(option.option_text_es),
-        is_correct: Boolean(option.is_correct),
-        position
-      }))
-    );
-    if (optionError) throw optionError;
-  }
-
-  await saveStep(db, String(job.id), {
-    content_item_id: item.id,
-    question_bank_id: bank.id,
-    step_state: { ...stepState, assembled_at: new Date().toISOString(), deck_storage_path: storagePath }
-  });
-
-  await db.from("content_uploads")
-    .update({ status: "done", updated_at: new Date().toISOString() })
-    .eq("id", job.content_upload_id);
-}
-
-async function stepAssembleBankOnly(
-  db: Db, job: Record<string, unknown>, stepState: Record<string, unknown>, questions: Record<string, unknown>[]
-) {
-  const { data: bank, error: bankError } = await db.from("question_banks").insert({
-    course_id: job.course_id, content_item_id: null, title: String(job.lecture_title) + " — Question bank",
-    bank_type: "graded", status: "draft", generation_job_id: job.id, generation_validation_profile: "flexible"
-  }).select("id").single();
-  if (bankError) throw bankError;
-  for (const [index, question] of questions.entries()) {
-    const { data: row, error } = await db.from("questions").insert({
-      question_bank_id: bank.id, prompt: String(question.prompt), prompt_es: String(question.prompt_es),
-      question_type: "single_choice", difficulty: String(question.difficulty), status: "draft", source: "generated",
-      generation_key: String(job.lecture_slug) + "-gen-" + (index + 1), generation_job_id: job.id,
-      source_pdf_pages: question.source_pdf_pages, checkpoint_after_slide: null, source_slide_start: null, source_slide_end: null
-    }).select("id").single();
-    if (error) throw error;
-    const { error: optionError } = await db.from("question_options").insert(
-      ((question.options || []) as Record<string, unknown>[]).map((option, position) => ({
-        question_id: row.id, option_text: String(option.option_text), option_text_es: String(option.option_text_es),
-        is_correct: Boolean(option.is_correct), position
-      }))
-    );
-    if (optionError) throw optionError;
-  }
-  await saveStep(db, String(job.id), { question_bank_id: bank.id, step_state: { ...stepState, assembled_at: new Date().toISOString() } });
-  await db.from("content_uploads").update({ status: "done", updated_at: new Date().toISOString() }).eq("id", job.content_upload_id);
+  return {
+    source_ref: sourceRef,
+    storage_path: backupPath,
+    content_sha256: sha,
+    content_bytes: priorBytes.byteLength
+  };
 }
