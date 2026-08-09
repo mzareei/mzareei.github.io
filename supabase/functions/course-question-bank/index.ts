@@ -413,6 +413,9 @@ async function listQuestions(db: Db, courseId: string, body: Record<string, unkn
     bank_title: bank.title,
     questions: (data || []).map((question) => ({
       ...question,
+      source_pdf_pages: Array.isArray(question.source_pdf_pages)
+        ? question.source_pdf_pages
+        : [],
       question_options: (question.question_options || [])
         .slice()
         .sort((a, b) => Number(a.position) - Number(b.position))
