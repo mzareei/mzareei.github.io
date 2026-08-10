@@ -80,7 +80,7 @@ Deno.serve(async (request) => {
         return json({ error: "Unknown action." }, { status: 400 });
     }
   } catch (error) {
-    const message = error?.message || "Unable to manage question banks.";
+    const message = error instanceof Error ? error.message : "Unable to manage question banks.";
     if (message.includes("not allowed")) return json({ error: message }, { status: 403 });
     return json({ error: message }, { status: 400 });
   }

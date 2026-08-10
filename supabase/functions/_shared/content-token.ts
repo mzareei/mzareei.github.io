@@ -19,10 +19,14 @@ function base64UrlEncode(bytes: Uint8Array): string {
   return btoa(text).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-function base64UrlDecode(text: string): Uint8Array {
+function base64UrlDecode(text: string): ArrayBuffer {
   const padded = text.replace(/-/g, "+").replace(/_/g, "/");
   const raw = atob(padded);
-  return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+  const bytes = new Uint8Array(raw.length);
+  for (let index = 0; index < raw.length; index += 1) {
+    bytes[index] = raw.charCodeAt(index);
+  }
+  return bytes.buffer as ArrayBuffer;
 }
 
 async function hmacKey(): Promise<CryptoKey> {
