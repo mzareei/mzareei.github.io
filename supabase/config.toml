@@ -142,3 +142,6 @@ verify_jwt = false
 [functions.course-session-join]
 # QR joining validates the user token, active profile, and active section enrollment.
 verify_jwt = false
+
+[functions.course-content-import]
+verify_jwt = false
