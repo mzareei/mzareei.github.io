@@ -144,4 +144,5 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.course-content-import]
+# Externally authored deck/bank import; validates the user token and instructor role in-function.
 verify_jwt = false

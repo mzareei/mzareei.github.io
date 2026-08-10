@@ -2,9 +2,16 @@
 //
 // The professor's own AI is the author; this function is the single door
 // through which its output enters. It makes no model call. It authorizes the
-// caller, re-checks the structural facts the class depends on at runtime, and
-// writes both halves — so a client that skips the preview cannot push
-// unvalidated content into private storage.
+// caller and re-checks, server-side, the structural facts the class depends
+// on: question shape (questionFault) and deck self-containment/declared
+// outbound links (validateDeckHtml) — so a client that skips the preview
+// cannot push a structurally broken question set, or a deck with a surviving
+// relative reference or an undeclared/forbidden outbound link, into private
+// storage. This is not a general inline-script/exfiltration sandbox — it does
+// not sanitize arbitrary inline script or CSS; the `/content` route's CSP is
+// the runtime control for that broader class of risk. See
+// _shared/deck-validation.ts's header for exactly what it does and doesn't
+// check.
 //
 // The two halves fail independently: a bad deck must never block a question
 // import, and vice versa.
@@ -60,7 +67,11 @@ function questionFault(question: QuestionPayload, index: number): string | null 
   if (!Array.isArray(question.options) || question.options.length !== 4) {
     return `${at} does not have four options.`;
   }
-  if (question.options.filter((option) => option.is_correct).length !== 1) {
+  // Strict equality, not truthiness: a direct API call bypassing the preview
+  // could send is_correct: "false" (a truthy string) and pass a `.is_correct`
+  // filter, so both this count and the per-option check below require the
+  // real boolean.
+  if (question.options.filter((option) => option.is_correct === true).length !== 1) {
     return `${at} does not have exactly one correct answer.`;
   }
   for (const option of question.options) {
@@ -70,6 +81,12 @@ function questionFault(question: QuestionPayload, index: number): string | null 
     }
     if (option.option_text_es && option.option_text_es.length > OPTION_MAX) {
       return `${at} has a Spanish option longer than ${OPTION_MAX} characters.`;
+    }
+    if (option.is_correct !== true && option.is_correct !== false) {
+      return `${at} has an option with a non-boolean correct flag.`;
+    }
+    if (!Number.isInteger(option.position) || option.position < 0 || option.position > 3) {
+      return `${at} has an option with an invalid position.`;
     }
   }
   return null;
@@ -108,6 +125,13 @@ Deno.serve(async (request) => {
           try {
             const questions = (body.bank.questions ?? []) as QuestionPayload[];
             if (!questions.length) throw new Error("The file contains no questions.");
+            // A very large file means thousands of sequential round trips
+            // inside one edge function invocation — cap it well above any
+            // real lecture bank (the legacy hard profile caps at 18) but
+            // well short of a pathological input causing a mid-loop timeout.
+            if (questions.length > 200) {
+              throw new Error(`A single import supports at most 200 questions; this file has ${questions.length}.`);
+            }
             for (const [index, question] of questions.entries()) {
               const fault = questionFault(question, index);
               if (fault) throw new Error(fault);
@@ -140,7 +164,7 @@ Deno.serve(async (request) => {
         // 0006_gradebook_foundation.sql and the existing insert at
         // course-question-bank/index.ts:293 — target_type and action are NOT
         // NULL with length checks, and metadata must be a JSON object.
-        await db.from("audit_log").insert({
+        const { error: auditError } = await db.from("audit_log").insert({
           course_id: courseId,
           actor_profile_id: profile.id,
           target_type: "content_import",
@@ -148,6 +172,11 @@ Deno.serve(async (request) => {
           action: "content_imported",
           metadata: result
         });
+        // Same shape as course-question-bank's own audit insert (not a new
+        // regression) — but this function's own header calls it "the single
+        // door" for imported content, so its own audit trail failing
+        // silently would undercut that claim. Log it; don't swallow it.
+        if (auditError) console.error("course-content-import: audit_log insert failed", auditError);
 
         return json(result);
       }
@@ -261,6 +290,18 @@ async function availableSlug(db: Db, courseId: string, baseSlug: string) {
 // finds that same row by slug and promotes it to a full lecture item. If the
 // two slugs differ, each resolves its own independent row — exactly the
 // plan's "two-independent-files" design.
+//
+// Both "yours, existing row" branches (bank and deck) also run
+// isReimportableByThisFeature before touching anything: a slug collision
+// with a generation-pipeline lecture, a Gen-1-migrated item, or hand-
+// authored content must refuse, not silently corrupt what's already there.
+//
+// The deck path is further split into a read-only resolve step
+// (resolveDeckTargetSlug — runs the owner-safety and reuse checks, decides
+// the final slug, touches no tables) and a write step
+// (writeDeckContentItemRow), so writeDeck can run the Storage upload between
+// them: no row is written or updated until the bytes it will point at
+// already exist in Storage.
 // ---------------------------------------------------------------------------
 
 function deckStoragePath(courseId: string, slug: string) {
@@ -306,6 +347,74 @@ function isCallersOwn(ownerProfileId: string | null, actorProfileId: string) {
   return ownerProfileId == null || String(ownerProfileId) === String(actorProfileId);
 }
 
+/** True only if every existing writer signature on this item matches what
+ *  course-content-import itself would have written — never true for a
+ *  generation-pipeline lecture, a Gen-1-migrated item, or anything hand-
+ *  authored. This is what makes re-importing under the same slug safe:
+ *  everything it's about to touch, it (or an earlier run of it) put there.
+ *
+ *  Deliberately does NOT take a caller-declared "expected kind" parameter
+ *  (unlike the fix contract's literal draft): it derives the kind from the
+ *  item's own actual content_type and checks THAT kind's shape. A single
+ *  hard-coded expectedKind per call site breaks two legitimate flows the
+ *  given Deno.serve handler already relies on — (1) a first-time combined
+ *  import, where writeBank runs first and creates a fresh 'quiz_bank' item
+ *  that writeDeck then promotes to 'lecture' moments later in the same
+ *  request, and (2) a bank-only re-import targeting a slug that a prior
+ *  request already paired with a deck (content_type is 'lecture' by then).
+ *  Both are this feature's own prior writes and are exactly as safe to
+ *  reuse as the single-kind case the contract's literal code covers — the
+ *  real threat this guards against (a generation-pipeline lecture, a Gen-1
+ *  migrated item, or hand-authored content) is excluded either way, because
+ *  its source_kind/source_ref/bank-signature never matches what this
+ *  feature itself produces for ANY of its two content_types. */
+async function isReimportableByThisFeature(
+  db: Db, existing: { id: string }, courseId: string, slug: string
+): Promise<boolean> {
+  const { data: item, error } = await db
+    .from("content_items")
+    .select("content_type, source_kind, source_ref")
+    .eq("id", existing.id)
+    .single();
+  if (error) throw error;
+
+  if (item.content_type === "lecture") {
+    if (item.source_kind !== "storage_object") return false;
+    if (item.source_ref !== deckStoragePath(courseId, slug)) return false;
+  } else if (item.content_type === "quiz_bank") {
+    if (item.source_kind !== "supabase_record") return false;
+    if (item.source_ref !== slug) return false;
+  } else {
+    // Neither content_type this feature ever produces.
+    return false;
+  }
+
+  const { data: banks, error: bankError } = await db
+    .from("question_banks")
+    .select("bank_type, generation_validation_profile, generation_job_id")
+    .eq("content_item_id", existing.id)
+    .eq("status", "active");
+  if (bankError) throw bankError;
+  // No active bank at all is fine (e.g. a deck-only item with no bank yet).
+  // Any active bank must carry the exact signature only this feature writes:
+  // graded + flexible + no generation_job_id. Practice banks (Gen-1 legacy),
+  // legacy-profile banks (generation pipeline), or anything with a
+  // generation_job_id (always the generation pipeline) all fail this check.
+  return (banks || []).every((bank) =>
+    bank.bank_type === "graded"
+    && bank.generation_validation_profile === "flexible"
+    && bank.generation_job_id == null
+  );
+}
+
+function reuseRefusedError(slug: string) {
+  return new Error(
+    `"${slug}" already has course content that was not created by importing an ` +
+    `external file. Import under a different slug, or archive the existing ` +
+    `content first.`
+  );
+}
+
 async function resolveBankContentItem(
   db: Db, courseId: string, actorProfileId: string, slug: string, title: string
 ): Promise<string> {
@@ -313,6 +422,14 @@ async function resolveBankContentItem(
 
   if (existing) {
     if (isCallersOwn(existing.owner_profile_id, actorProfileId)) {
+      // Critical guard: never silently take over a generation-pipeline
+      // lecture, a Gen-1-migrated item, or hand-authored content. Every real
+      // TC2007B lecture already has an active bank owned by the platform
+      // owner (the same "yours" account) — without this check, importing
+      // under an existing lecture's slug would corrupt it.
+      if (!(await isReimportableByThisFeature(db, existing, courseId, slug))) {
+        throw reuseRefusedError(slug);
+      }
       const { error: updateError } = await db
         .from("content_items")
         .update({ title, updated_at: new Date().toISOString() })
@@ -340,46 +457,61 @@ async function resolveBankContentItem(
   });
 }
 
-async function resolveDeckContentItem(
-  db: Db, courseId: string, actorProfileId: string, slug: string, title: string
-): Promise<{ id: string; slug: string }> {
+/** Read-only: figure out which slug the deck will actually land on, and run
+ *  the owner-safety and Critical-finding reuse checks — all BEFORE anything
+ *  is written, so a slug that turns out to be refused never triggers a
+ *  Storage upload. Does not touch the database. */
+async function resolveDeckTargetSlug(
+  db: Db, courseId: string, actorProfileId: string, slug: string
+): Promise<string> {
   const existing = await findContentItemBySlug(db, courseId, slug);
+  if (!existing) return slug;
 
-  if (existing) {
-    if (isCallersOwn(existing.owner_profile_id, actorProfileId)) {
-      const { error: updateError } = await db
-        .from("content_items")
-        .update({
-          title,
-          content_type: "lecture",
-          source_kind: "storage_object",
-          source_ref: deckStoragePath(courseId, slug),
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", existing.id);
-      if (updateError) throw updateError;
-      return { id: String(existing.id), slug };
+  if (isCallersOwn(existing.owner_profile_id, actorProfileId)) {
+    // Critical guard: same reasoning as resolveBankContentItem — never
+    // silently take over a generation-pipeline lecture, a Gen-1-migrated
+    // item, or hand-authored content.
+    if (!(await isReimportableByThisFeature(db, existing, courseId, slug))) {
+      throw reuseRefusedError(slug);
     }
-    // Owned by a different professor: never name the collision (pitfall #60).
-    const freeSlug = await availableSlug(db, courseId, slug);
-    const id = await insertContentItem(db, courseId, actorProfileId, {
-      slug: freeSlug,
-      title,
-      contentType: "lecture",
-      sourceKind: "storage_object",
-      sourceRef: deckStoragePath(courseId, freeSlug)
-    });
-    return { id, slug: freeSlug };
+    return slug;
   }
 
-  const id = await insertContentItem(db, courseId, actorProfileId, {
+  // Owned by a different professor: never name the collision (pitfall #60).
+  return availableSlug(db, courseId, slug);
+}
+
+/** Write step only — assumes `slug` already passed resolveDeckTargetSlug's
+ *  checks (or is fresh). Called AFTER the Storage upload succeeds, so a
+ *  failed upload never leaves a row pointing at bytes that don't exist. */
+async function writeDeckContentItemRow(
+  db: Db, courseId: string, actorProfileId: string, slug: string, title: string
+): Promise<string> {
+  const existing = await findContentItemBySlug(db, courseId, slug);
+  const sourceRef = deckStoragePath(courseId, slug);
+
+  if (existing) {
+    const { error: updateError } = await db
+      .from("content_items")
+      .update({
+        title,
+        content_type: "lecture",
+        source_kind: "storage_object",
+        source_ref: sourceRef,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", existing.id);
+    if (updateError) throw updateError;
+    return String(existing.id);
+  }
+
+  return insertContentItem(db, courseId, actorProfileId, {
     slug,
     title,
     contentType: "lecture",
     sourceKind: "storage_object",
-    sourceRef: deckStoragePath(courseId, slug)
+    sourceRef
   });
-  return { id, slug };
 }
 
 // ---------------------------------------------------------------------------
@@ -482,12 +614,20 @@ async function writeBank(
       .maybeSingle();
     if (saveError) throw saveError;
 
-    // Options are replaced wholesale: they are meaningless apart from their stem.
-    const { error: deleteError } = await db
+    // Options are replaced wholesale: they are meaningless apart from their
+    // stem. Insert the new four FIRST, then delete the specific old option
+    // ids — question_options has no unique constraint beyond its primary key
+    // (verified: only 0005_authenticated_activity_storage.sql's create
+    // table, nothing else touches this table), so this ordering means the
+    // question never has fewer than its old option count during the swap
+    // (transiently 8, briefly, which nothing reads mid-request) instead of a
+    // window where an active question has zero options if a failure lands
+    // between delete and insert.
+    const { data: oldOptions, error: oldOptionsError } = await db
       .from("question_options")
-      .delete()
+      .select("id")
       .eq("question_id", saved!.id);
-    if (deleteError) throw deleteError;
+    if (oldOptionsError) throw oldOptionsError;
 
     const { error: optionError } = await db.from("question_options").insert(
       question.options.map((option) => ({
@@ -499,13 +639,47 @@ async function writeBank(
       }))
     );
     if (optionError) throw optionError;
+
+    if (oldOptions?.length) {
+      const { error: deleteError } = await db
+        .from("question_options")
+        .delete()
+        .in("id", oldOptions.map((row) => row.id));
+      if (deleteError) throw deleteError;
+    }
+  }
+
+  // A shorter re-import (fewer questions than a previous run of this same
+  // bank) leaves the tail of the old file's questions active unless they're
+  // explicitly archived here. Safe to do unconditionally: the Critical guard
+  // above guarantees every question this function's upsert loop could have
+  // touched — and therefore every import_N key in this bank — originated
+  // from course-content-import itself, never mixed with generated/legacy
+  // questions from a different writer.
+  const currentKeys = questions.map((_, index) => `import_${index}`);
+  const staleKeys = (existing || [])
+    .map((row) => String(row.generation_key))
+    .filter((key) => /^import_\d+$/.test(key) && !currentKeys.includes(key));
+  if (staleKeys.length) {
+    const { error: archiveError } = await db
+      .from("questions")
+      .update({ status: "archived", updated_at: new Date().toISOString() })
+      .eq("question_bank_id", bankId)
+      .in("generation_key", staleKeys);
+    if (archiveError) throw archiveError;
   }
 
   return bankId;
 }
 
 /** Upload the validated deck HTML and resolve/create its content item.
- *  Only called once validateDeckHtml has returned zero problems. */
+ *  Only called once validateDeckHtml has returned zero problems.
+ *
+ *  Ordering matters here: resolve the target slug (read-only — no write to
+ *  content_items) FIRST, then upload, then write/update the row LAST. If the
+ *  upload fails, nothing in content_items has changed — no fresh row points
+ *  at bytes that were never written, and no existing row has been repointed
+ *  away from wherever it correctly pointed before. */
 async function writeDeck(
   db: Db,
   courseId: string,
@@ -520,11 +694,11 @@ async function writeDeck(
   // has no column on content_items — accepted, ignored.
   const html = String(deck.html ?? "");
 
-  const { id: contentItemId, slug: finalSlug } = await resolveDeckContentItem(
-    db, courseId, actorProfileId, requestedSlug, title
-  );
+  // Resolve the target slug (and run the Critical-finding reuse check)
+  // WITHOUT writing anything yet, so a failed upload never touches a row.
+  const targetSlug = await resolveDeckTargetSlug(db, courseId, actorProfileId, requestedSlug);
+  const path = deckStoragePath(courseId, targetSlug);
 
-  const path = deckStoragePath(courseId, finalSlug);
   const { error: uploadError } = await db.storage.from(CONTENT_BUCKET).upload(
     path,
     new Blob([html], { type: "text/html; charset=utf-8" }),
@@ -532,5 +706,6 @@ async function writeDeck(
   );
   if (uploadError) throw uploadError;
 
-  return contentItemId;
+  // Only now write/update the row — the bytes it will point at already exist.
+  return await writeDeckContentItemRow(db, courseId, actorProfileId, targetSlug, title);
 }

@@ -11,9 +11,12 @@ const [fn, config] = await Promise.all([
 // Node's native TypeScript type-stripping imports deck-validation.ts
 // directly — no transpile step, no npm dependency. Same pattern already used
 // by tools/verify-checkpoint-decks.mjs and
-// tools/verify-live-checkpoint-security.mjs, which this repo's own CI runs
-// (.github/workflows/verify-course-deck.yml, node-version: 22).
-// deck-validation.ts uses only erasable syntax (interfaces and type
+// tools/verify-live-checkpoint-security.mjs. This repo's CI
+// (.github/workflows/verify-course-deck.yml, node-version: 22) runs
+// tools/verify-slide-checkpoints.mjs, which imports several .ts files the
+// same way — proving the pattern works under the exact Node version CI
+// uses — and, as of this file's own fix round, runs this script directly
+// too. deck-validation.ts uses only erasable syntax (interfaces and type
 // annotations, no enums/namespaces), so it imports cleanly this way.
 const mod = await import("../supabase/functions/_shared/deck-validation.ts");
 
@@ -57,6 +60,37 @@ assert.deepEqual(
 );
 assert.equal(
   mod.validateDeckHtml("<html><body><p>no title</p></body></html>", opts)[0].kind, "no_title"
+);
+
+// Widened references() matching (final review fix round): quoted attributes
+// alone missed unquoted values, srcset, and CSS url()/@import — each of
+// these must be caught, not silently pass as a page with zero references.
+const unquotedSrc = mod.validateDeckHtml(page("<img src=diagram.png>"), opts);
+assert.equal(unquotedSrc.length, 1, "an unquoted src= must still be found");
+assert.equal(unquotedSrc[0].kind, "relative");
+assert.equal(unquotedSrc[0].reference, "diagram.png");
+
+const srcsetUndeclared = mod.validateDeckHtml(
+  page('<img src="https://amiunique.org/a.png" srcset="https://evil.example.com/beacon.png 1x">'), opts
+);
+assert.ok(
+  srcsetUndeclared.some((problem) => problem.kind === "undeclared_host" && problem.host === "evil.example.com"),
+  "srcset must be scanned for outbound references, not just src"
+);
+
+const cssUrlUndeclared = mod.validateDeckHtml(
+  page('<div style="background:url(https://evil.example.com/bg.png)">x</div>'), opts
+);
+assert.ok(
+  cssUrlUndeclared.some((problem) => problem.kind === "undeclared_host" && problem.host === "evil.example.com"),
+  "a CSS url(...) in a style= attribute is an outbound reference too"
+);
+
+// <title> inside an HTML comment must not count as a real title.
+assert.equal(
+  mod.validateDeckHtml("<html><head><!-- <title>Deck</title> --></head><body>x</body></html>", opts)[0].kind,
+  "no_title",
+  "a <title> that only exists inside a comment never renders"
 );
 
 assert.match(fn, /case "import_content"/);

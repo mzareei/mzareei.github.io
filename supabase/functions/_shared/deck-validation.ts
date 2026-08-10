@@ -7,6 +7,21 @@
 // nothing errors: the links simply work, and take the student somewhere they
 // should not be able to reach. See pitfall #57.
 //
+// What this validates: self-containment (no surviving relative reference,
+// which would 404 behind the gate) and declared outbound links (any host a
+// reference points to must be in the deck's own declared allow-list, or the
+// platform's own forbidden list). It matches quoted/unquoted href/src/srcset/
+// poster/action/formaction/data attributes and CSS url()/@import.
+//
+// What this is NOT: a general inline-script or exfiltration sandbox. It does
+// not parse or sanitize inline <script>/<style> bodies, and it cannot stop
+// content from doing anything client-side that doesn't require a declared
+// reference (e.g. a `fetch()` call built from string concatenation at
+// runtime). The actual runtime control for that class of risk is the
+// `/content` route's CSP — this function's job is narrower: the specific,
+// already-happened failure mode described above, where a deck ships with a
+// literal reference to somewhere it shouldn't.
+//
 // Ported from course-content/lib/validate.mjs, which validates the same
 // property for hand-authored material.
 
@@ -21,11 +36,16 @@ export interface DeckValidationOptions {
   forbiddenHosts: string[];
 }
 
-/** Every href/src in the document. */
+/** Every reference the document can make to somewhere else: quoted or
+ *  unquoted href/src/srcset/poster/action/formaction/data attributes, plus
+ *  CSS url(...) and @import (inline <style> blocks and style= attributes). */
 function references(html: string): string[] {
-  return [...html.matchAll(/(?:href|src)\s*=\s*(?:"([^"]*)"|'([^']*)')/gi)]
-    .map((match) => String(match[1] ?? match[2] ?? "").trim())
-    .filter(Boolean);
+  const attrs = [...html.matchAll(
+    /(?:href|src|srcset|poster|action|formaction|data)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi
+  )].map((match) => String(match[1] ?? match[2] ?? match[3] ?? "").trim());
+  const cssUrls = [...html.matchAll(/url\(\s*(['"]?)([^'")]+)\1\s*\)/gi)].map((match) => match[2].trim());
+  const cssImports = [...html.matchAll(/@import\s+(?:url\()?['"]([^'")]+)['"]\)?/gi)].map((match) => match[1].trim());
+  return [...attrs, ...cssUrls, ...cssImports].filter(Boolean);
 }
 
 function hostOf(reference: string): string | null {
@@ -43,7 +63,10 @@ export function validateDeckHtml(
   html: string, options: DeckValidationOptions
 ): DeckProblem[] {
   const problems: DeckProblem[] = [];
-  if (!/<title>[^<]+<\/title>/i.test(html)) problems.push({ kind: "no_title" });
+  // Strip HTML comments first: an actual <title> must render, not just sit
+  // in a comment (e.g. <!-- <title>Deck</title> --> with no real title).
+  const withoutComments = html.replace(/<!--[\s\S]*?-->/g, "");
+  if (!/<title>[^<]+<\/title>/i.test(withoutComments)) problems.push({ kind: "no_title" });
 
   const allowed = new Set(options.allowedHosts.map((host) => host.toLowerCase()));
   const forbidden = new Set(options.forbiddenHosts.map((host) => host.toLowerCase()));
