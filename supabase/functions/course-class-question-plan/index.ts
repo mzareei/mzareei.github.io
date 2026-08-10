@@ -378,6 +378,111 @@ async function getPlan(db: Db, courseId: string, permissions: Permissions, body:
   return plan ? await serializePlan(db, plan) : null;
 }
 
+type EligibleQuestionRow = {
+  id: string;
+  generation_key: string;
+  topic_tags: unknown;
+  suggested_slide_hint: number | null;
+  suggested_topic: string | null;
+};
+
+function isCheckpointEligible(row: EligibleQuestionRow): boolean {
+  const tags = Array.isArray(row.topic_tags) ? row.topic_tags.map(String) : [];
+  return !(tags.length === 1 && tags[0] === "final");
+}
+
+function pickCheckpointTopic(rows: EligibleQuestionRow[], slide: number): string {
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    const topic = String(row.suggested_topic || "").trim();
+    if (!topic) continue;
+    counts.set(topic, (counts.get(topic) || 0) + 1);
+  }
+  let best: string | null = null;
+  let bestCount = 0;
+  for (const row of rows) {
+    const topic = String(row.suggested_topic || "").trim();
+    if (!topic) continue;
+    const count = counts.get(topic) || 0;
+    if (count > bestCount) {
+      best = topic;
+      bestCount = count;
+    }
+  }
+  return (best || `Slide ${slide}`).slice(0, 160);
+}
+
+/** Groups a bank's checkpoint-eligible questions by their informal slide
+ *  hint and bulk-creates one ordinary planned checkpoint per distinct slide,
+ *  with every question in that group as a candidate. Runs once, right after
+ *  a brand new plan is inserted — never on `copy`, which already carries
+ *  checkpoints forward from its source plan. A bank with no
+ *  suggested_slide_hint data anywhere (hand-typed, or imported before this
+ *  feature existed) creates zero checkpoints here, exactly as before. */
+async function autoGenerateCheckpoints(
+  db: Db,
+  planId: string,
+  questionBankId: string,
+  actorProfileId: string
+) {
+  const { data: rows, error } = await db
+    .from("questions")
+    .select("id, generation_key, topic_tags, suggested_slide_hint, suggested_topic")
+    .eq("question_bank_id", questionBankId)
+    .eq("status", "active")
+    .not("suggested_slide_hint", "is", null)
+    .order("generation_key", { ascending: true });
+  if (error) throw error;
+
+  const eligible = (rows || []).filter(isCheckpointEligible) as EligibleQuestionRow[];
+  if (!eligible.length) return;
+
+  const bySlide = new Map<number, EligibleQuestionRow[]>();
+  for (const row of eligible) {
+    const slide = Number(row.suggested_slide_hint);
+    const bucket = bySlide.get(slide);
+    if (bucket) bucket.push(row);
+    else bySlide.set(slide, [row]);
+  }
+  const slides = [...bySlide.keys()].sort((a, b) => a - b);
+
+  const { data: createdCheckpoints, error: checkpointError } = await db
+    .from("class_question_plan_checkpoints")
+    .insert(
+      slides.map((slide, index) => ({
+        plan_id: planId,
+        position: index + 1,
+        topic: pickCheckpointTopic(bySlide.get(slide)!, slide),
+        slide_hint: slide,
+        state: "planned",
+        updated_by: actorProfileId
+      }))
+    )
+    .select("id, position");
+  if (checkpointError) throw checkpointError;
+
+  const checkpointIdByPosition = new Map(
+    (createdCheckpoints || []).map((row) => [Number(row.position), String(row.id)])
+  );
+  const candidateRows = slides.flatMap((slide, index) => {
+    const checkpointId = checkpointIdByPosition.get(index + 1);
+    if (!checkpointId) return [];
+    return (bySlide.get(slide) || []).map((row, candidateIndex) => ({
+      checkpoint_id: checkpointId,
+      question_bank_id: questionBankId,
+      question_id: row.id,
+      position: candidateIndex + 1,
+      updated_by: actorProfileId
+    }));
+  });
+  if (candidateRows.length) {
+    const { error: candidateError } = await db
+      .from("class_question_plan_candidates")
+      .insert(candidateRows);
+    if (candidateError) throw candidateError;
+  }
+}
+
 async function createPlan(
   db: Db,
   courseId: string,
@@ -408,6 +513,7 @@ async function createPlan(
     if (String(error.code) === "23505") throw new Error("class_question_plan_exists");
     throw error;
   }
+  await autoGenerateCheckpoints(db, String((created as PlanRecord).id), questionBankId, actorProfileId);
   return await serializePlan(db, created as PlanRecord);
 }
 

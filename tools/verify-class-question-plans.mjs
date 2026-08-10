@@ -116,6 +116,37 @@ for (const action of [
   assert.match(planFunction, new RegExp(`body\\.action === "${action}"|case "${action}"`));
 }
 
+assert.match(
+  planFunction,
+  /async function autoGenerateCheckpoints\s*\(/,
+  "createPlan must auto-generate checkpoints from the bank's suggested slide hints"
+);
+assert.match(
+  planFunction,
+  /await autoGenerateCheckpoints\(db,\s*String\(\(created as PlanRecord\)\.id\),\s*questionBankId,\s*actorProfileId\)/,
+  "createPlan must call auto-generation before returning the serialized plan"
+);
+assert.match(
+  planFunction,
+  /\.not\("suggested_slide_hint",\s*"is",\s*null\)/,
+  "checkpoint auto-generation must only use questions carrying a suggested slide hint"
+);
+assert.match(
+  planFunction,
+  /tags\.length === 1 && tags\[0\] === "final"/,
+  "checkpoint auto-generation must exclude questions tagged final-only"
+);
+assert.match(
+  planFunction,
+  /function pickCheckpointTopic\s*\(/,
+  "checkpoint topics must be derived from the bank's suggested topics, with a Slide N fallback"
+);
+assert.match(
+  planFunction,
+  /`Slide \$\{slide\}`/,
+  "a slide group with no suggested topic at all must fall back to a Slide N label"
+);
+
 assert.match(planFunction, /assertSectionAllowed\s*\(/);
 assert.match(
   planFunction,
