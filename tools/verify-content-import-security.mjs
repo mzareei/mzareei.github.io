@@ -3,18 +3,19 @@ import { readFile } from "node:fs/promises";
 
 const root = new URL("..", import.meta.url);
 const read = (path) => readFile(new URL(path, root), "utf8");
-const [validation, fn, config] = await Promise.all([
-  read("supabase/functions/_shared/deck-validation.ts"),
+const [fn, config] = await Promise.all([
   read("supabase/functions/course-content-import/index.ts"),
   read("supabase/config.toml")
 ]);
 
-const compiledPath = new URL("supabase/functions/_shared/deck-validation.ts", root);
-const ts = (await import("typescript")).default;
-const compiled = ts.transpileModule(await readFile(compiledPath, "utf8"), {
-  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 }
-}).outputText;
-const mod = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`);
+// Node's native TypeScript type-stripping imports deck-validation.ts
+// directly — no transpile step, no npm dependency. Same pattern already used
+// by tools/verify-checkpoint-decks.mjs and
+// tools/verify-live-checkpoint-security.mjs, which this repo's own CI runs
+// (.github/workflows/verify-course-deck.yml, node-version: 22).
+// deck-validation.ts uses only erasable syntax (interfaces and type
+// annotations, no enums/namespaces), so it imports cleanly this way.
+const mod = await import("../supabase/functions/_shared/deck-validation.ts");
 
 const opts = {
   allowedHosts: ["amiunique.org"],

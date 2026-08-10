@@ -30,8 +30,3 @@ assets/course-materials/information-security/week-01/lecture/assets/media/
 
 # Claude Code launch config (local preview wiring)
 .claude/launch.json
-
-# Local-only devDependency for tools/verify-content-import-security.mjs
-# (typescript, used to transpile deck-validation.ts for the Node-side test).
-# Not a project-wide npm setup — no package.json is committed.
-node_modules/
