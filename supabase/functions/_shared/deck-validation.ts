@@ -20,7 +20,10 @@
 // runtime). The actual runtime control for that class of risk is the
 // `/content` route's CSP — this function's job is narrower: the specific,
 // already-happened failure mode described above, where a deck ships with a
-// literal reference to somewhere it shouldn't.
+// literal reference to somewhere it shouldn't. Inline <script> BODIES (the
+// JS text between the tags, as opposed to a <script src="..."> attribute,
+// which is still scanned) are excluded from reference scanning entirely —
+// see references()'s comment for why.
 //
 // Ported from course-content/lib/validate.mjs, which validates the same
 // property for hand-authored material.
@@ -38,14 +41,39 @@ export interface DeckValidationOptions {
 
 /** Every reference the document can make to somewhere else: quoted or
  *  unquoted href/src/srcset/poster/action/formaction/data attributes, plus
- *  CSS url(...) and @import (inline <style> blocks and style= attributes). */
+ *  CSS url(...) and @import (inline <style> blocks and style= attributes).
+ *
+ *  Inline <script> BODIES are stripped before any of this runs — the
+ *  attribute regex below has no notion of HTML structure, so without this
+ *  it also matches ordinary JS inside a <script> block (`let src = ...`,
+ *  `const data = ...`, `el.dataset.action = ...`) and misreads a variable
+ *  name as an outbound reference. Imported decks are expected to be
+ *  self-contained HTML with inline JS — that's the whole point of
+ *  "self-contained" — so a meaningful script is likely to use one of these
+ *  ordinary names and would otherwise get rejected with a confusing error.
+ *  Only the BODY is stripped, not the tag: `<script src="...">` is still
+ *  scanned, since that attribute is a real external reference. <style>
+ *  blocks are never stripped — they still need scanning for url()/@import. */
 function references(html: string): string[] {
-  const attrs = [...html.matchAll(
-    /(?:href|src|srcset|poster|action|formaction|data)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi
+  const withoutScriptBodies = html.replace(/(<script\b[^>]*>)[\s\S]*?(<\/script>)/gi, "$1$2");
+
+  const singleValued = [...withoutScriptBodies.matchAll(
+    /(?:href|src|poster|action|formaction|data)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi
   )].map((match) => String(match[1] ?? match[2] ?? match[3] ?? "").trim());
-  const cssUrls = [...html.matchAll(/url\(\s*(['"]?)([^'")]+)\1\s*\)/gi)].map((match) => match[2].trim());
-  const cssImports = [...html.matchAll(/@import\s+(?:url\()?['"]([^'")]+)['"]\)?/gi)].map((match) => match[1].trim());
-  return [...attrs, ...cssUrls, ...cssImports].filter(Boolean);
+
+  // srcset can carry multiple comma-separated candidates, each optionally
+  // followed by a width/density descriptor (" 1x", " 480w") — every
+  // candidate's own URL needs checking, not just the first.
+  const srcsetValues = [...withoutScriptBodies.matchAll(
+    /srcset\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi
+  )].map((match) => String(match[1] ?? match[2] ?? match[3] ?? "").trim());
+  const srcsetUrls = srcsetValues.flatMap((value) =>
+    value.split(",").map((candidate) => candidate.trim().split(/\s+/)[0]).filter(Boolean)
+  );
+
+  const cssUrls = [...withoutScriptBodies.matchAll(/url\(\s*(['"]?)([^'")]+)\1\s*\)/gi)].map((match) => match[2].trim());
+  const cssImports = [...withoutScriptBodies.matchAll(/@import\s+(?:url\()?['"]([^'")]+)['"]\)?/gi)].map((match) => match[1].trim());
+  return [...singleValued, ...srcsetUrls, ...cssUrls, ...cssImports].filter(Boolean);
 }
 
 function hostOf(reference: string): string | null {

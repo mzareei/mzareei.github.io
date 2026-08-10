@@ -93,6 +93,26 @@ assert.equal(
   "a <title> that only exists inside a comment never renders"
 );
 
+// Final review fix round 2: the widened matching above also matched inside
+// inline <script> bodies, since the regex has no notion of HTML structure —
+// ordinary JS like `const data = ...`/`let src = ...` was misread as an
+// outbound reference and rejected a self-contained deck's own legitimate
+// script. This is the regression test for that false positive.
+assert.deepEqual(
+  mod.validateDeckHtml(page("<script>const data = 1;</script>"), opts), [],
+  "an inline <script> body using ordinary variable names (data/src/action/...) must not be misread as a reference"
+);
+
+// srcset with multiple candidates: every candidate's host must be checked,
+// not just the first.
+const srcsetSecondCandidate = mod.validateDeckHtml(
+  page('<img srcset="https://amiunique.org/a.png 1x, https://evil.example.com/b.png 2x">'), opts
+);
+assert.ok(
+  srcsetSecondCandidate.some((problem) => problem.kind === "undeclared_host" && problem.host === "evil.example.com"),
+  "a second (or later) srcset candidate must be scanned too, not just the first"
+);
+
 assert.match(fn, /case "import_content"/);
 assert.match(fn, /validateDeckHtml/);
 assert.match(
