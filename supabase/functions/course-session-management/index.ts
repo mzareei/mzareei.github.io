@@ -654,6 +654,16 @@ async function deleteSession(db: ReturnType<typeof adminClient>, courseId: strin
     p_course_id: courseId
   });
   if (deleteError) {
+    const message = String(deleteError.message || "");
+    if (message.includes("class_session_has_pulse_activity")) {
+      throw new Error("This class has recorded live-question activity and can't be deleted.");
+    }
+    if (message.includes("class_session_not_found")) {
+      throw new Error("Class session not found.");
+    }
+    if (message.includes("class_session_delete_state_invalid")) {
+      throw new Error("Only a planned, cancelled, or closed class day can be deleted.");
+    }
     if (String(deleteError.code) === "23503") {
       throw new Error("This class day has live question history and can't be deleted.");
     }

@@ -32,6 +32,17 @@ begin
     raise exception 'class_session_delete_state_invalid';
   end if;
 
+  -- pulse_rounds.class_session_id is ON DELETE CASCADE (0013_live_pulses.sql),
+  -- so it does NOT get the same restrict-FK protection that
+  -- plan_checkpoint_id gets below — a session pushed through the legacy
+  -- deck-checkpoint flow (plan_checkpoint_id null) has real pulse rounds and
+  -- answers that would otherwise cascade away silently. Block explicitly.
+  if exists (
+    select 1 from public.pulse_rounds where class_session_id = p_session_id
+  ) then
+    raise exception 'class_session_has_pulse_activity';
+  end if;
+
   -- class_question_plans has no ON DELETE clause against class_sessions
   -- (defaults to NO ACTION), so it must go first. This cascades to its own
   -- checkpoints and candidates. If any checkpoint here was ever actually
