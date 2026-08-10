@@ -593,7 +593,7 @@ async function writeBank(
           question_type: "single_choice",
           difficulty: question.difficulty,
           topic_tags: Array.isArray(question.topic_tags)
-            ? question.topic_tags.map((tag) => String(tag))
+            ? question.topic_tags.map((tag) => String(tag).toLowerCase().trim())
             : [],
           points: 1,
           status: "active",
@@ -605,7 +605,9 @@ async function writeBank(
           // unvalidated concept from the strict checkpoint columns below.
           // They let a Class Question Plan auto-build itself later without
           // the professor retyping what the file already said.
-          suggested_slide_hint: Number.isInteger(question.covers_up_to_slide) && (question.covers_up_to_slide as number) > 0
+          suggested_slide_hint: Number.isInteger(question.covers_up_to_slide)
+            && (question.covers_up_to_slide as number) > 0
+            && (question.covers_up_to_slide as number) <= 2147483647
             ? (question.covers_up_to_slide as number)
             : null,
           suggested_topic: typeof question.topic === "string" && question.topic.trim()

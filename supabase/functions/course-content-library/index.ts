@@ -952,7 +952,7 @@ async function copyQuestionBank(db: Db, courseId: string, input: {
 
   const { data: questions, error: questionError } = await db
     .from("questions")
-    .select("id, prompt, prompt_es, question_type, difficulty, topic_tags, points, explanation, explanation_es, status, source, segment_key, source_slide_numbers, source_slide_start, source_slide_end, checkpoint_after_slide")
+    .select("id, prompt, prompt_es, question_type, difficulty, topic_tags, points, explanation, explanation_es, status, source, segment_key, source_slide_numbers, source_slide_start, source_slide_end, checkpoint_after_slide, suggested_slide_hint, suggested_topic")
     .eq("question_bank_id", bank.id)
     .eq("status", "active");
   if (questionError) throw questionError;
@@ -980,6 +980,8 @@ async function copyQuestionBank(db: Db, courseId: string, input: {
         source_slide_start: question.source_slide_start,
         source_slide_end: question.source_slide_end,
         checkpoint_after_slide: question.checkpoint_after_slide,
+        suggested_slide_hint: question.suggested_slide_hint,
+        suggested_topic: question.suggested_topic,
         updated_at: new Date().toISOString()
       })
       .select("id")
