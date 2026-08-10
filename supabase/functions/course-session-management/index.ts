@@ -120,12 +120,22 @@ Deno.serve(async (request) => {
       return json({ activity });
     }
 
+    if (body.action === "delete_session") {
+      await deleteSession(db, courseId, {
+        sessionId: cleanUuid(body.session_id, "A valid session id is required."),
+        actorProfileId: profile.id,
+        permissions
+      });
+      const sessions = await listSessions(db, courseId, permissions);
+      return json({ deleted: true, sessions });
+    }
+
     const sessions = await listSessions(db, courseId, permissions);
     return json({
       sessions,
       allowedSessionTransitions,
       allowedActivityTransitions,
-      actions: ["list_sessions", "create_session", "update_session", "start_session", "update_session_state", "continue_session", "update_activity_state", "extend_activity_window"]
+      actions: ["list_sessions", "create_session", "update_session", "start_session", "update_session_state", "continue_session", "update_activity_state", "extend_activity_window", "delete_session"]
     });
   } catch (error) {
     const message = errorMessage(error, "Unable to manage class sessions.");
@@ -614,6 +624,49 @@ async function listSessions(db: ReturnType<typeof adminClient>, courseId: string
       continuation_count: continuationCount,
       releases: releasesBySession.get(session.id) || []
     };
+  });
+}
+
+async function deleteSession(db: ReturnType<typeof adminClient>, courseId: string, input: {
+  sessionId: string;
+  actorProfileId: string;
+  permissions: {
+    isCourseInstructor: boolean;
+    permittedSectionIds: string[];
+  };
+}) {
+  const { data: session, error } = await db
+    .from("class_sessions")
+    .select("id, state, course_id, section_id, title")
+    .eq("id", input.sessionId)
+    .eq("course_id", courseId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!session) throw new Error("Class session not found.");
+  assertSectionAllowed(input.permissions, session.section_id);
+
+  if (!["planned", "cancelled", "closed"].includes(String(session.state || ""))) {
+    throw new Error("Only a planned, cancelled, or closed class day can be deleted.");
+  }
+
+  const { error: deleteError } = await db.rpc("delete_class_session_atomic", {
+    p_session_id: input.sessionId,
+    p_course_id: courseId
+  });
+  if (deleteError) {
+    if (String(deleteError.code) === "23503") {
+      throw new Error("This class day has live question history and can't be deleted.");
+    }
+    throw deleteError;
+  }
+
+  await insertAudit(db, {
+    courseId,
+    actorProfileId: input.actorProfileId,
+    targetType: "class_session",
+    targetId: session.id,
+    action: "class_session_deleted",
+    metadata: { title: session.title, state: session.state }
   });
 }
 
