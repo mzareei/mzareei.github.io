@@ -6,7 +6,9 @@ on:
       - "supabase/functions/_shared/checkpoint-deck.ts"
       - "supabase/functions/_shared/checkpoints.ts"
       - "supabase/functions/_shared/templates/**"
+      - "supabase/functions/_shared/deck-validation.ts"
       - "supabase/functions/course-generation-worker/**"
+      - "supabase/functions/course-content-import/**"
       - "tools/build-deck-assets.mjs"
       - "tools/verify-slide-checkpoints.mjs"
       - ".github/workflows/verify-course-deck.yml"
@@ -15,7 +17,9 @@ on:
       - "supabase/functions/_shared/checkpoint-deck.ts"
       - "supabase/functions/_shared/checkpoints.ts"
       - "supabase/functions/_shared/templates/**"
+      - "supabase/functions/_shared/deck-validation.ts"
       - "supabase/functions/course-generation-worker/**"
+      - "supabase/functions/course-content-import/**"
       - "tools/build-deck-assets.mjs"
       - "tools/verify-slide-checkpoints.mjs"
       - ".github/workflows/verify-course-deck.yml"
@@ -29,3 +33,5 @@ jobs:
         with:
           node-version: 22
       - run: node tools/verify-slide-checkpoints.mjs
+      - run: node tools/verify-classroom-language.mjs
+      - run: node tools/verify-content-import-security.mjs

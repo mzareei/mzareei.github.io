@@ -190,15 +190,9 @@
     kicker.className = "kicker";
     kicker.textContent = lang === "es" ? "Pregunta en vivo" : "Live question";
     var prompt = document.createElement("h1");
-    prompt.textContent = message.prompt;
+    prompt.textContent = (lang === "es" && message.prompt_es) || message.prompt;
     shell.appendChild(kicker);
     shell.appendChild(prompt);
-    if (message.prompt_es) {
-      var promptEs = document.createElement("p");
-      promptEs.className = "classroom-question-es";
-      promptEs.textContent = message.prompt_es;
-      shell.appendChild(promptEs);
-    }
     var instruction = document.createElement("p");
     instruction.className = "classroom-question-instruction";
     instruction.textContent = lang === "es"
@@ -214,13 +208,7 @@
       key.className = "classroom-question-key";
       key.textContent = String.fromCharCode(65 + index);
       var copy = document.createElement("span");
-      copy.textContent = option.text;
-      if (option.text_es) {
-        var copyEs = document.createElement("span");
-        copyEs.className = "classroom-question-option-es";
-        copyEs.textContent = option.text_es;
-        copy.appendChild(copyEs);
-      }
+      copy.textContent = (lang === "es" && option.text_es) || option.text;
       item.appendChild(key);
       item.appendChild(copy);
       options.appendChild(item);
