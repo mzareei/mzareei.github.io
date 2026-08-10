@@ -403,7 +403,7 @@ async function listQuestions(db: Db, courseId: string, body: Record<string, unkn
   const bank = await loadQuestionBank(db, courseId, body.question_bank_id);
   const { data, error } = await db
     .from("questions")
-    .select("id, generation_key, prompt, prompt_es, explanation, explanation_es, difficulty, segment_key, source_pdf_pages, source_slide_numbers, source_slide_start, source_slide_end, checkpoint_after_slide, status, source, updated_at, question_options(id, option_text, option_text_es, is_correct, position)")
+    .select("id, generation_key, prompt, prompt_es, explanation, explanation_es, difficulty, segment_key, source_pdf_pages, source_slide_numbers, source_slide_start, source_slide_end, checkpoint_after_slide, suggested_slide_hint, suggested_topic, status, source, updated_at, question_options(id, option_text, option_text_es, is_correct, position)")
     .eq("question_bank_id", bank.id)
     .eq("status", "active")
     .order("created_at", { ascending: true });

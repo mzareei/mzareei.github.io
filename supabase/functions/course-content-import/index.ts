@@ -601,12 +601,21 @@ async function writeBank(
           // platform made no model call) and is the column's own default;
           // "imported" is not in the check constraint and would fail.
           source: "authored",
+          // Informal hints carried straight from the file — a separate,
+          // unvalidated concept from the strict checkpoint columns below.
+          // They let a Class Question Plan auto-build itself later without
+          // the professor retyping what the file already said.
+          suggested_slide_hint: Number.isInteger(question.covers_up_to_slide) && (question.covers_up_to_slide as number) > 0
+            ? (question.covers_up_to_slide as number)
+            : null,
+          suggested_topic: typeof question.topic === "string" && question.topic.trim()
+            ? question.topic.trim().slice(0, 160)
+            : null,
           updated_at: new Date().toISOString()
           // Checkpoint columns (segment_key, source_slide_start/end,
           // checkpoint_after_slide) are intentionally left unset — they stay
           // at their schema defaults, the honest state for content with no
-          // checkpoint bridge. covers_up_to_slide from the payload is not a
-          // real column and is accepted-but-ignored for the same reason.
+          // checkpoint bridge.
         },
         { onConflict: "question_bank_id,generation_key" }
       )
