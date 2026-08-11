@@ -1,0 +1,29 @@
+name: Verify RLS coverage
+
+# A public table without RLS is reachable by anyone holding the project URL,
+# because the anon key ships in this site. Two such tables sat open until
+# Supabase's security advisor mailed a critical alert about them. This runs on
+# every migration change so the next one is caught before it is deployed
+# rather than after.
+
+on:
+  push:
+    paths:
+      - "supabase/migrations/**"
+      - "tools/verify-rls-coverage.mjs"
+      - ".github/workflows/verify-rls-coverage.yml"
+  pull_request:
+    paths:
+      - "supabase/migrations/**"
+      - "tools/verify-rls-coverage.mjs"
+      - ".github/workflows/verify-rls-coverage.yml"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node tools/verify-rls-coverage.mjs
