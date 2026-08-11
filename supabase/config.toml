@@ -150,3 +150,7 @@ verify_jwt = false
 [functions.course-class-record]
 # Per-class attendance, engagement and grading; validates the user token, role and section in-function.
 verify_jwt = false
+
+[functions.course-reset]
+# Course-wide activity reset; instructor/owner only, validated in-function behind a typed confirmation.
+verify_jwt = false
