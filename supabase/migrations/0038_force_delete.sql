@@ -69,3 +69,70 @@ revoke all on function public.delete_class_session_atomic(uuid, text, boolean)
   from public, anon, authenticated;
 grant execute on function public.delete_class_session_atomic(uuid, text, boolean)
   to service_role;
+
+drop function if exists public.delete_question_bank_atomic(uuid, text);
+
+create or replace function public.delete_question_bank_atomic(
+  p_bank_id uuid,
+  p_course_id text,
+  p_force boolean default false
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  perform 1
+    from public.question_banks
+    where id = p_bank_id
+      and course_id = p_course_id
+    for update;
+
+  if not found then
+    raise exception 'question_bank_not_found';
+  end if;
+
+  -- Liveness guard stays absolute — force never bypasses "this bank is in
+  -- use by a class happening right now".
+  if exists (
+    select 1
+    from public.class_question_plans plan
+    join public.class_sessions session on session.id = plan.class_session_id
+    where plan.question_bank_id = p_bank_id
+      and session.state in ('open', 'live', 'paused', 'continued')
+  ) then
+    raise exception 'question_bank_in_use_by_live_class';
+  end if;
+
+  if p_force then
+    -- Force mode: explicitly clear the two sets of rows genuinely protected
+    -- by a real ON DELETE RESTRICT — student_responses against this bank's
+    -- questions, and any pulse_rounds pointing at a checkpoint belonging to
+    -- a plan built from this bank. Both are permanently, irreversibly
+    -- destroyed by this branch.
+    delete from public.pulse_rounds
+      where plan_checkpoint_id in (
+        select checkpoint.id
+        from public.class_question_plan_checkpoints checkpoint
+        join public.class_question_plans plan on plan.id = checkpoint.plan_id
+        where plan.question_bank_id = p_bank_id
+      );
+    delete from public.student_responses
+      where question_id in (
+        select id from public.questions where question_bank_id = p_bank_id
+      );
+  end if;
+
+  delete from public.class_question_plans
+    where question_bank_id = p_bank_id;
+
+  delete from public.question_banks
+    where id = p_bank_id;
+end;
+$$;
+
+revoke all on function public.delete_question_bank_atomic(uuid, text, boolean)
+  from public, anon, authenticated;
+grant execute on function public.delete_question_bank_atomic(uuid, text, boolean)
+  to service_role;

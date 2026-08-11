@@ -564,7 +564,8 @@ async function deleteBank(db: Db, courseId: string, actorProfileId: string, body
 
   const { error: deleteError } = await db.rpc("delete_question_bank_atomic", {
     p_bank_id: bankId,
-    p_course_id: courseId
+    p_course_id: courseId,
+    p_force: Boolean(body.force)
   });
   if (deleteError) {
     if (String(deleteError.message || "").includes("question_bank_not_found")) {
