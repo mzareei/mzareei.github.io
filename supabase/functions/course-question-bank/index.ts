@@ -558,6 +558,9 @@ async function deleteBank(db: Db, courseId: string, actorProfileId: string, body
     p_course_id: courseId
   });
   if (deleteError) {
+    if (String(deleteError.message || "").includes("question_bank_not_found")) {
+      throw new Error("Question bank not found.");
+    }
     if (String(deleteError.code) === "23503") {
       throw new Error("This bank has recorded student answers or live question history and can't be deleted.");
     }
