@@ -81,7 +81,6 @@ Deno.serve(async (request) => {
 
     const catalog = await loadCatalog(db, courseId, permissions);
     const rows = await loadGradebookRows(db, courseId, filters, permissions);
-    const weightedSummary = buildWeightedGradeSummary(rows);
 
     if (body.action === "export_csv") {
       return csvResponse(rows, `tc2007b-gradebook-${new Date().toISOString().slice(0, 10)}.csv`);
@@ -92,7 +91,6 @@ Deno.serve(async (request) => {
       items: catalog.items,
       sections: catalog.sections,
       scores: rows,
-      weighted_summary: weightedSummary,
       filters,
       actions: permissions.isCourseInstructor ? ["summary", "export_csv", "save_category", "adjust_score", "lock_score", "set_score_status"] : ["summary", "export_csv"]
     });
@@ -703,8 +701,6 @@ async function loadGradebookRows(db: Db, courseId: string, filters: {
       item_title: item.title || "Untitled item",
       category_id: item.category_id || "",
       category_name: category.name || "",
-      category_weight_percent: Number(category.weight_percent || 0),
-      drop_lowest_count: Number(category.drop_lowest_count || 0),
       section_id: score.section_id,
       section_code: section.section_code || "",
       section_name: section.section_name || "",
@@ -740,72 +736,6 @@ function assertSectionAllowed(permissions: {
   if (permissions.isGlobalCourseInstructor) return;
   if (permissions.permittedSectionIds.includes(String(sectionId))) return;
   throw new Error("You are not allowed to review this section.");
-}
-
-function buildWeightedGradeSummary(rows: Record<string, unknown>[]) {
-  const categories = new Map<string, {
-    category_id: string;
-    category_name: string;
-    category_weight_percent: number;
-    drop_lowest_count: number;
-    scores: number[];
-  }>();
-
-  rows.forEach((row) => {
-    const score = Number(row.score_final);
-    if (!Number.isFinite(score)) return;
-    const categoryId = String(row.category_id || "uncategorized");
-    const current = categories.get(categoryId) || {
-      category_id: categoryId,
-      category_name: String(row.category_name || "Uncategorized"),
-      category_weight_percent: Number(row.category_weight_percent || 0),
-      drop_lowest_count: Number(row.drop_lowest_count || 0),
-      scores: []
-    };
-    current.scores.push(score);
-    categories.set(categoryId, current);
-  });
-
-  const category_summaries = Array.from(categories.values())
-    .map((category) => {
-      const { kept, dropped } = applyDropLowest(category.scores, category.drop_lowest_count);
-      const category_average_percent = kept.length
-        ? roundOne(kept.reduce((sum, score) => sum + score, 0) / kept.length)
-        : 0;
-      return {
-        category_id: category.category_id,
-        category_name: category.category_name,
-        category_weight_percent: category.category_weight_percent,
-        drop_lowest_count: category.drop_lowest_count,
-        score_count: category.scores.length,
-        kept_score_count: kept.length,
-        dropped_score_count: dropped.length,
-        category_average_percent,
-        weighted_points: roundOne(category_average_percent * category.category_weight_percent / 100)
-      };
-    })
-    .sort((a, b) => String(a.category_name).localeCompare(String(b.category_name)));
-
-  const configured_weight_percent = roundOne(category_summaries.reduce((sum, category) => sum + Number(category.category_weight_percent || 0), 0));
-  const weightedPoints = category_summaries.reduce((sum, category) => sum + Number(category.weighted_points || 0), 0);
-  const weighted_course_percent = configured_weight_percent
-    ? roundOne(weightedPoints / configured_weight_percent * 100)
-    : 0;
-
-  return {
-    weighted_course_percent,
-    configured_weight_percent,
-    category_summaries
-  };
-}
-
-function applyDropLowest(scores: number[], dropLowestCount: number) {
-  const sorted = [...scores].sort((a, b) => a - b);
-  const dropCount = Math.min(Math.max(Number(dropLowestCount || 0), 0), Math.max(sorted.length - 1, 0));
-  return {
-    dropped: sorted.slice(0, dropCount),
-    kept: sorted.slice(dropCount)
-  };
 }
 
 function csvResponse(rows: Record<string, unknown>[], filename: string) {
@@ -849,10 +779,6 @@ function csvCell(value: unknown) {
     return `"${text.replace(/"/g, '""')}"`;
   }
   return text;
-}
-
-function roundOne(value: number) {
-  return Math.round(value * 10) / 10;
 }
 
 function unique(values: unknown[]) {

@@ -3,8 +3,9 @@
 // Reuses the authenticated activity engine (activity_templates / activity_instances
 // / student_attempts in course-activity-attempt) rather than building a second
 // grading path. This function only orchestrates the parts that engine doesn't do
-// on its own: making sure a lecture has a quiz template + gradebook slot, and
-// opening/closing a live instance for a specific class session.
+// on its own: making sure a lecture has a quiz template, and opening/closing a
+// live instance for a specific class session. It posts no grade of its own —
+// the quiz is a component of the class grade, which course-class-record owns.
 //
 // Questions are never typed by the instructor — they come from the same
 // generated bank the pulses draw from (course-question-bank), keyed by the
@@ -22,7 +23,6 @@ const openSessionStates = ["open", "live", "paused", "continued"];
 // An activity_instance in one of these is still "running" — students can reach
 // it, and starting a quiz reuses it rather than opening a duplicate.
 const openInstanceStates = ["open", "live", "paused"];
-const gradebookCategoryName = "Quizzes";
 const defaultQuestionCount = 12;
 const defaultTimeLimitSeconds = 600;
 
@@ -170,27 +170,21 @@ async function loadLectureItem(db: Db, courseId: string, slug: string) {
   return data;
 }
 
-async function ensureGradebookCategory(db: Db, courseId: string) {
-  const { data: existing, error } = await db
-    .from("gradebook_categories")
-    .select("id")
-    .eq("course_id", courseId)
-    .eq("name", gradebookCategoryName)
-    .maybeSingle();
-  if (error) throw error;
-  if (existing) return existing.id;
-
-  const { data: created, error: createError } = await db
-    .from("gradebook_categories")
-    .insert({ course_id: courseId, name: gradebookCategoryName, weight_percent: 30, drop_lowest_count: 1, status: "active" })
-    .select("id")
-    .single();
-  if (createError) throw createError;
-  return created.id;
-}
-
-/** One quiz template + gradebook slot per lecture, created once and reused. */
-async function ensureTemplateAndItem(db: Db, courseId: string, item: { id: string; title: string }) {
+/**
+ * One quiz template per lecture, created once and reused.
+ *
+ * Deliberately no gradebook item. The quiz score is a COMPONENT of the class
+ * grade — 70% of it — not a grade of its own. Posting it separately put the
+ * same performance in the gradebook twice, once raw and once folded into the
+ * class grade, and the raw one is the number that has no defensible meaning on
+ * its own: it ignores the mastery threshold, the pulse questions, and the exit
+ * ticket. The class record is the only thing that posts a grade.
+ *
+ * With no item carrying this template, course-activity-attempt's
+ * syncGradebookScore finds nothing and posts nothing — that is the intended
+ * path, not an accident of lookup order.
+ */
+async function ensureQuizTemplate(db: Db, item: { id: string; title: string }) {
   const { data: template, error: templateError } = await db
     .from("activity_templates")
     .upsert(
@@ -207,28 +201,7 @@ async function ensureTemplateAndItem(db: Db, courseId: string, item: { id: strin
     .select("id")
     .maybeSingle();
   if (templateError) throw templateError;
-  const templateId = template!.id;
-
-  const categoryId = await ensureGradebookCategory(db, courseId);
-  const { data: gradebookItem, error: itemError } = await db
-    .from("gradebook_items")
-    .upsert(
-      {
-        course_id: courseId,
-        category_id: categoryId,
-        activity_template_id: templateId,
-        title: `${item.title} — Quiz`,
-        max_score: 100,
-        status: "published",
-        updated_at: new Date().toISOString()
-      },
-      { onConflict: "category_id,title" }
-    )
-    .select("id")
-    .maybeSingle();
-  if (itemError) throw itemError;
-
-  return { templateId, gradebookItemId: gradebookItem!.id };
+  return { templateId: template!.id };
 }
 
 async function bankQuestionCounts(db: Db, courseId: string, contentItemId: string) {
@@ -305,7 +278,7 @@ async function startQuiz(db: Db, courseId: string, actorProfileId: string, body:
   const available = await bankQuestionCounts(db, courseId, item.id);
   if (!available) throw new Error("This lecture has no question bank yet.");
 
-  const { templateId } = await ensureTemplateAndItem(db, courseId, item);
+  const { templateId } = await ensureQuizTemplate(db, item);
   const questionCount = Math.min(available, Math.max(1, Number(body.question_count) || defaultQuestionCount));
   const timeLimit = Math.min(3600, Math.max(60, Number(body.time_limit_seconds) || defaultTimeLimitSeconds));
 

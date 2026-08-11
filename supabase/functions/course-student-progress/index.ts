@@ -1,6 +1,7 @@
 import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
+import { gradingWeights, studentClassGrades, type StudentClassGrade } from "../_shared/class-grade.ts";
 
 type Db = ReturnType<typeof adminClient>;
 
@@ -28,7 +29,8 @@ Deno.serve(async (request) => {
     const releasedPractice = await loadReleasedPractice(db, courseId, sectionIds);
     const portfolioEntries = await loadPortfolioEntries(db, courseId, String(profile.id), sectionIds);
     const reviewCoach = await buildReviewCoach(db, attempts, releasedPractice);
-    const weightedSummary = buildWeightedGradeSummary(scores);
+    const classGrades = await studentClassGrades(db, courseId, String(profile.id), sectionIds);
+    const courseSummary = buildCourseSummary(classGrades);
 
     return json({
       profile,
@@ -38,9 +40,11 @@ Deno.serve(async (request) => {
       portfolio_entries: portfolioEntries,
       released_practice: releasedPractice,
       review_coach: reviewCoach,
-      weighted_summary: weightedSummary,
+      class_grades: classGrades,
+      course_summary: courseSummary,
+      grading_rule: gradingWeights(),
       recommendations: reviewCoach.recommendations,
-      summary: summarize(scores, attempts, portfolioEntries, weightedSummary)
+      summary: summarize(scores, attempts, portfolioEntries, courseSummary)
     });
   } catch (error) {
     const message = error.message || "Unable to load student progress.";
@@ -120,7 +124,7 @@ async function loadScores(db: Db, courseId: string, profileId: string, sectionId
   const { data: categories, error: categoryError } = categoryIds.length
     ? await db
         .from("gradebook_categories")
-        .select("id, name, weight_percent, drop_lowest_count")
+        .select("id, name")
         .eq("course_id", courseId)
         .in("id", categoryIds)
     : { data: [], error: null };
@@ -138,8 +142,6 @@ async function loadScores(db: Db, courseId: string, profileId: string, sectionId
         category_id: item.category_id || "",
         item_title: item.title || "Untitled activity",
         category_name: category.name || "",
-        category_weight_percent: Number(category.weight_percent || 0),
-        drop_lowest_count: Number(category.drop_lowest_count || 0),
         max_score: item.max_score,
         due_at: item.due_at,
         score_raw: score.score_raw,
@@ -342,88 +344,36 @@ function recommendation(title: string, body: string, item: Record<string, unknow
   };
 }
 
-function buildWeightedGradeSummary(rows: Record<string, unknown>[]) {
-  const categories = new Map<string, {
-    category_id: string;
-    category_name: string;
-    category_weight_percent: number;
-    drop_lowest_count: number;
-    scores: number[];
-  }>();
-
-  rows.forEach((row) => {
-    const score = Number(row.score_final);
-    if (!Number.isFinite(score)) return;
-    const categoryId = String(row.category_id || "uncategorized");
-    const current = categories.get(categoryId) || {
-      category_id: categoryId,
-      category_name: String(row.category_name || "Uncategorized"),
-      category_weight_percent: Number(row.category_weight_percent || 0),
-      drop_lowest_count: Number(row.drop_lowest_count || 0),
-      scores: []
-    };
-    current.scores.push(score);
-    categories.set(categoryId, current);
-  });
-
-  const category_summaries = Array.from(categories.values())
-    .map((category) => {
-      const { kept, dropped } = applyDropLowest(category.scores, category.drop_lowest_count);
-      const category_average_percent = kept.length
-        ? roundOne(kept.reduce((sum, score) => sum + score, 0) / kept.length)
-        : 0;
-      return {
-        category_id: category.category_id,
-        category_name: category.category_name,
-        category_weight_percent: category.category_weight_percent,
-        drop_lowest_count: category.drop_lowest_count,
-        score_count: category.scores.length,
-        kept_score_count: kept.length,
-        dropped_score_count: dropped.length,
-        category_average_percent,
-        weighted_points: roundOne(category_average_percent * category.category_weight_percent / 100)
-      };
-    })
-    .sort((a, b) => String(a.category_name).localeCompare(String(b.category_name)));
-
-  const configured_weight_percent = roundOne(category_summaries.reduce((sum, category) => sum + Number(category.category_weight_percent || 0), 0));
-  const weightedPoints = category_summaries.reduce((sum, category) => sum + Number(category.weighted_points || 0), 0);
-  const weighted_course_percent = configured_weight_percent
-    ? roundOne(weightedPoints / configured_weight_percent * 100)
-    : 0;
-
+/**
+ * The course total: the plain average of the class grades so far.
+ *
+ * Unweighted on purpose. Every class is one grade and every class counts the
+ * same, so there is no category to weight and nothing to drop. A student who
+ * has sat three classes is told the average of those three, not a fraction of
+ * a semester they have not lived through yet.
+ */
+function buildCourseSummary(classGrades: StudentClassGrade[]) {
+  const graded = classGrades.filter((entry) => typeof entry.grade === "number");
+  const total = graded.reduce((sum, entry) => sum + Number(entry.grade), 0);
   return {
-    weighted_course_percent,
-    configured_weight_percent,
-    category_summaries
+    course_percent: graded.length ? roundOne(total / graded.length) : null,
+    graded_class_count: graded.length,
+    class_count: classGrades.length
   };
 }
 
-function applyDropLowest(scores: number[], dropLowestCount: number) {
-  const sorted = [...scores].sort((a, b) => a - b);
-  const dropCount = Math.min(Math.max(Number(dropLowestCount || 0), 0), Math.max(sorted.length - 1, 0));
-  return {
-    dropped: sorted.slice(0, dropCount),
-    kept: sorted.slice(dropCount)
-  };
-}
-
-function summarize(scores: Record<string, unknown>[], attempts: Record<string, unknown>[], portfolioEntries: Record<string, unknown>[], weightedSummary: Record<string, unknown>) {
-  const scoreValues = scores
-    .map((score) => Number(score.score_final))
-    .filter((value) => Number.isFinite(value));
-  const average_final = scoreValues.length
-    ? Math.round((scoreValues.reduce((sum, value) => sum + value, 0) / scoreValues.length) * 10) / 10
-    : 0;
-  const weighted_course_percent = Number(weightedSummary.weighted_course_percent || 0);
-  const configured_weight_percent = Number(weightedSummary.configured_weight_percent || 0);
+function summarize(
+  scores: Record<string, unknown>[],
+  attempts: Record<string, unknown>[],
+  portfolioEntries: Record<string, unknown>[],
+  courseSummary: { course_percent: number | null; graded_class_count: number }
+) {
   return {
     score_count: scores.length,
     attempt_count: attempts.length,
     portfolio_entries: portfolioEntries.length,
-    average_final,
-    weighted_course_percent,
-    configured_weight_percent,
+    course_percent: courseSummary.course_percent,
+    graded_class_count: courseSummary.graded_class_count,
     submitted_attempts: attempts.filter((attempt) => ["submitted", "late"].includes(String(attempt.status))).length
   };
 }

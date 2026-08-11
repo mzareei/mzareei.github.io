@@ -12,29 +12,17 @@
 import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
+import {
+  CLASS_GRADE_CATEGORY_NAME,
+  computeGrade,
+  gradingWeights,
+  round2
+} from "../_shared/class-grade.ts";
 
 type Db = ReturnType<typeof adminClient>;
 
 const instructorRoles = ["platform_owner", "instructor"];
 const teacherRoles = ["platform_owner", "instructor", "teaching_assistant"];
-
-// Weights. The pulse questions asked during the lecture are worth less than the
-// quiz at the end because they are asked under time pressure, one at a time,
-// while the lecture is still moving.
-const PULSE_WEIGHT = 0.3;
-const QUIZ_WEIGHT = 0.7;
-
-// The share of the material a student has to get right to earn 100 for the
-// class. This is a THRESHOLD, not a count of forgiven mistakes: 20% of however
-// many questions were actually asked. Three wrong out of fifteen and two wrong
-// out of ten both land on 100.
-const MASTERY_THRESHOLD = 0.8;
-
-// The final written submission is required but never graded for quality. Its
-// absence costs a fifth of the class grade; its contents cost nothing.
-const MISSING_SUBMISSION_MULTIPLIER = 0.8;
-
-const gradebookCategoryName = "Class grades";
 
 Deno.serve(async (request) => {
   const options = handleOptions(request);
@@ -457,81 +445,6 @@ async function loadQuiz(db: Db, session: ClassSession) {
 
 // ------------------------------------------------------------------- grading
 
-type GradeBreakdown = ReturnType<typeof computeGrade>;
-
-/**
- * The whole grading rule, in one place.
- *
- *   raw   = 30% pulse accuracy + 70% quiz accuracy
- *   grade = min(100, raw / 0.80 × 100)
- *   final = grade × 0.80 when the written submission is missing
- *
- * Returns the arithmetic as well as the answer, because the professor has to be
- * able to show a student exactly how their number was reached.
- */
-function computeGrade(input: {
-  pulseCorrect: number;
-  pulseTotal: number;
-  quizCorrect: number;
-  quizTotal: number;
-  submissionPresent: boolean;
-}) {
-  const pulseAvailable = input.pulseTotal > 0;
-  const quizAvailable = input.quizTotal > 0;
-
-  const pulseAccuracy = pulseAvailable ? input.pulseCorrect / input.pulseTotal : null;
-  const quizAccuracy = quizAvailable ? input.quizCorrect / input.quizTotal : null;
-
-  // Early in a semester a class often has pulses but no quiz, or the reverse.
-  // Rather than scoring the missing half as zero, the surviving component takes
-  // the full weight. When neither ran there is nothing to grade at all — and
-  // that is null, never 0: a class that graded nothing did not fail anybody.
-  let pulseWeight = 0;
-  let quizWeight = 0;
-  if (pulseAvailable && quizAvailable) {
-    pulseWeight = PULSE_WEIGHT;
-    quizWeight = QUIZ_WEIGHT;
-  } else if (pulseAvailable) {
-    pulseWeight = 1;
-  } else if (quizAvailable) {
-    quizWeight = 1;
-  }
-
-  const gradable = pulseAvailable || quizAvailable;
-  const rawScore = gradable
-    ? (pulseAccuracy ?? 0) * pulseWeight + (quizAccuracy ?? 0) * quizWeight
-    : null;
-
-  const scaled =
-    rawScore === null ? null : Math.min(100, (rawScore / MASTERY_THRESHOLD) * 100);
-  const penaltyApplied = gradable && !input.submissionPresent;
-  const finalGrade =
-    scaled === null ? null : round2(penaltyApplied ? scaled * MISSING_SUBMISSION_MULTIPLIER : scaled);
-
-  return {
-    pulse_correct: input.pulseCorrect,
-    pulse_total: input.pulseTotal,
-    pulse_accuracy_percent: pulseAccuracy === null ? null : round2(pulseAccuracy * 100),
-    pulse_weight_percent: round2(pulseWeight * 100),
-    quiz_correct: input.quizCorrect,
-    quiz_total: input.quizTotal,
-    quiz_accuracy_percent: quizAccuracy === null ? null : round2(quizAccuracy * 100),
-    quiz_weight_percent: round2(quizWeight * 100),
-    raw_score_percent: rawScore === null ? null : round2(rawScore * 100),
-    mastery_threshold_percent: round2(MASTERY_THRESHOLD * 100),
-    scaled_grade: scaled === null ? null : round2(scaled),
-    capped: scaled !== null && rawScore !== null && rawScore >= MASTERY_THRESHOLD,
-    submission_present: input.submissionPresent,
-    penalty_applied: penaltyApplied,
-    penalty_percent: penaltyApplied ? round2((1 - MISSING_SUBMISSION_MULTIPLIER) * 100) : 0,
-    calculated_grade: finalGrade
-  };
-}
-
-function round2(value: number) {
-  return Math.round(value * 100) / 100;
-}
-
 async function gradingTable(db: Db, session: ClassSession) {
   const roster = await loadRoster(db, String(session.section_id));
   const [pulse, quiz, reflections, overrides] = await Promise.all([
@@ -580,12 +493,7 @@ async function gradingTable(db: Db, session: ClassSession) {
 
   return {
     session: sessionHeader(session),
-    weights: {
-      pulse_percent: round2(PULSE_WEIGHT * 100),
-      quiz_percent: round2(QUIZ_WEIGHT * 100),
-      mastery_threshold_percent: round2(MASTERY_THRESHOLD * 100),
-      missing_submission_penalty_percent: round2((1 - MISSING_SUBMISSION_MULTIPLIER) * 100)
-    },
+    weights: gradingWeights(),
     totals: {
       graded_pulse_questions: pulse.gradedRoundCount,
       pulse_rounds_pushed: pulse.roundCount,
@@ -801,36 +709,54 @@ async function ensureGradebookCategory(db: Db, courseId: string) {
     .from("gradebook_categories")
     .select("id")
     .eq("course_id", courseId)
-    .eq("name", gradebookCategoryName)
+    .eq("name", CLASS_GRADE_CATEGORY_NAME)
     .maybeSingle();
   if (error) throw error;
   if (existing) return String(existing.id);
 
+  // The category groups class grades; it does not weight them. There is one
+  // grade per class and the course total is their plain average, so
+  // weight_percent has nothing left to configure.
   const { data: created, error: createError } = await db
     .from("gradebook_categories")
-    .insert({ course_id: courseId, name: gradebookCategoryName, weight_percent: 0, status: "active" })
+    .insert({ course_id: courseId, name: CLASS_GRADE_CATEGORY_NAME, weight_percent: 100, status: "active" })
     .select("id")
     .single();
   if (createError) throw createError;
   return String(created.id);
 }
 
+/**
+ * One item per class, found by its class session rather than by rebuilding its
+ * title. Renaming a session used to strand its grades behind a title that no
+ * longer matched and silently post a second item beside the first.
+ */
 async function ensureGradebookItem(db: Db, session: ClassSession, categoryId: string) {
   const title = `Class ${session.sequence_number} — ${session.title}`.slice(0, 180);
   const { data: existing, error } = await db
     .from("gradebook_items")
-    .select("id")
-    .eq("category_id", categoryId)
-    .eq("title", title)
+    .select("id, title")
+    .eq("class_session_id", session.id)
     .maybeSingle();
   if (error) throw error;
-  if (existing) return String(existing.id);
+  if (existing) {
+    // Keep the label current if the class was renamed since it was first posted.
+    if (String(existing.title) !== title) {
+      const { error: renameError } = await db
+        .from("gradebook_items")
+        .update({ title, updated_at: new Date().toISOString() })
+        .eq("id", existing.id);
+      if (renameError) throw renameError;
+    }
+    return String(existing.id);
+  }
 
   const { data: created, error: createError } = await db
     .from("gradebook_items")
     .insert({
       course_id: session.course_id,
       category_id: categoryId,
+      class_session_id: session.id,
       title,
       max_score: 100,
       status: "published"
