@@ -72,6 +72,10 @@ Deno.serve(async (request) => {
         if (!isInstructor) throw new Error("Question deletion is not allowed for this role.");
         return json(await deleteQuestion(db, courseId, String(profile.id), body));
       }
+      case "delete_bank": {
+        if (!isInstructor) throw new Error("Deleting a question bank is not allowed for this role.");
+        return json(await deleteBank(db, courseId, String(profile.id), body));
+      }
       case "draw_question": {
         if (!isTeacher) throw new Error("Drawing a question is not allowed for this role.");
         return json(await drawQuestion(db, courseId, body));
@@ -536,6 +540,40 @@ async function deleteQuestion(db: Db, courseId: string, actorProfileId: string, 
     metadata: { question_bank_id: bank.id, generation_key: question.generation_key }
   });
   return { question_id: question.id, bank_id: bank.id, deleted: true };
+}
+
+async function deleteBank(db: Db, courseId: string, actorProfileId: string, body: Record<string, unknown>) {
+  const bankId = cleanUuid(body.question_bank_id, "question bank id");
+  const { data: bank, error } = await db
+    .from("question_banks")
+    .select("id, title, course_id")
+    .eq("id", bankId)
+    .eq("course_id", courseId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!bank) throw new Error("Question bank not found.");
+
+  const { error: deleteError } = await db.rpc("delete_question_bank_atomic", {
+    p_bank_id: bankId,
+    p_course_id: courseId
+  });
+  if (deleteError) {
+    if (String(deleteError.code) === "23503") {
+      throw new Error("This bank has recorded student answers or live question history and can't be deleted.");
+    }
+    throw deleteError;
+  }
+
+  await db.from("audit_log").insert({
+    course_id: courseId,
+    actor_profile_id: actorProfileId,
+    target_type: "question_bank",
+    target_id: bank.id,
+    action: "question_bank_deleted",
+    metadata: { title: bank.title }
+  });
+
+  return { question_bank_id: bank.id, deleted: true };
 }
 
 async function drawQuestion(db: Db, courseId: string, body: Record<string, unknown>) {

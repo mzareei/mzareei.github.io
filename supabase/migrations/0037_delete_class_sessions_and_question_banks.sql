@@ -65,3 +65,46 @@ revoke all on function public.delete_class_session_atomic(uuid, text)
   from public, anon, authenticated;
 grant execute on function public.delete_class_session_atomic(uuid, text)
   to service_role;
+
+create or replace function public.delete_question_bank_atomic(
+  p_bank_id uuid,
+  p_course_id text
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  perform 1
+    from public.question_banks
+    where id = p_bank_id
+      and course_id = p_course_id
+    for update;
+
+  if not found then
+    raise exception 'question_bank_not_found';
+  end if;
+
+  -- class_question_plans/class_question_plan_candidates have no ON DELETE
+  -- clause against question_banks (defaults to NO ACTION), so any plan
+  -- built from this bank goes first. Same as the session delete: a
+  -- checkpoint that was ever actually sent live raises a real
+  -- foreign_key_violation here and the whole transaction rolls back.
+  delete from public.class_question_plans
+    where question_bank_id = p_bank_id;
+
+  -- Cascades to questions, which cascades to question_options. If any
+  -- question here was ever answered by a student, student_responses'
+  -- ON DELETE RESTRICT blocks the cascade at that question and this
+  -- statement raises a real foreign_key_violation — deliberately not
+  -- caught here.
+  delete from public.question_banks
+    where id = p_bank_id;
+end;
+$$;
+
+revoke all on function public.delete_question_bank_atomic(uuid, text)
+  from public, anon, authenticated;
+grant execute on function public.delete_question_bank_atomic(uuid, text)
+  to service_role;
