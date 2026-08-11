@@ -109,11 +109,12 @@ Deno.serve(async (request) => {
       || message === "content_item_not_found"
       || message === "content_item_has_active_release"
       || message === "content_item_has_active_bank"
+      || message === "content_item_has_activity_history"
       || message === "content_item_id_required"
     ) {
       const status = message === "content_item_not_found"
         ? 404
-        : message === "content_item_has_active_release" || message === "content_item_has_active_bank"
+        : message === "content_item_has_active_release" || message === "content_item_has_active_bank" || message === "content_item_has_activity_history"
           ? 409
           : message === "content_share_target_invalid" || message === "content_item_id_required"
             ? 400
@@ -549,7 +550,7 @@ async function deleteContentItem(db: Db, courseId: string, input: {
 }) {
   const { data: existing, error } = await db
     .from("content_items")
-    .select("id, course_id, title, owner_profile_id")
+    .select("id, course_id, title, content_type, slug, owner_profile_id")
     .eq("id", input.itemId)
     .eq("course_id", courseId)
     .maybeSingle();
@@ -567,6 +568,33 @@ async function deleteContentItem(db: Db, courseId: string, input: {
   if (releaseError) throw releaseError;
   if ((blockingReleaseCount || 0) > 0) {
     throw new Error("content_item_has_active_release");
+  }
+
+  // course-class-quiz's ensureTemplateAndItem creates/reuses an
+  // activity_templates row for this content item every time an end-of-class
+  // quiz runs against it — the live, primary end-of-class quiz path, not
+  // dead schema. A lecture taught weeks ago with its release long since
+  // closed can still have real graded activity_instances (and, beneath
+  // them, student_attempts/student_responses) sitting behind it. All four
+  // cascade ON DELETE CASCADE from content_items, so without this guard the
+  // delete above would silently wipe graded quiz history. Refuse on ANY
+  // activity_instances at all, regardless of the instance's own state —
+  // same blanket-refusal shape as the pulse_rounds guard on session delete.
+  const { data: templates, error: templatesError } = await db
+    .from("activity_templates")
+    .select("id")
+    .eq("content_item_id", existing.id);
+  if (templatesError) throw templatesError;
+
+  if ((templates || []).length) {
+    const { count: instanceCount, error: instanceError } = await db
+      .from("activity_instances")
+      .select("id", { count: "exact", head: true })
+      .in("activity_template_id", templates.map((template) => template.id));
+    if (instanceError) throw instanceError;
+    if ((instanceCount || 0) > 0) {
+      throw new Error("content_item_has_activity_history");
+    }
   }
 
   const { error: deleteError } = await db
@@ -591,7 +619,7 @@ async function deleteContentItem(db: Db, courseId: string, input: {
     targetType: "content_item",
     targetId: existing.id,
     action: "content_item_deleted",
-    metadata: { title: existing.title }
+    metadata: { title: existing.title, content_type: existing.content_type, slug: existing.slug }
   });
 
   return { content_item_id: existing.id, deleted: true };

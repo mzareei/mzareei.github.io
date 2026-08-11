@@ -86,6 +86,24 @@ begin
     raise exception 'question_bank_not_found';
   end if;
 
+  -- Unlike session delete (blocked on live pulse_rounds) and content-item
+  -- delete (blocked on a currently-visible release), this function had no
+  -- liveness guard at all. Deleting a bank while a class using it is
+  -- currently open/live/paused would silently delete that class's
+  -- class_question_plans row — its live checkpoint plan — out from under
+  -- the professor mid-class. This cannot destroy graded data (pulse_rounds
+  -- keep their own prompt snapshot and are protected separately), but it is
+  -- a real, disruptive asymmetry with the other two deletes.
+  if exists (
+    select 1
+    from public.class_question_plans plan
+    join public.class_sessions session on session.id = plan.class_session_id
+    where plan.question_bank_id = p_bank_id
+      and session.state in ('open', 'live', 'paused')
+  ) then
+    raise exception 'question_bank_in_use_by_live_class';
+  end if;
+
   -- class_question_plans/class_question_plan_candidates have no ON DELETE
   -- clause against question_banks (defaults to NO ACTION), so any plan
   -- built from this bank goes first. Same as the session delete: a

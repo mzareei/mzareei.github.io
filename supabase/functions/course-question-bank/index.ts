@@ -546,12 +546,21 @@ async function deleteBank(db: Db, courseId: string, actorProfileId: string, body
   const bankId = cleanUuid(body.question_bank_id, "question bank id");
   const { data: bank, error } = await db
     .from("question_banks")
-    .select("id, title, course_id")
+    .select("id, title")
     .eq("id", bankId)
     .eq("course_id", courseId)
     .maybeSingle();
   if (error) throw error;
   if (!bank) throw new Error("Question bank not found.");
+
+  // Fetched before the delete — once delete_question_bank_atomic succeeds,
+  // this bank's questions are gone and the count can no longer be read.
+  const { count: questionCount, error: questionCountError } = await db
+    .from("questions")
+    .select("id", { count: "exact", head: true })
+    .eq("question_bank_id", bankId)
+    .eq("status", "active");
+  if (questionCountError) throw questionCountError;
 
   const { error: deleteError } = await db.rpc("delete_question_bank_atomic", {
     p_bank_id: bankId,
@@ -560,6 +569,9 @@ async function deleteBank(db: Db, courseId: string, actorProfileId: string, body
   if (deleteError) {
     if (String(deleteError.message || "").includes("question_bank_not_found")) {
       throw new Error("Question bank not found.");
+    }
+    if (String(deleteError.message || "").includes("question_bank_in_use_by_live_class")) {
+      throw new Error("This bank is being used by a class that is currently live and can't be deleted.");
     }
     if (String(deleteError.code) === "23503") {
       throw new Error("This bank has recorded student answers or live question history and can't be deleted.");
@@ -573,7 +585,7 @@ async function deleteBank(db: Db, courseId: string, actorProfileId: string, body
     target_type: "question_bank",
     target_id: bank.id,
     action: "question_bank_deleted",
-    metadata: { title: bank.title }
+    metadata: { title: bank.title, question_count: questionCount || 0 }
   });
 
   return { question_bank_id: bank.id, deleted: true };
