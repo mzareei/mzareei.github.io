@@ -124,6 +124,7 @@ Deno.serve(async (request) => {
       await deleteSession(db, courseId, {
         sessionId: cleanUuid(body.session_id, "A valid session id is required."),
         actorProfileId: profile.id,
+        force: Boolean(body.force),
         permissions
       });
       const sessions = await listSessions(db, courseId, permissions);
@@ -630,6 +631,7 @@ async function listSessions(db: ReturnType<typeof adminClient>, courseId: string
 async function deleteSession(db: ReturnType<typeof adminClient>, courseId: string, input: {
   sessionId: string;
   actorProfileId: string;
+  force: boolean;
   permissions: {
     isCourseInstructor: boolean;
     permittedSectionIds: string[];
@@ -651,7 +653,8 @@ async function deleteSession(db: ReturnType<typeof adminClient>, courseId: strin
 
   const { error: deleteError } = await db.rpc("delete_class_session_atomic", {
     p_session_id: input.sessionId,
-    p_course_id: courseId
+    p_course_id: courseId,
+    p_force: input.force
   });
   if (deleteError) {
     const message = String(deleteError.message || "");
