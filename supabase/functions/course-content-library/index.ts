@@ -623,7 +623,7 @@ async function deleteContentItem(db: Db, courseId: string, input: {
     targetType: "content_item",
     targetId: existing.id,
     action: "content_item_deleted",
-    metadata: { title: existing.title, content_type: existing.content_type, slug: existing.slug }
+    metadata: { title: existing.title, content_type: existing.content_type, slug: existing.slug, force: input.force }
   });
 
   return { content_item_id: existing.id, deleted: true };

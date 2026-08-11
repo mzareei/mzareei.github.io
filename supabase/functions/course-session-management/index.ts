@@ -679,7 +679,7 @@ async function deleteSession(db: ReturnType<typeof adminClient>, courseId: strin
     targetType: "class_session",
     targetId: session.id,
     action: "class_session_deleted",
-    metadata: { title: session.title, state: session.state }
+    metadata: { title: session.title, state: session.state, force: input.force }
   });
 }
 

@@ -586,7 +586,7 @@ async function deleteBank(db: Db, courseId: string, actorProfileId: string, body
     target_type: "question_bank",
     target_id: bank.id,
     action: "question_bank_deleted",
-    metadata: { title: bank.title, question_count: questionCount || 0 }
+    metadata: { title: bank.title, question_count: questionCount || 0, force: Boolean(body.force) }
   });
 
   return { question_bank_id: bank.id, deleted: true };
