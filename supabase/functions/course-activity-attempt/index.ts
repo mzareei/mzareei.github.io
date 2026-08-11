@@ -79,13 +79,13 @@ async function startAttempt(db: Db, profile: Record<string, unknown>, activityIn
   const instance = await loadActivityInstance(db, activityInstanceId);
   assertActivityOpen(instance);
   await assertStudentEnrollment(db, String(profile.id), String(instance.section_id));
-  const release = await assertReleasedForStudent(db, instance);
+  const release = await resolveAttemptRelease(db, instance);
 
   const attemptPolicy = await findOrCreateAttempt(db, {
     activityInstanceId,
     profileId: String(profile.id),
     sectionId: String(instance.section_id),
-    allowedAttempts: release.allowed_attempts
+    allowedAttempts: release?.allowed_attempts
   });
   assertAttemptWithinTimeLimit(attemptPolicy.attempt, instance);
   const questions = await loadQuestionsForInstance(db, instance);
@@ -110,7 +110,7 @@ async function submitAttempt(db: Db, profile: Record<string, unknown>, input: {
   const instance = await loadActivityInstance(db, String(attempt.activity_instance_id));
   assertActivityOpen(instance);
   await assertStudentEnrollment(db, String(profile.id), String(instance.section_id));
-  const release = await assertReleasedForStudent(db, instance);
+  const release = await resolveAttemptRelease(db, instance);
   assertAttemptWithinTimeLimit(attempt, instance);
 
   const gradedBase = await gradeResponses(db, input.responses);
@@ -189,7 +189,7 @@ async function submitAttempt(db: Db, profile: Record<string, unknown>, input: {
   const attemptPolicy = await attemptLimitPolicy(db, {
     activityInstanceId: String(updated.activity_instance_id),
     profileId: String(updated.profile_id),
-    allowedAttempts: release.allowed_attempts
+    allowedAttempts: release?.allowed_attempts
   });
 
   return {
@@ -394,6 +394,22 @@ async function assertStudentEnrollment(db: Db, profileId: string, sectionId: str
     .maybeSingle();
   if (error) throw error;
   if (!data) throw new Error("Student is not enrolled in this activity section.");
+}
+
+// An activity instance created by Run Class's "Start the quiz" (course-class-quiz)
+// always carries class_session_id and is authorized by its own state/window —
+// already checked by assertActivityOpen, exactly like pulse questions and
+// reflections, which the professor's own guide says are "driven by the class
+// session's own state." Gating it a second time on the underlying lecture's
+// independent content_releases row (meant for self-study/standalone
+// publishing, per pitfall #25) ties an in-class action to a database state
+// Run Class never touches — a lecture left in review_only from earlier
+// release-management work then blocks every in-class attempt with no
+// visible cause. Only a standalone activity instance (course-quiz-compatibility,
+// class_session_id always null) goes through the release-based gate.
+async function resolveAttemptRelease(db: Db, instance: Record<string, unknown>) {
+  if (instance.class_session_id) return undefined;
+  return assertReleasedForStudent(db, instance);
 }
 
 async function assertReleasedForStudent(db: Db, instance: Record<string, unknown>) {
