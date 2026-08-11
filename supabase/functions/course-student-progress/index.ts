@@ -356,7 +356,11 @@ function buildCourseSummary(classGrades: StudentClassGrade[]) {
   const graded = classGrades.filter((entry) => typeof entry.grade === "number");
   const total = graded.reduce((sum, entry) => sum + Number(entry.grade), 0);
   return {
-    course_percent: graded.length ? roundOne(total / graded.length) : null,
+    // Two decimals, matching how a class grade is stored. Rounding the average
+    // harder than its inputs makes 73.96 render as 74 next to a gradebook that
+    // says 73.96, and a student comparing the two screens has found a
+    // discrepancy that isn't one.
+    course_percent: graded.length ? Math.round((total / graded.length) * 100) / 100 : null,
     graded_class_count: graded.length,
     class_count: classGrades.length
   };
@@ -382,10 +386,6 @@ function labelize(value: string) {
   return String(value || "")
     .replace(/[-_]/g, " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-function roundOne(value: number) {
-  return Math.round(value * 10) / 10;
 }
 
 function unique(values: unknown[]) {
