@@ -82,21 +82,42 @@ Deno.serve(async (request) => {
       return json({ ...result, ...library });
     }
 
+    if (body.action === "delete_content_item") {
+      const itemId = cleanOptionalUuid(body.content_item_id);
+      if (!itemId) throw new Error("content_item_id_required");
+      const result = await deleteContentItem(db, courseId, {
+        itemId,
+        actorProfileId: String(profile.id),
+        permissions
+      });
+      return json(result);
+    }
+
     const library = await listContentLibrary(db, courseId, permissions);
     return json({
       ...library,
-      actions: ["list_content_items", "save_content_item", "copy_content_item", "share_content_item", "unshare_content_item", "create_draft_release"]
+      actions: ["list_content_items", "save_content_item", "delete_content_item", "copy_content_item", "share_content_item", "unshare_content_item", "create_draft_release"]
     });
   } catch (error) {
-    const message = error.message || "Unable to manage content library.";
+    const message = error instanceof Error ? error.message : "Unable to manage content library.";
     // Stable code, returned as error_code because that is the field the SPA's
     // callFn reads. Naming it `code` compiles and renders the raw string.
     if (
       message === "content_item_not_owned"
       || message === "content_item_not_visible"
       || message === "content_share_target_invalid"
+      || message === "content_item_not_found"
+      || message === "content_item_has_active_release"
+      || message === "content_item_has_active_bank"
+      || message === "content_item_id_required"
     ) {
-      const status = message === "content_share_target_invalid" ? 400 : 403;
+      const status = message === "content_item_not_found"
+        ? 404
+        : message === "content_item_has_active_release" || message === "content_item_has_active_bank"
+          ? 409
+          : message === "content_share_target_invalid" || message === "content_item_id_required"
+            ? 400
+            : 403;
       return json({ error: message, error_code: message }, { status });
     }
     if (message.includes("not allowed") || message.includes("teaching_assistant")) {
@@ -519,6 +540,61 @@ async function saveContentItem(db: Db, courseId: string, input: {
   }
 
   return { content_item: item, draft_release };
+}
+
+async function deleteContentItem(db: Db, courseId: string, input: {
+  itemId: string;
+  actorProfileId: string;
+  permissions: ContentPermissions;
+}) {
+  const { data: existing, error } = await db
+    .from("content_items")
+    .select("id, course_id, title, owner_profile_id")
+    .eq("id", input.itemId)
+    .eq("course_id", courseId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!existing) throw new Error("content_item_not_found");
+  if (!canEditContentItem(existing, input.permissions)) {
+    throw new Error("content_item_not_owned");
+  }
+
+  const { count: blockingReleaseCount, error: releaseError } = await db
+    .from("content_releases")
+    .select("id", { count: "exact", head: true })
+    .eq("content_item_id", existing.id)
+    .in("state", ["scheduled", "released", "live", "paused", "review_only"]);
+  if (releaseError) throw releaseError;
+  if ((blockingReleaseCount || 0) > 0) {
+    throw new Error("content_item_has_active_release");
+  }
+
+  const { error: deleteError } = await db
+    .from("content_items")
+    .delete()
+    .eq("id", existing.id)
+    .eq("course_id", courseId);
+  if (deleteError) {
+    // The guard_content_item_delete trigger (migration 0032) raises with
+    // errcode 'restrict_violation' (SQLSTATE 23001) when an active question
+    // bank still points at this item — a distinct code from the standard
+    // foreign-key-violation 23503 used elsewhere in this codebase.
+    if (String(deleteError.code) === "23001") {
+      throw new Error("content_item_has_active_bank");
+    }
+    throw deleteError;
+  }
+
+  await insertAudit(db, {
+    courseId,
+    actorProfileId: input.actorProfileId,
+    targetType: "content_item",
+    targetId: existing.id,
+    action: "content_item_deleted",
+    metadata: { title: existing.title }
+  });
+
+  return { content_item_id: existing.id, deleted: true };
 }
 
 async function createDraftRelease(db: Db, courseId: string, contentItemId: string, input: {
