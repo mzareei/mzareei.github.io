@@ -88,6 +88,7 @@ Deno.serve(async (request) => {
       const result = await deleteContentItem(db, courseId, {
         itemId,
         actorProfileId: String(profile.id),
+        force: Boolean(body.force),
         permissions
       });
       return json(result);
@@ -546,6 +547,7 @@ async function saveContentItem(db: Db, courseId: string, input: {
 async function deleteContentItem(db: Db, courseId: string, input: {
   itemId: string;
   actorProfileId: string;
+  force: boolean;
   permissions: ContentPermissions;
 }) {
   const { data: existing, error } = await db
@@ -576,24 +578,26 @@ async function deleteContentItem(db: Db, courseId: string, input: {
   // dead schema. A lecture taught weeks ago with its release long since
   // closed can still have real graded activity_instances (and, beneath
   // them, student_attempts/student_responses) sitting behind it. All four
-  // cascade ON DELETE CASCADE from content_items, so without this guard the
-  // delete above would silently wipe graded quiz history. Refuse on ANY
-  // activity_instances at all, regardless of the instance's own state —
-  // same blanket-refusal shape as the pulse_rounds guard on session delete.
-  const { data: templates, error: templatesError } = await db
-    .from("activity_templates")
-    .select("id")
-    .eq("content_item_id", existing.id);
-  if (templatesError) throw templatesError;
+  // cascade ON DELETE CASCADE from content_items — none of this is a real
+  // Postgres restrict, so force mode simply skips the check below and lets
+  // the existing cascade run; nothing extra needs pre-deleting first (unlike
+  // the bank force-delete path, which has a real restrict to clear).
+  if (!input.force) {
+    const { data: templates, error: templatesError } = await db
+      .from("activity_templates")
+      .select("id")
+      .eq("content_item_id", existing.id);
+    if (templatesError) throw templatesError;
 
-  if ((templates || []).length) {
-    const { count: instanceCount, error: instanceError } = await db
-      .from("activity_instances")
-      .select("id", { count: "exact", head: true })
-      .in("activity_template_id", templates.map((template) => template.id));
-    if (instanceError) throw instanceError;
-    if ((instanceCount || 0) > 0) {
-      throw new Error("content_item_has_activity_history");
+    if ((templates || []).length) {
+      const { count: instanceCount, error: instanceError } = await db
+        .from("activity_instances")
+        .select("id", { count: "exact", head: true })
+        .in("activity_template_id", templates.map((template) => template.id));
+      if (instanceError) throw instanceError;
+      if ((instanceCount || 0) > 0) {
+        throw new Error("content_item_has_activity_history");
+      }
     }
   }
 
