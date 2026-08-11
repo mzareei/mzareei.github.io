@@ -99,7 +99,7 @@ begin
     from public.class_question_plans plan
     join public.class_sessions session on session.id = plan.class_session_id
     where plan.question_bank_id = p_bank_id
-      and session.state in ('open', 'live', 'paused')
+      and session.state in ('open', 'live', 'paused', 'continued')
   ) then
     raise exception 'question_bank_in_use_by_live_class';
   end if;
