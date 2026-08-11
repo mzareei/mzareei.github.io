@@ -15,6 +15,7 @@ import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
 import { assertCheckpointPushMatches } from "../_shared/pulse-checkpoint.ts";
+import { loadCheckInAt } from "../_shared/attendance.ts";
 import {
   allowedPulseSourceStates,
   isPulseTransitionIdempotent,
@@ -701,19 +702,27 @@ async function loadCurrent(
   // actually moves through a class (pulses during the lecture, quiz at the
   // end, reflection last). Nothing here is typed by the instructor; it just
   // reports what Run Class has already done.
-  const [pulseInfo, quizInfo, reflectionInfo] = await Promise.all([
+  const [pulseInfo, quizInfo, reflectionInfo, checkedInAt] = await Promise.all([
     loadCurrentPulse(db, courseId, profileId, sessionId, isTeacher),
     loadCurrentQuiz(db, sessionId),
-    loadReflectionStatus(db, sessionId, profileId)
+    loadReflectionStatus(db, sessionId, profileId),
+    loadCheckInAt(db, sessionId, profileId)
   ]);
 
   return {
     session_state: session.state,
+    // The live screen is gated on this, not on localStorage: a student on a
+    // second device, or in private browsing, has no stored join but does have a
+    // check-in row. The server is the only thing that knows they scanned.
+    // Teachers are never gated — they are running the class, not attending it.
+    checked_in: isTeacher || Boolean(checkedInAt),
+    checked_in_at: checkedInAt,
     ...pulseInfo,
     quiz: quizInfo,
     reflection: reflectionInfo
   };
 }
+
 
 // How long a revealed answer stays on screen before the live view moves on.
 // Without this, an instructor who forgets to click "Close the question" (easy
@@ -842,6 +851,12 @@ async function recordAnswer(db: Db, courseId: string, profileId: string, body: R
     .maybeSingle();
   if (enrollmentError) throw enrollmentError;
   if (!enrollment) throw new Error("You are not enrolled in this class section.");
+
+  // Scanning the QR code is what puts a student in the room. Without this the
+  // gate on the live screen would be cosmetic — anyone enrolled could answer
+  // from anywhere, and the attendance table would be describing a fiction.
+  const checkedInAt = await loadCheckInAt(db, String(round.class_session_id), profileId);
+  if (!checkedInAt) throw new Error("Scan the class QR code to join before answering.");
 
   const snapshot = (round.prompt_snapshot || {}) as {
     options?: Array<{ key: string }>;

@@ -1,6 +1,7 @@
 import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
+import { assertCheckedIn } from "../_shared/attendance.ts";
 
 type Db = ReturnType<typeof adminClient>;
 
@@ -142,6 +143,9 @@ async function submitTicket(db: Db, courseId: string, profileId: string, section
   let maxWords = defaultReflectionMaxWords;
   if (classSessionId) {
     const bounds = await assertSessionBelongsToSection(db, courseId, sectionId, classSessionId);
+    // The reflection is the class's required final submission, so it is gated
+    // like everything else in the class: you had to be in the room.
+    await assertCheckedIn(db, classSessionId, profileId);
     minWords = bounds.reflection_min_words ?? minWords;
     maxWords = bounds.reflection_max_words ?? maxWords;
     assertWithinGraceWindow(bounds);

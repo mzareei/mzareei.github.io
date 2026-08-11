@@ -35,7 +35,7 @@ Deno.serve(async (request) => {
 
     const { data: session, error: sessionError } = await db
       .from("class_sessions")
-      .select("id, section_id, title, state")
+      .select("id, course_id, section_id, title, state")
       .eq("join_code", joinCode)
       .maybeSingle();
     if (sessionError) throw sessionError;
@@ -65,12 +65,15 @@ Deno.serve(async (request) => {
     if (sectionError) throw sectionError;
     if (!section) throw new Error("The class group could not be loaded.");
 
+    const checkedInAt = await recordCheckIn(db, session, String(profile.id));
+
     return json({
       session_id: session.id,
       title: session.title,
       section_code: section.section_code,
       state: session.state,
-      joined: true
+      joined: true,
+      checked_in_at: checkedInAt
     });
   } catch (error) {
     const status = error instanceof HttpError ? error.status : 400;
@@ -78,6 +81,48 @@ Deno.serve(async (request) => {
     return json({ error: message }, { status });
   }
 });
+
+/**
+ * The scan IS the attendance record. There is one QR code and one check-in per
+ * class: `ignoreDuplicates` means a student who re-scans after a page reload,
+ * or halfway through the hour, keeps the arrival time they actually arrived at.
+ *
+ * A failure here must never block the join. Being unable to write a row is an
+ * attendance problem the professor can fix from the class record; refusing to
+ * let a student into a live lecture over it is a teaching problem they cannot.
+ */
+async function recordCheckIn(
+  db: Db,
+  session: { id: string; course_id: string; section_id: string },
+  profileId: string
+): Promise<string | null> {
+  try {
+    const { data: existing } = await db
+      .from("class_attendance")
+      .select("checked_in_at")
+      .eq("class_session_id", session.id)
+      .eq("profile_id", profileId)
+      .maybeSingle();
+    if (existing) return String(existing.checked_in_at);
+
+    const checkedInAt = new Date().toISOString();
+    const { error } = await db.from("class_attendance").upsert(
+      {
+        course_id: session.course_id,
+        class_session_id: session.id,
+        section_id: session.section_id,
+        profile_id: profileId,
+        checked_in_at: checkedInAt,
+        source: "qr"
+      },
+      { onConflict: "class_session_id,profile_id", ignoreDuplicates: true }
+    );
+    if (error) throw error;
+    return checkedInAt;
+  } catch {
+    return null;
+  }
+}
 
 function bearerToken(value: string | null): string {
   const match = String(value || "").match(/^Bearer\s+(.+)$/i);

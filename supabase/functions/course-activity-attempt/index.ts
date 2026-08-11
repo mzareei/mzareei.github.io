@@ -1,6 +1,7 @@
 import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
+import { assertCheckedIn } from "../_shared/attendance.ts";
 
 type Db = ReturnType<typeof adminClient>;
 
@@ -79,6 +80,9 @@ async function startAttempt(db: Db, profile: Record<string, unknown>, activityIn
   const instance = await loadActivityInstance(db, activityInstanceId);
   assertActivityOpen(instance);
   await assertStudentEnrollment(db, String(profile.id), String(instance.section_id));
+  // A quiz attached to a live class is part of that class: you have to be in
+  // the room to sit it. Standalone activities are unaffected.
+  await assertCheckedIn(db, instance.class_session_id as string | null, String(profile.id));
   const release = await resolveAttemptRelease(db, instance);
 
   const attemptPolicy = await findOrCreateAttempt(db, {

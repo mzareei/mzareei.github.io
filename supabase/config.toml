@@ -146,3 +146,7 @@ verify_jwt = false
 [functions.course-content-import]
 # Externally authored deck/bank import; validates the user token and instructor role in-function.
 verify_jwt = false
+
+[functions.course-class-record]
+# Per-class attendance, engagement and grading; validates the user token, role and section in-function.
+verify_jwt = false
