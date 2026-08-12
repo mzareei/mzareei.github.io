@@ -429,7 +429,7 @@ async function pushRound(db: Db, courseId: string, actorProfileId: string, body:
       ends_at: endsAt,
       created_by: actorProfileId
     })
-    .select("id, state, points, answer_points, time_limit_seconds, opened_at, ends_at, prompt_snapshot")
+    .select("id, state, points, answer_points, time_limit_seconds, opened_at, ends_at, revealed_at, prompt_snapshot")
     .maybeSingle();
   if (error) throw error;
 
@@ -467,7 +467,7 @@ async function setRoundState(
     .eq("id", roundId)
     .eq("course_id", courseId)
     .in("state", allowedPulseSourceStates(action))
-    .select("id, state, points, answer_points, time_limit_seconds, opened_at, ends_at, prompt_snapshot")
+    .select("id, state, points, answer_points, time_limit_seconds, opened_at, ends_at, revealed_at, prompt_snapshot")
     .maybeSingle();
   if (error) throw error;
   if (round) {
@@ -477,7 +477,7 @@ async function setRoundState(
 
   const { data: existing, error: existingError } = await db
     .from("pulse_rounds")
-    .select("id, state, points, answer_points, time_limit_seconds, opened_at, ends_at, prompt_snapshot")
+    .select("id, state, points, answer_points, time_limit_seconds, opened_at, ends_at, revealed_at, prompt_snapshot")
     .eq("id", roundId)
     .eq("course_id", courseId)
     .maybeSingle();
@@ -505,6 +505,10 @@ function teacherRound(round: Record<string, unknown> | null) {
     time_limit_seconds: round.time_limit_seconds,
     opened_at: round.opened_at,
     ends_at: round.ends_at,
+    // The cockpit retires a revealed question on the same clock the students'
+    // phones already use (revealDisplayMinutes below). Without this the two
+    // surfaces disagree: the phones move on, the panel keeps the question.
+    revealed_at: round.revealed_at ?? null,
     text: snapshot.text,
     text_es: snapshot.text_es,
     options: snapshot.options,
@@ -524,6 +528,10 @@ function studentRound(round: Record<string, unknown>, revealed: boolean) {
     time_limit_seconds: round.time_limit_seconds,
     opened_at: round.opened_at,
     ends_at: round.ends_at,
+    // The cockpit retires a revealed question on the same clock the students'
+    // phones already use (revealDisplayMinutes below). Without this the two
+    // surfaces disagree: the phones move on, the panel keeps the question.
+    revealed_at: round.revealed_at ?? null,
     text: snapshot.text,
     text_es: snapshot.text_es,
     options: snapshot.options,
