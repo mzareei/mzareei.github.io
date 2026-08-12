@@ -293,6 +293,20 @@ async function loadStudentSessions(
     : { data: [], error: null };
   if (itemError) throw itemError;
 
+  // Today offers a way back into a live class only to a student the server
+  // already recorded as present. Without this the screen cannot tell a student
+  // who scanned from one who did not, so it can only ever say "scan the code"
+  // — to someone who already did, and who then has no route back at all.
+  const { data: attendance, error: attendanceError } = await db
+    .from("class_attendance")
+    .select("class_session_id")
+    .eq("profile_id", profileId)
+    .in("class_session_id", (sessions || []).map((session) => session.id));
+  if (attendanceError) throw attendanceError;
+  const checkedInSessionIds = new Set(
+    (attendance || []).map((row) => String(row.class_session_id))
+  );
+
   const sectionById = new Map(sections.map((section) => [section.id, section]));
   const itemById = new Map((items || []).map((item) => [item.id, item]));
   return (sessions || []).map((session) => {
@@ -308,7 +322,8 @@ async function loadStudentSessions(
       join_code: session.join_code || "",
       content_item_id: session.content_item_id || null,
       content_slug: item.slug || null,
-      content_title: item.title || null
+      content_title: item.title || null,
+      checked_in: checkedInSessionIds.has(String(session.id))
     };
   });
 }
