@@ -2,6 +2,7 @@ import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
 import { assertCheckedIn } from "../_shared/attendance.ts";
+import { askedQuestionIds, withoutAsked } from "../_shared/asked-questions.ts";
 
 type Db = ReturnType<typeof adminClient>;
 
@@ -566,7 +567,13 @@ async function loadQuestionsForInstance(db: Db, instance: Record<string, unknown
     .eq("status", "active");
   if (questionError) throw questionError;
 
-  const selectedQuestions = selectQuestions(questions || [], Number(instance.question_count || 0), String(instance.randomization_policy || "none"));
+  // A question this class already answered as a live pulse is spent — it must
+  // not come back in the same class's quiz. course-class-quiz sized
+  // question_count off the same subtraction, so the two agree on the pool.
+  const asked = await askedQuestionIds(db, instance.class_session_id);
+  const pool = withoutAsked(questions || [], asked, (question) => String(question.id));
+
+  const selectedQuestions = selectQuestions(pool, Number(instance.question_count || 0), String(instance.randomization_policy || "none"));
   const questionIds = selectedQuestions.map((question) => question.id);
   if (!questionIds.length) return [];
 

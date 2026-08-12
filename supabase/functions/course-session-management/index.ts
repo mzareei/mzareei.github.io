@@ -131,12 +131,22 @@ Deno.serve(async (request) => {
       return json({ deleted: true, sessions });
     }
 
+    if (body.action === "reset_session") {
+      const removed = await resetSession(db, courseId, {
+        sessionId: cleanUuid(body.session_id, "A valid session id is required."),
+        actorProfileId: profile.id,
+        permissions
+      });
+      const sessions = await listSessions(db, courseId, permissions);
+      return json({ reset: true, removed, sessions });
+    }
+
     const sessions = await listSessions(db, courseId, permissions);
     return json({
       sessions,
       allowedSessionTransitions,
       allowedActivityTransitions,
-      actions: ["list_sessions", "create_session", "update_session", "start_session", "update_session_state", "continue_session", "update_activity_state", "extend_activity_window", "delete_session"]
+      actions: ["list_sessions", "create_session", "update_session", "start_session", "update_session_state", "continue_session", "update_activity_state", "extend_activity_window", "delete_session", "reset_session"]
     });
   } catch (error) {
     const message = errorMessage(error, "Unable to manage class sessions.");
@@ -626,6 +636,58 @@ async function listSessions(db: ReturnType<typeof adminClient>, courseId: string
       releases: releasesBySession.get(session.id) || []
     };
   });
+}
+
+/**
+ * Clears one class day's activity and leaves the class standing — the schedule
+ * entry, its lecture, and its question plan all survive; the record of having
+ * run it does not. This is the rehearsal-again button, not a delete.
+ */
+async function resetSession(db: ReturnType<typeof adminClient>, courseId: string, input: {
+  sessionId: string;
+  actorProfileId: string;
+  permissions: {
+    isCourseInstructor: boolean;
+    permittedSectionIds: string[];
+  };
+}) {
+  const { data: session, error } = await db
+    .from("class_sessions")
+    .select("id, state, course_id, section_id, title")
+    .eq("id", input.sessionId)
+    .eq("course_id", courseId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!session) throw new Error("Class session not found.");
+  assertSectionAllowed(input.permissions, session.section_id);
+
+  const { data: removed, error: resetError } = await db.rpc(
+    "reset_class_session_atomic",
+    { p_session_id: input.sessionId, p_course_id: courseId }
+  );
+  if (resetError) {
+    const message = String(resetError.message || "");
+    if (message.includes("class_session_reset_state_invalid")) {
+      throw new Error("End the class before resetting it.");
+    }
+    if (message.includes("class_session_not_found")) {
+      throw new Error("Class session not found.");
+    }
+    throw resetError;
+  }
+
+  // Written after the wipe on purpose: the audit row is the one record of it
+  // that the reset itself must never be able to remove.
+  await insertAudit(db, {
+    courseId: session.course_id,
+    actorProfileId: input.actorProfileId,
+    targetType: "class_session",
+    targetId: input.sessionId,
+    action: "class_session_reset",
+    metadata: { title: session.title, previous_state: session.state, removed }
+  });
+
+  return removed;
 }
 
 async function deleteSession(db: ReturnType<typeof adminClient>, courseId: string, input: {

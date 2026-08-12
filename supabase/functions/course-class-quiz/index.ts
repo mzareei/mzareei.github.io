@@ -14,6 +14,7 @@
 import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
+import { askedQuestionIds, withoutAsked } from "../_shared/asked-questions.ts";
 
 type Db = ReturnType<typeof adminClient>;
 
@@ -204,7 +205,19 @@ async function ensureQuizTemplate(db: Db, item: { id: string; title: string }) {
   return { templateId: template!.id };
 }
 
-async function bankQuestionCounts(db: Db, courseId: string, contentItemId: string) {
+/** How many questions this class session still has to be asked.
+ *
+ *  Ids, not a head-count: the questions already pushed as pulse rounds have to
+ *  come off the total, and course-activity-attempt applies exactly the same
+ *  subtraction when it picks the rows. Sizing the instance off the raw bank
+ *  count while the selector filters would hand students a quiz that ends
+ *  before its own progress indicator does. */
+async function bankQuestionCounts(
+  db: Db,
+  courseId: string,
+  contentItemId: string,
+  classSessionId?: string
+) {
   const { data: bank, error } = await db
     .from("question_banks")
     .select("id")
@@ -214,13 +227,16 @@ async function bankQuestionCounts(db: Db, courseId: string, contentItemId: strin
     .maybeSingle();
   if (error) throw error;
   if (!bank) return 0;
-  const { count, error: countError } = await db
+  const { data: rows, error: questionError } = await db
     .from("questions")
-    .select("id", { count: "exact", head: true })
+    .select("id")
     .eq("question_bank_id", bank.id)
     .eq("status", "active");
-  if (countError) throw countError;
-  return count ?? 0;
+  if (questionError) throw questionError;
+
+  const questions = (rows || []).map((row) => String(row.id));
+  const asked = await askedQuestionIds(db, classSessionId);
+  return withoutAsked(questions, asked, (id) => id).length;
 }
 
 /** Recovers the instructor's place after a page reload — Run Class only keeps
@@ -275,7 +291,7 @@ async function startQuiz(db: Db, courseId: string, actorProfileId: string, body:
     throw new Error("Start the class session before starting the quiz.");
   }
   const item = await loadLectureItem(db, courseId, slug);
-  const available = await bankQuestionCounts(db, courseId, item.id);
+  const available = await bankQuestionCounts(db, courseId, item.id, sessionId);
   if (!available) throw new Error("This lecture has no question bank yet.");
 
   const { templateId } = await ensureQuizTemplate(db, item);

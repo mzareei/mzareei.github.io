@@ -568,6 +568,15 @@ async function loadResults(db: Db, courseId: string, roundId: string, includeNam
     .eq("role", "student")
     .eq("status", "active");
 
+  // How many are actually in the room. `enrolled` is the roster and includes
+  // every absent student, so "everyone has answered" can never be true against
+  // it. Only the students who scanned in can answer, so they are the ones a
+  // completeness check has to count.
+  const { count: present } = await db
+    .from("class_attendance")
+    .select("id", { count: "exact", head: true })
+    .eq("class_session_id", round.class_session_id);
+
   let respondents: Array<Record<string, unknown>> = [];
   if (includeNames && (answers || []).length) {
     const { data: profiles, error: profileError } = await db
@@ -596,6 +605,7 @@ async function loadResults(db: Db, courseId: string, roundId: string, includeNam
     answered: (answers || []).length,
     correct: (answers || []).filter((answer) => answer.is_correct).length,
     enrolled: enrolled ?? 0,
+    present: present ?? 0,
     distribution,
     correct_key: round.state === "open" ? null : (round.prompt_snapshot as Record<string, unknown>).correct_key,
     respondents
