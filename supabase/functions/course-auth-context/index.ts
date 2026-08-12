@@ -1,6 +1,10 @@
 import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
-import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
+import { assertCourseEmailAllowed } from "../_shared/identity.ts";
+// Claiming a profile is not this endpoint's private business: a student can
+// reach course-session-join first by scanning the class QR on a first-ever
+// sign-in, and that door needs the same claim.
+import { loadOrClaimProfile } from "../_shared/profile-claim.ts";
 
 const visibleReleaseStates = ["released", "live", "paused", "review_only", "scheduled"];
 const teacherRoles = ["platform_owner", "instructor", "teaching_assistant"];
@@ -77,61 +81,6 @@ function cleanCourseId(value: unknown) {
     .toLowerCase()
     .replace(/[^a-z0-9._-]/g, "")
     .slice(0, 80);
-}
-
-async function loadOrClaimProfile(db: ReturnType<typeof adminClient>, user: { id: string; email: string }) {
-  const { data: linkedProfile, error: linkedError } = await db
-    .from("profiles")
-    .select("id, auth_user_id, institutional_email, student_identifier, full_name, preferred_name, status")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
-  if (linkedError) throw linkedError;
-  if (linkedProfile) {
-    assertProfileMatchesAuthEmail(linkedProfile, user.email);
-    // A profile can be linked but still 'invited' (e.g. a roster correction set the
-    // status without touching the link). Signing in is the claim, so promote it —
-    // otherwise student endpoints that require an active profile reject the account.
-    if (linkedProfile.status === "invited") {
-      const { data: activated, error: activateError } = await db
-        .from("profiles")
-        .update({ status: "active", updated_at: new Date().toISOString() })
-        .eq("id", linkedProfile.id)
-        .eq("status", "invited")
-        .select("id, auth_user_id, institutional_email, student_identifier, full_name, preferred_name, status")
-        .maybeSingle();
-      if (activateError) throw activateError;
-      if (activated) return { ...activated, claimed_by_email: false };
-    }
-    return { ...linkedProfile, claimed_by_email: false };
-  }
-
-  const email = String(user.email || "").trim().toLowerCase();
-  await assertCourseEmailAllowed(db, email);
-  if (!email) return null;
-
-  const { data: rosterProfile, error: rosterError } = await db
-    .from("profiles")
-    .select("id, auth_user_id, institutional_email, student_identifier, full_name, preferred_name, status")
-    .eq("institutional_email", email)
-    .maybeSingle();
-  if (rosterError) throw rosterError;
-  if (!rosterProfile || !["invited", "active"].includes(rosterProfile.status)) return null;
-  if (rosterProfile.auth_user_id && rosterProfile.auth_user_id !== user.id) return null;
-  assertProfileMatchesAuthEmail(rosterProfile, email);
-
-  const { data: claimedProfile, error: claimError } = await db
-    .from("profiles")
-    .update({
-      auth_user_id: user.id,
-      status: "active",
-      updated_at: new Date().toISOString()
-    })
-    .eq("id", rosterProfile.id)
-    .is("auth_user_id", null)
-    .select("id, auth_user_id, institutional_email, student_identifier, full_name, preferred_name, status")
-    .maybeSingle();
-  if (claimError) throw claimError;
-  return claimedProfile ? { ...claimedProfile, claimed_by_email: true } : null;
 }
 
 async function loadMemberships(db: ReturnType<typeof adminClient>, courseId: string, profileId: string) {
@@ -344,6 +293,20 @@ async function loadStudentSessions(
     : { data: [], error: null };
   if (itemError) throw itemError;
 
+  // Today offers a way back into a live class only to a student the server
+  // already recorded as present. Without this the screen cannot tell a student
+  // who scanned from one who did not, so it can only ever say "scan the code"
+  // — to someone who already did, and who then has no route back at all.
+  const { data: attendance, error: attendanceError } = await db
+    .from("class_attendance")
+    .select("class_session_id")
+    .eq("profile_id", profileId)
+    .in("class_session_id", (sessions || []).map((session) => session.id));
+  if (attendanceError) throw attendanceError;
+  const checkedInSessionIds = new Set(
+    (attendance || []).map((row) => String(row.class_session_id))
+  );
+
   const sectionById = new Map(sections.map((section) => [section.id, section]));
   const itemById = new Map((items || []).map((item) => [item.id, item]));
   return (sessions || []).map((session) => {
@@ -359,7 +322,8 @@ async function loadStudentSessions(
       join_code: session.join_code || "",
       content_item_id: session.content_item_id || null,
       content_slug: item.slug || null,
-      content_title: item.title || null
+      content_title: item.title || null,
+      checked_in: checkedInSessionIds.has(String(session.id))
     };
   });
 }

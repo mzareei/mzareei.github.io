@@ -4,6 +4,7 @@ import {
   assertCourseEmailAllowed,
   assertProfileMatchesAuthEmail
 } from "../_shared/identity.ts";
+import { loadOrClaimProfile } from "../_shared/profile-claim.ts";
 
 type Db = ReturnType<typeof adminClient>;
 
@@ -137,23 +138,23 @@ function cleanJoinCode(value: unknown): string {
   return code;
 }
 
+// A student can arrive here before the app has ever loaded its course context —
+// scanning the class QR on a first-ever sign-in does exactly that, which was
+// every student in the first real class. Claiming the profile here means "you
+// are in the wrong group" is only ever said when it is true, instead of being
+// what a brand-new account is told.
 async function loadActiveProfile(db: Db, token: string) {
   const { data: userData, error: userError } = await db.auth.getUser(token);
   if (userError || !userData.user) {
     throw new HttpError("Invalid or expired session.", 401);
   }
-  await assertCourseEmailAllowed(db, userData.user.email || "");
+  const email = userData.user.email || "";
+  await assertCourseEmailAllowed(db, email);
 
-  const { data: profile, error } = await db
-    .from("profiles")
-    .select("id, auth_user_id, institutional_email, status")
-    .eq("auth_user_id", userData.user.id)
-    .eq("status", "active")
-    .maybeSingle();
-  if (error) throw error;
-  if (!profile) {
+  const profile = await loadOrClaimProfile(db, { id: userData.user.id, email });
+  if (!profile || String(profile.status) !== "active") {
     throw new HttpError("No active course profile is linked to this account.", 403);
   }
-  assertProfileMatchesAuthEmail(profile, userData.user.email || "");
+  assertProfileMatchesAuthEmail(profile, email);
   return profile;
 }
