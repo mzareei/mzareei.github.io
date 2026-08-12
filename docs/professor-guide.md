@@ -74,6 +74,33 @@ stops students being offered *Join class*. Reflections stay open for a short
 grace window afterwards. This is the only irreversible button on the screen, so
 it asks first.
 
+**If you ran out of time, press Pause the class instead.** See below.
+
+### If the bell goes before you finish: pause, don't end
+
+**Pausing** keeps the class exactly as it is. Nothing is graded, the lecture is
+not published for self-study, and your students keep it as their current class.
+Their phones say *"Class paused"* and stay on that screen. You can pause for ten
+minutes or until next week.
+
+**Ending** is the opposite: it posts every student's grade for the day and
+publishes the lecture to Review. Only do that when the class is genuinely
+finished. Ending a half-taught class grades students on material you have not
+taught yet.
+
+To continue, open the class again and press **Resume the class**. Everything is
+where you left it — the same lecture, the same planned questions, and still one
+grade at the end.
+
+Two things to expect when you resume on a later day:
+
+- **Show the QR code again.** Attendance is recorded per day, so students scan
+  again to be marked present for that day. They keep their place in the class
+  either way; the scan is only about attendance.
+- **Your class record shows both days** for a student who came to both. Their
+  engagement and their grade are still calculated for the class as a whole, not
+  per day.
+
 ---
 
 ## What students see
