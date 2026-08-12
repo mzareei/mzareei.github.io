@@ -10,6 +10,7 @@
 // this function returns; it never recalculates, so there is exactly one
 // implementation of the formula to keep correct.
 import { adminClient } from "../_shared/client.ts";
+import { classDateFor } from "../_shared/attendance.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
 import {
@@ -254,6 +255,9 @@ async function attendanceTable(db: Db, session: ClassSession) {
       checked_in_at: record?.checked_in_at ?? null,
       check_in_source: record?.source ?? null,
       check_in_note: record?.note ?? null,
+      // Every day they were in the room for this class. One entry is the normal
+      // case; two means the class was paused and finished on another day.
+      attendance_days: record?.days ?? [],
       status: attendanceStatus({
         checkedInAt: record?.checked_in_at ?? null,
         startedAt: session.actual_start_at,
@@ -294,22 +298,42 @@ function sessionHeader(session: ClassSession) {
   };
 }
 
+// One entry per student, folding however many days they attended into the facts
+// the table needs: when they first arrived, how they were recorded, and which
+// days they were in the room. Since 0048 a paused-and-resumed class has two rows
+// per student who came to both — building a Map straight from the rows would
+// silently keep whichever happened to come last.
 async function loadAttendance(db: Db, sessionId: string) {
   const { data, error } = await db
     .from("class_attendance")
-    .select("profile_id, checked_in_at, source, note")
-    .eq("class_session_id", sessionId);
+    .select("profile_id, checked_in_at, attendance_date, source, note")
+    .eq("class_session_id", sessionId)
+    .order("checked_in_at", { ascending: true });
   if (error) throw error;
-  return new Map(
-    (data || []).map((row) => [
-      String(row.profile_id),
-      {
-        checked_in_at: String(row.checked_in_at),
-        source: String(row.source),
-        note: row.note ? String(row.note) : null
-      }
-    ])
-  );
+
+  const byProfile = new Map<string, {
+    checked_in_at: string;
+    source: string;
+    note: string | null;
+    days: string[];
+  }>();
+  for (const row of data || []) {
+    const key = String(row.profile_id);
+    const existing = byProfile.get(key);
+    if (existing) {
+      existing.days.push(String(row.attendance_date));
+      continue;
+    }
+    byProfile.set(key, {
+      // Rows arrive oldest first, so the first one seen is the first arrival —
+      // which is what lateness is measured against.
+      checked_in_at: String(row.checked_in_at),
+      source: String(row.source),
+      note: row.note ? String(row.note) : null,
+      days: [String(row.attendance_date)]
+    });
+  }
+  return byProfile;
 }
 
 async function loadReflections(db: Db, sessionId: string) {
@@ -578,8 +602,10 @@ async function markPresent(
   if (enrollmentError) throw enrollmentError;
   if (!enrollment) throw new Error("That student is not enrolled in this class group.");
 
-  // Same first-scan-wins rule as a real scan: if they already checked in, the
-  // recorded time stands.
+  // Same first-scan-wins rule as a real scan, now per day: if they are already
+  // marked present today the recorded time stands, and marking them present on
+  // the day a paused class resumes records that day on its own.
+  const today = classDateFor();
   const { error } = await db.from("class_attendance").upsert(
     {
       course_id: session.course_id,
@@ -587,11 +613,15 @@ async function markPresent(
       section_id: session.section_id,
       profile_id: profileId,
       checked_in_at: new Date().toISOString(),
+      attendance_date: today,
       source: "instructor",
       marked_by_profile_id: actorProfileId,
       note
     },
-    { onConflict: "class_session_id,profile_id", ignoreDuplicates: true }
+    {
+      onConflict: "class_session_id,profile_id,attendance_date",
+      ignoreDuplicates: true
+    }
   );
   if (error) throw error;
 

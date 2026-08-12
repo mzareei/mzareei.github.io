@@ -15,7 +15,7 @@ import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
 import { assertCheckpointPushMatches } from "../_shared/pulse-checkpoint.ts";
-import { loadCheckInAt } from "../_shared/attendance.ts";
+import { classDateFor, loadCheckInAt } from "../_shared/attendance.ts";
 import {
   allowedPulseSourceStates,
   isPulseTransitionIdempotent,
@@ -580,10 +580,16 @@ async function loadResults(db: Db, courseId: string, roundId: string, includeNam
   // every absent student, so "everyone has answered" can never be true against
   // it. Only the students who scanned in can answer, so they are the ones a
   // completeness check has to count.
+  // Counted for *today*. Since 0048 a class resumed on a second day has two
+  // attendance rows for anyone who came to both, and counting them all would
+  // inflate this denominator past the number of people who can actually answer
+  // — making "everyone has answered" unreachable, which is the condition that
+  // reveals a question without the professor leaving fullscreen.
   const { count: present } = await db
     .from("class_attendance")
     .select("id", { count: "exact", head: true })
-    .eq("class_session_id", round.class_session_id);
+    .eq("class_session_id", round.class_session_id)
+    .eq("attendance_date", classDateFor());
 
   let respondents: Array<Record<string, unknown>> = [];
   if (includeNames && (answers || []).length) {
