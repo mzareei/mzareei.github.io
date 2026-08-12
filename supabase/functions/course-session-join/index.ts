@@ -4,6 +4,7 @@ import {
   assertCourseEmailAllowed,
   assertProfileMatchesAuthEmail
 } from "../_shared/identity.ts";
+import { classDateFor } from "../_shared/attendance.ts";
 import { loadOrClaimProfile } from "../_shared/profile-claim.ts";
 
 type Db = ReturnType<typeof adminClient>;
@@ -85,8 +86,10 @@ Deno.serve(async (request) => {
 
 /**
  * The scan IS the attendance record. There is one QR code and one check-in per
- * class: `ignoreDuplicates` means a student who re-scans after a page reload,
- * or halfway through the hour, keeps the arrival time they actually arrived at.
+ * class *day*: `ignoreDuplicates` means a student who re-scans after a page
+ * reload, or halfway through the hour, keeps the arrival time they actually
+ * arrived at — while a scan on a later day, when a paused class resumes,
+ * records that day separately rather than being discarded as a duplicate.
  *
  * A failure here must never block the join. Being unable to write a row is an
  * attendance problem the professor can fix from the class record; refusing to
@@ -98,11 +101,15 @@ async function recordCheckIn(
   profileId: string
 ): Promise<string | null> {
   try {
+    const today = classDateFor();
+    // Scoped to today: the maybeSingle() is safe again because the new unique
+    // constraint guarantees at most one row per session, profile AND day.
     const { data: existing } = await db
       .from("class_attendance")
       .select("checked_in_at")
       .eq("class_session_id", session.id)
       .eq("profile_id", profileId)
+      .eq("attendance_date", today)
       .maybeSingle();
     if (existing) return String(existing.checked_in_at);
 
@@ -114,9 +121,13 @@ async function recordCheckIn(
         section_id: session.section_id,
         profile_id: profileId,
         checked_in_at: checkedInAt,
+        attendance_date: today,
         source: "qr"
       },
-      { onConflict: "class_session_id,profile_id", ignoreDuplicates: true }
+      {
+        onConflict: "class_session_id,profile_id,attendance_date",
+        ignoreDuplicates: true
+      }
     );
     if (error) throw error;
     return checkedInAt;
