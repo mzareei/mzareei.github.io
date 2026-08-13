@@ -244,10 +244,11 @@ async function attendanceTable(db: Db, session: ClassSession) {
     loadReflections(db, session.id)
   ]);
 
-  // Whether this class ever reached its end-of-class phase at all. Judged on
-  // the whole room, not the individual: one attempt or one reflection anywhere
-  // proves the phase happened.
-  const endOfClassRan = quiz.attemptsByProfile.size > 0 || reflections.size > 0;
+  // Whether this class genuinely ran its end-of-class quiz. A merely opened
+  // attempt does not count — when a class is cut short a couple of students
+  // always open the quiz in the last seconds; only a submitted attempt or an
+  // answered question proves the phase happened for the room.
+  const endOfClassRan = quizPhaseRan(quiz);
 
   const rows = roster.map((student) => {
     const record = attendance.get(student.profile_id) || null;
@@ -478,6 +479,14 @@ async function loadQuiz(db: Db, session: ClassSession) {
   return { instance, questionCount, attemptsByProfile };
 }
 
+/** True when someone submitted the quiz or answered at least one question. */
+function quizPhaseRan(quiz: Awaited<ReturnType<typeof loadQuiz>>) {
+  for (const attempt of quiz.attemptsByProfile.values()) {
+    if (attempt.submitted_at || attempt.answered > 0) return true;
+  }
+  return false;
+}
+
 // ------------------------------------------------------------------- grading
 
 async function gradingTable(db: Db, session: ClassSession) {
@@ -489,10 +498,11 @@ async function gradingTable(db: Db, session: ClassSession) {
     loadOverrides(db, session.id)
   ]);
 
-  // A quiz instance nobody ever attempted is a quiz that was never given — the
-  // class was cut short. Its question count must not stand as a denominator,
-  // and the reflection that was never asked for must not cost anyone 20%.
-  const endOfClassRan = quiz.attemptsByProfile.size > 0 || reflections.size > 0;
+  // A quiz nobody ever finished or answered is a quiz that was never given —
+  // the class was cut short. Its question count must not stand as a
+  // denominator, and the reflection that was never asked for must not cost
+  // anyone 20%.
+  const endOfClassRan = quizPhaseRan(quiz);
 
   const rows = roster.map((student) => {
     const answers = pulse.answersByProfile.get(student.profile_id) || [];

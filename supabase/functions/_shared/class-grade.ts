@@ -223,11 +223,13 @@ export async function studentClassGrades(
 }
 
 /**
- * Which of these sessions ever reached their end-of-class phase: at least one
- * quiz attempt by anyone, or at least one exit ticket by anyone. A class the
- * professor cut short before the quiz grades on its pulse questions alone, and
- * nobody is penalized for the reflection that was never asked for — this set is
- * how both grading paths know the difference.
+ * Which of these sessions genuinely ran their end-of-class quiz: someone
+ * submitted an attempt, or someone answered at least one question. A merely
+ * *opened* attempt does not count — when a class is cut short, a couple of
+ * students always manage to open the quiz in the last seconds, and that must
+ * not put a 12-question zero on everyone else. A class that never really ran
+ * its quiz grades on its pulse questions alone, and nobody is penalized for
+ * the reflection that was never asked of the room.
  */
 export async function loadEndOfClassRan(db: Db, sessionIds: string[]) {
   const ran = new Set<string>();
@@ -243,25 +245,37 @@ export async function loadEndOfClassRan(db: Db, sessionIds: string[]) {
   for (const instance of instances || []) {
     instanceToSession.set(String(instance.id), String(instance.class_session_id));
   }
+  if (!instanceToSession.size) return ran;
 
-  if (instanceToSession.size) {
-    const { data: attempts, error: attemptError } = await db
-      .from("student_attempts")
-      .select("activity_instance_id")
-      .in("activity_instance_id", Array.from(instanceToSession.keys()));
-    if (attemptError) throw attemptError;
-    for (const attempt of attempts || []) {
-      const sessionId = instanceToSession.get(String(attempt.activity_instance_id));
+  const { data: attempts, error: attemptError } = await db
+    .from("student_attempts")
+    .select("id, activity_instance_id, submitted_at")
+    .in("activity_instance_id", Array.from(instanceToSession.keys()));
+  if (attemptError) throw attemptError;
+
+  const openAttemptToSession = new Map<string, string>();
+  for (const attempt of attempts || []) {
+    const sessionId = instanceToSession.get(String(attempt.activity_instance_id));
+    if (!sessionId) continue;
+    if (attempt.submitted_at) ran.add(sessionId);
+    else openAttemptToSession.set(String(attempt.id), sessionId);
+  }
+
+  // An unsubmitted attempt still proves the quiz ran if questions were answered.
+  const pending = Array.from(openAttemptToSession.keys()).filter(
+    (id) => !ran.has(openAttemptToSession.get(id)!)
+  );
+  if (pending.length) {
+    const { data: responses, error: responseError } = await db
+      .from("student_responses")
+      .select("student_attempt_id")
+      .in("student_attempt_id", pending);
+    if (responseError) throw responseError;
+    for (const response of responses || []) {
+      const sessionId = openAttemptToSession.get(String(response.student_attempt_id));
       if (sessionId) ran.add(sessionId);
     }
   }
-
-  const { data: tickets, error: ticketError } = await db
-    .from("exit_tickets")
-    .select("class_session_id")
-    .in("class_session_id", sessionIds);
-  if (ticketError) throw ticketError;
-  for (const ticket of tickets || []) ran.add(String(ticket.class_session_id));
 
   return ran;
 }
