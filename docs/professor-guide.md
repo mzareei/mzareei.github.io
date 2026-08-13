@@ -7,6 +7,33 @@ platform does today, not what is planned.
 
 ---
 
+## How students sign in (from 2026-08-12)
+
+**Start the class before you show the QR code.** Students can only create their
+PIN while a class is *live* — that is what proves they are in the room, and it
+is the only thing stopping someone claiming a classmate's account.
+
+**What to say the first time:**
+
+> Scan the code. Tap *"I haven't set a PIN yet"*. Type your student ID — the
+> A-number on your card — and choose any six digits you'll remember. That's your
+> PIN for the rest of the semester.
+
+**Every class after that**, they just scan and enter their student ID and PIN.
+They can also sign in from anywhere without the QR code to check their grades.
+
+**No email is involved at any point.** This is why: Supabase's mailer allows
+only two messages an hour, and `tec.mx` refuses mail sent on its behalf by any
+outside service. That is what locked out your first class.
+
+**If a student forgets their PIN:** People → their row → **Reset PIN**. They
+set a new one at the next class. Their attendance, answers, quiz results and
+grades are not touched.
+
+**If a student says their ID is "already taken"** and they never set a PIN,
+somebody else claimed it. Reset it, watch them set a new one, and tell me — that
+should not happen and leaves an audit trail.
+
 ## Signing in
 
 **You (instructor):** enter your institutional email, click *Email me a sign-in
