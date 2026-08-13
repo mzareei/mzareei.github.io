@@ -88,6 +88,21 @@ Deno.serve(async (request) => {
       return json(result);
     }
 
+    // A forgotten PIN must never cost a student their record. This clears the
+    // PIN and nothing else — attendance, answers, quiz attempts, reflections and
+    // grades are untouched — and the student sets a new one by scanning the QR
+    // code at the next live class.
+    if (body.action === "reset_student_pin") {
+      const targetProfileId = cleanUuid(body.profile_id, "A valid profile id is required.");
+      const { error: resetError } = await db.rpc("reset_student_pin", {
+        p_course_id: courseId,
+        p_profile_id: targetProfileId,
+        p_actor_profile_id: String(profile.id)
+      });
+      if (resetError) throw resetError;
+      return json({ reset: true, profile_id: targetProfileId });
+    }
+
     if (body.action === "resend_instructor_invitation") {
       const targetProfileId = cleanUuid(body.profile_id, "A valid profile id is required.");
       await assertSectionInstructorTargetAllowed(db, permissions, courseId, targetProfileId);
@@ -161,7 +176,8 @@ Deno.serve(async (request) => {
         "merge_roster_profile",
         "list_external_access",
         "grant_external_access",
-        "revoke_external_access"
+        "revoke_external_access",
+        "reset_student_pin"
       ],
       roster_roles: rosterRoles,
       allowed_domains: defaultAllowedDomains
