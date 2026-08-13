@@ -221,9 +221,14 @@ function attendanceStatus(input: {
   lateAfterMinutes: number;
   hasQuizAttempt: boolean;
   hasReflection: boolean;
+  // When the class never reached its end-of-class phase (no attempts, no
+  // reflections from anyone), the absence of end-of-class evidence says nothing
+  // about any individual student — without this guard a class cut short marks
+  // the whole room "left early".
+  endOfClassRan: boolean;
 }) {
   if (!input.checkedInAt) return "absent";
-  if (!input.hasQuizAttempt && !input.hasReflection) return "left_early";
+  if (input.endOfClassRan && !input.hasQuizAttempt && !input.hasReflection) return "left_early";
   if (!input.startedAt) return "present";
   const graceMs = Math.max(0, Number(input.lateAfterMinutes || 0)) * 60_000;
   const late = new Date(input.checkedInAt).getTime() - new Date(input.startedAt).getTime() > graceMs;
@@ -238,6 +243,11 @@ async function attendanceTable(db: Db, session: ClassSession) {
     loadQuiz(db, session),
     loadReflections(db, session.id)
   ]);
+
+  // Whether this class ever reached its end-of-class phase at all. Judged on
+  // the whole room, not the individual: one attempt or one reflection anywhere
+  // proves the phase happened.
+  const endOfClassRan = quiz.attemptsByProfile.size > 0 || reflections.size > 0;
 
   const rows = roster.map((student) => {
     const record = attendance.get(student.profile_id) || null;
@@ -263,7 +273,8 @@ async function attendanceTable(db: Db, session: ClassSession) {
         startedAt: session.actual_start_at,
         lateAfterMinutes: session.late_after_minutes,
         hasQuizAttempt: Boolean(attempt),
-        hasReflection: Boolean(reflection)
+        hasReflection: Boolean(reflection),
+        endOfClassRan
       }),
       pulse_responses: answers.length,
       // Of the questions actually pushed, how many did they answer. Correctness
@@ -478,6 +489,11 @@ async function gradingTable(db: Db, session: ClassSession) {
     loadOverrides(db, session.id)
   ]);
 
+  // A quiz instance nobody ever attempted is a quiz that was never given — the
+  // class was cut short. Its question count must not stand as a denominator,
+  // and the reflection that was never asked for must not cost anyone 20%.
+  const endOfClassRan = quiz.attemptsByProfile.size > 0 || reflections.size > 0;
+
   const rows = roster.map((student) => {
     const answers = pulse.answersByProfile.get(student.profile_id) || [];
     const gradedAnswers = answers.filter((answer) => pulse.gradedRoundIds.has(answer.round_id));
@@ -489,9 +505,10 @@ async function gradingTable(db: Db, session: ClassSession) {
       // denominator is every graded question pushed to the room.
       pulseCorrect: gradedAnswers.filter((answer) => answer.is_correct).length,
       pulseTotal: pulse.gradedRoundCount,
-      quizCorrect: attempt?.correct ?? 0,
-      quizTotal: quiz.questionCount,
-      submissionPresent: Boolean(submissionAt)
+      quizCorrect: endOfClassRan ? attempt?.correct ?? 0 : 0,
+      quizTotal: endOfClassRan ? quiz.questionCount : 0,
+      submissionPresent: Boolean(submissionAt),
+      submissionRequired: endOfClassRan
     });
 
     const history = overrides.get(student.profile_id) || [];
@@ -521,7 +538,7 @@ async function gradingTable(db: Db, session: ClassSession) {
     totals: {
       graded_pulse_questions: pulse.gradedRoundCount,
       pulse_rounds_pushed: pulse.roundCount,
-      quiz_questions: quiz.questionCount,
+      quiz_questions: endOfClassRan ? quiz.questionCount : 0,
       quiz_instance_id: quiz.instance ? String(quiz.instance.id) : null
     },
     rows

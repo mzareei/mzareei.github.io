@@ -48,9 +48,12 @@ Deno.serve(async (request) => {
     const db = adminClient();
 
     // Service-role only: this endpoint is invoked by course-generation and by
-    // itself, never directly by a browser. The shared secret keeps it that way.
-    const secret = Deno.env.get("GENERATION_WORKER_SECRET");
-    if (secret && String(body.secret || "") !== secret) {
+    // itself, never directly by a browser. The shared secret keeps it that way —
+    // and an UNSET secret must refuse everyone, not admit everyone: this guard
+    // shipped fail-open once and left the Anthropic-spending worker reachable
+    // with the public anon key.
+    const secret = Deno.env.get("GENERATION_WORKER_SECRET") || "";
+    if (!secret || String(body.secret || "") !== secret) {
       return json({ error: "Not allowed." }, { status: 403 });
     }
 

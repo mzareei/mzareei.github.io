@@ -56,6 +56,10 @@ export function computeGrade(input: {
   quizCorrect: number;
   quizTotal: number;
   submissionPresent: boolean;
+  // False when the class never reached its end-of-class phase (nobody attempted
+  // the quiz and nobody handed in a reflection). A student cannot be penalized
+  // for skipping a submission that was never asked of the room.
+  submissionRequired?: boolean;
 }) {
   const pulseAvailable = input.pulseTotal > 0;
   const quizAvailable = input.quizTotal > 0;
@@ -85,7 +89,8 @@ export function computeGrade(input: {
 
   const scaled =
     rawScore === null ? null : Math.min(100, (rawScore / MASTERY_THRESHOLD) * 100);
-  const penaltyApplied = gradable && !input.submissionPresent;
+  const submissionRequired = input.submissionRequired !== false;
+  const penaltyApplied = gradable && submissionRequired && !input.submissionPresent;
   const finalGrade =
     scaled === null ? null : round2(penaltyApplied ? scaled * MISSING_SUBMISSION_MULTIPLIER : scaled);
 
@@ -103,6 +108,7 @@ export function computeGrade(input: {
     scaled_grade: scaled === null ? null : round2(scaled),
     capped: scaled !== null && rawScore !== null && rawScore >= MASTERY_THRESHOLD,
     submission_present: input.submissionPresent,
+    submission_required: submissionRequired,
     penalty_applied: penaltyApplied,
     penalty_percent: penaltyApplied ? round2((1 - MISSING_SUBMISSION_MULTIPLIER) * 100) : 0,
     calculated_grade: finalGrade
@@ -164,11 +170,12 @@ export async function studentClassGrades(
   if (sessionError) throw sessionError;
   if (!(sessions || []).length) return [];
 
-  const [pulse, quiz, submissions, overrides] = await Promise.all([
+  const [pulse, quiz, submissions, overrides, endOfClassRan] = await Promise.all([
     loadStudentPulse(db, sessionIds, profileId),
     loadStudentQuiz(db, sessionIds, profileId),
     loadStudentSubmissions(db, sessionIds, profileId),
-    loadStudentOverrides(db, sessionIds, profileId)
+    loadStudentOverrides(db, sessionIds, profileId),
+    loadEndOfClassRan(db, sessionIds)
   ]);
 
   return (sessions || [])
@@ -177,15 +184,19 @@ export async function studentClassGrades(
       const pulseTally = pulse.get(sessionId) || { correct: 0, graded: 0 };
       const quizTally = quiz.get(sessionId) || { correct: 0, total: 0 };
       const score = posted.get(sessionId)!;
+      const classFinished = endOfClassRan.has(sessionId);
 
       const breakdown = computeGrade({
         // A graded question that was never answered is wrong, not excused. The
         // denominator is every graded question pushed to the room.
         pulseCorrect: pulseTally.correct,
         pulseTotal: pulseTally.graded,
-        quizCorrect: quizTally.correct,
-        quizTotal: quizTally.total,
-        submissionPresent: submissions.has(sessionId)
+        // A quiz instance nobody ever attempted is a quiz that was never given:
+        // the class was cut short, so the pulse questions carry the grade.
+        quizCorrect: classFinished ? quizTally.correct : 0,
+        quizTotal: classFinished ? quizTally.total : 0,
+        submissionPresent: submissions.has(sessionId),
+        submissionRequired: classFinished
       });
 
       const override = overrides.get(sessionId) ?? null;
@@ -209,6 +220,50 @@ export async function studentClassGrades(
       };
     })
     .sort((a, b) => a.sequence_number - b.sequence_number);
+}
+
+/**
+ * Which of these sessions ever reached their end-of-class phase: at least one
+ * quiz attempt by anyone, or at least one exit ticket by anyone. A class the
+ * professor cut short before the quiz grades on its pulse questions alone, and
+ * nobody is penalized for the reflection that was never asked for — this set is
+ * how both grading paths know the difference.
+ */
+export async function loadEndOfClassRan(db: Db, sessionIds: string[]) {
+  const ran = new Set<string>();
+  if (!sessionIds.length) return ran;
+
+  const { data: instances, error: instanceError } = await db
+    .from("activity_instances")
+    .select("id, class_session_id")
+    .in("class_session_id", sessionIds);
+  if (instanceError) throw instanceError;
+
+  const instanceToSession = new Map<string, string>();
+  for (const instance of instances || []) {
+    instanceToSession.set(String(instance.id), String(instance.class_session_id));
+  }
+
+  if (instanceToSession.size) {
+    const { data: attempts, error: attemptError } = await db
+      .from("student_attempts")
+      .select("activity_instance_id")
+      .in("activity_instance_id", Array.from(instanceToSession.keys()));
+    if (attemptError) throw attemptError;
+    for (const attempt of attempts || []) {
+      const sessionId = instanceToSession.get(String(attempt.activity_instance_id));
+      if (sessionId) ran.add(sessionId);
+    }
+  }
+
+  const { data: tickets, error: ticketError } = await db
+    .from("exit_tickets")
+    .select("class_session_id")
+    .in("class_session_id", sessionIds);
+  if (ticketError) throw ticketError;
+  for (const ticket of tickets || []) ran.add(String(ticket.class_session_id));
+
+  return ran;
 }
 
 /** The posted class-grade rows for this student, keyed by class session. */

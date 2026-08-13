@@ -94,6 +94,10 @@ Deno.serve(async (request) => {
     // code at the next live class.
     if (body.action === "reset_student_pin") {
       const targetProfileId = cleanUuid(body.profile_id, "A valid profile id is required.");
+      // Same scoping as remove_person: clearing a PIN hands the account to
+      // whoever claims it next, so only an instructor of this student's own
+      // group (or the owner) may do it — never an instructor of another group.
+      await assertSectionStudentTargetAllowed(db, permissions, courseId, targetProfileId);
       const { error: resetError } = await db.rpc("reset_student_pin", {
         p_course_id: courseId,
         p_profile_id: targetProfileId,
@@ -156,6 +160,12 @@ Deno.serve(async (request) => {
     if (body.action === "list_external_access") {
       assertGlobalOwner(permissions);
       return json({ external_access: await listExternalAccess(db, courseId) });
+    }
+
+    // A typo'd or renamed action must fail loudly, not fall through to the
+    // roster listing as a 200 that hides the regression.
+    if (body.action && body.action !== "list_roster") {
+      return json({ error: "Unknown action." }, { status: 400 });
     }
 
     const [roster, externalAccess] = await Promise.all([
@@ -371,6 +381,26 @@ async function assertSectionInstructorTargetAllowed(
     .limit(1);
   if (error) throw error;
   if (!(data || []).length) throw new Error("You are not allowed to manage this instructor.");
+}
+
+async function assertSectionStudentTargetAllowed(
+  db: ReturnType<typeof adminClient>,
+  permissions: { isGlobalOwner: boolean; permittedSectionIds: string[] },
+  courseId: string,
+  profileId: string
+) {
+  if (permissions.isGlobalOwner) return;
+  const { data, error } = await db
+    .from("section_enrollments")
+    .select("section_id, course_sections!inner(course_id)")
+    .eq("profile_id", profileId)
+    .eq("role", "student")
+    .eq("status", "active")
+    .eq("course_sections.course_id", courseId)
+    .in("section_id", permissions.permittedSectionIds)
+    .limit(1);
+  if (error) throw error;
+  if (!(data || []).length) throw new Error("You are not allowed to manage this person's roster record.");
 }
 
 async function validateRosterRows(
