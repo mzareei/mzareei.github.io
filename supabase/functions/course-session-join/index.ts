@@ -10,7 +10,7 @@ import { loadOrClaimProfile } from "../_shared/profile-claim.ts";
 type Db = ReturnType<typeof adminClient>;
 
 class HttpError extends Error {
-  constructor(message: string, readonly status: number) {
+  constructor(message: string, readonly status: number, readonly code?: string) {
     super(message);
   }
 }
@@ -67,6 +67,8 @@ Deno.serve(async (request) => {
     if (sectionError) throw sectionError;
     if (!section) throw new Error("The class group could not be loaded.");
 
+    await assertPinClaimed(db, profile, session);
+
     const checkedInAt = await recordCheckIn(db, session, String(profile.id));
 
     return json({
@@ -80,9 +82,90 @@ Deno.serve(async (request) => {
   } catch (error) {
     const status = error instanceof HttpError ? error.status : 400;
     const message = error instanceof Error ? error.message : "Unable to join the class.";
-    return json({ error: message }, { status });
+    const code = error instanceof HttpError ? error.code : undefined;
+    return json(code ? { error: message, error_code: code } : { error: message }, { status });
   }
 });
+
+/**
+ * Every student needs a PIN, and the scan is the only place one can be claimed.
+ *
+ * The sign-in screen cannot enforce this. A student who signed in before PIN
+ * sign-in existed still holds a Supabase session — those persist in the phone's
+ * storage and refresh themselves indefinitely — and the app only shows the
+ * sign-in screen to somebody signed *out*. So in the second real class most of
+ * the room scanned the QR code and walked straight past the PIN they were
+ * supposed to choose, while the handful who happened to be signed out set one.
+ * Left alone, each of those sessions eventually lapses and strands that student
+ * mid-class with no PIN to get back in.
+ *
+ * The gate therefore lives on the scan, which is the one thing every student in
+ * the room does regardless of what state their session is in. A student who
+ * already has a PIN never sees it.
+ *
+ * Two deliberate ways out, because a gate a student cannot pass is worse than no
+ * gate at all — the same failure as pitfall #70, a state with no exit:
+ *
+ *  - `claim_student_pin` (0051) refuses unless the class is `live`, so a scan
+ *    against a `paused` class must not be gated; the student could neither join
+ *    nor claim.
+ *  - Claiming is keyed on the student ID. A rostered profile without one cannot
+ *    claim, so it is let through and recorded instead of being locked out of a
+ *    lecture over a roster gap.
+ */
+async function assertPinClaimed(
+  db: Db,
+  profile: { id: string; student_identifier?: string | null },
+  session: { id: string; course_id: string; state: string }
+) {
+  if (String(session.state) !== "live") return;
+
+  // Read `pin_set_at`, never `pin_hash`: whether a PIN exists is all this needs
+  // to know, and the hash has no business leaving the database.
+  const { data, error } = await db
+    .from("profiles")
+    .select("pin_set_at")
+    .eq("id", profile.id)
+    .maybeSingle();
+  if (error) throw error;
+  if (data?.pin_set_at) return;
+
+  if (!profile.student_identifier) {
+    await noteUngatedJoin(db, session, String(profile.id));
+    return;
+  }
+
+  throw new HttpError(
+    "Set your PIN to join this class.",
+    409,
+    "pin_required"
+  );
+}
+
+/** A student let past the PIN gate because the roster has no ID to claim
+ *  against. Worth a record so the gap is fixable from the People screen rather
+ *  than being invisible until the same student is stranded later. */
+async function noteUngatedJoin(
+  db: Db,
+  session: { id: string; course_id: string },
+  profileId: string
+) {
+  try {
+    await db.from("audit_log").insert({
+      course_id: session.course_id,
+      actor_profile_id: profileId,
+      target_type: "profile",
+      target_id: profileId,
+      action: "student_pin_gate_skipped",
+      metadata: {
+        class_session_id: session.id,
+        note: "Joined without a PIN: the roster has no student ID to claim one against."
+      }
+    });
+  } catch {
+    // Never block a join over a note about the join.
+  }
+}
 
 /**
  * The scan IS the attendance record. There is one QR code and one check-in per
