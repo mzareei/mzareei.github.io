@@ -560,7 +560,9 @@ async function loadCatalog(db: Db, courseId: string, permissions: {
       .order("name", { ascending: true }),
     db
       .from("gradebook_items")
-      .select("id, course_id, category_id, activity_template_id, title, max_score, due_at, status")
+      // class_session_id lets the Gradebook say which closed classes have not
+      // been posted yet, instead of silently showing nothing.
+      .select("id, course_id, category_id, activity_template_id, class_session_id, title, max_score, due_at, status")
       .eq("course_id", courseId)
       .order("created_at", { ascending: true }),
     sectionQuery
