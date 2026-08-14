@@ -3,6 +3,8 @@ import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
 import { assertCheckedIn } from "../_shared/attendance.ts";
 import { askedQuestionIds, withoutAsked } from "../_shared/asked-questions.ts";
+import { secondsForQuestion } from "../_shared/question-timing.ts";
+import { withinSubmitGrace } from "../_shared/quiz-close.ts";
 
 type Db = ReturnType<typeof adminClient>;
 
@@ -113,7 +115,7 @@ async function submitAttempt(db: Db, profile: Record<string, unknown>, input: {
   }
 
   const instance = await loadActivityInstance(db, String(attempt.activity_instance_id));
-  assertActivityOpen(instance);
+  assertActivityOpenForSubmit(instance, attempt);
   await assertStudentEnrollment(db, String(profile.id), String(instance.section_id));
   const release = await resolveAttemptRelease(db, instance);
   assertAttemptWithinTimeLimit(attempt, instance);
@@ -326,6 +328,51 @@ function assertActivityOpen(instance: Record<string, unknown>) {
   }
 }
 
+/**
+ * The submit path's gate, deliberately laxer than the start path's.
+ *
+ * assertActivityOpen rejected anything arriving after ends_at, which threw away
+ * every answer a student had given if the clock ran out mid-question. Nobody
+ * hit it while the deadline was invisible and generous; a visible, tight,
+ * self-closing deadline makes it likely.
+ *
+ * The grace finishes work already begun. An attempt whose started_at is after
+ * the deadline was never legitimately open and gets nothing — that check lives
+ * in withinSubmitGrace, so starting late is still refused by assertActivityOpen
+ * on the start path.
+ */
+function assertActivityOpenForSubmit(
+  instance: Record<string, unknown>,
+  attempt: Record<string, unknown>
+) {
+  const now = new Date();
+  if (instance.starts_at && new Date(String(instance.starts_at)) > now) {
+    throw new Error("Activity is not open yet.");
+  }
+  const stillOpen = openStates.includes(String(instance.state))
+    && (!instance.ends_at || new Date(String(instance.ends_at)) >= now);
+  if (stillOpen) return;
+
+  // withinSubmitGrace only checks the upper bound (now <= ends_at + 60s), on
+  // the assumption baked into quiz-close.ts that an instance only ever closes
+  // exactly at ends_at (auto-close). That assumption doesn't hold here:
+  // course-class-quiz's closeQuiz lets the professor end a quiz early by
+  // hand, and it flips state to "closed" without touching ends_at. Without
+  // this guard, a submission arriving any time after that manual close — even
+  // twenty minutes before the real deadline — would satisfy
+  // "now <= ends_at + 60s" and be waved through, silently overriding the
+  // professor's explicit close. Require the deadline to have actually
+  // passed before the grace can apply.
+  const deadlinePassed = Boolean(instance.ends_at) && new Date(String(instance.ends_at)) < now;
+  if (deadlinePassed && withinSubmitGrace({
+    endsAt: (instance.ends_at as string | null) ?? null,
+    startedAt: (attempt.started_at as string | null) ?? null,
+    now
+  })) return;
+
+  throw new Error("Activity is closed.");
+}
+
 function withAttemptContext(
   attempt: Record<string, unknown>,
   instance: Record<string, unknown>,
@@ -353,6 +400,21 @@ function assertAttemptWithinTimeLimit(attempt: Record<string, unknown>, instance
   if (["submitted", "locked", "late"].includes(status) || attempt.submitted_at) {
     return;
   }
+  // Same sixty seconds as the instance grace: a student finishing the last
+  // question as their own clock expires must not lose the whole attempt.
+  // withinSubmitGrace only checks the upper bound (now <= ends_at + 60s), so
+  // on its own it would waive the per-attempt limit for the whole remaining
+  // quiz window whenever a student's personal time_limit_seconds is shorter
+  // than the instance's ends_at, not just in the last sixty seconds. Require
+  // the instance deadline to have actually passed first, same as the submit
+  // gate above.
+  const now = new Date();
+  const instanceDeadlinePassed = Boolean(instance.ends_at) && new Date(String(instance.ends_at)) < now;
+  if (instanceDeadlinePassed && withinSubmitGrace({
+    endsAt: (instance.ends_at as string | null) ?? null,
+    startedAt: (attempt.started_at as string | null) ?? null,
+    now
+  })) return;
 
   const deadline = attemptDeadlineAt(attempt, instance);
   if (deadline && new Date(deadline) <= new Date()) {
@@ -596,16 +658,30 @@ async function loadQuestionsForInstance(db: Db, instance: Record<string, unknown
     });
   });
 
-  return selectedQuestions.map((question) => ({
-    id: question.id,
-    prompt: question.prompt,
-    prompt_es: question.prompt_es,
-    question_type: question.question_type,
-    difficulty: question.difficulty,
-    topic_tags: question.topic_tags || [],
-    points: question.points,
-    options: maybeShuffle(optionsByQuestion.get(String(question.id)) || [], String(instance.randomization_policy || "none").includes("options"))
-  }));
+  return selectedQuestions.map((question) => {
+    const options = maybeShuffle(
+      optionsByQuestion.get(String(question.id)) || [],
+      String(instance.randomization_policy || "none").includes("options")
+    );
+    return {
+      id: question.id,
+      prompt: question.prompt,
+      prompt_es: question.prompt_es,
+      question_type: question.question_type,
+      difficulty: question.difficulty,
+      topic_tags: question.topic_tags || [],
+      points: question.points,
+      // The phone holds no timing rule of its own. Two repos deploy
+      // independently, so a constant kept on both sides drifts silently — the
+      // server decides and the player obeys.
+      seconds: secondsForQuestion({
+        prompt: question.prompt as string | null,
+        prompt_es: question.prompt_es as string | null,
+        options: options as Array<{ option_text?: string | null; option_text_es?: string | null }>
+      }),
+      options
+    };
+  });
 }
 
 // A graded quiz must mix difficulty tiers — never all easy, never all hard.
