@@ -17,6 +17,8 @@ import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
 import { assertCheckpointPushMatches } from "../_shared/pulse-checkpoint.ts";
 import { classDateFor, loadCheckInAt } from "../_shared/attendance.ts";
+import { maybeAutoCloseInstance, OPEN_INSTANCE_STATES } from "../_shared/quiz-close.ts";
+import { rankAttempts, rankOf } from "../_shared/quiz-rank.ts";
 import {
   allowedPulseSourceStates,
   isPulseTransitionIdempotent,
@@ -773,7 +775,7 @@ async function loadCurrent(
   // reports what Run Class has already done.
   const [pulseInfo, quizInfo, reflectionInfo, checkedInAt] = await Promise.all([
     loadCurrentPulse(db, courseId, profileId, sessionId, isTeacher),
-    loadCurrentQuiz(db, sessionId),
+    loadCurrentQuiz(db, sessionId, profileId),
     loadReflectionStatus(db, sessionId, profileId),
     loadCheckInAt(db, sessionId, profileId)
   ]);
@@ -850,22 +852,77 @@ async function loadCurrentPulse(
   };
 }
 
-/** Is there a quiz to take right now, or has one already run and closed? */
-async function loadCurrentQuiz(db: Db, sessionId: string) {
+/** Is there a quiz to take right now, has one closed, and where did this
+ *  student come?
+ *
+ *  This poll closes the quiz as readily as the professor's does. Thirty
+ *  students refreshing every three seconds are a far more reliable clock than
+ *  one laptop that may be asleep, reloaded, or on a different tab — and the
+ *  student staring at a finished quiz is exactly the person who needs it to
+ *  move on. */
+async function loadCurrentQuiz(db: Db, sessionId: string, profileId: string) {
   const { data: instances, error } = await db
     .from("activity_instances")
-    .select("id, state, ends_at, question_count")
+    .select("id, state, starts_at, ends_at, question_count, class_session_id")
     .eq("class_session_id", sessionId)
     .order("created_at", { ascending: false })
     .limit(1);
   if (error) throw error;
   const instance = (instances || [])[0];
-  if (!instance) return { instance_id: null, state: null };
+  if (!instance) return { instance_id: null, state: null, my_rank: null };
+
+  // A quiz that is ALREADY closed has nothing left to close, and this poll runs
+  // for every phone in the room every three seconds for the rest of the class.
+  // Counting the room and listing the attempts again on each of those polls buys
+  // nothing: the decision cannot change. The instructor's own poll still runs the
+  // full check — it is the one that needs `present` and `submitted` to say which
+  // condition ended the quiz.
+  const state = OPEN_INSTANCE_STATES.includes(String(instance.state))
+    ? (await maybeAutoCloseInstance(
+        db,
+        {
+          id: String(instance.id),
+          state: String(instance.state),
+          starts_at: instance.starts_at,
+          ends_at: instance.ends_at,
+          class_session_id: String(instance.class_session_id)
+        },
+        classDateFor
+      )).state
+    : String(instance.state);
+
   return {
     instance_id: instance.id,
-    state: instance.state, // 'live' -> take it now; 'closed' -> reflection can open
+    state, // 'live' -> take it now; 'closed' -> reflection can open
     ends_at: instance.ends_at,
-    question_count: instance.question_count
+    question_count: instance.question_count,
+    // Only once the quiz is over. A place published while the room is still
+    // answering would tell a student how they are doing mid-quiz.
+    my_rank: state === "closed"
+      ? await loadMyRank(db, String(instance.id), profileId)
+      : null
+  };
+}
+
+/** This student's own place, and the attempt id their phone needs to opt in to
+ *  being named. Null for a student who never finished — they are not ranked
+ *  last, they are not ranked. */
+async function loadMyRank(db: Db, instanceId: string, profileId: string) {
+  const { data: attempts, error } = await db
+    .from("student_attempts")
+    .select("id, profile_id, status, score_final, submitted_at, name_revealed")
+    .eq("activity_instance_id", instanceId);
+  if (error) throw error;
+
+  const ranked = rankAttempts((attempts || []) as never);
+  const place = rankOf(ranked, profileId);
+  if (!place) return null;
+
+  const mine = (attempts || []).find((row) => String(row.profile_id) === String(profileId));
+  return {
+    ...place,
+    attempt_id: String(mine?.id || ""),
+    name_revealed: Boolean(mine?.name_revealed)
   };
 }
 
