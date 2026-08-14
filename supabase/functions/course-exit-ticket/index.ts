@@ -2,6 +2,7 @@ import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
 import { assertCheckedIn } from "../_shared/attendance.ts";
+import { postClassGradesQuietly, studentClassGrades } from "../_shared/class-grade.ts";
 
 type Db = ReturnType<typeof adminClient>;
 
@@ -39,7 +40,7 @@ Deno.serve(async (request) => {
       actions: ["list_my_tickets", "submit_ticket"]
     });
   } catch (error) {
-    const message = error.message || "Unable to save exit ticket.";
+    const message = (error as Error)?.message || "Unable to save exit ticket.";
     if (message.includes("not enrolled")) return json({ error: message }, { status: 403 });
     return json({ error: message }, { status: 400 });
   }
@@ -180,7 +181,60 @@ async function submitTicket(db: Db, courseId: string, profileId: string, section
     .select("id, course_id, section_id, class_session_id, profile_id, content_item_id, one_thing, created_at")
     .single();
   if (error) throw error;
-  return { ...data, word_count: wordCount };
+
+  // The reflection is the last thing a student does, so this is the moment
+  // their grade is finished — and, from 2026-08-14, the moment they get to see
+  // it. Posting used to be a button the professor pressed on every class
+  // record; a student who finished the class was shown "No grades yet" until he
+  // remembered to press it.
+  const grade = classSessionId
+    ? await postOwnGrade(db, courseId, sectionId, classSessionId, profileId)
+    : null;
+
+  return { ...data, word_count: wordCount, class_grade: grade };
+}
+
+/**
+ * Post THIS student's class grade and hand it straight back.
+ *
+ * Deliberately one student, never the roster. Posting the room whenever one
+ * person finishes would give every classmate still writing their reflection a
+ * grade carrying the 20% missing-submission penalty — a punishment for
+ * something they have not failed to do yet. The rest of the room is posted when
+ * the professor ends the class.
+ */
+async function postOwnGrade(
+  db: Db,
+  courseId: string,
+  sectionId: string,
+  classSessionId: string,
+  profileId: string
+) {
+  const { data: session, error } = await db
+    .from("class_sessions")
+    .select("id, course_id, section_id, sequence_number, title")
+    .eq("id", classSessionId)
+    .maybeSingle();
+  if (error || !session) return null;
+
+  const posted = await postClassGradesQuietly(
+    db,
+    {
+      id: String(session.id),
+      course_id: String(session.course_id),
+      section_id: String(session.section_id),
+      sequence_number: Number(session.sequence_number || 0),
+      title: String(session.title || "")
+    },
+    { profileIds: [profileId], actorProfileId: profileId, trigger: "reflection_submitted" }
+  );
+  if (!posted?.posted) return null;
+
+  // Read it back through the student's own path rather than returning what was
+  // just written: the phone then shows exactly the row My Grades will show,
+  // breakdown and all, instead of a second rendering of the same number.
+  const grades = await studentClassGrades(db, courseId, profileId, [sectionId]).catch(() => []);
+  return grades.find((row) => row.class_session_id === classSessionId) ?? null;
 }
 
 function assertWithinGraceWindow(session: { state?: string; actual_end_at?: string | null }) {

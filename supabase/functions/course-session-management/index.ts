@@ -1,5 +1,6 @@
 import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
+import { postClassGradesQuietly } from "../_shared/class-grade.ts";
 
 const allowedSessionTransitions: Record<string, string[]> = {
   planned: ["open", "cancelled"],
@@ -756,9 +757,12 @@ async function updateSessionState(db: ReturnType<typeof adminClient>, input: {
     permittedSectionIds: string[];
   };
 }) {
+  // sequence_number is here for the gradebook item the close posts into; the
+  // close does not change it, so reading it before is the same as reading it
+  // after — and the RPC's return value is untyped.
   const { data: session, error } = await db
     .from("class_sessions")
-    .select("id, state, course_id, section_id, title, actual_start_at")
+    .select("id, state, course_id, section_id, sequence_number, title, actual_start_at")
     .eq("id", input.sessionId)
     .eq("course_id", input.courseId)
     .maybeSingle();
@@ -801,6 +805,24 @@ async function updateSessionState(db: ReturnType<typeof adminClient>, input: {
       .eq("class_session_id", input.sessionId)
       .in("state", ["open", "live", "paused"]);
     if (activityCloseError) throw activityCloseError;
+
+    // Ending the class posts every grade in it. The exit ticket already posted
+    // each student who wrote a reflection; this is what reaches everyone else —
+    // including the students who never submitted one, whose grade carries the
+    // 20% penalty and who deliberately did not see it while they still had time
+    // to write. Until 2026-08-14 this was a button on each class record, so a
+    // whole class could finish and every student be told "No grades yet".
+    await postClassGradesQuietly(
+      db,
+      {
+        id: input.sessionId,
+        course_id: input.courseId,
+        section_id: String(session.section_id),
+        sequence_number: Number(session.sequence_number || 0),
+        title: String(session.title || "")
+      },
+      { actorProfileId: input.actorProfileId, trigger: "class_closed" }
+    );
 
     return updated;
   }

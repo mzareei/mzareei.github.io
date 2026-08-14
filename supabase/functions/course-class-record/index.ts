@@ -6,17 +6,26 @@
 //   - Class grading — did they get the answers right.
 // Conflating the two makes both harder to defend when a student disputes one.
 //
-// Grades are computed HERE and nowhere else. The browser renders the breakdown
-// this function returns; it never recalculates, so there is exactly one
-// implementation of the formula to keep correct.
+// Grades are computed in _shared/class-grade.ts and nowhere else. The browser
+// renders the breakdown this function returns; it never recalculates, so there
+// is exactly one implementation of the formula to keep correct.
 import { adminClient } from "../_shared/client.ts";
 import { classDateFor } from "../_shared/attendance.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
+// The grading rule, the roster-wide loaders and the gradebook write all live in
+// _shared/class-grade.ts — the exit ticket and the session close post grades too
+// now, and an edge function cannot import another edge function.
 import {
-  CLASS_GRADE_CATEGORY_NAME,
-  computeGrade,
+  classGradingRows,
   gradingWeights,
+  laterOf,
+  loadPulse,
+  loadQuiz,
+  loadReflections,
+  loadRoster,
+  postClassGradesQuietly,
+  quizPhaseRan,
   round2
 } from "../_shared/class-grade.ts";
 
@@ -58,7 +67,7 @@ Deno.serve(async (request) => {
       case "attendance":
         return json(await attendanceTable(db, session));
       case "grading":
-        return json(await gradingTable(db, session));
+        return json(await gradingTable(db, session, String(profile.id)));
       case "mark_present": {
         if (!isInstructor) throw new Error("Marking attendance is not allowed for this role.");
         return json(await markPresent(db, session, String(profile.id), body));
@@ -66,10 +75,6 @@ Deno.serve(async (request) => {
       case "override": {
         if (!isInstructor) throw new Error("Overriding a grade is not allowed for this role.");
         return json(await recordOverride(db, session, String(profile.id), body));
-      }
-      case "post_to_gradebook": {
-        if (!isInstructor) throw new Error("Posting grades is not allowed for this role.");
-        return json(await postToGradebook(db, session, String(profile.id)));
       }
       default:
         return json({ error: "Unknown action." }, { status: 400 });
@@ -166,46 +171,6 @@ async function loadSession(db: Db, courseId: string, sessionId: string): Promise
   return data as ClassSession;
 }
 
-type Student = {
-  profile_id: string;
-  name: string;
-  student_identifier: string | null;
-};
-
-/** Every active student enrolled in the class's section, name-sorted. */
-async function loadRoster(db: Db, sectionId: string): Promise<Student[]> {
-  const { data: enrollments, error } = await db
-    .from("section_enrollments")
-    .select("profile_id")
-    .eq("section_id", sectionId)
-    .eq("role", "student")
-    .eq("status", "active");
-  if (error) throw error;
-
-  const profileIds = Array.from(new Set((enrollments || []).map((row) => String(row.profile_id))));
-  if (!profileIds.length) return [];
-
-  const { data: profiles, error: profileError } = await db
-    .from("profiles")
-    .select("id, full_name, preferred_name, student_identifier")
-    .in("id", profileIds);
-  if (profileError) throw profileError;
-
-  return (profiles || [])
-    .map((person) => ({
-      profile_id: String(person.id),
-      name: String(person.preferred_name || person.full_name || "Student"),
-      student_identifier: person.student_identifier ? String(person.student_identifier) : null
-    }))
-    .sort((a, b) => a.name.localeCompare(b.name));
-}
-
-function laterOf(a: string | null, b: string | null) {
-  if (!a) return b;
-  if (!b) return a;
-  return a > b ? a : b;
-}
-
 // ---------------------------------------------------------------- attendance
 
 /**
@@ -240,7 +205,7 @@ async function attendanceTable(db: Db, session: ClassSession) {
   const [attendance, pulse, quiz, reflections] = await Promise.all([
     loadAttendance(db, session.id),
     loadPulse(db, session.id),
-    loadQuiz(db, session),
+    loadQuiz(db, session.id),
     loadReflections(db, session.id)
   ]);
 
@@ -348,257 +313,37 @@ async function loadAttendance(db: Db, sessionId: string) {
   return byProfile;
 }
 
-async function loadReflections(db: Db, sessionId: string) {
-  const { data, error } = await db
-    .from("exit_tickets")
-    .select("profile_id, created_at")
-    .eq("class_session_id", sessionId);
-  if (error) throw error;
-  const byProfile = new Map<string, string>();
-  for (const row of data || []) {
-    const key = String(row.profile_id);
-    byProfile.set(key, laterOf(byProfile.get(key) ?? null, String(row.created_at))!);
-  }
-  return byProfile;
-}
-
-async function loadPulse(db: Db, sessionId: string) {
-  const { data: rounds, error } = await db
-    .from("pulse_rounds")
-    .select("id, points, prompt_snapshot")
-    .eq("class_session_id", sessionId);
-  if (error) throw error;
-
-  const roundIds = (rounds || []).map((round) => String(round.id));
-  // A round is GRADED only if it carries points and had a right answer to find.
-  // An ad-hoc show-of-hands question still counts toward engagement — it was
-  // asked, and answering it is participation — but grading it would be scoring
-  // students against an answer key that does not exist.
-  const gradedRoundIds = new Set(
-    (rounds || [])
-      .filter((round) => {
-        const snapshot = (round.prompt_snapshot || {}) as { correct_key?: string | null };
-        return Number(round.points || 0) > 0 && Boolean(snapshot.correct_key);
-      })
-      .map((round) => String(round.id))
-  );
-
-  const { data: answers, error: answerError } = roundIds.length
-    ? await db
-        .from("pulse_answers")
-        .select("round_id, profile_id, is_correct, answered_at")
-        .in("round_id", roundIds)
-    : { data: [], error: null };
-  if (answerError) throw answerError;
-
-  const answersByProfile = new Map<
-    string,
-    Array<{ round_id: string; is_correct: boolean; answered_at: string }>
-  >();
-  for (const answer of answers || []) {
-    const key = String(answer.profile_id);
-    if (!answersByProfile.has(key)) answersByProfile.set(key, []);
-    answersByProfile.get(key)!.push({
-      round_id: String(answer.round_id),
-      is_correct: Boolean(answer.is_correct),
-      answered_at: String(answer.answered_at)
-    });
-  }
-
-  return {
-    roundCount: roundIds.length,
-    gradedRoundIds,
-    gradedRoundCount: gradedRoundIds.size,
-    answersByProfile
-  };
-}
-
-/**
- * The final quiz for the class. A session can hold more than one quiz — the Run
- * Class screen deliberately allows starting another — so "final" is the most
- * recently opened instance, not the union of all of them.
- */
-async function loadQuiz(db: Db, session: ClassSession) {
-  const { data: instances, error } = await db
-    .from("activity_instances")
-    .select("id, state, question_count, created_at")
-    .eq("class_session_id", session.id)
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-
-  const instance = (instances || [])[0] || null;
-  if (!instance) {
-    return { instance: null, questionCount: 0, attemptsByProfile: new Map() };
-  }
-
-  const { data: attempts, error: attemptError } = await db
-    .from("student_attempts")
-    .select("id, profile_id, status, submitted_at, score_percent")
-    .eq("activity_instance_id", instance.id);
-  if (attemptError) throw attemptError;
-
-  const attemptIds = (attempts || []).map((attempt) => String(attempt.id));
-  const { data: responses, error: responseError } = attemptIds.length
-    ? await db
-        .from("student_responses")
-        .select("student_attempt_id, is_correct")
-        .in("student_attempt_id", attemptIds)
-    : { data: [], error: null };
-  if (responseError) throw responseError;
-
-  const answeredByAttempt = new Map<string, { correct: number; answered: number }>();
-  for (const response of responses || []) {
-    const key = String(response.student_attempt_id);
-    const tally = answeredByAttempt.get(key) || { correct: 0, answered: 0 };
-    tally.answered += 1;
-    if (response.is_correct) tally.correct += 1;
-    answeredByAttempt.set(key, tally);
-  }
-
-  const attemptsByProfile = new Map<
-    string,
-    { id: string; status: string; submitted_at: string | null; correct: number; answered: number }
-  >();
-  for (const attempt of attempts || []) {
-    const tally = answeredByAttempt.get(String(attempt.id)) || { correct: 0, answered: 0 };
-    attemptsByProfile.set(String(attempt.profile_id), {
-      id: String(attempt.id),
-      status: String(attempt.status),
-      submitted_at: attempt.submitted_at ? String(attempt.submitted_at) : null,
-      correct: tally.correct,
-      answered: tally.answered
-    });
-  }
-
-  // question_count is what the instance was opened with. Fall back to the widest
-  // attempt actually seen, so a legacy instance with a null count still grades
-  // against a real denominator instead of dividing by zero.
-  const widestAttempt = Math.max(0, ...Array.from(attemptsByProfile.values()).map((a) => a.answered));
-  const questionCount = Number(instance.question_count || 0) || widestAttempt;
-
-  return { instance, questionCount, attemptsByProfile };
-}
-
-/** True when someone submitted the quiz or answered at least one question. */
-function quizPhaseRan(quiz: Awaited<ReturnType<typeof loadQuiz>>) {
-  for (const attempt of quiz.attemptsByProfile.values()) {
-    if (attempt.submitted_at || attempt.answered > 0) return true;
-  }
-  return false;
-}
-
 // ------------------------------------------------------------------- grading
 
-async function gradingTable(db: Db, session: ClassSession) {
-  const roster = await loadRoster(db, String(session.section_id));
-  const [pulse, quiz, reflections, overrides] = await Promise.all([
-    loadPulse(db, session.id),
-    loadQuiz(db, session),
-    loadReflections(db, session.id),
-    loadOverrides(db, session.id)
-  ]);
-
-  // A quiz nobody ever finished or answered is a quiz that was never given —
-  // the class was cut short. Its question count must not stand as a
-  // denominator, and the reflection that was never asked for must not cost
-  // anyone 20%.
-  const endOfClassRan = quizPhaseRan(quiz);
-
-  const rows = roster.map((student) => {
-    const answers = pulse.answersByProfile.get(student.profile_id) || [];
-    const gradedAnswers = answers.filter((answer) => pulse.gradedRoundIds.has(answer.round_id));
-    const attempt = quiz.attemptsByProfile.get(student.profile_id) || null;
-    const submissionAt = reflections.get(student.profile_id) || null;
-
-    const breakdown = computeGrade({
-      // A graded question that was never answered is wrong, not excused. The
-      // denominator is every graded question pushed to the room.
-      pulseCorrect: gradedAnswers.filter((answer) => answer.is_correct).length,
-      pulseTotal: pulse.gradedRoundCount,
-      quizCorrect: endOfClassRan ? attempt?.correct ?? 0 : 0,
-      quizTotal: endOfClassRan ? quiz.questionCount : 0,
-      submissionPresent: Boolean(submissionAt),
-      submissionRequired: endOfClassRan
+/**
+ * The professor's grading table. The rows and totals come from
+ * `classGradingRows` in _shared/class-grade.ts — the same function the exit
+ * ticket and the session close use to decide what to post, so what he reads
+ * here and what a student reads on their phone can never be two calculations.
+ *
+ * Opening the record for a CLOSED class also repairs its posting. There is no
+ * Post button any more, so a posting that failed on close — a dropped
+ * connection, a transient database error — would otherwise leave the class
+ * permanently ungraded with nothing the professor could press: pitfall #70, a
+ * state with no exit. This is a repair, not a decision; the grades for a closed
+ * class are meant to be posted, always, and an upsert of what is already there
+ * changes nothing.
+ */
+async function gradingTable(db: Db, session: ClassSession, actorProfileId: string) {
+  if (session.state === "closed") {
+    await postClassGradesQuietly(db, session, {
+      actorProfileId,
+      trigger: "class_closed"
     });
-
-    const history = overrides.get(student.profile_id) || [];
-    const active = history[0] && history[0].grade !== null ? history[0] : null;
-
-    return {
-      ...student,
-      ...breakdown,
-      submission_at: submissionAt,
-      quiz_status: attempt?.status ?? null,
-      quiz_submitted_at: attempt?.submitted_at ?? null,
-      override_grade: active ? active.grade : null,
-      override_reason: active ? active.reason : null,
-      override_at: active ? active.created_at : null,
-      override_by: active ? active.actor_name : null,
-      // What the professor is actually reporting for this student. The
-      // calculated grade above never changes to match it — an override replaces
-      // what is reported, never what was computed.
-      final_grade: active ? active.grade : breakdown.calculated_grade,
-      override_history: history
-    };
-  });
-
+  }
+  const { rows, totals } = await classGradingRows(db, session);
   return {
     session: sessionHeader(session),
     weights: gradingWeights(),
-    totals: {
-      graded_pulse_questions: pulse.gradedRoundCount,
-      pulse_rounds_pushed: pulse.roundCount,
-      quiz_questions: endOfClassRan ? quiz.questionCount : 0,
-      quiz_instance_id: quiz.instance ? String(quiz.instance.id) : null
-    },
+    totals,
     rows
   };
 }
-
-async function loadOverrides(db: Db, sessionId: string) {
-  const { data, error } = await db
-    .from("class_grade_overrides")
-    .select("profile_id, grade, calculated_grade, reason, actor_profile_id, created_at")
-    .eq("class_session_id", sessionId)
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  if (!(data || []).length) return new Map<string, OverrideRow[]>();
-
-  const actorIds = Array.from(new Set((data || []).map((row) => String(row.actor_profile_id))));
-  const { data: actors, error: actorError } = await db
-    .from("profiles")
-    .select("id, full_name, preferred_name")
-    .in("id", actorIds);
-  if (actorError) throw actorError;
-  const actorName = new Map(
-    (actors || []).map((person) => [
-      String(person.id),
-      String(person.preferred_name || person.full_name || "Instructor")
-    ])
-  );
-
-  const byProfile = new Map<string, OverrideRow[]>();
-  for (const row of data || []) {
-    const key = String(row.profile_id);
-    if (!byProfile.has(key)) byProfile.set(key, []);
-    byProfile.get(key)!.push({
-      grade: row.grade === null ? null : Number(row.grade),
-      calculated_grade: row.calculated_grade === null ? null : Number(row.calculated_grade),
-      reason: String(row.reason),
-      actor_name: actorName.get(String(row.actor_profile_id)) || "Instructor",
-      created_at: String(row.created_at)
-    });
-  }
-  return byProfile;
-}
-
-type OverrideRow = {
-  grade: number | null;
-  calculated_grade: number | null;
-  reason: string;
-  actor_name: string;
-  created_at: string;
-};
 
 // ------------------------------------------------------------------- actions
 
@@ -688,7 +433,10 @@ async function recordOverride(
 
   // Snapshot what the formula said at the moment of the override, so the record
   // still shows what was overridden even if the underlying data later changes.
-  const current = await gradingTable(db, session);
+  // Straight to the rows, not through gradingTable: that one repairs posting as
+  // a side effect, and posting the pre-override number a line before writing
+  // the override would put the wrong grade on the student's phone in between.
+  const current = await classGradingRows(db, session);
   const row = current.rows.find((candidate) => candidate.profile_id === profileId);
   if (!row) throw new Error("That student is not in this class group.");
 
@@ -712,114 +460,16 @@ async function recordOverride(
     metadata: { profile_id: profileId, grade, calculated_grade: row.calculated_grade, reason }
   });
 
-  return await gradingTable(db, session);
-}
-
-/**
- * Posting is explicit rather than automatic, so it stays a decision the
- * professor makes once the class has settled — not a side effect of opening a
- * screen. Re-posting after an override updates the same rows in place.
- */
-async function postToGradebook(db: Db, session: ClassSession, actorProfileId: string) {
-  const table = await gradingTable(db, session);
-  const categoryId = await ensureGradebookCategory(db, session.course_id);
-  const itemId = await ensureGradebookItem(db, session, categoryId);
-
-  const gradable = table.rows.filter((row) => row.final_grade !== null);
-  const skipped = table.rows.length - gradable.length;
-
-  if (gradable.length) {
-    const now = new Date().toISOString();
-    const { error } = await db.from("gradebook_scores").upsert(
-      gradable.map((row) => ({
-        gradebook_item_id: itemId,
-        profile_id: row.profile_id,
-        section_id: session.section_id,
-        // score_raw keeps what the formula produced; score_final is what is
-        // reported. When they differ, an override is the reason, and the reason
-        // itself lives in class_grade_overrides.
-        score_raw: row.calculated_grade,
-        score_percent: row.raw_score_percent,
-        score_final: row.final_grade,
-        status: "posted",
-        updated_at: now
-      })),
-      { onConflict: "gradebook_item_id,profile_id" }
-    );
-    if (error) throw error;
-  }
-
-  await db.from("audit_log").insert({
-    course_id: session.course_id,
-    actor_profile_id: actorProfileId,
-    target_type: "gradebook_item",
-    target_id: itemId,
-    action: "post_class_grades",
-    metadata: { class_session_id: session.id, posted: gradable.length, skipped }
+  // Push the corrected number straight to the student. There is no longer a
+  // Post button to press afterwards, so an override that did not re-post would
+  // leave the professor looking at the grade he just set while the student's
+  // phone still showed the old one.
+  await postClassGradesQuietly(db, session, {
+    profileIds: [profileId],
+    actorProfileId,
+    trigger: "grade_override"
   });
 
-  return { gradebook_item_id: itemId, posted: gradable.length, skipped };
+  return await gradingTable(db, session, actorProfileId);
 }
 
-async function ensureGradebookCategory(db: Db, courseId: string) {
-  const { data: existing, error } = await db
-    .from("gradebook_categories")
-    .select("id")
-    .eq("course_id", courseId)
-    .eq("name", CLASS_GRADE_CATEGORY_NAME)
-    .maybeSingle();
-  if (error) throw error;
-  if (existing) return String(existing.id);
-
-  // The category groups class grades; it does not weight them. There is one
-  // grade per class and the course total is their plain average, so
-  // weight_percent has nothing left to configure.
-  const { data: created, error: createError } = await db
-    .from("gradebook_categories")
-    .insert({ course_id: courseId, name: CLASS_GRADE_CATEGORY_NAME, weight_percent: 100, status: "active" })
-    .select("id")
-    .single();
-  if (createError) throw createError;
-  return String(created.id);
-}
-
-/**
- * One item per class, found by its class session rather than by rebuilding its
- * title. Renaming a session used to strand its grades behind a title that no
- * longer matched and silently post a second item beside the first.
- */
-async function ensureGradebookItem(db: Db, session: ClassSession, categoryId: string) {
-  const title = `Class ${session.sequence_number} — ${session.title}`.slice(0, 180);
-  const { data: existing, error } = await db
-    .from("gradebook_items")
-    .select("id, title")
-    .eq("class_session_id", session.id)
-    .maybeSingle();
-  if (error) throw error;
-  if (existing) {
-    // Keep the label current if the class was renamed since it was first posted.
-    if (String(existing.title) !== title) {
-      const { error: renameError } = await db
-        .from("gradebook_items")
-        .update({ title, updated_at: new Date().toISOString() })
-        .eq("id", existing.id);
-      if (renameError) throw renameError;
-    }
-    return String(existing.id);
-  }
-
-  const { data: created, error: createError } = await db
-    .from("gradebook_items")
-    .insert({
-      course_id: session.course_id,
-      category_id: categoryId,
-      class_session_id: session.id,
-      title,
-      max_score: 100,
-      status: "published"
-    })
-    .select("id")
-    .single();
-  if (createError) throw createError;
-  return String(created.id);
-}
