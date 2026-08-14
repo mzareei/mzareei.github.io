@@ -66,11 +66,11 @@ Deno.serve(async (request) => {
       }
       case "close": {
         if (!isInstructor) throw new Error("Closing a quiz is not allowed for this role.");
-        return json(await closeQuiz(db, courseId, body));
+        return json(await closeQuiz(db, courseId, body, isGlobalOwner, permittedSectionIds));
       }
       case "status": {
         if (!isTeacher) throw new Error("Quiz status is not allowed for this role.");
-        return json(await quizStatus(db, courseId, body));
+        return json(await quizStatus(db, courseId, body, isGlobalOwner, permittedSectionIds));
       }
       case "summary": {
         if (!isTeacher) throw new Error("Quiz summary is not allowed for this role.");
@@ -343,8 +343,42 @@ async function startQuiz(db: Db, courseId: string, actorProfileId: string, body:
   return { instance_id: instance.id, reused: false };
 }
 
-async function closeQuiz(db: Db, courseId: string, body: Record<string, unknown>) {
+// The instance id arrives from the caller, so the caller's section permissions
+// must be checked against the row itself — the class_session_id gate at the top
+// of the handler only fires when the caller chooses to send that field, which
+// an authenticated crafted request simply omits. Loading through the section's
+// course also pins the instance to this course; activity_instances carries no
+// course_id of its own.
+async function loadInstanceForActor(
+  db: Db,
+  courseId: string,
+  instanceId: string,
+  isGlobalOwner: boolean,
+  permittedSectionIds: string[]
+) {
+  const { data: instance, error } = await db
+    .from("activity_instances")
+    .select("id, section_id, state, ends_at, question_count, course_sections!inner(course_id)")
+    .eq("id", instanceId)
+    .eq("course_sections.course_id", courseId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!instance) throw new Error("That quiz instance was not found.");
+  if (!isGlobalOwner && !permittedSectionIds.includes(String(instance.section_id))) {
+    throw new Error("You are not allowed to manage quizzes for this class section.");
+  }
+  return instance;
+}
+
+async function closeQuiz(
+  db: Db,
+  courseId: string,
+  body: Record<string, unknown>,
+  isGlobalOwner: boolean,
+  permittedSectionIds: string[]
+) {
   const instanceId = cleanUuid(body.activity_instance_id, "activity instance id");
+  await loadInstanceForActor(db, courseId, instanceId, isGlobalOwner, permittedSectionIds);
   const { data: updated, error } = await db
     .from("activity_instances")
     .update({ state: "closed", updated_at: new Date().toISOString() })
@@ -356,15 +390,15 @@ async function closeQuiz(db: Db, courseId: string, body: Record<string, unknown>
   return { instance_id: updated.id, state: "closed" };
 }
 
-async function quizStatus(db: Db, courseId: string, body: Record<string, unknown>) {
+async function quizStatus(
+  db: Db,
+  courseId: string,
+  body: Record<string, unknown>,
+  isGlobalOwner: boolean,
+  permittedSectionIds: string[]
+) {
   const instanceId = cleanUuid(body.activity_instance_id, "activity instance id");
-  const { data: instance, error } = await db
-    .from("activity_instances")
-    .select("id, section_id, state, ends_at, question_count")
-    .eq("id", instanceId)
-    .maybeSingle();
-  if (error) throw error;
-  if (!instance) throw new Error("That quiz instance was not found.");
+  const instance = await loadInstanceForActor(db, courseId, instanceId, isGlobalOwner, permittedSectionIds);
 
   const [{ count: enrolled }, { data: attempts, error: attemptError }] = await Promise.all([
     db.from("section_enrollments").select("id", { count: "exact", head: true })

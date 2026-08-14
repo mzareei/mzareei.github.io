@@ -1,7 +1,10 @@
 import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 
-const teacherRoles = ["platform_owner", "instructor"];
+// Platform owner only. This is the Gen-1 migration tool — it writes
+// activity_instances into caller-named sections and has no SPA caller, so a
+// section-scoped instructor has no legitimate use for it.
+const teacherRoles = ["platform_owner"];
 
 Deno.serve(async (request) => {
   const options = handleOptions(request);

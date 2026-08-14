@@ -24,6 +24,11 @@ Deno.serve(async (request) => {
 
     if (body.action === "save_category") {
       assertInstructorOnly(permissions);
+      // Categories are course-wide: a weight change moves every group's
+      // numbers at once, so a single-section instructor must not write them.
+      if (!permissions.isGlobalCourseInstructor) {
+        throw new Error("Changing course-wide gradebook categories is not allowed for your account.");
+      }
       const category = await saveGradebookCategory(db, courseId, {
         categoryId: cleanOptionalUuid(body.category_id),
         actorProfileId: profile.id,

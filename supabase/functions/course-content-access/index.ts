@@ -131,8 +131,8 @@ async function loadContentAccess(db: Db, input: {
   ]);
 
   const sectionIds = sections.map((section) => String(section.section_id));
-  const isTeacher = memberships.some((membership) => teacherRoles.includes(String(membership.role)));
-  assertReleaseVisible(release, sectionIds, isTeacher);
+  const isOwner = memberships.some((membership) => String(membership.role) === "platform_owner");
+  assertReleaseVisible(release, sectionIds, isOwner);
 
   const { data: item, error: itemError } = await db
     .from("content_items")
@@ -172,7 +172,7 @@ async function loadInstructorContentAccess(db: Db, input: {
 }) {
   const { data: item, error: itemError } = await db
     .from("content_items")
-    .select("id, course_id, slug, title, source_kind, source_ref")
+    .select("id, course_id, slug, title, source_kind, source_ref, owner_profile_id")
     .eq("id", input.contentItemId)
     .maybeSingle();
   if (itemError) throw itemError;
@@ -185,11 +185,52 @@ async function loadInstructorContentAccess(db: Db, input: {
     .eq("profile_id", input.profileId)
     .eq("status", "active");
   if (membershipError) throw membershipError;
-  const isTeacher = (memberships || []).some((membership) =>
-    teacherRoles.includes(String(membership.role))
-  );
+  const roles = (memberships || []).map((membership) => String(membership.role));
+  const isTeacher = roles.some((role) => teacherRoles.includes(role));
   if (!isTeacher) {
     throw new Error("Access denied: instructor access is required for this lecture.");
+  }
+  // "Teacher somewhere in the course" used to mint a delivery token for ANY
+  // content item by id — another professor's unshared private lecture
+  // included. A non-owner teacher needs one of: their own (or unowned legacy)
+  // item, a share to a group they teach, or the item attached to a class day
+  // of a group they teach — that last one is what lets an invited professor
+  // present a lecture the owner scheduled for their group.
+  if (!roles.includes("platform_owner")) {
+    const owned = item.owner_profile_id == null
+      || String(item.owner_profile_id) === String(input.profileId);
+    if (!owned) {
+      const { data: teachingSections, error: sectionError } = await db
+        .from("section_enrollments")
+        .select("section_id, course_sections!inner(course_id)")
+        .eq("profile_id", input.profileId)
+        .in("role", ["instructor", "teaching_assistant"])
+        .eq("status", "active")
+        .eq("course_sections.course_id", String(item.course_id));
+      if (sectionError) throw sectionError;
+      const sectionIds = Array.from(new Set((teachingSections || []).map((row) => String(row.section_id))));
+      let allowed = false;
+      if (sectionIds.length) {
+        const [{ data: shares, error: shareError }, { data: sessions, error: sessionError }] = await Promise.all([
+          db.from("content_shares")
+            .select("id")
+            .eq("content_item_id", item.id)
+            .in("section_id", sectionIds)
+            .limit(1),
+          db.from("class_sessions")
+            .select("id")
+            .eq("content_item_id", item.id)
+            .in("section_id", sectionIds)
+            .limit(1)
+        ]);
+        if (shareError) throw shareError;
+        if (sessionError) throw sessionError;
+        allowed = Boolean((shares || []).length || (sessions || []).length);
+      }
+      if (!allowed) {
+        throw new Error("Access denied: this lecture is not yours to open.");
+      }
+    }
   }
   if (String(item.source_kind) !== "storage_object" || !String(item.source_ref || "")) {
     throw new Error("Access denied: this lecture is not stored on the platform.");
@@ -238,12 +279,16 @@ async function loadRelease(db: Db, courseId: string, releaseId: string) {
   return data;
 }
 
-function assertReleaseVisible(release: Record<string, unknown>, sectionIds: string[], isTeacher: boolean) {
+function assertReleaseVisible(release: Record<string, unknown>, sectionIds: string[], isOwner: boolean) {
   if (!visibleContentStates.includes(String(release.state))) {
     throw new Error("Access denied: this content is not released.");
   }
 
-  const sectionAllowed = isTeacher || !release.section_id || sectionIds.includes(String(release.section_id));
+  // A section-scoped release belongs to that section. A teacher's own sections
+  // are in sectionIds through their instructor enrollment, so only the
+  // platform owner needs (and gets) the everywhere-bypass — "is a teacher
+  // somewhere in the course" used to unlock every other group's releases.
+  const sectionAllowed = isOwner || !release.section_id || sectionIds.includes(String(release.section_id));
   if (!sectionAllowed) {
     throw new Error("Access denied: this content is not released for your section.");
   }

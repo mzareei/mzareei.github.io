@@ -50,34 +50,52 @@ Deno.serve(async (request) => {
     const roles = await loadRoles(db, courseId, String(profile.id));
     const isTeacher = roles.some((role) => teacherRoles.includes(role));
     const isInstructor = roles.some((role) => instructorRoles.includes(role));
+    // Banks follow their content item's ownership, mirroring
+    // course-content-library: content is owner-private with per-section shares,
+    // and this function was the back door that ignored all of it — any
+    // instructor could list, edit, or delete any bank in the course by id.
+    const isGlobalOwner = roles.includes("platform_owner");
+    const permissions = {
+      isGlobalOwner,
+      profileId: String(profile.id),
+      permittedSectionIds: isGlobalOwner
+        ? []
+        : await loadPermittedSectionIds(db, String(profile.id), courseId)
+    };
 
     switch (body.action) {
       case "import_bank": {
         if (!isInstructor) throw new Error("Importing a question bank is not allowed for this role.");
-        return json(await importBank(db, courseId, String(profile.id), body));
+        return json(await importBank(db, courseId, String(profile.id), body, permissions));
       }
       case "list_banks": {
         if (!isTeacher) throw new Error("Question banks are not allowed for this role.");
-        return json(await listBanks(db, courseId));
+        return json(await listBanks(db, courseId, permissions));
       }
       case "list_questions": {
         if (!isInstructor) throw new Error("Question review is not allowed for this role.");
+        await assertBankAccess(db, courseId, body.question_bank_id, permissions, "read");
         return json(await listQuestions(db, courseId, body));
       }
       case "update_question": {
         if (!isInstructor) throw new Error("Question editing is not allowed for this role.");
+        await assertBankAccess(db, courseId, body.question_bank_id, permissions, "edit");
         return json(await updateQuestion(db, courseId, String(profile.id), body));
       }
       case "delete_question": {
         if (!isInstructor) throw new Error("Question deletion is not allowed for this role.");
+        await assertBankAccess(db, courseId, body.question_bank_id, permissions, "edit");
         return json(await deleteQuestion(db, courseId, String(profile.id), body));
       }
       case "delete_bank": {
         if (!isInstructor) throw new Error("Deleting a question bank is not allowed for this role.");
+        await assertBankAccess(db, courseId, body.question_bank_id, permissions, "edit");
         return json(await deleteBank(db, courseId, String(profile.id), body));
       }
       case "draw_question": {
         if (!isTeacher) throw new Error("Drawing a question is not allowed for this role.");
+        // draw_question names its bank by content slug, not bank id.
+        await assertContentSlugAccess(db, courseId, String(body.content_slug || "").trim(), permissions);
         return json(await drawQuestion(db, courseId, body));
       }
       default:
@@ -132,6 +150,106 @@ async function loadRoles(db: Db, courseId: string, profileId: string) {
     .eq("status", "active");
   if (error) throw error;
   return (data || []).map((row) => String(row.role));
+}
+
+type BankPermissions = {
+  isGlobalOwner: boolean;
+  profileId: string;
+  permittedSectionIds: string[];
+};
+
+async function loadPermittedSectionIds(db: Db, profileId: string, courseId: string) {
+  const { data, error } = await db
+    .from("section_enrollments")
+    .select("section_id, course_sections!inner(course_id)")
+    .eq("profile_id", profileId)
+    .in("role", ["instructor", "teaching_assistant"])
+    .eq("status", "active")
+    .eq("course_sections.course_id", courseId);
+  if (error) throw error;
+  return Array.from(new Set((data || []).map((row) => String(row.section_id))));
+}
+
+async function loadSharedContentItemIds(db: Db, permissions: BankPermissions): Promise<Set<string>> {
+  if (permissions.isGlobalOwner || !permissions.permittedSectionIds.length) return new Set<string>();
+  const { data, error } = await db
+    .from("content_shares")
+    .select("content_item_id")
+    .in("section_id", permissions.permittedSectionIds);
+  if (error) throw error;
+  return new Set((data || []).map((row) => String(row.content_item_id)));
+}
+
+/** Same rule as course-content-library's canEditContentItem: owner, platform
+ *  owner, or unowned legacy content. A bank detached from any content item is
+ *  the owner's to manage. */
+function canEditBankItem(
+  item: { owner_profile_id?: string | null } | null,
+  permissions: BankPermissions
+) {
+  if (permissions.isGlobalOwner) return true;
+  if (!item) return false;
+  if (item.owner_profile_id == null) return true;
+  return String(item.owner_profile_id) === permissions.profileId;
+}
+
+async function assertBankAccess(
+  db: Db,
+  courseId: string,
+  bankIdRaw: unknown,
+  permissions: BankPermissions,
+  mode: "read" | "edit"
+) {
+  if (permissions.isGlobalOwner) return;
+  const bankId = cleanUuid(bankIdRaw, "question bank id");
+  const { data: bank, error } = await db
+    .from("question_banks")
+    .select("id, content_item_id")
+    .eq("id", bankId)
+    .eq("course_id", courseId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!bank) throw new Error("That question bank is not active.");
+  const item = bank.content_item_id
+    ? await loadOwnedItem(db, String(bank.content_item_id))
+    : null;
+  if (canEditBankItem(item, permissions)) return;
+  if (mode === "read" && bank.content_item_id) {
+    const shared = await loadSharedContentItemIds(db, permissions);
+    if (shared.has(String(bank.content_item_id))) return;
+  }
+  throw new Error("This question bank is not allowed for your account.");
+}
+
+async function assertContentSlugAccess(
+  db: Db,
+  courseId: string,
+  slug: string,
+  permissions: BankPermissions
+) {
+  if (permissions.isGlobalOwner || !slug) return;
+  const { data: item, error } = await db
+    .from("content_items")
+    .select("id, owner_profile_id")
+    .eq("course_id", courseId)
+    .eq("slug", slug)
+    .maybeSingle();
+  if (error) throw error;
+  if (!item) return; // The action's own lookup reports the missing slug.
+  if (canEditBankItem(item, permissions)) return;
+  const shared = await loadSharedContentItemIds(db, permissions);
+  if (shared.has(String(item.id))) return;
+  throw new Error("This question bank is not allowed for your account.");
+}
+
+async function loadOwnedItem(db: Db, contentItemId: string) {
+  const { data, error } = await db
+    .from("content_items")
+    .select("id, owner_profile_id")
+    .eq("id", contentItemId)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
 }
 
 async function loadContentItem(db: Db, courseId: string, slug: string) {
@@ -189,9 +307,20 @@ function validateQuestion(raw: Record<string, unknown>, index: number) {
   };
 }
 
-async function importBank(db: Db, courseId: string, actorProfileId: string, body: Record<string, unknown>) {
+async function importBank(
+  db: Db,
+  courseId: string,
+  actorProfileId: string,
+  body: Record<string, unknown>,
+  permissions: BankPermissions
+) {
   const slug = String(body.content_slug || "").trim();
   const item = await loadContentItem(db, courseId, slug);
+  // Importing writes the item's bank in place — owner (or unowned legacy) only,
+  // same as every other write here. A share never grants edit.
+  if (!canEditBankItem(await loadOwnedItem(db, String(item.id)), permissions)) {
+    throw new Error("This question bank is not allowed for your account.");
+  }
   const teachingSlideCount = Number(body.teaching_slide_count);
   if (!Number.isInteger(teachingSlideCount) || teachingSlideCount < 1) {
     throw new Error("A finalized teaching slide count is required.");
@@ -318,24 +447,36 @@ async function importBank(db: Db, courseId: string, actorProfileId: string, body
   };
 }
 
-async function listBanks(db: Db, courseId: string) {
-  const { data: banks, error } = await db
+async function listBanks(db: Db, courseId: string, permissions: BankPermissions) {
+  const { data: allBanks, error } = await db
     .from("question_banks")
     .select("id, title, content_item_id, bank_type, status, generation_validation_profile, checkpoint_preparation_state, checkpoint_preparation_updated_at, updated_at")
     .eq("course_id", courseId)
     .eq("status", "active");
   if (error) throw error;
-  if (!(banks || []).length) return { banks: [] };
+  if (!(allBanks || []).length) return { banks: [] };
 
-  const contentItemIds = (banks || []).map((bank) => bank.content_item_id).filter(Boolean);
+  const contentItemIds = (allBanks || []).map((bank) => bank.content_item_id).filter(Boolean);
   const { data: items, error: itemError } = contentItemIds.length
     ? await db
       .from("content_items")
-      .select("id, slug, title, content_type")
+      .select("id, slug, title, content_type, owner_profile_id")
       .in("id", contentItemIds)
     : { data: [], error: null };
   if (itemError) throw itemError;
   const itemById = new Map((items || []).map((item) => [String(item.id), item]));
+
+  // A non-owner sees the banks of content they own, unowned legacy content,
+  // and content shared to a group they teach — the same shelf their Content
+  // screen shows. Everything else is another instructor's private material.
+  const sharedItemIds = await loadSharedContentItemIds(db, permissions);
+  const banks = (allBanks || []).filter((bank) => {
+    if (permissions.isGlobalOwner) return true;
+    const item = bank.content_item_id ? itemById.get(String(bank.content_item_id)) || null : null;
+    if (canEditBankItem(item, permissions)) return true;
+    return bank.content_item_id ? sharedItemIds.has(String(bank.content_item_id)) : false;
+  });
+  if (!banks.length) return { banks: [] };
 
   const { data: questions, error: questionError } = await db
     .from("questions")

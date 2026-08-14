@@ -42,7 +42,15 @@ Deno.serve(async (request) => {
     const body = await request.json().catch(() => ({}));
     const db = adminClient();
     const courseId = cleanCourseId(body.course_id) || "tc2007b";
-    const profile = await requireInstructor(db, token, courseId);
+    const { profile, isGlobalOwner } = await requireInstructor(db, token, courseId);
+
+    // Every job-scoped action names its job through body.job_id and nothing
+    // else, so one gate here scopes them all: a non-owner instructor may only
+    // touch jobs they created. preview_url in particular signs another
+    // instructor's uploaded source PDF.
+    if (!isGlobalOwner && body.job_id) {
+      await assertJobCreatedBy(db, courseId, body.job_id, String(profile.id));
+    }
 
     switch (body.action) {
       case "create_job":
@@ -56,7 +64,7 @@ Deno.serve(async (request) => {
       case "status":
         return json({ job: await loadJob(db, courseId, body.job_id) });
       case "list_jobs":
-        return json(await listJobs(db, courseId));
+        return json(await listJobs(db, courseId, isGlobalOwner ? null : String(profile.id)));
       case "cancel":
         return json(await cancelJob(db, courseId, body));
       case "review_bundle":
@@ -117,9 +125,27 @@ async function requireInstructor(db: Db, token: string, courseId: string) {
     .eq("profile_id", profile.id)
     .eq("status", "active");
   if (membershipError) throw membershipError;
-  const isInstructor = (memberships || []).some((m) => instructorRoles.includes(String(m.role)));
+  const roles = (memberships || []).map((m) => String(m.role));
+  const isInstructor = roles.some((role) => instructorRoles.includes(role));
   if (!isInstructor) throw new Error("Managing generation jobs is not allowed for this role.");
-  return profile;
+  return { profile, isGlobalOwner: roles.includes("platform_owner") };
+}
+
+async function assertJobCreatedBy(db: Db, courseId: string, jobIdRaw: unknown, profileId: string) {
+  const jobId = String(jobIdRaw || "").trim();
+  if (!jobId) return; // The action's own loadJob rejects a missing id.
+  const { data, error } = await db
+    .from("generation_jobs")
+    .select("id, created_by")
+    .eq("id", jobId)
+    .eq("course_id", courseId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("That generation job was not found.");
+  // A null created_by predates ownership and belongs to the platform owner.
+  if (!data.created_by || String(data.created_by) !== profileId) {
+    throw new Error("Managing another instructor's generation job is not allowed.");
+  }
 }
 
 /** A slug free in this course. Used when the requested one is taken by another
@@ -280,13 +306,15 @@ async function approvePlan(db: Db, courseId: string, body: Record<string, unknow
   return { job: updated };
 }
 
-async function listJobs(db: Db, courseId: string) {
-  const { data, error } = await db
+async function listJobs(db: Db, courseId: string, onlyCreatedBy: string | null) {
+  let query = db
     .from("generation_jobs")
     .select("id, status, lecture_title, lecture_slug, generation_mode, content_item_id, error, created_at, updated_at")
     .eq("course_id", courseId)
     .order("created_at", { ascending: false })
     .limit(50);
+  if (onlyCreatedBy) query = query.eq("created_by", onlyCreatedBy);
+  const { data, error } = await query;
   if (error) throw error;
   return { jobs: data || [] };
 }

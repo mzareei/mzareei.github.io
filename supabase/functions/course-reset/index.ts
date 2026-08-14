@@ -14,9 +14,10 @@ import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_sha
 
 type Db = ReturnType<typeof adminClient>;
 
-// Deliberately not a teacher-wide action. A TA should be able to read every
-// screen in the course and still not be able to erase the semester.
-const resetRoles = ["platform_owner", "instructor"];
+// Platform owner only. The preview reads every student's activity across every
+// group and execute erases the whole course's semester — an instructor invited
+// to teach one group must be able to do neither. TAs were already excluded.
+const resetRoles = ["platform_owner"];
 const CONFIRM_TOKEN = "RESET";
 
 Deno.serve(async (request) => {

@@ -169,7 +169,12 @@ async function loadStudentRecord(db: Db, courseId: string, profileId: string, pe
   const sections = await loadStudentSections(db, courseId, profileId);
   assertStudentScope(sections.map((section) => String(section.id)), permissions);
 
-  const sectionIds = sections.map((section) => String(section.id));
+  // A dual-enrolled student passes the scope check on one shared section; the
+  // caller still only gets the slice belonging to sections they teach.
+  const visibleSections = permissions.isCourseInstructor
+    ? sections
+    : sections.filter((section) => permissions.permittedSectionIds.includes(String(section.id)));
+  const sectionIds = visibleSections.map((section) => String(section.id));
   const [scores, attempts, exitTickets, portfolioEntries] = await Promise.all([
     loadScores(db, courseId, profileId, sectionIds),
     loadAttempts(db, profileId, sectionIds),
@@ -179,7 +184,7 @@ async function loadStudentRecord(db: Db, courseId: string, profileId: string, pe
 
   return {
     profile,
-    sections,
+    sections: visibleSections,
     scores,
     attempts,
     exit_tickets: exitTickets,

@@ -120,7 +120,12 @@ Deno.serve(async (request) => {
 
     if (body.action === "assign_person_section") {
       const targetSectionId = cleanUuid(body.section_id, "A valid section id is required.");
+      const targetProfileId = cleanUuid(body.profile_id, "A valid profile id is required.");
       assertSectionAllowed(permissions, targetSectionId);
+      // The RPC drops every other enrollment the student holds, so checking
+      // only the destination let an instructor pull a student OUT of a group
+      // they do not teach. The source sections must be theirs too.
+      await assertNoForeignEnrollment(db, permissions, courseId, targetProfileId);
       const { data: assignment, error: assignmentError } = await db
         .rpc("assign_student_section_atomic", {
           p_course_id: courseId,
@@ -383,6 +388,29 @@ async function assertSectionInstructorTargetAllowed(
   if (!(data || []).length) throw new Error("You are not allowed to manage this instructor.");
 }
 
+async function assertNoForeignEnrollment(
+  db: ReturnType<typeof adminClient>,
+  permissions: { isGlobalOwner: boolean; permittedSectionIds: string[] },
+  courseId: string,
+  profileId: string
+) {
+  if (permissions.isGlobalOwner) return;
+  let query = db
+    .from("section_enrollments")
+    .select("section_id, course_sections!inner(course_id)")
+    .eq("profile_id", profileId)
+    .eq("status", "active")
+    .eq("course_sections.course_id", courseId);
+  if (permissions.permittedSectionIds.length) {
+    query = query.not("section_id", "in", `(${permissions.permittedSectionIds.join(",")})`);
+  }
+  const { data, error } = await query.limit(1);
+  if (error) throw error;
+  if ((data || []).length) {
+    throw new Error("You are not allowed to manage this person's roster record.");
+  }
+}
+
 async function assertSectionStudentTargetAllowed(
   db: ReturnType<typeof adminClient>,
   permissions: { isGlobalOwner: boolean; permittedSectionIds: string[] },
@@ -418,6 +446,14 @@ async function validateRosterRows(
 
   const grantedEmails = await loadGrantedEmails(db, courseId);
   const sectionByCode = new Map((sections || []).map((section) => [String(section.section_code).toLowerCase(), section]));
+  // A non-owner instructor may add new people and re-add their own, but must
+  // not be able to capture a student who is actively enrolled in a group they
+  // do not teach — importing a known 501 email under your own section code
+  // would otherwise create a second active enrollment and put that student's
+  // record inside every screen your section scope unlocks.
+  const foreignEmails = permissions.isGlobalOwner
+    ? new Set<string>()
+    : await loadEmailsEnrolledOutsideSections(db, courseId, rows.map((row) => row.institutional_email), permissions.permittedSectionIds);
   const seenEmails = new Set<string>();
   const accepted_rows = [];
   const rejected_rows = [];
@@ -438,6 +474,10 @@ async function validateRosterRows(
       assertSectionAllowed(permissions, String(section.id));
     } catch {
       rejected_rows.push({ ...row, reason: "This section is outside your teaching assignment." });
+      continue;
+    }
+    if (foreignEmails.has(row.institutional_email)) {
+      rejected_rows.push({ ...row, reason: "This person is already enrolled in a group outside your teaching assignment." });
       continue;
     }
     accepted_rows.push({
@@ -515,6 +555,42 @@ async function applyRoster(db: ReturnType<typeof adminClient>, input: {
     roster_import: importRow,
     ...preview
   };
+}
+
+async function loadEmailsEnrolledOutsideSections(
+  db: ReturnType<typeof adminClient>,
+  courseId: string,
+  emails: string[],
+  permittedSectionIds: string[]
+) {
+  const cleaned = Array.from(new Set(emails.filter(Boolean)));
+  if (!cleaned.length) return new Set<string>();
+  const { data: profiles, error: profileError } = await db
+    .from("profiles")
+    .select("id, institutional_email")
+    .in("institutional_email", cleaned);
+  if (profileError) throw profileError;
+  if (!(profiles || []).length) return new Set<string>();
+
+  const profileIds = (profiles || []).map((profile) => String(profile.id));
+  let query = db
+    .from("section_enrollments")
+    .select("profile_id, section_id, course_sections!inner(course_id)")
+    .in("profile_id", profileIds)
+    .eq("status", "active")
+    .eq("course_sections.course_id", courseId);
+  if (permittedSectionIds.length) {
+    query = query.not("section_id", "in", `(${permittedSectionIds.join(",")})`);
+  }
+  const { data: foreign, error: enrollmentError } = await query;
+  if (enrollmentError) throw enrollmentError;
+
+  const emailById = new Map((profiles || []).map((profile) => [String(profile.id), String(profile.institutional_email)]));
+  return new Set(
+    (foreign || [])
+      .map((row) => emailById.get(String(row.profile_id)))
+      .filter((email): email is string => Boolean(email))
+  );
 }
 
 async function upsertAcceptedRows(db: ReturnType<typeof adminClient>, courseId: string, rows: Record<string, unknown>[]) {
@@ -1208,15 +1284,23 @@ async function listRoster(db: ReturnType<typeof adminClient>, courseId: string, 
   if (!(memberships || []).length) return [];
 
   const membershipProfileIds = unique((memberships || []).map((membership) => membership.profile_id));
+  // The per-person sections[] echo is scoped for non-owners: a person on your
+  // roster may also hold enrollments in groups you do not teach (the owner
+  // does, and so would a student the owner dual-enrolled), and those rows are
+  // another group's data.
+  let enrollmentQuery = db
+    .from("section_enrollments")
+    .select("id, section_id, profile_id, role, status")
+    .in("profile_id", membershipProfileIds);
+  if (!permissions.isGlobalOwner && permissions.permittedSectionIds.length) {
+    enrollmentQuery = enrollmentQuery.in("section_id", permissions.permittedSectionIds);
+  }
   const [{ data: profiles, error: profileError }, { data: enrollments, error: enrollmentError }] = await Promise.all([
     db
       .from("profiles")
       .select("id, institutional_email, student_identifier, full_name, auth_user_id, status")
       .in("id", membershipProfileIds),
-    db
-      .from("section_enrollments")
-      .select("id, section_id, profile_id, role, status")
-      .in("profile_id", membershipProfileIds)
+    enrollmentQuery
   ]);
   if (profileError) throw profileError;
   if (enrollmentError) throw enrollmentError;

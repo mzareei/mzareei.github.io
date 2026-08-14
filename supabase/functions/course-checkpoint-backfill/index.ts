@@ -120,8 +120,8 @@ Deno.serve(async (request) => {
 
     const db = adminClient();
     const courseId = cleanCourseId(body.course_id) || "tc2007b";
-    await requireInstructor(db, token, courseId);
-    return json(await prepareCheckpoints(db, courseId, body));
+    const actor = await requireInstructor(db, token, courseId);
+    return json(await prepareCheckpoints(db, courseId, body, actor));
   } catch (error) {
     const message = error instanceof Error
       ? error.message || "Unable to prepare lecture checkpoints."
@@ -170,13 +170,12 @@ async function requireInstructor(db: Db, token: string, courseId: string) {
     .eq("profile_id", profile.id)
     .eq("status", "active");
   if (membershipError) throw membershipError;
-  const permitted = (memberships || []).some((membership) =>
-    instructorRoles.includes(String(membership.role))
-  );
+  const roles = (memberships || []).map((membership) => String(membership.role));
+  const permitted = roles.some((role) => instructorRoles.includes(role));
   if (!permitted) {
     throw new Error("Checkpoint preparation is not allowed for this role.");
   }
-  return profile;
+  return { profile, isGlobalOwner: roles.includes("platform_owner") };
 }
 
 function contentItemId(value: unknown): string {
@@ -396,17 +395,28 @@ async function persistPreparedDeck(
 async function prepareCheckpoints(
   db: Db,
   courseId: string,
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
+  actor: { profile: { id: unknown }; isGlobalOwner: boolean }
 ): Promise<BackfillResult> {
   const requestedId = contentItemId(body.content_item_id);
   const { data: item, error: itemError } = await db
     .from("content_items")
-    .select("id, course_id, content_type, source_kind, source_ref")
+    .select("id, course_id, content_type, source_kind, source_ref, owner_profile_id")
     .eq("id", requestedId)
     .eq("course_id", courseId)
     .maybeSingle();
   if (itemError) throw itemError;
   if (!item) throw new Error("That lecture was not found.");
+  // Preparation rewrites the lecture's bank metadata, so it follows content
+  // ownership: the owner (or a not-yet-backfilled null owner) only. Same rule
+  // as course-content-library's write paths.
+  if (
+    !actor.isGlobalOwner
+    && item.owner_profile_id
+    && String(item.owner_profile_id) !== String(actor.profile.id)
+  ) {
+    throw new Error("Checkpoint preparation is not allowed for another instructor's lecture.");
+  }
   if (item.content_type !== "lecture") {
     throw new Error("Only lectures can be prepared for checkpoints.");
   }
