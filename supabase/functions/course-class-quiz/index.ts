@@ -18,6 +18,7 @@ import { askedQuestionIds, withoutAsked } from "../_shared/asked-questions.ts";
 import { classDateFor } from "../_shared/attendance.ts";
 import { estimateTotalSeconds } from "../_shared/question-timing.ts";
 import { closeReasonFor, maybeAutoCloseInstance } from "../_shared/quiz-close.ts";
+import { podiumCut, rankAttempts } from "../_shared/quiz-rank.ts";
 
 type Db = ReturnType<typeof adminClient>;
 
@@ -77,6 +78,10 @@ Deno.serve(async (request) => {
       case "summary": {
         if (!isTeacher) throw new Error("Quiz summary is not allowed for this role.");
         return json(await quizSummary(db, courseId, body, roles.includes("teaching_assistant") && !isInstructor, String(profile.id)));
+      }
+      case "podium": {
+        if (!isTeacher) throw new Error("Quiz results are not allowed for this role.");
+        return json(await quizPodium(db, courseId, body, isGlobalOwner, permittedSectionIds));
       }
       case "reflections": {
         if (!isTeacher) throw new Error("Reflections are not allowed for this role.");
@@ -534,6 +539,75 @@ async function quizSummary(
         score_percent: attempt.score_percent,
         score_final: attempt.score_final,
         submitted_at: attempt.submitted_at
+      };
+    })
+  };
+}
+
+/** The top three of the last quiz this class ran, for the celebration screen.
+ *
+ *  A real name is WITHHELD HERE unless that student opted in. Sending every
+ *  podium name and hiding two of them in the client would put a classmate's
+ *  name in a response the professor's browser — and anything with his session —
+ *  can read. The student ID is the public identity; the name is the exception
+ *  they granted. */
+async function quizPodium(
+  db: Db,
+  courseId: string,
+  body: Record<string, unknown>,
+  isGlobalOwner: boolean,
+  permittedSectionIds: string[]
+) {
+  let instanceId = "";
+  if (body.activity_instance_id) {
+    instanceId = cleanUuid(body.activity_instance_id, "activity instance id");
+    await loadInstanceForActor(db, courseId, instanceId, isGlobalOwner, permittedSectionIds);
+  } else {
+    const sessionId = cleanUuid(body.class_session_id, "class session id");
+    const session = await loadSession(db, courseId, sessionId);
+    if (!isGlobalOwner && !permittedSectionIds.includes(String(session.section_id))) {
+      throw new Error("You are not allowed to manage quizzes for this class section.");
+    }
+    const { data: instances, error } = await db
+      .from("activity_instances")
+      .select("id, state")
+      .eq("class_session_id", sessionId)
+      .eq("state", "closed")
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (error) throw error;
+    instanceId = String((instances || [])[0]?.id || "");
+  }
+  if (!instanceId) return { instance_id: null, entries: [] };
+
+  const { data: attempts, error: attemptError } = await db
+    .from("student_attempts")
+    .select("profile_id, status, score_final, submitted_at, name_revealed")
+    .eq("activity_instance_id", instanceId);
+  if (attemptError) throw attemptError;
+
+  const top = podiumCut(rankAttempts((attempts || []) as never));
+  if (!top.length) return { instance_id: instanceId, entries: [] };
+
+  const { data: profiles, error: profileError } = await db
+    .from("profiles")
+    .select("id, full_name, preferred_name, student_identifier")
+    .in("id", top.map((entry) => String(entry.profile_id)));
+  if (profileError) throw profileError;
+  const byId = new Map((profiles || []).map((p) => [String(p.id), p]));
+
+  return {
+    instance_id: instanceId,
+    entries: top.map((entry) => {
+      const person = byId.get(String(entry.profile_id)) || {};
+      const name_revealed = Boolean((entry as Record<string, unknown>).name_revealed);
+      return {
+        rank: entry.rank,
+        profile_id: entry.profile_id,
+        student_identifier: person.student_identifier || null,
+        score_final: entry.score_final,
+        name_revealed,
+        name: name_revealed ? (person.preferred_name || person.full_name || null) : null
       };
     })
   };
