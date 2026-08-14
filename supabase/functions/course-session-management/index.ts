@@ -850,6 +850,19 @@ async function updateSessionState(db: ReturnType<typeof adminClient>, input: {
       .eq("class_session_id", input.sessionId)
       .in("state", ["open", "live"]);
   }
+
+  // Resuming has to undo what pausing did. Without this the instance stays
+  // `paused` for good: it is no longer closable by the timer (a quiz must not
+  // expire while the room is stopped), so it never reaches `closed` — and the
+  // student live screen gates the exit ticket on exactly that, so the whole
+  // room is stranded for the rest of the class.
+  if (input.nextState === "live") {
+    await db
+      .from("activity_instances")
+      .update({ state: "live", updated_at: now })
+      .eq("class_session_id", input.sessionId)
+      .in("state", ["paused"]);
+  }
   await insertAudit(db, {
     courseId: session.course_id,
     actorProfileId: input.actorProfileId,
