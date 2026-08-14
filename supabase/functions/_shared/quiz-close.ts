@@ -16,6 +16,21 @@
 // that touches the database is kept at the bottom and does no deciding.
 
 export const OPEN_INSTANCE_STATES = ["open", "live", "paused"];
+
+/**
+ * The states a timer is allowed to close. Deliberately NOT the same list as
+ * OPEN_INSTANCE_STATES, which means "not finished" and is right for its callers.
+ *
+ * `paused` is the difference. Pausing the class sets every running instance to
+ * `paused` (course-session-management), and while the room is stopped
+ * course-activity-attempt refuses submissions outright. If a timer could close a
+ * paused quiz — and it could, because any student's 3-second poll runs the
+ * decision — the professor pausing for five minutes to answer a question would
+ * come back to a closed quiz that everybody mid-question lost their answers to,
+ * with nobody having pressed anything. A quiz that is stopped cannot run out of
+ * time; the clock is not running.
+ */
+export const CLOSABLE_STATES = ["open", "live"];
 export const SUBMITTED_STATUSES = ["submitted", "late"];
 /** How long after the deadline a submission already in progress is still taken. */
 export const GRACE_SECONDS = 60;
@@ -69,7 +84,7 @@ export function decideQuizClose(input: {
   submittedCount: number;
   now: Date;
 }): QuizCloseReason | null {
-  if (!OPEN_INSTANCE_STATES.includes(String(input?.state))) return null;
+  if (!CLOSABLE_STATES.includes(String(input?.state))) return null;
 
   const present = Math.max(0, Number(input?.presentCount) || 0);
   const submitted = Math.max(0, Number(input?.submittedCount) || 0);
@@ -103,37 +118,61 @@ export function decideQuizClose(input: {
 }
 
 /**
- * Whether a submission arriving after the deadline is still taken.
+ * Whether a submission arriving after the quiz stopped is still taken.
  *
- * A manual close does not touch `ends_at` — the professor's "Close it now"
- * (course-class-quiz's closeQuiz) only flips `state`, and the auto-close in
- * `maybeAutoCloseInstance` below does the same. So `ends_at` can sit in the
- * future for a while after an instance has already stopped being open on its
- * own terms. This grace lives in the submit path alone, and only AFTER the
- * deadline: work already begun gets finished for sixty seconds past `ends_at`,
- * but `started_at` after the deadline means the attempt was never legitimately
- * open and gets no grace at all, and `now` at or before `ends_at` is not a
- * grace question in the first place — the instance is still open on its own
- * terms then, not surviving on borrowed time.
+ * The grace is keyed to WHEN THE INSTANCE ACTUALLY STOPPED, not to `ends_at`.
+ * Those are the same moment only when the clock ran out. A manual close does not
+ * touch `ends_at` — the professor's "Close it now" (course-class-quiz's
+ * closeQuiz) only flips `state`, and `maybeAutoCloseInstance` below does the
+ * same — so an instance stopped by hand at 18:04 can carry an `ends_at` of
+ * 18:10. Keying the grace to `ends_at` alone gets that case wrong in both
+ * directions at once: there is no grace at all for the students who were mid-
+ * question when the professor closed it (they are refused with "Activity is
+ * closed." and lose every answer), and the window that finally opens is minutes
+ * later, long after the room has moved on.
+ *
+ *   stopAt = min(ends_at, closedAt)
+ *
+ * `closedAt` is the instance's `updated_at`, and it is a PROXY for "when it
+ * stopped": it is simply the last write. It is safe here because closing IS the
+ * last thing that happens to a closed instance — both closers stamp `updated_at`
+ * as they set `state = 'closed'`, and the only transition out of `closed` is to
+ * `archived` (course-session-management's `allowedActivityTransitions`), which
+ * changes the state and so takes the row out of this check entirely. Callers
+ * must therefore pass `updated_at` ONLY for an instance that is actually closed;
+ * on a still-running instance `updated_at` is some unrelated edit and means
+ * nothing about stopping.
+ *
+ * The rest is unchanged and load-bearing: `started_at` at or after the stop
+ * means the attempt was never legitimately open and gets nothing, and `now` at
+ * or before the stop is not a grace question at all — the instance was still
+ * open on its own terms then, not surviving on borrowed time.
  */
 export function withinSubmitGrace(input: {
   endsAt: string | null;
   startedAt: string | null;
+  /** The instance's `updated_at`, and only when its state is `closed`. */
+  closedAt?: string | null;
   now: Date;
 }): boolean {
   const endsAt = millis(input?.endsAt);
   if (endsAt === null) return false;
+  const closedAt = millis(input?.closedAt);
+  // Earlier of the two. A close AFTER the deadline (the auto-close firing a
+  // second or two late) must not extend the window past the deadline it fired
+  // for, so `ends_at` stays the ceiling.
+  const stopAt = closedAt !== null && closedAt < endsAt ? closedAt : endsAt;
+
   const startedAt = millis(input?.startedAt);
-  if (startedAt === null || startedAt >= endsAt) return false;
+  if (startedAt === null || startedAt >= stopAt) return false;
   const now = input?.now instanceof Date ? input.now.getTime() : Date.now();
-  // A grace exists only AFTER a deadline. Without this lower bound the function
-  // is true for the whole quiz window, and two things break: the professor's
-  // "Close it now" keeps accepting submissions until ends_at (closeQuiz sets
-  // state but never touches ends_at), and the per-attempt time limit becomes
-  // unreachable because its early-return fires from the moment an attempt
-  // starts.
-  if (now <= endsAt) return false;
-  return now <= endsAt + GRACE_SECONDS * 1000;
+  // A grace exists only AFTER the stop. Without this lower bound the function is
+  // true for the whole quiz window, and two things break: a manual "Close it
+  // now" keeps accepting submissions for as long as the window had left, and the
+  // per-attempt time limit becomes unreachable because its early-return fires
+  // from the moment an attempt starts.
+  if (now <= stopAt) return false;
+  return now <= stopAt + GRACE_SECONDS * 1000;
 }
 
 /**
@@ -198,7 +237,10 @@ export async function maybeAutoCloseInstance(
     .from("activity_instances")
     .update({ state: "closed", updated_at: new Date().toISOString() })
     .eq("id", instance.id)
-    .in("state", OPEN_INSTANCE_STATES);
+    // CLOSABLE_STATES, matching what decideQuizClose agreed to close: if the
+    // professor paused the class in the moment between that read and this write,
+    // the pause wins and the quiz stays alive.
+    .in("state", CLOSABLE_STATES);
   if (updateError) throw updateError;
 
   return { state: "closed", present: presentCount, submitted, closed_reason: reason };

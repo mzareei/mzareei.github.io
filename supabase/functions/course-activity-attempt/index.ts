@@ -235,6 +235,15 @@ async function submitAttempt(db: Db, profile: Record<string, unknown>, input: {
  * Reversible on purpose. A student who says yes and immediately regrets it in
  * front of the room has to be able to take it back, and the podium reverts to
  * their student ID within one poll.
+ *
+ * WHICH IS WHY THE PODIUM GUARD APPLIES TO REVEALING ONLY. Rankings move after
+ * the close: a submission landing inside the sixty-second grace is graded like
+ * any other and can displace someone who was third when they tapped "show my
+ * name". Requiring podium membership to withdraw would leave that student with a
+ * banner telling them their name is on the screen at the front of the room and
+ * an error every time they tried to take it down. Consent that cannot be
+ * withdrawn is not consent, and nothing is protected by refusing: hiding a name
+ * can only ever remove information.
  */
 async function setNameReveal(
   db: Db,
@@ -247,15 +256,17 @@ async function setNameReveal(
     throw new Error("The quiz is still running.");
   }
 
-  const { data: attempts, error } = await db
-    .from("student_attempts")
-    .select("profile_id, status, score_final, submitted_at")
-    .eq("activity_instance_id", attempt.activity_instance_id);
-  if (error) throw error;
+  if (input.revealed) {
+    const { data: attempts, error } = await db
+      .from("student_attempts")
+      .select("profile_id, status, score_final, submitted_at")
+      .eq("activity_instance_id", attempt.activity_instance_id);
+    if (error) throw error;
 
-  const top = podiumCut(rankAttempts((attempts || []) as never));
-  if (!top.some((entry) => String(entry.profile_id) === String(profile.id))) {
-    throw new Error("Only the top three can be named on the podium.");
+    const top = podiumCut(rankAttempts((attempts || []) as never));
+    if (!top.some((entry) => String(entry.profile_id) === String(profile.id))) {
+      throw new Error("Only the top three can be named on the podium.");
+    }
   }
 
   const { data: updated, error: updateError } = await db
@@ -365,7 +376,10 @@ async function syncGradebookScore(
 async function loadActivityInstance(db: Db, activityInstanceId: string) {
   const { data, error } = await db
     .from("activity_instances")
-    .select("id, activity_template_id, section_id, class_session_id, state, starts_at, ends_at, time_limit_seconds, randomization_policy, question_count")
+    // updated_at is here for withinSubmitGrace: on a CLOSED instance it is when
+    // the quiz actually stopped, which is earlier than ends_at whenever the
+    // professor closed it by hand. See closedAtOf below.
+    .select("id, activity_template_id, section_id, class_session_id, state, starts_at, ends_at, updated_at, time_limit_seconds, randomization_policy, question_count")
     .eq("id", activityInstanceId)
     .maybeSingle();
   if (error) throw error;
@@ -387,6 +401,22 @@ function assertActivityOpen(instance: Record<string, unknown>) {
 }
 
 /**
+ * When this instance stopped being open, for the submit grace.
+ *
+ * `updated_at` is a PROXY for the stop time — it is only the last write to the
+ * row — and it is honest ONLY once the row is closed, because closing is the
+ * last thing that happens to a closed instance: both closers stamp it as they
+ * set `state = 'closed'`, and the one transition out of `closed` is to
+ * `archived`, which fails this check anyway. On a still-running instance
+ * `updated_at` is some unrelated edit, so it is withheld: null means "use
+ * ends_at", which is the right answer for a quiz that has not stopped.
+ */
+function closedAtOf(instance: Record<string, unknown>): string | null {
+  if (String(instance.state) !== "closed") return null;
+  return (instance.updated_at as string | null) ?? null;
+}
+
+/**
  * The submit path's gate, deliberately laxer than the start path's.
  *
  * assertActivityOpen rejected anything arriving after ends_at, which threw away
@@ -394,10 +424,13 @@ function assertActivityOpen(instance: Record<string, unknown>) {
  * hit it while the deadline was invisible and generous; a visible, tight,
  * self-closing deadline makes it likely.
  *
- * The grace finishes work already begun. An attempt whose started_at is after
- * the deadline was never legitimately open and gets nothing — that check lives
- * in withinSubmitGrace, so starting late is still refused by assertActivityOpen
- * on the start path.
+ * The grace finishes work already begun, for sixty seconds after the quiz
+ * STOPPED — which for a professor's "Close the quiz" is minutes before ends_at.
+ * Keying it to ends_at alone left the students who were mid-question at a manual
+ * close with no grace at all: refused outright, every answer lost. An attempt
+ * whose started_at is after the stop was never legitimately open and gets
+ * nothing — that check lives in withinSubmitGrace, so starting late is still
+ * refused by assertActivityOpen on the start path.
  */
 function assertActivityOpenForSubmit(
   instance: Record<string, unknown>,
@@ -414,6 +447,7 @@ function assertActivityOpenForSubmit(
   if (withinSubmitGrace({
     endsAt: (instance.ends_at as string | null) ?? null,
     startedAt: (attempt.started_at as string | null) ?? null,
+    closedAt: closedAtOf(instance),
     now
   })) return;
 
@@ -452,6 +486,7 @@ function assertAttemptWithinTimeLimit(attempt: Record<string, unknown>, instance
   if (withinSubmitGrace({
     endsAt: (instance.ends_at as string | null) ?? null,
     startedAt: (attempt.started_at as string | null) ?? null,
+    closedAt: closedAtOf(instance),
     now: new Date()
   })) return;
 
