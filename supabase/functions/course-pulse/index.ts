@@ -2,7 +2,8 @@
 //
 // Instructor actions: push (open a question), reveal (show the answer and the
 // distribution), close, results (one round, live), rounds (every round of a
-// finished class, for the per-class review in the gradebook).
+// finished class, for the per-class review in the gradebook), attendance (how
+// many students have scanned in, for the count above the QR code).
 // Student actions: current (what should I see right now), answer (one shot).
 //
 // Grading is hybrid and happens here, at answer time: answering earns
@@ -82,6 +83,10 @@ Deno.serve(async (request) => {
       case "rounds": {
         if (!isTeacher) throw new Error("Pulse results are not allowed for this role.");
         return json(await loadSessionRounds(db, courseId, body));
+      }
+      case "attendance": {
+        if (!isTeacher) throw new Error("Pulse results are not allowed for this role.");
+        return json(await loadAttendanceCount(db, courseId, body));
       }
       case "current": {
         return json(await loadCurrent(db, courseId, String(profile.id), body, isTeacher));
@@ -182,7 +187,7 @@ async function loadPermittedSectionIds(db: Db, profileId: string, courseId: stri
 }
 
 async function pulseSectionForRequest(db: Db, courseId: string, body: Record<string, unknown>) {
-  if (["push", "rounds", "current"].includes(String(body.action))) {
+  if (["push", "rounds", "current", "attendance"].includes(String(body.action))) {
     const session = await loadSession(db, courseId, cleanUuid(body.class_session_id, "class session id"));
     return String(session.section_id);
   }
@@ -695,6 +700,46 @@ async function loadSessionRounds(db: Db, courseId: string, body: Record<string, 
         }))
       };
     })
+  };
+}
+
+/**
+ * How many students are in the room right now, for the counter the professor
+ * watches above the QR code while the class files in.
+ *
+ * Deliberately not folded into `current` or `results`: this is polled for the
+ * whole hour, including *before* the class goes live and while no question is
+ * open, and `current` costs four queries plus a full results load. Two counting
+ * queries with `head: true` return no rows at all.
+ *
+ * Counted for today, the same way `loadResults` counts `present` — a class
+ * paused and resumed on a second day has an attendance row per day since 0048,
+ * and counting them all would show a room fuller than the one in front of him.
+ */
+async function loadAttendanceCount(db: Db, courseId: string, body: Record<string, unknown>) {
+  const sessionId = cleanUuid(body.class_session_id, "class session id");
+  const session = await loadSession(db, courseId, sessionId);
+  const attendanceDate = classDateFor();
+
+  const [{ count: present }, { count: enrolled }] = await Promise.all([
+    db
+      .from("class_attendance")
+      .select("id", { count: "exact", head: true })
+      .eq("class_session_id", sessionId)
+      .eq("attendance_date", attendanceDate),
+    db
+      .from("section_enrollments")
+      .select("id", { count: "exact", head: true })
+      .eq("section_id", session.section_id)
+      .eq("role", "student")
+      .eq("status", "active")
+  ]);
+
+  return {
+    class_session_id: sessionId,
+    attendance_date: attendanceDate,
+    present: present ?? 0,
+    enrolled: enrolled ?? 0
   };
 }
 
