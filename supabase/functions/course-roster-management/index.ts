@@ -1239,7 +1239,19 @@ async function listRoster(db: ReturnType<typeof adminClient>, courseId: string, 
     enrollmentByProfile.set(enrollment.profile_id, rows);
   }
 
-  return (memberships || []).map((membership) => {
+  // One person, one row. A profile can hold two course memberships (the owner
+  // is also an instructor), which used to render the professor twice on the
+  // People screen. Role-ordered ascending, so the first row kept is the one
+  // that was already being shown.
+  const seenProfiles = new Set<string>();
+  const uniqueMemberships = (memberships || []).filter((membership) => {
+    const profileId = String(membership.profile_id);
+    if (seenProfiles.has(profileId)) return false;
+    seenProfiles.add(profileId);
+    return true;
+  });
+
+  return uniqueMemberships.map((membership) => {
     const profile = profileById.get(membership.profile_id);
     const sectionsForProfile = (enrollmentByProfile.get(membership.profile_id) || []).map((enrollment) => {
       const section = sectionById.get(enrollment.section_id);
