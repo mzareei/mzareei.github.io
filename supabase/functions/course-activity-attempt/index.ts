@@ -353,18 +353,7 @@ function assertActivityOpenForSubmit(
     && (!instance.ends_at || new Date(String(instance.ends_at)) >= now);
   if (stillOpen) return;
 
-  // withinSubmitGrace only checks the upper bound (now <= ends_at + 60s), on
-  // the assumption baked into quiz-close.ts that an instance only ever closes
-  // exactly at ends_at (auto-close). That assumption doesn't hold here:
-  // course-class-quiz's closeQuiz lets the professor end a quiz early by
-  // hand, and it flips state to "closed" without touching ends_at. Without
-  // this guard, a submission arriving any time after that manual close — even
-  // twenty minutes before the real deadline — would satisfy
-  // "now <= ends_at + 60s" and be waved through, silently overriding the
-  // professor's explicit close. Require the deadline to have actually
-  // passed before the grace can apply.
-  const deadlinePassed = Boolean(instance.ends_at) && new Date(String(instance.ends_at)) < now;
-  if (deadlinePassed && withinSubmitGrace({
+  if (withinSubmitGrace({
     endsAt: (instance.ends_at as string | null) ?? null,
     startedAt: (attempt.started_at as string | null) ?? null,
     now
@@ -402,18 +391,10 @@ function assertAttemptWithinTimeLimit(attempt: Record<string, unknown>, instance
   }
   // Same sixty seconds as the instance grace: a student finishing the last
   // question as their own clock expires must not lose the whole attempt.
-  // withinSubmitGrace only checks the upper bound (now <= ends_at + 60s), so
-  // on its own it would waive the per-attempt limit for the whole remaining
-  // quiz window whenever a student's personal time_limit_seconds is shorter
-  // than the instance's ends_at, not just in the last sixty seconds. Require
-  // the instance deadline to have actually passed first, same as the submit
-  // gate above.
-  const now = new Date();
-  const instanceDeadlinePassed = Boolean(instance.ends_at) && new Date(String(instance.ends_at)) < now;
-  if (instanceDeadlinePassed && withinSubmitGrace({
+  if (withinSubmitGrace({
     endsAt: (instance.ends_at as string | null) ?? null,
     startedAt: (attempt.started_at as string | null) ?? null,
-    now
+    now: new Date()
   })) return;
 
   const deadline = attemptDeadlineAt(attempt, instance);

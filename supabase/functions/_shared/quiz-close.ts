@@ -105,10 +105,16 @@ export function decideQuizClose(input: {
 /**
  * Whether a submission arriving after the deadline is still taken.
  *
- * The instance closes exactly at `ends_at` so student screens move on to the
- * exit ticket without waiting. This grace lives in the submit path alone: work
- * already begun gets finished, but `started_at` after the deadline means the
- * attempt was never legitimately open and gets no grace at all.
+ * A manual close does not touch `ends_at` — the professor's "Close it now"
+ * (course-class-quiz's closeQuiz) only flips `state`, and the auto-close in
+ * `maybeAutoCloseInstance` below does the same. So `ends_at` can sit in the
+ * future for a while after an instance has already stopped being open on its
+ * own terms. This grace lives in the submit path alone, and only AFTER the
+ * deadline: work already begun gets finished for sixty seconds past `ends_at`,
+ * but `started_at` after the deadline means the attempt was never legitimately
+ * open and gets no grace at all, and `now` at or before `ends_at` is not a
+ * grace question in the first place — the instance is still open on its own
+ * terms then, not surviving on borrowed time.
  */
 export function withinSubmitGrace(input: {
   endsAt: string | null;
@@ -120,6 +126,13 @@ export function withinSubmitGrace(input: {
   const startedAt = millis(input?.startedAt);
   if (startedAt === null || startedAt >= endsAt) return false;
   const now = input?.now instanceof Date ? input.now.getTime() : Date.now();
+  // A grace exists only AFTER a deadline. Without this lower bound the function
+  // is true for the whole quiz window, and two things break: the professor's
+  // "Close it now" keeps accepting submissions until ends_at (closeQuiz sets
+  // state but never touches ends_at), and the per-attempt time limit becomes
+  // unreachable because its early-return fires from the moment an attempt
+  // starts.
+  if (now <= endsAt) return false;
   return now <= endsAt + GRACE_SECONDS * 1000;
 }
 
