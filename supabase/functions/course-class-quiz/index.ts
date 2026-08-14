@@ -15,6 +15,9 @@ import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
 import { askedQuestionIds, withoutAsked } from "../_shared/asked-questions.ts";
+import { classDateFor } from "../_shared/attendance.ts";
+import { estimateTotalSeconds } from "../_shared/question-timing.ts";
+import { closeReasonFor, maybeAutoCloseInstance } from "../_shared/quiz-close.ts";
 
 type Db = ReturnType<typeof adminClient>;
 
@@ -25,7 +28,6 @@ const openSessionStates = ["open", "live", "paused", "continued"];
 // it, and starting a quiz reuses it rather than opening a duplicate.
 const openInstanceStates = ["open", "live", "paused"];
 const defaultQuestionCount = 12;
-const defaultTimeLimitSeconds = 600;
 
 Deno.serve(async (request) => {
   const options = handleOptions(request);
@@ -205,14 +207,18 @@ async function ensureQuizTemplate(db: Db, item: { id: string; title: string }) {
   return { templateId: template!.id };
 }
 
-/** How many questions this class session still has to be asked.
+/** The questions this class session may still be asked, with the text the
+ *  timing rule needs to size them.
  *
- *  Ids, not a head-count: the questions already pushed as pulse rounds have to
- *  come off the total, and course-activity-attempt applies exactly the same
- *  subtraction when it picks the rows. Sizing the instance off the raw bank
- *  count while the selector filters would hand students a quiz that ends
- *  before its own progress indicator does. */
-async function bankQuestionCounts(
+ *  Ids alone are not enough any more: the quiz clock is the sum of the longest
+ *  questions a student could draw, so the prompts and options have to come back
+ *  with them. Runs once per "Start the quiz", so the wider query is fine.
+ *
+ *  The asked-question subtraction is unchanged and still has to match
+ *  course-activity-attempt's selector exactly — sizing the instance off the raw
+ *  bank while the selector filters would hand a student a quiz that ends before
+ *  its own progress indicator does. */
+async function bankQuestionPool(
   db: Db,
   courseId: string,
   contentItemId: string,
@@ -226,17 +232,39 @@ async function bankQuestionCounts(
     .eq("status", "active")
     .maybeSingle();
   if (error) throw error;
-  if (!bank) return 0;
+  if (!bank) return [];
+
   const { data: rows, error: questionError } = await db
     .from("questions")
-    .select("id")
+    .select("id, prompt, prompt_es")
     .eq("question_bank_id", bank.id)
     .eq("status", "active");
   if (questionError) throw questionError;
 
-  const questions = (rows || []).map((row) => String(row.id));
+  const questions = rows || [];
   const asked = await askedQuestionIds(db, classSessionId);
-  return withoutAsked(questions, asked, (id) => id).length;
+  const pool = withoutAsked(questions, asked, (row) => String(row.id));
+  if (!pool.length) return [];
+
+  const { data: options, error: optionError } = await db
+    .from("question_options")
+    .select("question_id, option_text, option_text_es")
+    .in("question_id", pool.map((row) => String(row.id)));
+  if (optionError) throw optionError;
+
+  const byQuestion = new Map<string, Array<Record<string, unknown>>>();
+  for (const option of options || []) {
+    const key = String(option.question_id);
+    if (!byQuestion.has(key)) byQuestion.set(key, []);
+    byQuestion.get(key)!.push(option);
+  }
+
+  return pool.map((row) => ({
+    id: String(row.id),
+    prompt: row.prompt,
+    prompt_es: row.prompt_es,
+    options: byQuestion.get(String(row.id)) || []
+  }));
 }
 
 /** Recovers the instructor's place after a page reload — Run Class only keeps
@@ -291,12 +319,18 @@ async function startQuiz(db: Db, courseId: string, actorProfileId: string, body:
     throw new Error("Start the class session before starting the quiz.");
   }
   const item = await loadLectureItem(db, courseId, slug);
-  const available = await bankQuestionCounts(db, courseId, item.id, sessionId);
-  if (!available) throw new Error("This lecture has no question bank yet.");
+  const pool = await bankQuestionPool(db, courseId, item.id, sessionId);
+  if (!pool.length) throw new Error("This lecture has no question bank yet.");
 
   const { templateId } = await ensureQuizTemplate(db, item);
-  const questionCount = Math.min(available, Math.max(1, Number(body.question_count) || defaultQuestionCount));
-  const timeLimit = Math.min(3600, Math.max(60, Number(body.time_limit_seconds) || defaultTimeLimitSeconds));
+  const questionCount = Math.min(pool.length, Math.max(1, Number(body.question_count) || defaultQuestionCount));
+  // The clock is the sum of the longest questions this student could draw, plus
+  // the professor's two-minute cushion — not a flat ten minutes that was
+  // generous for a short quiz and tight for a long one. An explicit override
+  // from the caller still wins.
+  const timeLimit = Number(body.time_limit_seconds)
+    ? Math.min(3600, Math.max(60, Number(body.time_limit_seconds)))
+    : estimateTotalSeconds(pool, questionCount);
 
   // Reuse a still-open instance for this session if one already exists —
   // "Start quiz" is idempotent, so a refreshed page never creates a duplicate.
@@ -358,7 +392,7 @@ async function loadInstanceForActor(
 ) {
   const { data: instance, error } = await db
     .from("activity_instances")
-    .select("id, section_id, state, ends_at, question_count, course_sections!inner(course_id)")
+    .select("id, section_id, class_session_id, state, starts_at, ends_at, question_count, course_sections!inner(course_id)")
     .eq("id", instanceId)
     .eq("course_sections.course_id", courseId)
     .maybeSingle();
@@ -400,23 +434,45 @@ async function quizStatus(
   const instanceId = cleanUuid(body.activity_instance_id, "activity instance id");
   const instance = await loadInstanceForActor(db, courseId, instanceId, isGlobalOwner, permittedSectionIds);
 
-  const [{ count: enrolled }, { data: attempts, error: attemptError }] = await Promise.all([
-    db.from("section_enrollments").select("id", { count: "exact", head: true })
-      .eq("section_id", instance.section_id).eq("role", "student").eq("status", "active"),
-    db.from("student_attempts").select("id, status, score_final")
-      .eq("activity_instance_id", instanceId)
-  ]);
+  // Closing happens here rather than on a schedule: this poll and every
+  // student's poll both run it, so whichever arrives first ends the quiz and a
+  // reloaded Run Class tab cannot hold it open over a finished room.
+  const closed = await maybeAutoCloseInstance(
+    db,
+    {
+      id: String(instance.id),
+      state: String(instance.state),
+      starts_at: (instance as Record<string, unknown>).starts_at as string | null,
+      ends_at: instance.ends_at as string | null,
+      class_session_id: (instance as Record<string, unknown>).class_session_id as string | null
+    },
+    classDateFor
+  );
+
+  const { count: enrolled } = await db
+    .from("section_enrollments").select("id", { count: "exact", head: true })
+    .eq("section_id", instance.section_id).eq("role", "student").eq("status", "active");
+  const { data: attempts, error: attemptError } = await db
+    .from("student_attempts").select("id, status, score_final")
+    .eq("activity_instance_id", instanceId);
   if (attemptError) throw attemptError;
 
   const submitted = (attempts || []).filter((a) => ["submitted", "late"].includes(String(a.status)));
   return {
     instance_id: instance.id,
-    state: instance.state,
+    state: closed.state,
     ends_at: instance.ends_at,
     question_count: instance.question_count,
     enrolled: enrolled ?? 0,
+    // The roster is who COULD have come; `present` is who is in the room. The
+    // completeness message has to speak in the second one.
+    present: closed.present,
     started: (attempts || []).length,
     submitted: submitted.length,
+    closed_reason: closed.state === "closed"
+      ? (closed.closed_reason
+         ?? closeReasonFor({ presentCount: closed.present, submittedCount: submitted.length }))
+      : null,
     average_score: submitted.length
       ? Math.round((submitted.reduce((sum, a) => sum + Number(a.score_final || 0), 0) / submitted.length) * 10) / 10
       : null
