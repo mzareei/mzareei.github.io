@@ -5,6 +5,7 @@ import { assertCheckedIn } from "../_shared/attendance.ts";
 import { askedQuestionIds, withoutAsked } from "../_shared/asked-questions.ts";
 import { secondsForQuestion } from "../_shared/question-timing.ts";
 import { withinSubmitGrace } from "../_shared/quiz-close.ts";
+import { podiumCut, rankAttempts } from "../_shared/quiz-rank.ts";
 
 type Db = ReturnType<typeof adminClient>;
 
@@ -35,6 +36,14 @@ Deno.serve(async (request) => {
         attemptId: cleanUuid(body.attempt_id, "attempt id"),
         responses: Array.isArray(body.responses) ? body.responses : [],
         integrity: sanitizeIntegrity(body.integrity)
+      });
+      return json(result);
+    }
+
+    if (body.action === "set_name_reveal") {
+      const result = await setNameReveal(db, profile, {
+        attemptId: cleanUuid(body.attempt_id, "attempt id"),
+        revealed: body.revealed === true
       });
       return json(result);
     }
@@ -211,6 +220,55 @@ async function submitAttempt(db: Db, profile: Record<string, unknown>, input: {
       final: graded.score_final
     }
   };
+}
+
+/**
+ * A student on the podium choosing to be named.
+ *
+ * Three guards, all of them load-bearing:
+ *   - the attempt must be theirs, so a phone cannot reveal a classmate;
+ *   - the attempt must actually be in the top three, so a phone cannot talk
+ *     its way onto the celebration screen by calling this directly;
+ *   - the quiz must be closed, so nobody advertises a place while the quiz is
+ *     still being taken.
+ *
+ * Reversible on purpose. A student who says yes and immediately regrets it in
+ * front of the room has to be able to take it back, and the podium reverts to
+ * their student ID within one poll.
+ */
+async function setNameReveal(
+  db: Db,
+  profile: Record<string, unknown>,
+  input: { attemptId: string; revealed: boolean }
+) {
+  const attempt = await loadAttempt(db, input.attemptId, String(profile.id));
+  const instance = await loadActivityInstance(db, String(attempt.activity_instance_id));
+  if (String(instance.state) !== "closed") {
+    throw new Error("The quiz is still running.");
+  }
+
+  const { data: attempts, error } = await db
+    .from("student_attempts")
+    .select("profile_id, status, score_final, submitted_at")
+    .eq("activity_instance_id", attempt.activity_instance_id);
+  if (error) throw error;
+
+  const top = podiumCut(rankAttempts((attempts || []) as never));
+  if (!top.some((entry) => String(entry.profile_id) === String(profile.id))) {
+    throw new Error("Only the top three can be named on the podium.");
+  }
+
+  const { data: updated, error: updateError } = await db
+    .from("student_attempts")
+    .update({ name_revealed: input.revealed, updated_at: new Date().toISOString() })
+    .eq("id", input.attemptId)
+    .eq("profile_id", profile.id)
+    .select("id, name_revealed")
+    .maybeSingle();
+  if (updateError) throw updateError;
+  if (!updated) throw new Error("That attempt was not found.");
+
+  return { attempt_id: updated.id, name_revealed: Boolean(updated.name_revealed) };
 }
 
 async function syncGradebookScore(
