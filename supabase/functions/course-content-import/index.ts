@@ -26,7 +26,9 @@
 // schema-verified contract in .superpowers/sdd/task-4-contract.md.
 import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
-import { validateDeckHtml, type DeckProblem } from "../_shared/deck-validation.ts";
+import {
+  validateDeckHtml, partitionDeckProblems, type DeckProblem
+} from "../_shared/deck-validation.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
 
 type Db = ReturnType<typeof adminClient>;
@@ -149,11 +151,20 @@ Deno.serve(async (request) => {
               allowedHosts: Array.isArray(body.deck.external_links) ? body.deck.external_links : [],
               forbiddenHosts: ["mzareei.github.io"]
             });
-            if (problems.length) {
-              result.deck = { ok: false, problems };
+            // Only a blocking finding refuses the upload. An outbound link to
+            // somewhere the professor did not pre-declare is reported and let
+            // through — see partitionDeckProblems() for why, and note the
+            // /content CSP is what actually contains an external reference at
+            // runtime. `notices` travel on the success result so the professor
+            // still learns where their deck points.
+            const { blocking, notices } = partitionDeckProblems(problems);
+            if (blocking.length) {
+              result.deck = { ok: false, problems: blocking };
             } else {
               const itemId = await writeDeck(db, courseId, String(profile.id), body.deck);
-              result.deck = { ok: true, content_item_id: itemId };
+              result.deck = notices.length
+                ? { ok: true, content_item_id: itemId, notices }
+                : { ok: true, content_item_id: itemId };
             }
           } catch (error) {
             result.deck = { ok: false, error: message(error) };

@@ -34,6 +34,49 @@ export interface DeckProblem {
   host?: string;
 }
 
+/** Which findings may refuse an upload, and which are only worth mentioning.
+ *
+ *  `undeclared_host` is deliberately NOT blocking. It began as belt-and-braces
+ *  around the failure this file exists for — pitfall #57, decks linking to the
+ *  public copy of their own lecture — but that specific failure is caught by
+ *  `forbidden_host` on its own, from the platform's own list, with nothing
+ *  required of the professor. Extending it to "every host you did not type
+ *  into a box first" made ordinary teaching links fail: a lecture pointing
+ *  students at a password-strength checker was refused outright, with the
+ *  professor asked to declare a host they had no reason to expect to declare.
+ *
+ *  The runtime is what actually contains an outbound reference, and it already
+ *  does. /content serves decks under `default-src 'none'; img-src data: blob:`,
+ *  so nothing external can load into the page at all: a stylesheet, font,
+ *  script or remote image simply never arrives, whatever this function says. A
+ *  plain link is navigation, not a subresource — the student clicks it and
+ *  leaves, which is the entire point of putting it on the slide.
+ *
+ *  So the honest split is: refuse what makes the deck broken or lets a student
+ *  slip back to the ungated public copy, and merely report where else it
+ *  points. `relative` stays blocking because such a reference 404s behind the
+ *  gate; `no_title` because the item cannot be named; `forbidden_host` because
+ *  that is the original incident. */
+const BLOCKING_KINDS: ReadonlySet<DeckProblem["kind"]> = new Set([
+  "relative", "forbidden_host", "no_title"
+]);
+
+export function isBlockingProblem(problem: DeckProblem): boolean {
+  return BLOCKING_KINDS.has(problem.kind);
+}
+
+/** Splits a validation result into what must stop the upload and what the
+ *  professor should simply be told about. */
+export function partitionDeckProblems(problems: DeckProblem[]): {
+  blocking: DeckProblem[];
+  notices: DeckProblem[];
+} {
+  return {
+    blocking: problems.filter(isBlockingProblem),
+    notices: problems.filter((problem) => !isBlockingProblem(problem))
+  };
+}
+
 export interface DeckValidationOptions {
   allowedHosts: string[];
   forbiddenHosts: string[];
