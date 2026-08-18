@@ -133,23 +133,34 @@ function countWords(text: string): number {
 }
 
 async function submitTicket(db: Db, courseId: string, profileId: string, sections: Record<string, unknown>[], body: Record<string, unknown>) {
-  const sectionId = cleanOptionalUuid(body.section_id) || String(sections[0].id);
-  if (!sections.some((section) => String(section.id) === sectionId)) {
-    throw new Error("Student is not enrolled in this section.");
-  }
   const classSessionId = cleanOptionalUuid(body.class_session_id) || null;
   const contentItemId = cleanOptionalUuid(body.content_item_id) || null;
 
+  // The class session decides the section, not the caller and not "whichever
+  // enrollment came back first". The phone never sends section_id, and a
+  // student enrolled in two sections (the professor's own test account sits in
+  // 401 and 501) used to get "Class session is not available for this section"
+  // because the reflection was checked against the wrong one of the two.
+  let sectionId: string;
   let minWords = defaultReflectionMinWords;
   let maxWords = defaultReflectionMaxWords;
   if (classSessionId) {
-    const bounds = await assertSessionBelongsToSection(db, courseId, sectionId, classSessionId);
+    const session = await loadSessionForCourse(db, courseId, classSessionId);
+    sectionId = String(session.section_id);
+    if (!sections.some((section) => String(section.id) === sectionId)) {
+      throw new Error("Class session is not available for this section.");
+    }
     // The reflection is the class's required final submission, so it is gated
     // like everything else in the class: you had to be in the room.
     await assertCheckedIn(db, classSessionId, profileId);
-    minWords = bounds.reflection_min_words ?? minWords;
-    maxWords = bounds.reflection_max_words ?? maxWords;
-    assertWithinGraceWindow(bounds);
+    minWords = session.reflection_min_words ?? minWords;
+    maxWords = session.reflection_max_words ?? maxWords;
+    assertWithinGraceWindow(session);
+  } else {
+    sectionId = cleanOptionalUuid(body.section_id) || String(sections[0].id);
+    if (!sections.some((section) => String(section.id) === sectionId)) {
+      throw new Error("Student is not enrolled in this section.");
+    }
   }
   if (contentItemId) await assertContentBelongsToCourse(db, courseId, contentItemId);
 
@@ -246,16 +257,15 @@ function assertWithinGraceWindow(session: { state?: string; actual_end_at?: stri
   }
 }
 
-async function assertSessionBelongsToSection(db: Db, courseId: string, sectionId: string, classSessionId: string) {
+async function loadSessionForCourse(db: Db, courseId: string, classSessionId: string) {
   const { data, error } = await db
     .from("class_sessions")
-    .select("id, state, actual_end_at, reflection_min_words, reflection_max_words")
+    .select("id, section_id, state, actual_end_at, reflection_min_words, reflection_max_words")
     .eq("id", classSessionId)
     .eq("course_id", courseId)
-    .eq("section_id", sectionId)
     .maybeSingle();
   if (error) throw error;
-  if (!data) throw new Error("Class session is not available for this section.");
+  if (!data) throw new Error("Class session is not available for this course.");
   return data;
 }
 
