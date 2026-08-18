@@ -25,6 +25,13 @@ Deno.serve(async (request) => {
     const courseId = cleanCourseId(body.course_id) || "tc2007b";
     const db = adminClient();
     const { profile, permissions } = await requireInstructor(db, token, courseId);
+    // The group named in the scope switcher, if any. Listing answers as that
+    // group's instructor; every write below keeps the caller's real
+    // permissions. `view_section_id` is a distinct field from `section_id`,
+    // which already means the share target and the draft release's group.
+    const viewPermissions = await viewAsSection(
+      db, courseId, permissions, cleanOptionalUuid(body.view_section_id)
+    );
 
     if (body.action === "share_content_item") {
       const result = await shareContentItem(db, courseId, {
@@ -35,7 +42,7 @@ Deno.serve(async (request) => {
         actorProfileId: String(profile.id),
         permissions
       });
-      const library = await listContentLibrary(db, courseId, permissions);
+      const library = await listContentLibrary(db, courseId, viewPermissions);
       return json({ ...result, ...library });
     }
 
@@ -46,7 +53,7 @@ Deno.serve(async (request) => {
         actorProfileId: String(profile.id),
         permissions
       });
-      const library = await listContentLibrary(db, courseId, permissions);
+      const library = await listContentLibrary(db, courseId, viewPermissions);
       return json({ ...result, ...library });
     }
 
@@ -56,7 +63,7 @@ Deno.serve(async (request) => {
         actorProfileId: String(profile.id),
         permissions
       });
-      const library = await listContentLibrary(db, courseId, permissions);
+      const library = await listContentLibrary(db, courseId, viewPermissions);
       return json({ ...result, ...library });
     }
 
@@ -78,7 +85,7 @@ Deno.serve(async (request) => {
         actorProfileId: String(profile.id),
         permissions
       });
-      const library = await listContentLibrary(db, courseId, permissions);
+      const library = await listContentLibrary(db, courseId, viewPermissions);
       return json({ ...result, ...library });
     }
 
@@ -94,7 +101,7 @@ Deno.serve(async (request) => {
       return json(result);
     }
 
-    const library = await listContentLibrary(db, courseId, permissions);
+    const library = await listContentLibrary(db, courseId, viewPermissions);
     return json({
       ...library,
       actions: ["list_content_items", "save_content_item", "delete_content_item", "copy_content_item", "share_content_item", "unshare_content_item", "create_draft_release"]
@@ -260,6 +267,11 @@ type ContentPermissions = {
   isGlobalOwner: boolean;
   permittedSectionIds: string[];
   profileId: string;
+  /** Set only when the caller is looking at ONE group in the scope switcher.
+   *  It holds the profile ids of that group's instructors, and it replaces
+   *  "mine" as the ownership test for VISIBILITY — see isVisibleContentItem.
+   *  Null means the ordinary all-groups view. Never consulted by a write. */
+  viewSectionOwnerIds?: Set<string> | null;
 };
 
 /** May this caller write to this item? Owner, platform owner, or unowned.
@@ -276,14 +288,82 @@ function canEditContentItem(
   return String(item.owner_profile_id) === String(permissions.profileId);
 }
 
-/** May this caller see this item? Everything they can edit, plus shares. */
+/** May this caller see this item?
+ *
+ *  All-groups view: everything they can edit, plus shares — unchanged.
+ *
+ *  One-group view: exactly what THAT GROUP'S instructor sees, which is the
+ *  whole point of the scope switcher. So "mine" stops being the test and
+ *  "owned by an instructor of this group" takes its place. Without that swap
+ *  the platform owner sees his own 401 lectures inside 501, because he owns
+ *  them and canEditContentItem answers on profile id alone. Note this can
+ *  legitimately return an empty library: a group whose instructor has authored
+ *  nothing and received no share genuinely has no content. */
 function isVisibleContentItem(
   item: { owner_profile_id?: string | null; id: unknown },
   permissions: ContentPermissions,
   sharedItemIds: Set<string>
 ) {
+  if (permissions.viewSectionOwnerIds) {
+    // Unowned legacy content stays visible everywhere, for the reason above
+    // the ContentPermissions type. Migration 0033 left none in tc2007b.
+    if (item.owner_profile_id == null) return true;
+    if (permissions.viewSectionOwnerIds.has(String(item.owner_profile_id))) return true;
+    return sharedItemIds.has(String(item.id));
+  }
   if (canEditContentItem(item, permissions)) return true;
   return sharedItemIds.has(String(item.id));
+}
+
+/** The instructors of one group. The ownership test for a one-group view. */
+async function loadSectionInstructorProfileIds(db: Db, sectionId: string): Promise<Set<string>> {
+  const { data, error } = await db
+    .from("section_enrollments")
+    .select("profile_id")
+    .eq("section_id", sectionId)
+    .eq("role", "instructor")
+    .eq("status", "active");
+  if (error) throw error;
+  return new Set((data || []).map((row: { profile_id: unknown }) => String(row.profile_id)));
+}
+
+/**
+ * Permissions for LISTING when the scope switcher names one group.
+ *
+ * Deliberately separate from the permissions used by every write below. The
+ * professor is still the platform owner and may still delete or share his own
+ * item while standing in another group's view; what changes is only what the
+ * list shows him. Conflating the two would make the switcher a permission
+ * downgrade rather than a viewpoint.
+ *
+ * Widening is impossible: the global-owner bypass is dropped, and a caller who
+ * does not teach the named group and is not the owner gets their ordinary
+ * permissions back rather than that group's.
+ */
+async function viewAsSection(
+  db: Db,
+  courseId: string,
+  permissions: ContentPermissions,
+  rawSectionId: string
+): Promise<ContentPermissions> {
+  if (!rawSectionId) return permissions;
+  if (!permissions.isGlobalOwner && !permissions.permittedSectionIds.includes(rawSectionId)) {
+    return permissions;
+  }
+  const { data: section, error } = await db
+    .from("course_sections")
+    .select("id")
+    .eq("id", rawSectionId)
+    .eq("course_id", courseId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!section) return permissions;
+  return {
+    ...permissions,
+    isGlobalOwner: false,
+    permittedSectionIds: [rawSectionId],
+    viewSectionOwnerIds: await loadSectionInstructorProfileIds(db, rawSectionId)
+  };
 }
 
 async function loadSharedContentItemIds(db: Db, permissions: ContentPermissions): Promise<Set<string>> {
