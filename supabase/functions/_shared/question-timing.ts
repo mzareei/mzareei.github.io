@@ -17,8 +17,10 @@ export const BASE_SECONDS = 30;
 export const LONG_SECONDS = 45;
 /** Prompt + options, in characters, past which a question is "long". */
 export const LONG_THRESHOLD_CHARS = 320;
-/** Slack on the whole quiz for the student whose phone was slow to open it. */
-export const CUSHION_SECONDS = 120;
+/** Slack on the whole quiz for the student whose phone was slow to open it.
+ *  Was 120; the first real class run showed two minutes of dead air at the
+ *  end, so the professor cut it to one. */
+export const CUSHION_SECONDS = 60;
 export const MIN_TOTAL_SECONDS = 60;
 export const MAX_TOTAL_SECONDS = 3600;
 
