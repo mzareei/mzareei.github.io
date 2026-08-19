@@ -944,7 +944,7 @@ async function loadReflectionStatus(db: Db, sessionId: string, profileId: string
 
   return {
     submitted: Boolean(ticket),
-    min_words: session?.reflection_min_words ?? 50,
+    min_words: session?.reflection_min_words ?? 40,
     max_words: session?.reflection_max_words ?? 100
   };
 }

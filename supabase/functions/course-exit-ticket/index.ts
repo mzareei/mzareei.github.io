@@ -121,7 +121,7 @@ async function loadRecentSessions(db: Db, courseId: string, sectionIds: string[]
   return data || [];
 }
 
-const defaultReflectionMinWords = 50;
+const defaultReflectionMinWords = 40;
 const defaultReflectionMaxWords = 100;
 // A missed reflection still counts as attendance evidence for a few minutes
 // after the professor ends class — a slow writer shouldn't lose the credit
