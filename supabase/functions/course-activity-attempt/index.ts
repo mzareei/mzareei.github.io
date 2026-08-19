@@ -5,7 +5,7 @@ import { assertCheckedIn } from "../_shared/attendance.ts";
 import { askedQuestionIds, withoutAsked } from "../_shared/asked-questions.ts";
 import { secondsForQuestion } from "../_shared/question-timing.ts";
 import { pickRacerName } from "../_shared/racer-names.ts";
-import { withinSubmitGrace } from "../_shared/quiz-close.ts";
+import { OPEN_INSTANCE_STATES, withinSubmitGrace } from "../_shared/quiz-close.ts";
 import { podiumCut, rankAttempts } from "../_shared/quiz-rank.ts";
 
 type Db = ReturnType<typeof adminClient>;
@@ -341,7 +341,7 @@ async function sendCheer(db: Db, profile: Record<string, unknown>, attemptId: st
     throw new Error("Finish the quiz before cheering.");
   }
   const instance = await loadActivityInstance(db, String(attempt.activity_instance_id));
-  if (!openStates.includes(String(instance.state))) {
+  if (!OPEN_INSTANCE_STATES.includes(String(instance.state))) {
     throw new Error("The quiz is over — the cheering is too.");
   }
 
