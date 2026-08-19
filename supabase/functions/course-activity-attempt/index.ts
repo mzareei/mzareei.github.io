@@ -4,6 +4,7 @@ import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_sha
 import { assertCheckedIn } from "../_shared/attendance.ts";
 import { askedQuestionIds, withoutAsked } from "../_shared/asked-questions.ts";
 import { secondsForQuestion } from "../_shared/question-timing.ts";
+import { pickRacerName } from "../_shared/racer-names.ts";
 import { withinSubmitGrace } from "../_shared/quiz-close.ts";
 import { podiumCut, rankAttempts } from "../_shared/quiz-rank.ts";
 
@@ -45,6 +46,20 @@ Deno.serve(async (request) => {
         attemptId: cleanUuid(body.attempt_id, "attempt id"),
         revealed: body.revealed === true
       });
+      return json(result);
+    }
+
+    if (body.action === "report_progress") {
+      const result = await reportProgress(db, profile, {
+        attemptId: cleanUuid(body.attempt_id, "attempt id"),
+        position: Number(body.position),
+        answered: Number(body.answered)
+      });
+      return json(result);
+    }
+
+    if (body.action === "cheer") {
+      const result = await sendCheer(db, profile, cleanUuid(body.attempt_id, "attempt id"));
       return json(result);
     }
 
@@ -104,6 +119,7 @@ async function startAttempt(db: Db, profile: Record<string, unknown>, activityIn
     allowedAttempts: release?.allowed_attempts
   });
   assertAttemptWithinTimeLimit(attemptPolicy.attempt, instance);
+  attemptPolicy.attempt = await ensureRacerName(db, attemptPolicy.attempt, instance);
   const questions = await loadQuestionsForInstance(db, instance);
 
   return {
@@ -165,11 +181,14 @@ async function submitAttempt(db: Db, profile: Record<string, unknown>, input: {
   if (insertError) throw insertError;
 
   const status = instance.ends_at && new Date(instance.ends_at) < new Date() ? "late" : "submitted";
+  const questionCount = Math.max(0, Number(instance.question_count || 0)) || graded.rows.length;
   const { data: updated, error: updateError } = await db
     .from("student_attempts")
     .update({
       submitted_at: submittedAt,
       status,
+      progress_answered: graded.rows.length,
+      progress_position: questionCount,
       score_raw: graded.score_raw,
       score_percent: graded.score_percent,
       speed_bonus: graded.speed_bonus,
@@ -177,7 +196,7 @@ async function submitAttempt(db: Db, profile: Record<string, unknown>, input: {
       updated_at: submittedAt
     })
     .eq("id", input.attemptId)
-    .select("id, activity_instance_id, profile_id, section_id, attempt_number, started_at, submitted_at, status, score_raw, score_percent, speed_bonus, score_final")
+    .select("id, activity_instance_id, profile_id, section_id, attempt_number, started_at, submitted_at, status, score_raw, score_percent, speed_bonus, score_final, racer_name, racer_emoji, progress_position, progress_answered")
     .single();
   if (updateError) throw updateError;
   const gradebookScore = await syncGradebookScore(db, updated, instance, graded);
@@ -280,6 +299,81 @@ async function setNameReveal(
   if (!updated) throw new Error("That attempt was not found.");
 
   return { attempt_id: updated.id, name_revealed: Boolean(updated.name_revealed) };
+}
+
+/**
+ * The phone saying "I'm on question 5, answered 4" so the room's screen can
+ * move a racer and crack the piñata. Fire-and-forget by contract: monotonic,
+ * clamped, and every no-op answers { ok: true } — a dropped or stale ping
+ * must never surface an error on a phone mid-quiz. Grading never reads these
+ * two integers.
+ */
+async function reportProgress(
+  db: Db,
+  profile: Record<string, unknown>,
+  input: { attemptId: string; position: number; answered: number }
+) {
+  const attempt = await loadAttempt(db, input.attemptId, String(profile.id));
+  if (attempt.submitted_at || String(attempt.status) !== "started") return { ok: true };
+  const instance = await loadActivityInstance(db, String(attempt.activity_instance_id));
+  if (!openStates.includes(String(instance.state))) return { ok: true };
+
+  const cap = Math.max(1, Number(instance.question_count || 0) || 100);
+  const clamp = (value: number) =>
+    Math.max(0, Math.min(cap, Math.trunc(Number.isFinite(value) ? value : 0)));
+  const position = Math.max(clamp(input.position), Number(attempt.progress_position || 0));
+  const answered = Math.max(clamp(input.answered), Number(attempt.progress_answered || 0));
+
+  const { error } = await db
+    .from("student_attempts")
+    .update({ progress_position: position, progress_answered: answered, updated_at: new Date().toISOString() })
+    .eq("id", input.attemptId);
+  if (error) throw error;
+  return { ok: true };
+}
+
+/** A finished student cheering someone still swinging. The server picks the
+ *  target so it is never a pile-on, and enforces the 20-second cooldown so a
+ *  bored phone cannot flood the room's screen. */
+async function sendCheer(db: Db, profile: Record<string, unknown>, attemptId: string) {
+  const attempt = await loadAttempt(db, attemptId, String(profile.id));
+  if (!["submitted", "late"].includes(String(attempt.status))) {
+    throw new Error("Finish the quiz before cheering.");
+  }
+  const instance = await loadActivityInstance(db, String(attempt.activity_instance_id));
+  if (!openStates.includes(String(instance.state))) {
+    throw new Error("The quiz is over — the cheering is too.");
+  }
+
+  const twentySecondsAgo = new Date(Date.now() - 20_000).toISOString();
+  const { data: recent, error: recentError } = await db
+    .from("quiz_cheers")
+    .select("id")
+    .eq("from_attempt_id", attemptId)
+    .gte("created_at", twentySecondsAgo)
+    .limit(1);
+  if (recentError) throw recentError;
+  if ((recent || []).length) throw new Error("Wait a moment before the next cheer.");
+
+  const { data: running, error: runningError } = await db
+    .from("student_attempts")
+    .select("id, racer_name, racer_emoji")
+    .eq("activity_instance_id", String(instance.id))
+    .eq("status", "started")
+    .is("submitted_at", null)
+    .not("racer_name", "is", null);
+  if (runningError) throw runningError;
+  const candidates = (running || []).filter((row) => String(row.id) !== attemptId);
+  if (!candidates.length) return { ok: false, reason: "nobody_left" };
+
+  const target = candidates[Math.floor(Math.random() * candidates.length)];
+  const { error: insertError } = await db.from("quiz_cheers").insert({
+    activity_instance_id: String(instance.id),
+    from_attempt_id: attemptId,
+    to_attempt_id: String(target.id)
+  });
+  if (insertError) throw insertError;
+  return { ok: true, to: { racer_name: target.racer_name, racer_emoji: target.racer_emoji } };
 }
 
 async function syncGradebookScore(
@@ -605,7 +699,12 @@ async function findOrCreateAttempt(db: Db, input: {
   profileId: string;
   sectionId: string;
   allowedAttempts: unknown;
-}) {
+}): Promise<{
+  attempt: Record<string, unknown>;
+  allowedAttempts: number;
+  attemptsUsed: number;
+  attemptsRemaining: number;
+}> {
   const policy = await attemptLimitPolicy(db, input);
   const openAttempt = policy.attempts.find((attempt) => !isClosedAttempt(attempt));
   if (openAttempt) {
@@ -632,7 +731,7 @@ async function findOrCreateAttempt(db: Db, input: {
       attempt_number: nextAttemptNumber,
       status: "started"
     })
-    .select("id, activity_instance_id, profile_id, section_id, attempt_number, started_at, submitted_at, status, score_raw, score_percent, score_final")
+    .select("id, activity_instance_id, profile_id, section_id, attempt_number, started_at, submitted_at, status, score_raw, score_percent, score_final, racer_name, racer_emoji, progress_position, progress_answered")
     .single();
   if (error) throw error;
 
@@ -644,15 +743,59 @@ async function findOrCreateAttempt(db: Db, input: {
   };
 }
 
+/**
+ * A live-class quiz attempt gets a secret racer identity, once. The unique
+ * partial index on (activity_instance_id, racer_name) is the real guard —
+ * two phones starting in the same second race, one hits 23505, and retries
+ * with another name. Standalone activities (no class session) get none.
+ * Failing to name a racer never fails the quiz: after five collisions the
+ * attempt simply stays unnamed.
+ */
+async function ensureRacerName(
+  db: Db,
+  attempt: Record<string, unknown>,
+  instance: Record<string, unknown>
+) {
+  if (!instance.class_session_id || attempt.racer_name) return attempt;
+  const { data: existing, error } = await db
+    .from("student_attempts")
+    .select("racer_name")
+    .eq("activity_instance_id", String(instance.id))
+    .not("racer_name", "is", null);
+  if (error) throw error;
+  const used = (existing || []).map((row) => String(row.racer_name));
+
+  for (let round = 0; round < 5; round++) {
+    const pick = pickRacerName(used);
+    if (!pick) return attempt;
+    const { data: updated, error: updateError } = await db
+      .from("student_attempts")
+      .update({ racer_name: pick.name, racer_emoji: pick.emoji })
+      .eq("id", String(attempt.id))
+      .is("racer_name", null)
+      .select("id, activity_instance_id, profile_id, section_id, attempt_number, started_at, submitted_at, status, score_raw, score_percent, score_final, racer_name, racer_emoji, progress_position, progress_answered")
+      .maybeSingle();
+    if (!updateError && updated) return updated;
+    if (updateError && String(updateError.code) !== "23505") throw updateError;
+    used.push(pick.name);
+  }
+  return attempt;
+}
+
 async function attemptLimitPolicy(db: Db, input: {
   activityInstanceId: string;
   profileId: string;
   allowedAttempts: unknown;
-}) {
+}): Promise<{
+  attempts: Record<string, unknown>[];
+  allowedAttempts: number;
+  attemptsUsed: number;
+  attemptsRemaining: number;
+}> {
   const allowedAttempts = normalizeAllowedAttempts(input.allowedAttempts);
   const { data: attempts, error } = await db
     .from("student_attempts")
-    .select("id, activity_instance_id, profile_id, section_id, attempt_number, started_at, submitted_at, status, score_raw, score_percent, score_final")
+    .select("id, activity_instance_id, profile_id, section_id, attempt_number, started_at, submitted_at, status, score_raw, score_percent, score_final, racer_name, racer_emoji, progress_position, progress_answered")
     .eq("activity_instance_id", input.activityInstanceId)
     .eq("profile_id", input.profileId)
     .order("attempt_number", { ascending: true });
@@ -797,7 +940,7 @@ function maybeShuffle<T>(values: T[], shouldShuffle: boolean) {
 async function loadAttempt(db: Db, attemptId: string, profileId: string) {
   const { data, error } = await db
     .from("student_attempts")
-    .select("id, activity_instance_id, profile_id, section_id, attempt_number, started_at, submitted_at, status")
+    .select("id, activity_instance_id, profile_id, section_id, attempt_number, started_at, submitted_at, status, racer_name, racer_emoji, progress_position, progress_answered")
     .eq("id", attemptId)
     .eq("profile_id", profileId)
     .maybeSingle();
