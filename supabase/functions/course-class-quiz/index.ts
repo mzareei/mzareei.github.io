@@ -17,6 +17,7 @@ import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_sha
 import { askedQuestionIds, withoutAsked } from "../_shared/asked-questions.ts";
 import { classDateFor } from "../_shared/attendance.ts";
 import { estimateTotalSeconds } from "../_shared/question-timing.ts";
+import { pinataState } from "../_shared/pinata.ts";
 import { closeReasonFor, maybeAutoCloseInstance } from "../_shared/quiz-close.ts";
 import { podiumCut, rankAttempts } from "../_shared/quiz-rank.ts";
 
@@ -74,6 +75,10 @@ Deno.serve(async (request) => {
       case "status": {
         if (!isTeacher) throw new Error("Quiz status is not allowed for this role.");
         return json(await quizStatus(db, courseId, body, isGlobalOwner, permittedSectionIds));
+      }
+      case "race": {
+        if (!isTeacher) throw new Error("Quiz status is not allowed for this role.");
+        return json(await quizRace(db, courseId, body, isGlobalOwner, permittedSectionIds));
       }
       case "summary": {
         if (!isTeacher) throw new Error("Quiz summary is not allowed for this role.");
@@ -330,7 +335,7 @@ async function startQuiz(db: Db, courseId: string, actorProfileId: string, body:
   const { templateId } = await ensureQuizTemplate(db, item);
   const questionCount = Math.min(pool.length, Math.max(1, Number(body.question_count) || defaultQuestionCount));
   // The clock is the sum of the longest questions this student could draw, plus
-  // the professor's two-minute cushion — not a flat ten minutes that was
+  // the professor's one-minute cushion — not a flat ten minutes that was
   // generous for a short quiz and tight for a long one. An explicit override
   // from the caller still wins.
   const timeLimit = Number(body.time_limit_seconds)
@@ -397,7 +402,7 @@ async function loadInstanceForActor(
 ) {
   const { data: instance, error } = await db
     .from("activity_instances")
-    .select("id, section_id, class_session_id, state, starts_at, ends_at, question_count, course_sections!inner(course_id)")
+    .select("id, activity_template_id, section_id, class_session_id, state, starts_at, ends_at, question_count, course_sections!inner(course_id)")
     .eq("id", instanceId)
     .eq("course_sections.course_id", courseId)
     .maybeSingle();
@@ -481,6 +486,122 @@ async function quizStatus(
     average_score: submitted.length
       ? Math.round((submitted.reduce((sum, a) => sum + Number(a.score_final || 0), 0) / submitted.length) * 10) / 10
       : null
+  };
+}
+
+/** Everything the room's piñata screen needs, in one call: the same
+ *  auto-close check as `status`, then the racers by secret name only.
+ *  Nothing here maps a racer to a student — that mapping never leaves the
+ *  attempt rows. */
+async function quizRace(
+  db: Db,
+  courseId: string,
+  body: Record<string, unknown>,
+  isGlobalOwner: boolean,
+  permittedSectionIds: string[]
+) {
+  const instanceId = cleanUuid(body.activity_instance_id, "activity instance id");
+  const instance = await loadInstanceForActor(db, courseId, instanceId, isGlobalOwner, permittedSectionIds);
+
+  const closed = await maybeAutoCloseInstance(
+    db,
+    {
+      id: String(instance.id),
+      state: String(instance.state),
+      starts_at: (instance as Record<string, unknown>).starts_at as string | null,
+      ends_at: instance.ends_at as string | null,
+      class_session_id: (instance as Record<string, unknown>).class_session_id as string | null
+    },
+    classDateFor
+  );
+
+  const { data: attempts, error: attemptError } = await db
+    .from("student_attempts")
+    .select("id, status, submitted_at, racer_name, racer_emoji, progress_position, progress_answered")
+    .eq("activity_instance_id", instanceId);
+  if (attemptError) throw attemptError;
+  const rows = attempts || [];
+
+  const submittedRows = rows
+    .filter((row) => ["submitted", "late"].includes(String(row.status)))
+    .sort((a, b) => String(a.submitted_at || "").localeCompare(String(b.submitted_at || "")));
+  const placeByAttempt = new Map(submittedRows.map((row, index) => [String(row.id), index + 1]));
+
+  const questionCount = Math.max(1, Number(instance.question_count || 0) || 1);
+  const racers = rows.map((row) => {
+    const finished = placeByAttempt.has(String(row.id));
+    return {
+      racer_name: String(row.racer_name || "🎒 Mochila"),
+      racer_emoji: String(row.racer_emoji || "🎒"),
+      position: Math.max(0, Math.min(questionCount, Number(row.progress_position || 0))),
+      answered: Math.max(0, Number(row.progress_answered || 0)),
+      finished,
+      finish_place: placeByAttempt.get(String(row.id)) ?? null
+    };
+  });
+
+  const closedReason = closed.state === "closed"
+    ? (closed.closed_reason
+       ?? closeReasonFor({ presentCount: closed.present, submittedCount: submittedRows.length }))
+    : null;
+  const hits = rows.reduce((sum, row) => sum + Math.max(0, Number(row.progress_answered || 0)), 0);
+  const pinata = pinataState({
+    hits,
+    started: rows.length,
+    questionCount,
+    closedReason
+  });
+
+  // The piñata is named after the lecture: instance → template → content item.
+  const { data: template } = await db
+    .from("activity_templates")
+    .select("content_item_id")
+    .eq("id", (instance as Record<string, unknown>).activity_template_id)
+    .maybeSingle();
+  const { data: item } = template?.content_item_id
+    ? await db.from("content_items").select("title").eq("id", template.content_item_id).maybeSingle()
+    : { data: null };
+
+  const twentySecondsAgo = new Date(Date.now() - 20_000).toISOString();
+  const { data: cheerRows, error: cheerError } = await db
+    .from("quiz_cheers")
+    .select("from_attempt_id, to_attempt_id, created_at")
+    .eq("activity_instance_id", instanceId)
+    .gte("created_at", twentySecondsAgo)
+    .order("created_at", { ascending: true });
+  if (cheerError) throw cheerError;
+  const { count: cheersTotal } = await db
+    .from("quiz_cheers")
+    .select("id", { count: "exact", head: true })
+    .eq("activity_instance_id", instanceId);
+
+  const byId = new Map(rows.map((row) => [String(row.id), row]));
+  const cheers = (cheerRows || []).flatMap((cheer) => {
+    const from = byId.get(String(cheer.from_attempt_id));
+    const to = byId.get(String(cheer.to_attempt_id));
+    if (!from || !to) return [];
+    return [{
+      from_name: String(from.racer_name || "🎒 Mochila"),
+      from_emoji: String(from.racer_emoji || "🎒"),
+      to_name: String(to.racer_name || "🎒 Mochila"),
+      to_emoji: String(to.racer_emoji || "🎒"),
+      at: String(cheer.created_at)
+    }];
+  });
+
+  return {
+    instance_id: instance.id,
+    state: closed.state,
+    ends_at: instance.ends_at,
+    question_count: instance.question_count,
+    present: closed.present,
+    started: rows.length,
+    submitted: submittedRows.length,
+    closed_reason: closedReason,
+    pinata: { name: String(item?.title || ""), ...pinata },
+    racers,
+    cheers,
+    cheers_total: cheersTotal ?? 0
   };
 }
 
