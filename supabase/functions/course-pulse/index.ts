@@ -17,6 +17,7 @@ import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
 import { assertCheckpointPushMatches } from "../_shared/pulse-checkpoint.ts";
 import { classDateFor, loadCheckInAt } from "../_shared/attendance.ts";
+import { pinataState } from "../_shared/pinata.ts";
 import { maybeAutoCloseInstance, OPEN_INSTANCE_STATES } from "../_shared/quiz-close.ts";
 import { rankAttempts, rankOf } from "../_shared/quiz-rank.ts";
 import {
@@ -869,7 +870,7 @@ async function loadCurrentQuiz(db: Db, sessionId: string, profileId: string) {
     .limit(1);
   if (error) throw error;
   const instance = (instances || [])[0];
-  if (!instance) return { instance_id: null, state: null, my_rank: null };
+  if (!instance) return { instance_id: null, state: null, my_rank: null, my_race: null };
 
   // A quiz that is ALREADY closed has nothing left to close, and this poll runs
   // for every phone in the room every three seconds for the rest of the class.
@@ -900,6 +901,11 @@ async function loadCurrentQuiz(db: Db, sessionId: string, profileId: string) {
     // answering would tell a student how they are doing mid-quiz.
     my_rank: state === "closed"
       ? await loadMyRank(db, String(instance.id), profileId)
+      : null,
+    // The race card on a finished student's phone. Only while the quiz is
+    // open — once it closes, the phone moves on to the reflection.
+    my_race: OPEN_INSTANCE_STATES.includes(state)
+      ? await loadMyRace(db, String(instance.id), profileId, Number(instance.question_count || 0))
       : null
   };
 }
@@ -923,6 +929,33 @@ async function loadMyRank(db: Db, instanceId: string, profileId: string) {
     ...place,
     attempt_id: String(mine?.id || ""),
     name_revealed: Boolean(mine?.name_revealed)
+  };
+}
+
+async function loadMyRace(db: Db, instanceId: string, profileId: string, questionCount: number) {
+  const { data: attempts, error } = await db
+    .from("student_attempts")
+    .select("id, profile_id, status, submitted_at, racer_name, racer_emoji, progress_answered")
+    .eq("activity_instance_id", instanceId);
+  if (error) throw error;
+  const rows = attempts || [];
+  const mine = rows.find((row) => String(row.profile_id) === String(profileId));
+  if (!mine) return null;
+
+  const submittedRows = rows
+    .filter((row) => ["submitted", "late"].includes(String(row.status)))
+    .sort((a, b) => String(a.submitted_at || "").localeCompare(String(b.submitted_at || "")));
+  const place = submittedRows.findIndex((row) => String(row.id) === String(mine.id));
+  const hits = rows.reduce((sum, row) => sum + Math.max(0, Number(row.progress_answered || 0)), 0);
+  const pinata = pinataState({ hits, started: rows.length, questionCount: Math.max(1, questionCount || 1) });
+
+  return {
+    racer_name: String(mine.racer_name || ""),
+    racer_emoji: String(mine.racer_emoji || ""),
+    finished: place >= 0,
+    finish_place: place >= 0 ? place + 1 : null,
+    pinata: { percent: pinata.percent, burst: pinata.burst },
+    swinging: rows.filter((row) => String(row.status) === "started" && !row.submitted_at).length
   };
 }
 
