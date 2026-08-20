@@ -104,6 +104,14 @@ Deno.serve(async (request) => {
     const code = stablePulseErrorCode(error);
     if (code) return json({ error: code, error_code: code }, { status: 400 });
     const message = error?.message || "Unable to run the pulse.";
+    // An expired token is an auth problem, not a bad request. Live.tsx treats
+    // 400/403/404 from the class poll as "you are not in this class" and
+    // clears the student's join — which, mid-quiz on 2026-08-20, threw
+    // students out of the end-of-class quiz the moment their one-hour token
+    // lapsed. A 401 is left alone: the next poll retries with a fresh token.
+    if (message.includes("Invalid or expired session")) {
+      return json({ error: message }, { status: 401 });
+    }
     if (message.includes("not allowed") || message.includes("not enrolled")) {
       return json({ error: message }, { status: 403 });
     }

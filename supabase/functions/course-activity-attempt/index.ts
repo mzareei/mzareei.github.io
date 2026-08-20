@@ -53,7 +53,8 @@ Deno.serve(async (request) => {
       const result = await reportProgress(db, profile, {
         attemptId: cleanUuid(body.attempt_id, "attempt id"),
         position: Number(body.position),
-        answered: Number(body.answered)
+        answered: Number(body.answered),
+        answers: sanitizeAnswers(body.answers)
       });
       return json(result);
     }
@@ -66,6 +67,12 @@ Deno.serve(async (request) => {
     return json({ error: "Unknown action." }, { status: 400 });
   } catch (error) {
     const message = error.message || "Unable to process activity attempt.";
+    // An expired token is an auth problem, not a bad request. As a 400 this
+    // told Live.tsx "you are not in this class" mid-quiz — join cleared,
+    // player unmounted — when the phone only needed one token refresh.
+    if (message.includes("Invalid or expired session")) {
+      return json({ error: message }, { status: 401 });
+    }
     if (message.includes("not allowed") || message.includes("not enrolled")) {
       return json({ error: message }, { status: 403 });
     }
@@ -105,28 +112,70 @@ async function loadProfileForToken(db: Db, token: string) {
 
 async function startAttempt(db: Db, profile: Record<string, unknown>, activityInstanceId: string) {
   const instance = await loadActivityInstance(db, activityInstanceId);
-  assertActivityOpen(instance);
   await assertStudentEnrollment(db, String(profile.id), String(instance.section_id));
   // A quiz attached to a live class is part of that class: you have to be in
   // the room to sit it. Standalone activities are unaffected.
   await assertCheckedIn(db, instance.class_session_id as string | null, String(profile.id));
   const release = await resolveAttemptRelease(db, instance);
 
+  // The open gate moved inside findOrCreateAttempt, where it can tell the two
+  // cases apart: STARTING fresh needs an open instance, but RESUMING an
+  // attempt already underway is allowed for as long as the submit grace runs —
+  // the same window submit_attempt honours. A student thrown out in the final
+  // seconds comes back to their saved attempt and sends it, instead of being
+  // told "Activity is not open for attempts" while their work evaporates.
   const attemptPolicy = await findOrCreateAttempt(db, {
     activityInstanceId,
     profileId: String(profile.id),
     sectionId: String(instance.section_id),
-    allowedAttempts: release?.allowed_attempts
+    allowedAttempts: release?.allowed_attempts,
+    instance
   });
   assertAttemptWithinTimeLimit(attemptPolicy.attempt, instance);
   attemptPolicy.attempt = await ensureRacerName(db, attemptPolicy.attempt, instance);
-  const questions = await loadQuestionsForInstance(db, instance);
+  const questions = await questionsForAttempt(db, attemptPolicy.attempt, instance);
+
+  // The frozen deal travels as `questions`; no reason to send it twice.
+  const { questions_json: _frozen, ...attemptRow } = attemptPolicy.attempt;
 
   return {
-    attempt: withAttemptContext(attemptPolicy.attempt, instance, attemptPolicy),
+    attempt: withAttemptContext(attemptRow, instance, attemptPolicy),
     questions,
     activity_instance: safeInstance(instance)
   };
+}
+
+/**
+ * The questions an attempt was dealt, frozen at first start. The selection
+ * shuffles once (per the instance's randomization policy); after that the
+ * attempt's questions are a stored fact. Before this, every start_attempt
+ * re-shuffled questions AND options, so a phone that reloaded mid-quiz got a
+ * brand-new quiz — the 2026-08-20 class lost three students' work to exactly
+ * that. The guard on `questions_json IS NULL` makes two racing first starts
+ * converge on a single deal.
+ */
+async function questionsForAttempt(db: Db, attempt: Record<string, unknown>, instance: Record<string, unknown>) {
+  if (attempt.questions_json) return attempt.questions_json as Record<string, unknown>[];
+
+  const dealt = await loadQuestionsForInstance(db, instance);
+  const { data: frozen, error } = await db
+    .from("student_attempts")
+    .update({ questions_json: dealt, updated_at: new Date().toISOString() })
+    .eq("id", String(attempt.id))
+    .is("questions_json", null)
+    .select("questions_json")
+    .maybeSingle();
+  if (error) throw error;
+  if (frozen?.questions_json) return frozen.questions_json as Record<string, unknown>[];
+
+  // A concurrent first start won the freeze — serve its deal, not ours.
+  const { data: existing, error: readError } = await db
+    .from("student_attempts")
+    .select("questions_json")
+    .eq("id", String(attempt.id))
+    .maybeSingle();
+  if (readError) throw readError;
+  return (existing?.questions_json as Record<string, unknown>[] | null) ?? dealt;
 }
 
 async function submitAttempt(db: Db, profile: Record<string, unknown>, input: {
@@ -303,15 +352,22 @@ async function setNameReveal(
 
 /**
  * The phone saying "I'm on question 5, answered 4" so the room's screen can
- * move a racer and crack the piñata. Fire-and-forget by contract: monotonic,
- * clamped, and every no-op answers { ok: true } — a dropped or stale ping
- * must never surface an error on a phone mid-quiz. Grading never reads these
- * two integers.
+ * move a racer and crack the piñata — and, since the 2026-08-20 class lost
+ * three students' work to mid-quiz kicks, also the running save: each ping
+ * carries the full answer map, merged over what is stored so a stale ping can
+ * add but never erase. Fire-and-forget by contract: monotonic, clamped, and
+ * every no-op answers { ok: true } — a dropped or stale ping must never
+ * surface an error on a phone mid-quiz. Grading still reads only the
+ * student_responses written at submit; these are the recovery copy.
+ *
+ * The first ping also anchors the clock: clock_t0 is set exactly once (the
+ * "Let's go" tap sends position 0), so a phone that reloads cannot mint itself
+ * a fresh full-length schedule.
  */
 async function reportProgress(
   db: Db,
   profile: Record<string, unknown>,
-  input: { attemptId: string; position: number; answered: number }
+  input: { attemptId: string; position: number; answered: number; answers: Record<string, string> }
 ) {
   const attempt = await loadAttempt(db, input.attemptId, String(profile.id));
   if (attempt.submitted_at || String(attempt.status) !== "started") return { ok: true };
@@ -324,12 +380,44 @@ async function reportProgress(
   const position = Math.max(clamp(input.position), Number(attempt.progress_position || 0));
   const answered = Math.max(clamp(input.answered), Number(attempt.progress_answered || 0));
 
+  const stored = (attempt.progress_answers && typeof attempt.progress_answers === "object" && !Array.isArray(attempt.progress_answers))
+    ? attempt.progress_answers as Record<string, string>
+    : {};
+  const merged = { ...stored, ...input.answers };
+
+  if (!attempt.clock_t0) {
+    const { error: clockError } = await db
+      .from("student_attempts")
+      .update({ clock_t0: new Date().toISOString() })
+      .eq("id", input.attemptId)
+      .is("clock_t0", null);
+    if (clockError) throw clockError;
+  }
+
   const { error } = await db
     .from("student_attempts")
-    .update({ progress_position: position, progress_answered: answered, updated_at: new Date().toISOString() })
+    .update({ progress_position: position, progress_answered: answered, progress_answers: merged, updated_at: new Date().toISOString() })
     .eq("id", input.attemptId);
   if (error) throw error;
   return { ok: true };
+}
+
+/**
+ * question_id -> selected_option_id, both UUIDs; anything else is dropped and
+ * the map is capped, because this arrives from a phone and lands in a jsonb
+ * column. An empty result is fine — the merge treats it as "nothing new".
+ */
+function sanitizeAnswers(value: unknown): Record<string, string> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const isUuid = (text: string) =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text);
+  const out: Record<string, string> = {};
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    if (Object.keys(out).length >= 100) break;
+    const option = String(entry || "");
+    if (isUuid(key) && isUuid(option)) out[key] = option;
+  }
+  return out;
 }
 
 /** A finished student cheering someone still swinging. The server picks the
@@ -699,6 +787,7 @@ async function findOrCreateAttempt(db: Db, input: {
   profileId: string;
   sectionId: string;
   allowedAttempts: unknown;
+  instance: Record<string, unknown>;
 }): Promise<{
   attempt: Record<string, unknown>;
   allowedAttempts: number;
@@ -708,6 +797,11 @@ async function findOrCreateAttempt(db: Db, input: {
   const policy = await attemptLimitPolicy(db, input);
   const openAttempt = policy.attempts.find((attempt) => !isClosedAttempt(attempt));
   if (openAttempt) {
+    // A resume. The submit gate, not the start gate: an attempt already
+    // underway may come back while the instance is open OR inside the
+    // sixty-second grace after it stopped — withinSubmitGrace decides, exactly
+    // as it does for submit_attempt.
+    assertActivityOpenForSubmit(input.instance, openAttempt);
     return {
       attempt: openAttempt,
       allowedAttempts: policy.allowedAttempts,
@@ -715,6 +809,9 @@ async function findOrCreateAttempt(db: Db, input: {
       attemptsRemaining: policy.attemptsRemaining
     };
   }
+
+  // Starting fresh: the instance must actually be open.
+  assertActivityOpen(input.instance);
 
   if (policy.attemptsUsed >= policy.allowedAttempts) {
     throw new Error("No attempts are remaining for this activity.");
@@ -731,7 +828,7 @@ async function findOrCreateAttempt(db: Db, input: {
       attempt_number: nextAttemptNumber,
       status: "started"
     })
-    .select("id, activity_instance_id, profile_id, section_id, attempt_number, started_at, submitted_at, status, score_raw, score_percent, score_final, racer_name, racer_emoji, progress_position, progress_answered")
+    .select("id, activity_instance_id, profile_id, section_id, attempt_number, started_at, submitted_at, status, score_raw, score_percent, score_final, racer_name, racer_emoji, progress_position, progress_answered, progress_answers, clock_t0, questions_json")
     .single();
   if (error) throw error;
 
@@ -773,7 +870,7 @@ async function ensureRacerName(
       .update({ racer_name: pick.name, racer_emoji: pick.emoji })
       .eq("id", String(attempt.id))
       .is("racer_name", null)
-      .select("id, activity_instance_id, profile_id, section_id, attempt_number, started_at, submitted_at, status, score_raw, score_percent, score_final, racer_name, racer_emoji, progress_position, progress_answered")
+      .select("id, activity_instance_id, profile_id, section_id, attempt_number, started_at, submitted_at, status, score_raw, score_percent, score_final, racer_name, racer_emoji, progress_position, progress_answered, progress_answers, clock_t0, questions_json")
       .maybeSingle();
     if (!updateError && updated) return updated;
     if (updateError && String(updateError.code) !== "23505") throw updateError;
@@ -795,7 +892,7 @@ async function attemptLimitPolicy(db: Db, input: {
   const allowedAttempts = normalizeAllowedAttempts(input.allowedAttempts);
   const { data: attempts, error } = await db
     .from("student_attempts")
-    .select("id, activity_instance_id, profile_id, section_id, attempt_number, started_at, submitted_at, status, score_raw, score_percent, score_final, racer_name, racer_emoji, progress_position, progress_answered")
+    .select("id, activity_instance_id, profile_id, section_id, attempt_number, started_at, submitted_at, status, score_raw, score_percent, score_final, racer_name, racer_emoji, progress_position, progress_answered, progress_answers, clock_t0, questions_json")
     .eq("activity_instance_id", input.activityInstanceId)
     .eq("profile_id", input.profileId)
     .order("attempt_number", { ascending: true });
@@ -940,7 +1037,7 @@ function maybeShuffle<T>(values: T[], shouldShuffle: boolean) {
 async function loadAttempt(db: Db, attemptId: string, profileId: string) {
   const { data, error } = await db
     .from("student_attempts")
-    .select("id, activity_instance_id, profile_id, section_id, attempt_number, started_at, submitted_at, status, racer_name, racer_emoji, progress_position, progress_answered")
+    .select("id, activity_instance_id, profile_id, section_id, attempt_number, started_at, submitted_at, status, racer_name, racer_emoji, progress_position, progress_answered, progress_answers, clock_t0")
     .eq("id", attemptId)
     .eq("profile_id", profileId)
     .maybeSingle();
