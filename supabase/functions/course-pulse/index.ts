@@ -924,7 +924,7 @@ async function loadCurrentQuiz(db: Db, sessionId: string, profileId: string) {
 async function loadMyRank(db: Db, instanceId: string, profileId: string) {
   const { data: attempts, error } = await db
     .from("student_attempts")
-    .select("id, profile_id, status, score_final, submitted_at, name_revealed")
+    .select("id, profile_id, status, score_final, submitted_at, name_revealed, progress_answered")
     .eq("activity_instance_id", instanceId);
   if (error) throw error;
 

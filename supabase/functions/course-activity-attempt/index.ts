@@ -245,7 +245,12 @@ async function submitAttempt(db: Db, profile: Record<string, unknown>, input: {
     .update({
       submitted_at: submittedAt,
       status,
-      progress_answered: graded.rows.length,
+      // graded.rows is every dealt question now, not just the answered ones —
+      // an unfiltered length would stamp the dealt count here, not the answered
+      // count, and two other services read this column as "answers given":
+      // course-class-quiz's piñata "hits" and course-pulse's my_race.pinata.
+      // Filtering back to the truly-selected rows keeps the column's meaning.
+      progress_answered: graded.rows.filter((row) => row.selected_option_id).length,
       progress_position: questionCount,
       score_raw: graded.score_raw,
       score_percent: graded.score_percent,
@@ -336,7 +341,7 @@ async function setNameReveal(
   if (input.revealed) {
     const { data: attempts, error } = await db
       .from("student_attempts")
-      .select("profile_id, status, score_final, submitted_at")
+      .select("profile_id, status, score_final, submitted_at, progress_answered")
       .eq("activity_instance_id", attempt.activity_instance_id);
     if (error) throw error;
 

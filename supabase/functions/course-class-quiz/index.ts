@@ -704,7 +704,7 @@ async function quizPodium(
 
   const { data: attempts, error: attemptError } = await db
     .from("student_attempts")
-    .select("profile_id, status, score_final, submitted_at, name_revealed")
+    .select("profile_id, status, score_final, submitted_at, name_revealed, progress_answered")
     .eq("activity_instance_id", instanceId);
   if (attemptError) throw attemptError;
 

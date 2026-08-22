@@ -9,6 +9,15 @@
 // is not ranked last — they are not ranked at all, and the "of 24" a student
 // reads is the number of people who actually finished.
 //
+// "Finished" takes two conditions, not one: a submitted/late status, and at
+// least one real answer (progress_answered > 0). Before the quiz counted every
+// dealt question toward the grade, an abandoned attempt simply never reached a
+// submitted status, so the status filter alone was enough. Now it does reach
+// that status — the professor's rule that a blank question is a wrong answer
+// requires it — so progress_answered is what still tells "abandoned" apart
+// from "graded zero on purpose". Only the ranking is affected; the grade
+// itself, and the gradebook, still see the real 0%.
+//
 // Pure: no Deno, no database. The verifier imports and executes it.
 import { SUBMITTED_STATUSES } from "./quiz-close.ts";
 
@@ -19,6 +28,7 @@ export interface RankableAttempt {
   status: string;
   score_final: number | null;
   submitted_at: string | null;
+  progress_answered: number | null;
 }
 
 export interface RankedAttempt extends RankableAttempt {
@@ -37,7 +47,10 @@ function submittedMillis(attempt: RankableAttempt): number {
 /** Finished attempts, best first, with equal scores sharing a place. */
 export function rankAttempts(attempts: RankableAttempt[]): RankedAttempt[] {
   const finished = (Array.isArray(attempts) ? attempts : [])
-    .filter((attempt) => SUBMITTED_STATUSES.includes(String(attempt?.status)));
+    .filter((attempt) =>
+      SUBMITTED_STATUSES.includes(String(attempt?.status)) &&
+      Number(attempt?.progress_answered ?? 0) > 0
+    );
 
   const sorted = [...finished].sort((left, right) => {
     const byScore = scoreOf(right) - scoreOf(left);
