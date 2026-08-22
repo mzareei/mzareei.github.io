@@ -954,8 +954,10 @@ async function loadMyRace(db: Db, instanceId: string, profileId: string, questio
     .filter((row) => ["submitted", "late"].includes(String(row.status)))
     .sort((a, b) => String(a.submitted_at || "").localeCompare(String(b.submitted_at || "")));
   const place = submittedRows.findIndex((row) => String(row.id) === String(mine.id));
+  // Still the participation sum, not the correctness sum — correct_count doesn't
+  // exist until Task 4's migration and isn't populated until Task 6 settles it.
   const hits = rows.reduce((sum, row) => sum + Math.max(0, Number(row.progress_answered || 0)), 0);
-  const pinata = pinataState({ hits, started: rows.length, questionCount: Math.max(1, questionCount || 1) });
+  const pinata = pinataState({ correct: hits, started: rows.length, questionCount: Math.max(1, questionCount || 1) });
 
   return {
     racer_name: String(mine.racer_name || ""),

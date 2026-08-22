@@ -543,9 +543,11 @@ async function quizRace(
     ? (closed.closed_reason
        ?? closeReasonFor({ presentCount: closed.present, submittedCount: submittedRows.length }))
     : null;
+  // Still the participation sum, not the correctness sum — correct_count doesn't
+  // exist until Task 4's migration and isn't populated until Task 6 settles it.
   const hits = rows.reduce((sum, row) => sum + Math.max(0, Number(row.progress_answered || 0)), 0);
   const pinata = pinataState({
-    hits,
+    correct: hits,
     started: rows.length,
     questionCount,
     closedReason
