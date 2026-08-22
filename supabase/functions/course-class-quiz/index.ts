@@ -9,14 +9,14 @@
 //
 // Questions are never typed by the instructor — they come from the same
 // generated bank the pulses draw from (course-question-bank), keyed by the
-// lecture's own content_item_id. The activity engine mixes difficulty tiers
-// automatically (course-activity-attempt's selectQuestions).
+// lecture's own content_item_id. The activity engine deals a fixed 4 easy /
+// 3 medium / 3 hard mix, in an order shuffled per student.
 import { adminClient } from "../_shared/client.ts";
 import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
 import { askedQuestionIds, withoutAsked } from "../_shared/asked-questions.ts";
 import { classDateFor } from "../_shared/attendance.ts";
-import { estimateTotalSeconds } from "../_shared/question-timing.ts";
+import { totalSecondsFor } from "../_shared/rounds.ts";
 import { pinataState } from "../_shared/pinata.ts";
 import { closeReasonFor, maybeAutoCloseInstance } from "../_shared/quiz-close.ts";
 import { podiumCut, rankAttempts } from "../_shared/quiz-rank.ts";
@@ -334,13 +334,12 @@ async function startQuiz(db: Db, courseId: string, actorProfileId: string, body:
 
   const { templateId } = await ensureQuizTemplate(db, item);
   const questionCount = Math.min(pool.length, Math.max(1, Number(body.question_count) || defaultQuestionCount));
-  // The clock is the sum of the longest questions this student could draw, plus
-  // the professor's one-minute cushion — not a flat ten minutes that was
-  // generous for a short quiz and tight for a long one. An explicit override
-  // from the caller still wins.
+  // The clock follows the room's round schedule (_shared/rounds.ts): one
+  // ROUND_SECONDS slot per question, plus the cushion for a slow-opening
+  // phone. An explicit override from the caller still wins.
   const timeLimit = Number(body.time_limit_seconds)
     ? Math.min(3600, Math.max(60, Number(body.time_limit_seconds)))
-    : estimateTotalSeconds(pool, questionCount);
+    : totalSecondsFor(questionCount);
 
   // Reuse a still-open instance for this session if one already exists —
   // "Start quiz" is idempotent, so a refreshed page never creates a duplicate.
