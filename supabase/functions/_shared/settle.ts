@@ -18,6 +18,28 @@ export interface SettleQuestion {
   correctOptionId: string | null;
 }
 
+/**
+ * One closed round, decided. The totals travel with this list because both read
+ * surfaces need a single round on its own: the room's screen counts who got the
+ * round that just closed right, and a phone reveals its own result during the
+ * break. Recomputing "answered in time" at those two call sites would put the
+ * rule in three places, across two services that deploy independently — the
+ * same reason the per-question seconds are decided on the server, not the phone.
+ *
+ * Only rounds whose answering window has passed ever appear here. The reveal on
+ * a student's phone is built from this list, so a round that is still taking
+ * answers must never carry its own answer key.
+ */
+export interface SettledRound {
+  index: number;
+  questionId: string;
+  correctOptionId: string | null;
+  /** The server saw this student's answer inside the round's window. */
+  answered: boolean;
+  correct: boolean;
+  candy: number;
+}
+
 export function settleAttempt(input: {
   startedAt: number;
   now: number;
@@ -28,7 +50,7 @@ export function settleAttempt(input: {
   /** question id -> ms epoch the server first saw an answer for it. */
   answerTimes: Record<string, number>;
   settledThrough: number;
-}): { candy: number; correctCount: number; settledThrough: number } {
+}): { candy: number; correctCount: number; settledThrough: number; rounds: SettledRound[] } {
   const questions = Array.isArray(input.questions) ? input.questions : [];
   const answers = input.answers || {};
   const times = input.answerTimes || {};
@@ -36,10 +58,12 @@ export function settleAttempt(input: {
   let candy = 0;
   let correctCount = 0;
   let settledThrough = -1;
+  const rounds: SettledRound[] = [];
 
   for (let k = 0; k < questions.length; k += 1) {
     const window = windowFor(input.startedAt, k, input.questionCount);
-    // Still open — nothing about this round is decided yet.
+    // Still open — nothing about this round is decided yet, and nothing about it
+    // is described. The break's reveal reads `rounds`.
     if (input.now < window.answerEnd) break;
     settledThrough = k;
 
@@ -48,12 +72,23 @@ export function settleAttempt(input: {
     const stamped = Number(times[question.id]);
     const answeredInTime =
       Boolean(chosen) && Number.isFinite(stamped) && stamped < window.answerEnd;
-    if (!answeredInTime) continue;
+    const correct =
+      answeredInTime && Boolean(question.correctOptionId) && chosen === question.correctOptionId;
+    const earned = answeredInTime
+      ? candyFor({ correct, msIntoRound: stamped - window.answerStart })
+      : 0;
 
-    const correct = Boolean(question.correctOptionId) && chosen === question.correctOptionId;
     if (correct) correctCount += 1;
-    candy += candyFor({ correct, msIntoRound: stamped - window.answerStart });
+    candy += earned;
+    rounds.push({
+      index: k,
+      questionId: question.id,
+      correctOptionId: question.correctOptionId,
+      answered: answeredInTime,
+      correct,
+      candy: earned
+    });
   }
 
-  return { candy, correctCount, settledThrough };
+  return { candy, correctCount, settledThrough, rounds };
 }
