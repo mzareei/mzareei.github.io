@@ -395,9 +395,26 @@ async function reportProgress(
     if (clockError) throw clockError;
   }
 
+  // First answer wins. A student who changes their choice keeps the timestamp
+  // of when they first committed, so "fast" cannot be gamed by re-tapping.
+  const existingTimes = (attempt.round_answer_times && typeof attempt.round_answer_times === "object" && !Array.isArray(attempt.round_answer_times))
+    ? attempt.round_answer_times as Record<string, number>
+    : {};
+  const stampedAt = Date.now();
+  const mergedAnswerTimes = { ...existingTimes };
+  for (const questionId of Object.keys(input.answers)) {
+    if (mergedAnswerTimes[questionId] === undefined) mergedAnswerTimes[questionId] = stampedAt;
+  }
+
   const { error } = await db
     .from("student_attempts")
-    .update({ progress_position: position, progress_answered: answered, progress_answers: merged, updated_at: new Date().toISOString() })
+    .update({
+      progress_position: position,
+      progress_answered: answered,
+      progress_answers: merged,
+      round_answer_times: mergedAnswerTimes,
+      updated_at: new Date().toISOString()
+    })
     .eq("id", input.attemptId);
   if (error) throw error;
   return { ok: true };
@@ -1004,7 +1021,7 @@ async function loadQuestionsForInstance(db: Db, instance: Record<string, unknown
 async function loadAttempt(db: Db, attemptId: string, profileId: string) {
   const { data, error } = await db
     .from("student_attempts")
-    .select("id, activity_instance_id, profile_id, section_id, attempt_number, started_at, submitted_at, status, racer_name, racer_emoji, progress_position, progress_answered, progress_answers, clock_t0")
+    .select("id, activity_instance_id, profile_id, section_id, attempt_number, started_at, submitted_at, status, racer_name, racer_emoji, progress_position, progress_answered, progress_answers, clock_t0, round_answer_times, candy, correct_count, settled_through")
     .eq("id", attemptId)
     .eq("profile_id", profileId)
     .maybeSingle();
