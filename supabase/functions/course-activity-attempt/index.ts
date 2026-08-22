@@ -8,6 +8,13 @@ import { pickRacerName } from "../_shared/racer-names.ts";
 import { OPEN_INSTANCE_STATES, withinSubmitGrace } from "../_shared/quiz-close.ts";
 import { podiumCut, rankAttempts } from "../_shared/quiz-rank.ts";
 import { shuffle, dealQuestions, QUOTA } from "../_shared/shuffle.ts";
+import {
+  acceptableAnswers,
+  committedAnswers,
+  dealtQuestionIds,
+  numberMap,
+  stringMap
+} from "../_shared/settle.ts";
 
 type Db = ReturnType<typeof adminClient>;
 
@@ -200,7 +207,51 @@ async function submitAttempt(db: Db, profile: Record<string, unknown>, input: {
   const release = await resolveAttemptRelease(db, instance);
   assertAttemptWithinTimeLimit(attempt, instance);
 
-  const gradedBase = await gradeResponses(db, input.responses);
+  // THE GRADE IS COMPUTED FROM WHAT THE SERVER RECORDED, NOT FROM WHAT THE
+  // PHONE SENDS. The break hands every phone its round's correct option id ten
+  // seconds after that round closes, so by the final round a client holds the
+  // whole answer key; grading `input.responses` meant a scripted phone could
+  // post a perfect score in a payload indistinguishable from an honest one.
+  // `committedAnswers` replays the same window test the candy already uses: an
+  // answer counts only if the server saw it before its round stopped taking
+  // answers, which is the only evidence that it predates the reveal.
+  //
+  // The client's array is still folded in first, under the same rule report_progress
+  // applies — a last tap whose ping is still in flight, or a ping that failed
+  // while its round is open, is a real answer and must not be lost to a race
+  // with the submit. It is never trusted for a round that has already closed.
+  const clock = roomClockFor(attempt, instance);
+  const submitAt = Date.now();
+  const clientAnswers = clientAnswerMap(input.responses);
+  const storedAnswers = stringMap(attempt.progress_answers);
+  const storedTimes = numberMap(attempt.round_answer_times);
+  const lateAccepted = clock
+    ? acceptableAnswers({
+        startedAt: clock.startedAt,
+        questionCount: clock.questionCount,
+        now: submitAt,
+        questionIds: clock.questionIds,
+        stored: storedAnswers,
+        incoming: clientAnswers
+      })
+    : {};
+  const finalAnswers = { ...storedAnswers, ...lateAccepted };
+  const finalTimes = { ...storedTimes };
+  for (const questionId of Object.keys(lateAccepted)) {
+    if (finalTimes[questionId] === undefined) finalTimes[questionId] = submitAt;
+  }
+
+  const serverResponses = clock
+    ? committedAnswers({
+        startedAt: clock.startedAt,
+        questionCount: clock.questionCount,
+        questionIds: clock.questionIds,
+        answers: finalAnswers,
+        answerTimes: finalTimes
+      }).map((row) => ({ ...row, response_json: {} }))
+    : null;
+
+  const gradedBase = await gradeResponses(db, serverResponses ?? input.responses);
   const submittedAt = new Date().toISOString();
   const speedBonus = calculateSpeedBonus({
     scorePercent: gradedBase.score_percent,
@@ -252,6 +303,9 @@ async function submitAttempt(db: Db, profile: Record<string, unknown>, input: {
       // Filtering back to the truly-selected rows keeps the column's meaning.
       progress_answered: graded.rows.filter((row) => row.selected_option_id).length,
       progress_position: questionCount,
+      // The record the grade was computed from, so the review list, the candy
+      // and the gradebook all describe the same answers.
+      ...(clock ? { progress_answers: finalAnswers, round_answer_times: finalTimes } : {}),
       score_raw: graded.score_raw,
       score_percent: graded.score_percent,
       speed_bonus: graded.speed_bonus,
@@ -279,7 +333,22 @@ async function submitAttempt(db: Db, profile: Record<string, unknown>, input: {
         ...integrity,
         flagged: integrityFlag.flagged,
         reasons: integrityFlag.reasons,
-        activity_instance_id: updated.activity_instance_id
+        activity_instance_id: updated.activity_instance_id,
+        // Where the score came from, and where the phone's account of the
+        // attempt differs from the server's. A student whose progress pings
+        // never landed scores what the server can prove they committed, which
+        // may be nothing — this is the row that shows the professor exactly
+        // which attempts to look at, rather than the score silently going wrong.
+        graded_from: serverResponses ? "server_record" : "client_payload",
+        server_answered: serverResponses
+          ? serverResponses.filter((row) => row.selected_option_id).length
+          : null,
+        client_answered: Object.values(clientAnswers).filter(Boolean).length,
+        client_disagreed_on: serverResponses
+          ? serverResponses
+              .filter((row) => (clientAnswers[row.question_id] || "") !== (row.selected_option_id || ""))
+              .map((row) => row.question_id)
+          : []
       }
     });
   if (integrityAuditError) throw integrityAuditError;
@@ -365,14 +434,38 @@ async function setNameReveal(
 }
 
 /**
+ * The room's round schedule for this attempt, or null when there is none.
+ *
+ * Only a quiz attached to a live class runs on the room clock — the same test
+ * `ensureRacerName` and the check-in gate already use — and only once the deal
+ * is frozen, because the schedule is "question k is round k" and without the
+ * deal there is no k. A standalone activity has no rounds, so none of the round
+ * rules apply to it and it keeps its old behaviour exactly.
+ */
+function roomClockFor(attempt: Record<string, unknown>, instance: Record<string, unknown>) {
+  if (!instance.class_session_id) return null;
+  const startedAt = Date.parse(String(instance.starts_at || ""));
+  if (!Number.isFinite(startedAt)) return null;
+  const questionCount = Math.max(1, Number(instance.question_count || 0) || 1);
+  const questionIds = dealtQuestionIds(attempt.questions_json).slice(0, questionCount);
+  if (!questionIds.length) return null;
+  return { startedAt, questionCount, questionIds };
+}
+
+/**
  * The phone saying "I'm on question 5, answered 4" so the room's screen can
  * move a racer and crack the piñata — and, since the 2026-08-20 class lost
  * three students' work to mid-quiz kicks, also the running save: each ping
  * carries the full answer map, merged over what is stored so a stale ping can
  * add but never erase. Fire-and-forget by contract: monotonic, clamped, and
  * every no-op answers { ok: true } — a dropped or stale ping must never
- * surface an error on a phone mid-quiz. Grading still reads only the
- * student_responses written at submit; these are the recovery copy.
+ * surface an error on a phone mid-quiz.
+ *
+ * These ARE the graded answers now, not a recovery copy beside them: submit
+ * grades what the server recorded here, because the break reveals each round's
+ * correct option to every phone and a client's own account of its answers can
+ * no longer be taken on trust. So a ping may add an answer, and may change one
+ * while its round is still open — and may not touch it afterwards.
  *
  * The first ping also anchors the clock: clock_t0 is set exactly once (the
  * "Let's go" tap sends position 0), so a phone that reloads cannot mint itself
@@ -394,10 +487,25 @@ async function reportProgress(
   const position = Math.max(clamp(input.position), Number(attempt.progress_position || 0));
   const answered = Math.max(clamp(input.answered), Number(attempt.progress_answered || 0));
 
-  const stored = (attempt.progress_answers && typeof attempt.progress_answers === "object" && !Array.isArray(attempt.progress_answers))
-    ? attempt.progress_answers as Record<string, string>
-    : {};
-  const merged = { ...stored, ...input.answers };
+  const stored = stringMap(attempt.progress_answers);
+  const stampedAt = Date.now();
+  // A student may change their mind while the round is still taking answers,
+  // and not after. The break shows every phone its round's correct option, and
+  // the stamp below is pinned to the first answer seen — so an unguarded merge
+  // would let a crafted ping swap in the revealed answer during the break and
+  // keep the early timestamp, collecting on it in both candy and grade.
+  const clock = roomClockFor(attempt, instance);
+  const accepted = clock
+    ? acceptableAnswers({
+        startedAt: clock.startedAt,
+        questionCount: clock.questionCount,
+        now: stampedAt,
+        questionIds: clock.questionIds,
+        stored,
+        incoming: input.answers
+      })
+    : input.answers;
+  const merged = { ...stored, ...accepted };
 
   if (!attempt.clock_t0) {
     const { error: clockError } = await db
@@ -410,12 +518,8 @@ async function reportProgress(
 
   // First answer wins. A student who changes their choice keeps the timestamp
   // of when they first committed, so "fast" cannot be gamed by re-tapping.
-  const existingTimes = (attempt.round_answer_times && typeof attempt.round_answer_times === "object" && !Array.isArray(attempt.round_answer_times))
-    ? attempt.round_answer_times as Record<string, number>
-    : {};
-  const stampedAt = Date.now();
-  const mergedAnswerTimes = { ...existingTimes };
-  for (const questionId of Object.keys(input.answers)) {
+  const mergedAnswerTimes = { ...numberMap(attempt.round_answer_times) };
+  for (const questionId of Object.keys(accepted)) {
     if (mergedAnswerTimes[questionId] === undefined) mergedAnswerTimes[questionId] = stampedAt;
   }
 
@@ -1034,13 +1138,24 @@ async function loadQuestionsForInstance(db: Db, instance: Record<string, unknown
 async function loadAttempt(db: Db, attemptId: string, profileId: string) {
   const { data, error } = await db
     .from("student_attempts")
-    .select("id, activity_instance_id, profile_id, section_id, attempt_number, started_at, submitted_at, status, racer_name, racer_emoji, progress_position, progress_answered, progress_answers, clock_t0, round_answer_times, candy, correct_count, settled_through")
+    .select("id, activity_instance_id, profile_id, section_id, attempt_number, started_at, submitted_at, status, racer_name, racer_emoji, progress_position, progress_answered, progress_answers, clock_t0, round_answer_times, candy, correct_count, settled_through, questions_json")
     .eq("id", attemptId)
     .eq("profile_id", profileId)
     .maybeSingle();
   if (error) throw error;
   if (!data) throw new Error("Attempt not found for this profile.");
   return data;
+}
+
+/** The phone's account of its own answers. Used to record where it differs
+ *  from the server's, and for nothing else — never to decide correctness. */
+function clientAnswerMap(responses: Record<string, unknown>[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const response of Array.isArray(responses) ? responses : []) {
+    const questionId = String(response?.question_id || "");
+    if (questionId) out[questionId] = String(response?.selected_option_id || "");
+  }
+  return out;
 }
 
 async function gradeResponses(db: Db, responses: Record<string, unknown>[]) {

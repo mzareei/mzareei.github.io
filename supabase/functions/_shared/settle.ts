@@ -11,7 +11,7 @@
 //
 // Pure on purpose: no Deno, no database. The Node verifier imports and runs it.
 
-import { windowFor, candyFor } from "./rounds.ts";
+import { windowFor, candyFor, roundIsOpen } from "./rounds.ts";
 
 export interface SettleQuestion {
   id: string;
@@ -38,6 +38,158 @@ export interface SettledRound {
   answered: boolean;
   correct: boolean;
   candy: number;
+}
+
+/**
+ * Was this answer committed before its round stopped taking them? The one test
+ * that separates an answer from a guess made after the break revealed the key,
+ * and therefore the only thing standing between the reveal and a forged grade.
+ *
+ * `stampedAt` is the SERVER's time of first arrival (report_progress stamps it
+ * and never overwrites it), so a phone cannot claim to have been early.
+ */
+export function answeredInWindow(input: {
+  startedAt: number;
+  index: number;
+  questionCount: number;
+  chosen: string | null | undefined;
+  stampedAt: unknown;
+}): boolean {
+  if (!input.chosen) return false;
+  const stamped = Number(input.stampedAt);
+  if (!Number.isFinite(stamped)) return false;
+  return stamped < windowFor(input.startedAt, input.index, input.questionCount).answerEnd;
+}
+
+/**
+ * What this student actually committed, one entry per dealt question in dealt
+ * order, with `null` where nothing arrived in time.
+ *
+ * This is what the GRADE is computed from. Before this existed, submit_attempt
+ * graded the array the phone sent, and the break's reveal handed every phone
+ * the correct option id — so the whole score was there for the taking by any
+ * client that substituted the revealed values into an otherwise honest payload.
+ */
+export function committedAnswers(input: {
+  startedAt: number;
+  questionCount: number;
+  /** In dealt order — index k is round k for THIS student. */
+  questionIds: string[];
+  answers: Record<string, string>;
+  answerTimes: Record<string, number>;
+}): Array<{ question_id: string; selected_option_id: string | null }> {
+  const questionIds = Array.isArray(input.questionIds) ? input.questionIds : [];
+  const answers = input.answers || {};
+  const times = input.answerTimes || {};
+  return questionIds.map((questionId, index) => {
+    const chosen = answers[questionId];
+    const inWindow = answeredInWindow({
+      startedAt: input.startedAt,
+      index,
+      questionCount: input.questionCount,
+      chosen,
+      stampedAt: times[questionId]
+    });
+    return { question_id: questionId, selected_option_id: inWindow ? String(chosen) : null };
+  });
+}
+
+/**
+ * Which of these incoming answers the server may accept, and when.
+ *
+ * A student may change their mind while the round is still taking answers, and
+ * not after. The break shows every phone its round's correct option, and
+ * report_progress pins an answer's timestamp to the FIRST one it saw — so
+ * without this test a crafted ping sent during the break could rewrite the
+ * stored answer to the revealed one while keeping the early stamp, and collect
+ * on it in both candy and grade. A question the server has never seen an answer
+ * for is always accepted: it arrives with a fresh stamp, which the window test
+ * then judges on its own merits.
+ */
+export function acceptableAnswers(input: {
+  startedAt: number;
+  questionCount: number;
+  now: number;
+  /** In dealt order — index k is round k for THIS student. */
+  questionIds: string[];
+  stored: Record<string, string>;
+  incoming: Record<string, string>;
+}): Record<string, string> {
+  const indexOf = new Map((input.questionIds || []).map((id, index) => [id, index]));
+  const stored = input.stored || {};
+  const out: Record<string, string> = {};
+  for (const [questionId, option] of Object.entries(input.incoming || {})) {
+    const index = indexOf.get(questionId);
+    const isChange = Boolean(stored[questionId]) && stored[questionId] !== option;
+    if (isChange && index !== undefined && !roundIsOpen(input.startedAt, index, input.questionCount, input.now)) {
+      continue;
+    }
+    out[questionId] = option;
+  }
+  return out;
+}
+
+/** The last round whose answering window has closed; -1 before the first one.
+ *  While the room is answering, that is the round before the live one; during a
+ *  break — and once the quiz is done — it is the live index itself. */
+export function closedRoundIndex(round: { index: number; phase: string } | null | undefined): number {
+  if (!round) return -1;
+  return round.phase === "answering" ? round.index - 1 : round.index;
+}
+
+/** The question ids an attempt was dealt, in dealt order — index k is round k
+ *  for that student. */
+export function dealtQuestionIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((question) => String((question as Record<string, unknown> | null)?.id || ""))
+    .filter(Boolean);
+}
+
+/** A jsonb object read back as question id -> option id. */
+export function stringMap(value: unknown): Record<string, string> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const out: Record<string, string> = {};
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) out[key] = String(entry || "");
+  return out;
+}
+
+/** A jsonb object read back as question id -> ms epoch. */
+export function numberMap(value: unknown): Record<string, number> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const out: Record<string, number> = {};
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) out[key] = Number(entry);
+  return out;
+}
+
+/** question id -> correct option id, from `question_options` rows already
+ *  filtered to is_correct. A bank question with two options flagged correct
+ *  would otherwise be graded differently depending on row order, and the room's
+ *  screen and the phone would then disagree about the same answer: first one
+ *  wins, everywhere, every call. */
+export function correctOptionMap(rows: Array<{ id: unknown; question_id: unknown }> | null | undefined): Map<string, string> {
+  const map = new Map<string, string>();
+  (rows || []).forEach((option) => {
+    const questionId = String(option?.question_id || "");
+    if (!questionId || map.has(questionId)) return;
+    map.set(questionId, String(option?.id || ""));
+  });
+  return map;
+}
+
+/** The dealt questions in the shape settleAttempt and committedAnswers want,
+ *  cut to the room's round count. `windowFor` clamps an index past the last
+ *  round, so an eleventh question in a ten-round room would be graded against
+ *  round ten's window — the count that bounds this array and the count passed
+ *  beside it have to be one number. */
+export function settleQuestions(
+  questionsJson: unknown,
+  correctByQuestion: Map<string, string>,
+  questionCount: number
+): SettleQuestion[] {
+  return dealtQuestionIds(questionsJson)
+    .slice(0, Math.max(0, Math.floor(Number(questionCount) || 0)))
+    .map((id) => ({ id, correctOptionId: correctByQuestion.get(id) ?? null }));
 }
 
 export function settleAttempt(input: {
@@ -70,8 +222,15 @@ export function settleAttempt(input: {
     const question = questions[k];
     const chosen = answers[question.id];
     const stamped = Number(times[question.id]);
-    const answeredInTime =
-      Boolean(chosen) && Number.isFinite(stamped) && stamped < window.answerEnd;
+    // The same test the grade uses. One definition, so a change to what counts
+    // as "in time" can never move the candy without moving the score.
+    const answeredInTime = answeredInWindow({
+      startedAt: input.startedAt,
+      index: k,
+      questionCount: input.questionCount,
+      chosen,
+      stampedAt: times[question.id]
+    });
     const correct =
       answeredInTime && Boolean(question.correctOptionId) && chosen === question.correctOptionId;
     const earned = answeredInTime

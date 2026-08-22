@@ -55,6 +55,12 @@ export function windowFor(startedAt: number, index: number, questionCount: numbe
   };
 }
 
+/** Is this round still taking answers? The question `report_progress` asks
+ *  before letting a student change an answer they already committed. */
+export function roundIsOpen(startedAt: number, index: number, questionCount: number, now: number): boolean {
+  return Number(now) < windowFor(startedAt, index, questionCount).answerEnd;
+}
+
 /** Where the room is right now. A phone that slept through four rounds lands
  *  on the live one in a single call, not one advance per tick. */
 export function roundAt(startedAt: number, now: number, questionCount: number): RoundWindow {

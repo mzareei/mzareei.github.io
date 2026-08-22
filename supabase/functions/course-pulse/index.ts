@@ -18,7 +18,8 @@ import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_sha
 import { assertCheckpointPushMatches } from "../_shared/pulse-checkpoint.ts";
 import { classDateFor, loadCheckInAt } from "../_shared/attendance.ts";
 import { roundAt } from "../_shared/rounds.ts";
-import { settleAttempt } from "../_shared/settle.ts";
+import { closedRoundIndex } from "../_shared/settle.ts";
+import { settleRoom } from "../_shared/settle-room.ts";
 import { pinataState } from "../_shared/pinata.ts";
 import { maybeAutoCloseInstance, OPEN_INSTANCE_STATES } from "../_shared/quiz-close.ts";
 import { rankAttempts, rankOf } from "../_shared/quiz-rank.ts";
@@ -973,7 +974,7 @@ async function loadMyRace(
   // hundred kilobytes a poll for nothing.
   const { data: attempts, error } = await db
     .from("student_attempts")
-    .select("id, profile_id, status, submitted_at, racer_name, racer_emoji, candy, correct_count")
+    .select("id, profile_id, status, submitted_at, racer_name, racer_emoji, candy, correct_count, settled_through")
     .eq("activity_instance_id", instanceId);
   if (error) throw error;
   const rows = attempts || [];
@@ -985,42 +986,27 @@ async function loadMyRace(
     .sort((a, b) => String(a.submitted_at || "").localeCompare(String(b.submitted_at || "")));
   const place = submittedRows.findIndex((row) => String(row.id) === String(mine.id));
 
-  // Settling happens on READ, and this phone settles its OWN attempt only.
-  // Thirty phones each settling thirty attempts would be nine hundred
-  // recomputations a poll to reach the same numbers; each phone settling itself
-  // covers the whole room within one poll, and course-class-quiz's `race` poll
-  // settles the attempt whose phone has gone quiet.
-  const own = clock.round ? await loadOwnRaceColumns(db, String(mine.id)) : null;
-  const settled = own
-    ? settleAttempt({
-        startedAt: clock.startedAt,
-        now: clock.now,
-        questionCount: clock.questionCount,
-        questions: settleQuestions(
-          own.questions_json,
-          await correctOptionIds(db, dealtQuestionIds(own.questions_json)),
-          clock.questionCount
-        ),
-        answers: stringMap(own.progress_answers),
-        answerTimes: numberMap(own.round_answer_times),
-        settledThrough: Number(own.settled_through ?? -1)
-      })
-    : null;
-  if (own && settled) await storeSettled(db, { id: mine.id, ...own }, settled);
+  // Settling happens on READ, through the same helper the room's screen calls.
+  // This phone needs its own per-round detail for the reveal; settleRoom also
+  // catches up any attempt whose stored cursor is behind the last closed round,
+  // so the room total below is the number the screen reports rather than a
+  // second computation that has to be trusted to agree with it.
+  const closedIndex = closedRoundIndex(clock.round);
+  const settled = await settleRoom(db, {
+    rows,
+    needDetailFor: [String(mine.id)],
+    startedAt: clock.startedAt,
+    now: clock.now,
+    questionCount: clock.questionCount,
+    closedIndex
+  });
+  const own = settled.results.get(String(mine.id)) ?? null;
 
-  // No round means no anchor to settle against; the stored numbers are then the
-  // last thing a poll that did have one worked out.
-  const candy = settled ? settled.candy : Math.max(0, Number(mine.candy || 0));
-  const correctCount = settled ? settled.correctCount : Math.max(0, Number(mine.correct_count || 0));
-
-  // Damage is correct answers, on the same formula and the same three numbers
-  // the room's screen uses — one piñata, two doors. My own count is the one
-  // just settled; every other racer's is whatever their own phone last stored,
-  // which is at most one poll behind the screen.
-  const correctInRoom = rows.reduce((sum, row) => sum + (
-    String(row.id) === String(mine.id) ? correctCount : Math.max(0, Number(row.correct_count || 0))
-  ), 0);
-  const pinata = pinataState({ correct: correctInRoom, started: rows.length, questionCount: clock.questionCount });
+  const pinata = pinataState({
+    correct: settled.correctInRoom,
+    started: rows.length,
+    questionCount: clock.questionCount
+  });
 
   // The reveal, and the one thing on this payload that cannot be got wrong: the
   // correct option reaches a phone only during the BREAK, and only for the round
@@ -1029,8 +1015,8 @@ async function loadMyRace(
   // answer to the question in front of them out of this response however often
   // they ask.
   const breakRound = clock.round && clock.round.phase === "break" ? clock.round : null;
-  const revealed = breakRound && settled
-    ? settled.rounds.find((entry) => entry.index === breakRound.index) ?? null
+  const revealed = breakRound && own
+    ? own.rounds.find((entry) => entry.index === breakRound.index) ?? null
     : null;
 
   return {
@@ -1040,8 +1026,8 @@ async function loadMyRace(
     finish_place: place >= 0 ? place + 1 : null,
     pinata: { percent: pinata.percent, burst: pinata.burst },
     swinging: rows.filter((row) => String(row.status) === "started" && !row.submitted_at).length,
-    candy,
-    correct_count: correctCount,
+    candy: settled.candyFor(String(mine.id)),
+    correct_count: settled.correctFor(String(mine.id)),
     last_result: revealed
       ? {
           question_id: revealed.questionId,
@@ -1051,103 +1037,6 @@ async function loadMyRace(
         }
       : null
   };
-}
-
-// ------------------------------------------------------------------ settling
-// The plumbing a closed round needs: what this attempt was dealt, which option
-// is right, and what the student chose. The RULES — which rounds are closed,
-// what counts as answered in time, what candy is worth — stay in
-// _shared/settle.ts, shared with the room's screen in course-class-quiz. Two
-// services that deploy independently cannot each keep their own copy of a rule.
-
-/** This student's own deal, answers and server stamps — the columns settling
- *  reads, fetched by primary key so the room-wide query above stays light. */
-async function loadOwnRaceColumns(db: Db, attemptId: string) {
-  const { data, error } = await db
-    .from("student_attempts")
-    .select("questions_json, progress_answers, round_answer_times, settled_through, candy, correct_count")
-    .eq("id", attemptId)
-    .maybeSingle();
-  if (error) throw error;
-  return data;
-}
-
-/** The question ids this attempt was dealt, in dealt order — index k is round
- *  k for this student. */
-function dealtQuestionIds(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((question) => String((question as Record<string, unknown> | null)?.id || ""))
-    .filter(Boolean);
-}
-
-/** A jsonb object read back as question id -> option id. */
-function stringMap(value: unknown): Record<string, string> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  const out: Record<string, string> = {};
-  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) out[key] = String(entry || "");
-  return out;
-}
-
-/** A jsonb object read back as question id -> ms epoch. */
-function numberMap(value: unknown): Record<string, number> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  const out: Record<string, number> = {};
-  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) out[key] = Number(entry);
-  return out;
-}
-
-/** The answer key for the questions this attempt was dealt. It is used to
- *  settle, and it reaches the phone only through the break's reveal. */
-async function correctOptionIds(db: Db, questionIds: string[]) {
-  const ids = Array.from(new Set(questionIds.filter(Boolean)));
-  const map = new Map<string, string>();
-  if (!ids.length) return map;
-  const { data, error } = await db
-    .from("question_options")
-    .select("id, question_id")
-    .in("question_id", ids)
-    .eq("is_correct", true);
-  if (error) throw error;
-  (data || []).forEach((option) => {
-    // A bank question with two options flagged correct would otherwise settle
-    // differently depending on row order. First one wins, every poll.
-    if (!map.has(String(option.question_id))) map.set(String(option.question_id), String(option.id));
-  });
-  return map;
-}
-
-/** The dealt questions in the shape settleAttempt wants, cut to the room's
- *  round count. `windowFor` clamps an index past the last round, so an
- *  eleventh question in a ten-round room would be graded against round ten's
- *  window — the count that bounds this array and the count passed beside it
- *  have to be one number. */
-function settleQuestions(questionsJson: unknown, correctByQuestion: Map<string, string>, questionCount: number) {
-  return dealtQuestionIds(questionsJson)
-    .slice(0, questionCount)
-    .map((id) => ({ id, correctOptionId: correctByQuestion.get(id) ?? null }));
-}
-
-/** Store this attempt's settled numbers, and only when they moved — a
- *  three-second poll rewriting the row every tick would be pure noise.
- *  settleAttempt recomputes from scratch, so this poll and the professor's race
- *  poll writing the same row in the same second write the same values. No
- *  `updated_at`: settling is the server's bookkeeping, not an edit the student
- *  made. */
-async function storeSettled(
-  db: Db,
-  row: Record<string, unknown>,
-  result: { candy: number; correctCount: number; settledThrough: number }
-) {
-  const unchanged = Number(row.candy ?? 0) === result.candy
-    && Number(row.correct_count ?? 0) === result.correctCount
-    && Number(row.settled_through ?? -1) === result.settledThrough;
-  if (unchanged) return;
-  const { error } = await db
-    .from("student_attempts")
-    .update({ candy: result.candy, correct_count: result.correctCount, settled_through: result.settledThrough })
-    .eq("id", String(row.id));
-  if (error) throw error;
 }
 
 async function loadReflectionStatus(db: Db, sessionId: string, profileId: string) {

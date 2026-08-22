@@ -17,7 +17,9 @@ import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_sha
 import { askedQuestionIds, withoutAsked } from "../_shared/asked-questions.ts";
 import { classDateFor } from "../_shared/attendance.ts";
 import { roundAt, totalSecondsFor } from "../_shared/rounds.ts";
-import { settleAttempt } from "../_shared/settle.ts";
+import { closedRoundIndex } from "../_shared/settle.ts";
+import { settleRoom } from "../_shared/settle-room.ts";
+import { QUOTA } from "../_shared/shuffle.ts";
 import { pinataState } from "../_shared/pinata.ts";
 import { closeReasonFor, maybeAutoCloseInstance } from "../_shared/quiz-close.ts";
 import { podiumCut, rankAttempts } from "../_shared/quiz-rank.ts";
@@ -30,7 +32,14 @@ const openSessionStates = ["open", "live", "paused", "continued"];
 // An activity_instance in one of these is still "running" — students can reach
 // it, and starting a quiz reuses it rather than opening a duplicate.
 const openInstanceStates = ["open", "live", "paused"];
-const defaultQuestionCount = 12;
+// The deal is the 4/3/3 quota and nothing else — course-activity-attempt calls
+// dealQuestions(pool, QUOTA) and ignores this number. So the count stored on the
+// instance, which sizes the clock, the room's rounds and the piñata's
+// denominator, has to BE the quota. A second hardcoded 12 drifted from it:
+// twelve rounds were scheduled for ten questions, the piñata could not pass 83%
+// however well the class did, and round_correct read zero for the last two
+// rounds and stayed zero once the quiz was done.
+const defaultQuestionCount = QUOTA.easy + QUOTA.medium + QUOTA.hard;
 
 Deno.serve(async (request) => {
   const options = handleOptions(request);
@@ -334,7 +343,9 @@ async function startQuiz(db: Db, courseId: string, actorProfileId: string, body:
   if (!pool.length) throw new Error("This lecture has no question bank yet.");
 
   const { templateId } = await ensureQuizTemplate(db, item);
-  const questionCount = Math.min(pool.length, Math.max(1, Number(body.question_count) || defaultQuestionCount));
+  // Capped by what the bank can supply, and by nothing else: a caller-supplied
+  // count could only ever disagree with the deal, which is fixed.
+  const questionCount = Math.min(pool.length, defaultQuestionCount);
   // The clock follows the room's round schedule (_shared/rounds.ts): one
   // ROUND_SECONDS slot per question, plus the cushion for a slow-opening
   // phone. An explicit override from the caller still wins.
@@ -515,9 +526,11 @@ async function quizRace(
     classDateFor
   );
 
+  // The light columns only: settleRoom re-reads the frozen deals it needs, and
+  // only for the attempts that still owe a round.
   const { data: attempts, error: attemptError } = await db
     .from("student_attempts")
-    .select("id, status, submitted_at, racer_name, racer_emoji, questions_json, progress_answers, round_answer_times, settled_through, candy, correct_count")
+    .select("id, status, submitted_at, racer_name, racer_emoji, candy, correct_count, settled_through")
     .eq("activity_instance_id", instanceId);
   if (attemptError) throw attemptError;
   const rows = attempts || [];
@@ -539,51 +552,33 @@ async function quizRace(
 
   // Settling happens on READ. A student who answers round 3 and then puts the
   // phone down would otherwise never have round 3 graded, so this poll grades
-  // every round whose window has passed. settleAttempt recomputes from scratch,
-  // which is what makes it safe for this poll and thirty phone polls to run it
-  // in the same second.
-  const settled = new Map<string, ReturnType<typeof settleAttempt>>();
-  if (round) {
-    // One query for the answer key of every question dealt in this room. Thirty
-    // phones deal out of the same small bank, so the deduplicated id list is a
-    // few dozen rows however big the class is — and it never leaves this
-    // function: nothing the room's screen returns names an option.
-    const correctByQuestion = await correctOptionIds(db, rows.flatMap((row) => dealtQuestionIds(row.questions_json)));
-    for (const row of rows) {
-      settled.set(String(row.id), settleAttempt({
-        startedAt,
-        now,
-        questionCount,
-        questions: settleQuestions(row.questions_json, correctByQuestion, questionCount),
-        answers: stringMap(row.progress_answers),
-        answerTimes: numberMap(row.round_answer_times),
-        settledThrough: Number(row.settled_through ?? -1)
-      }));
-    }
-    await storeSettled(db, rows, settled);
-  }
-
-  const racers = rows.map((row) => {
-    const result = settled.get(String(row.id));
-    return {
-      racer_name: String(row.racer_name || "🎒 Mochila"),
-      racer_emoji: String(row.racer_emoji || "🎒"),
-      // Height on the climb: correctness plus speed. Never a grade.
-      candy: result ? result.candy : Math.max(0, Number(row.candy || 0)),
-      // Size on the climb: cumulative, so a racer never shrinks.
-      correct_count: result ? result.correctCount : Math.max(0, Number(row.correct_count || 0)),
-      finished: placeByAttempt.has(String(row.id)),
-      finish_place: placeByAttempt.get(String(row.id)) ?? null
-    };
+  // every round whose window has passed. The screen needs every racer's
+  // per-round detail for the flash beat, so it asks for all of them; the phones
+  // call the same helper and land on the same room total.
+  const closedIndex = closedRoundIndex(round);
+  const settled = await settleRoom(db, {
+    rows,
+    needDetailFor: rows.map((row) => String(row.id)),
+    startedAt,
+    now,
+    questionCount,
+    closedIndex
   });
 
+  const racers = rows.map((row) => ({
+    racer_name: String(row.racer_name || "🎒 Mochila"),
+    racer_emoji: String(row.racer_emoji || "🎒"),
+    // Height on the climb: correctness plus speed. Never a grade.
+    candy: settled.candyFor(String(row.id)),
+    // Size on the climb: cumulative, so a racer never shrinks.
+    correct_count: settled.correctFor(String(row.id)),
+    finished: placeByAttempt.has(String(row.id)),
+    finish_place: placeByAttempt.get(String(row.id)) ?? null
+  }));
+
   // The flash beat: how many students got the round that just closed right.
-  // While the room is answering, the round that just closed is the one before
-  // the live one; during a break — and once the quiz is done — it is the live
-  // index itself.
-  const closedIndex = round ? (round.phase === "answering" ? round.index - 1 : round.index) : -1;
   const roundCorrect = closedIndex < 0 ? 0 : rows.reduce((sum, row) => {
-    const detail = settled.get(String(row.id))?.rounds.find((entry) => entry.index === closedIndex);
+    const detail = settled.results.get(String(row.id))?.rounds.find((entry) => entry.index === closedIndex);
     return sum + (detail?.correct ? 1 : 0);
   }, 0);
 
@@ -591,13 +586,12 @@ async function quizRace(
     ? (closed.closed_reason
        ?? closeReasonFor({ presentCount: closed.present, submittedCount: submittedRows.length }))
     : null;
-  // Damage is correct answers, not answers given. course-pulse feeds pinataState
-  // the same three numbers off the same columns — one formula, two doors, and
-  // they have to agree to the digit or the phone and the screen contradict each
-  // other in front of the class.
-  const correctInRoom = racers.reduce((sum, racer) => sum + racer.correct_count, 0);
+  // Damage is correct answers, not answers given — and the numerator comes from
+  // settleRoom, which course-pulse also calls, so the number on the wall and the
+  // number in a student's hand are the same number rather than two computations
+  // that happen to agree.
   const pinata = pinataState({
-    correct: correctInRoom,
+    correct: settled.correctInRoom,
     started: rows.length,
     questionCount,
     closedReason
@@ -663,100 +657,6 @@ async function quizRace(
     cheers,
     cheers_total: cheersTotal ?? 0
   };
-}
-
-// ------------------------------------------------------------------ settling
-// The plumbing a closed round needs: what an attempt was dealt, which option is
-// right, and what the student chose. The RULES — which rounds are closed, what
-// counts as answered in time, what candy is worth — stay in _shared/settle.ts,
-// shared with the phone's poll in course-pulse. Two services that deploy
-// independently cannot each keep their own copy of a rule — the same reason the
-// per-question seconds are decided on the server and not in the phone.
-
-/** The question ids an attempt was dealt, in dealt order — index k is round k
- *  for that student. */
-function dealtQuestionIds(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((question) => String((question as Record<string, unknown> | null)?.id || ""))
-    .filter(Boolean);
-}
-
-/** A jsonb object read back as question id -> option id. */
-function stringMap(value: unknown): Record<string, string> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  const out: Record<string, string> = {};
-  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) out[key] = String(entry || "");
-  return out;
-}
-
-/** A jsonb object read back as question id -> ms epoch. */
-function numberMap(value: unknown): Record<string, number> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  const out: Record<string, number> = {};
-  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) out[key] = Number(entry);
-  return out;
-}
-
-/** The answer key for every question dealt in the room, in one query. */
-async function correctOptionIds(db: Db, questionIds: string[]) {
-  const ids = Array.from(new Set(questionIds.filter(Boolean)));
-  const map = new Map<string, string>();
-  if (!ids.length) return map;
-  const { data, error } = await db
-    .from("question_options")
-    .select("id, question_id")
-    .in("question_id", ids)
-    .eq("is_correct", true);
-  if (error) throw error;
-  (data || []).forEach((option) => {
-    // A bank question with two options flagged correct would otherwise settle
-    // differently depending on row order. First one wins, every poll.
-    if (!map.has(String(option.question_id))) map.set(String(option.question_id), String(option.id));
-  });
-  return map;
-}
-
-/** The dealt questions in the shape settleAttempt wants, cut to the room's
- *  round count. `windowFor` clamps an index past the last round, so an
- *  eleventh question in a ten-round room would be graded against round ten's
- *  window — the count that bounds this array and the count passed beside it
- *  have to be one number. */
-function settleQuestions(questionsJson: unknown, correctByQuestion: Map<string, string>, questionCount: number) {
-  return dealtQuestionIds(questionsJson)
-    .slice(0, questionCount)
-    .map((id) => ({ id, correctOptionId: correctByQuestion.get(id) ?? null }));
-}
-
-/** Store the rows whose numbers actually moved. A three-second poll rewriting
- *  the whole class every tick would be pure noise, and settleAttempt recomputes
- *  from scratch, so a stale writer can only store a number the next poll
- *  corrects — nothing reads these columns as truth. They are the record kept for
- *  an attempt whose phone has gone quiet. No `updated_at`: settling is the
- *  server's bookkeeping, not an edit the student made. */
-async function storeSettled(
-  db: Db,
-  rows: Record<string, unknown>[],
-  settled: Map<string, { candy: number; correctCount: number; settledThrough: number }>
-) {
-  const changed = rows.filter((row) => {
-    const result = settled.get(String(row.id));
-    if (!result) return false;
-    return Number(row.candy ?? 0) !== result.candy
-      || Number(row.correct_count ?? 0) !== result.correctCount
-      || Number(row.settled_through ?? -1) !== result.settledThrough;
-  });
-  if (!changed.length) return;
-
-  const writes = await Promise.all(changed.map((row) => {
-    const result = settled.get(String(row.id))!;
-    return db
-      .from("student_attempts")
-      .update({ candy: result.candy, correct_count: result.correctCount, settled_through: result.settledThrough })
-      .eq("id", String(row.id));
-  }));
-  const failed = writes.find((write) => write.error);
-  if (failed?.error) throw failed.error;
 }
 
 async function quizSummary(
