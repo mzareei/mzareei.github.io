@@ -13,7 +13,12 @@ type Db = ReturnType<typeof adminClient>;
 
 const openStates = ["open", "live"];
 const visibleAttemptStates = ["released", "live", "scheduled"];
-const maxSpeedBonusPercent = 5;
+// Speed used to be worth up to 5% of the grade. Under the room clock every
+// student finishes in the same second, so it measured nothing — and equal
+// correctness must mean an equal grade. Speed now pays in candy, which is the
+// race and never the gradebook. Kept as a zero rather than deleted so the
+// score payload keeps its shape for existing callers.
+const maxSpeedBonusPercent = 0;
 
 Deno.serve(async (request) => {
   const options = handleOptions(request);
@@ -209,7 +214,10 @@ async function submitAttempt(db: Db, profile: Record<string, unknown>, input: {
     speed_bonus: speedBonus,
     score_final: finalScore
   };
-  if (!graded.rows.length) throw new Error("At least one response is required.");
+  // A student who answered nothing now submits ten blanks and scores zero,
+  // rather than being refused and left ungraded. Only a submission with no
+  // rows at all — a stale client sending an empty array — is an error.
+  if (!graded.rows.length) throw new Error("No questions were submitted.");
 
   const { error: deleteError } = await db
     .from("student_responses")
