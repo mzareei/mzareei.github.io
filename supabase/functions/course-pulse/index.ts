@@ -17,7 +17,7 @@ import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
 import { assertCheckpointPushMatches } from "../_shared/pulse-checkpoint.ts";
 import { classDateFor, loadCheckInAt } from "../_shared/attendance.ts";
-import { roundAt } from "../_shared/rounds.ts";
+import { roundAt, REVEAL_DELAY_MS } from "../_shared/rounds.ts";
 import { closedRoundIndex } from "../_shared/settle.ts";
 import { settleRoom } from "../_shared/settle-room.ts";
 import { pinataState } from "../_shared/pinata.ts";
@@ -991,7 +991,7 @@ async function loadMyRace(
   // catches up any attempt whose stored cursor is behind the last closed round,
   // so the room total below is the number the screen reports rather than a
   // second computation that has to be trusted to agree with it.
-  const closedIndex = closedRoundIndex(clock.round);
+  const closedIndex = closedRoundIndex(clock.round, clock.now);
   const settled = await settleRoom(db, {
     rows,
     needDetailFor: [String(mine.id)],
@@ -1009,13 +1009,22 @@ async function loadMyRace(
   });
 
   // The reveal, and the one thing on this payload that cannot be got wrong: the
-  // correct option reaches a phone only during the BREAK, and only for the round
-  // that has already stopped taking answers. settleAttempt describes no round
-  // whose window is still open, so a student polling mid-round cannot pull the
-  // answer to the question in front of them out of this response however often
-  // they ask.
+  // correct option reaches a phone only during the BREAK, only for the round
+  // that has already stopped taking answers, and only once REVEAL_DELAY_MS has
+  // passed since that round's countdown ended.
+  //
+  // The delay is what pays for ANSWER_GRACE_MS. The grace keeps accepting
+  // answers for two seconds after the countdown; publishing the answer key
+  // inside those two seconds would let a scripted client read it and ping it
+  // straight back while the window was still open. Holding the reveal to three
+  // seconds means an answer accepted in the grace provably predates it.
+  //
+  // The second gate is structural rather than arithmetic: settleAttempt
+  // describes no round that can still take an answer, so a phone polling
+  // mid-round has nothing to pull the answer out of however often it asks.
   const breakRound = clock.round && clock.round.phase === "break" ? clock.round : null;
-  const revealed = breakRound && own
+  const revealDue = Boolean(breakRound) && clock.now >= (breakRound as { answerEnd: number }).answerEnd + REVEAL_DELAY_MS;
+  const revealed = breakRound && own && revealDue
     ? own.rounds.find((entry) => entry.index === breakRound.index) ?? null
     : null;
 

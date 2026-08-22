@@ -21,6 +21,28 @@ export const ROUND_SECONDS = ANSWER_SECONDS + BREAK_SECONDS;
 /** Answer correctly inside this many seconds of the round and the candy doubles. */
 export const GOLDEN_SECONDS = 20;
 
+/**
+ * The two constants below are ONE decision and must be read together.
+ *
+ * ANSWER_GRACE_MS is how long after a round's countdown ends the server will
+ * still accept an answer for it. A tap at 39.5s whose ping crosses classroom
+ * wifi in 700ms arrives at 40.2s, and that is network luck, not a wrong answer
+ * — without a grace it costs the student both the candy and, since the grade is
+ * computed from the same record, the mark.
+ *
+ * REVEAL_DELAY_MS is how long after the countdown ends the phone may be shown
+ * that round's correct option.
+ *
+ * THE INVARIANT: REVEAL_DELAY_MS MUST STAY STRICTLY GREATER THAN
+ * ANSWER_GRACE_MS. The grace is only safe because an answer accepted inside it
+ * provably predates any reveal — invert these two and a scripted client could
+ * read the answer and ping it back while the window is still open, which is the
+ * forgery the whole grading path was rebuilt to close. verify-quiz-race asserts
+ * the relation; this comment is not the guard rail.
+ */
+export const ANSWER_GRACE_MS = 2000;
+export const REVEAL_DELAY_MS = 3000;
+
 export const CANDY_CORRECT = 1;
 export const CANDY_GOLDEN = 2;
 
@@ -35,7 +57,14 @@ export interface RoundWindow {
   phase: RoundPhase;
   /** ms epoch */
   answerStart: number;
+  /** When the countdown on every phone reaches zero. The phase flips to
+   *  "break" here, because this is what the room sees. */
   answerEnd: number;
+  /** The last instant an answer for this round can still be accepted — the
+   *  countdown plus ANSWER_GRACE_MS. Invisible to the UI on purpose: the
+   *  student is told forty seconds and gets forty seconds, and the grace only
+   *  ever covers the flight time of a ping already sent. */
+  answersCloseAt: number;
   breakEnd: number;
 }
 
@@ -51,14 +80,20 @@ export function windowFor(startedAt: number, index: number, questionCount: numbe
     phase: "answering",
     answerStart,
     answerEnd: answerStart + ANSWER_MS,
+    answersCloseAt: answerStart + ANSWER_MS + ANSWER_GRACE_MS,
     breakEnd: answerStart + ROUND_MS
   };
 }
 
 /** Is this round still taking answers? The question `report_progress` asks
- *  before letting a student change an answer they already committed. */
+ *  before letting a student change an answer they already committed.
+ *
+ *  Graced like the acceptance test itself, and for the same reason: a student
+ *  who changed their mind at 39.5s deserves the same flight time as one
+ *  answering for the first time. Still safe, on the same invariant — the reveal
+ *  cannot arrive until REVEAL_DELAY_MS, by which point this is false. */
 export function roundIsOpen(startedAt: number, index: number, questionCount: number, now: number): boolean {
-  return Number(now) < windowFor(startedAt, index, questionCount).answerEnd;
+  return Number(now) < windowFor(startedAt, index, questionCount).answersCloseAt;
 }
 
 /** Where the room is right now. A phone that slept through four rounds lands

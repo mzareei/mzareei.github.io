@@ -555,7 +555,7 @@ async function quizRace(
   // every round whose window has passed. The screen needs every racer's
   // per-round detail for the flash beat, so it asks for all of them; the phones
   // call the same helper and land on the same room total.
-  const closedIndex = closedRoundIndex(round);
+  const closedIndex = closedRoundIndex(round, now);
   const settled = await settleRoom(db, {
     rows,
     needDetailFor: rows.map((row) => String(row.id)),

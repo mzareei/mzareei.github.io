@@ -232,7 +232,13 @@ async function submitAttempt(db: Db, profile: Record<string, unknown>, input: {
         now: submitAt,
         questionIds: clock.questionIds,
         stored: storedAnswers,
-        incoming: clientAnswers
+        // Sanitised like every other write to this column. report_progress has
+        // always run this; without it here, a crafted submit could persist a
+        // non-UUID into progress_answers, and one that landed in-window would
+        // then throw out of gradeResponses' cleanUuid and 500 the student's own
+        // submit. Two writers of one column have to agree on what a valid
+        // entry is.
+        incoming: sanitizeAnswers(clientAnswers)
       })
     : {};
   const finalAnswers = { ...storedAnswers, ...lateAccepted };
@@ -296,11 +302,14 @@ async function submitAttempt(db: Db, profile: Record<string, unknown>, input: {
     .update({
       submitted_at: submittedAt,
       status,
-      // graded.rows is every dealt question now, not just the answered ones —
-      // an unfiltered length would stamp the dealt count here, not the answered
-      // count, and two other services read this column as "answers given":
-      // course-class-quiz's piñata "hits" and course-pulse's my_race.pinata.
-      // Filtering back to the truly-selected rows keeps the column's meaning.
+      // graded.rows is every dealt question, not just the answered ones — an
+      // unfiltered length would stamp the dealt count here rather than the
+      // answered count. The piñata no longer reads this column (it counts
+      // correct_count), but _shared/quiz-rank.ts still does, to tell an
+      // abandoned attempt from a finished one. Filtering back to the
+      // truly-selected rows keeps the column's meaning — and those selections
+      // are the server's own record, so it counts answers the student actually
+      // committed in time.
       progress_answered: graded.rows.filter((row) => row.selected_option_id).length,
       progress_position: questionCount,
       // The record the grade was computed from, so the review list, the candy
@@ -1147,8 +1156,22 @@ async function loadAttempt(db: Db, attemptId: string, profileId: string) {
   return data;
 }
 
-/** The phone's account of its own answers. Used to record where it differs
- *  from the server's, and for nothing else — never to decide correctness. */
+/**
+ * The phone's account of its own answers, exactly as it sent them. Two uses,
+ * both deliberate:
+ *
+ * 1. The audit row records where this disagrees with the server's record, so a
+ *    student whose pings never landed is visible rather than silently zeroed.
+ * 2. Sanitised, it is offered to `acceptableAnswers` as the submit-time fold.
+ *    That is how a last tap still in flight survives its race with the submit —
+ *    and it is double-gated: the fold accepts an entry only for a question with
+ *    no stored answer or whose round is still open, and `committedAnswers` then
+ *    grades it only if its stamp falls inside that round's window. An answer
+ *    for a round that has closed cannot enter by this door.
+ *
+ * What this map never is: a source of correctness on its own. Nothing here
+ * reaches `is_correct` without passing both gates above.
+ */
 function clientAnswerMap(responses: Record<string, unknown>[]): Record<string, string> {
   const out: Record<string, string> = {};
   for (const response of Array.isArray(responses) ? responses : []) {

@@ -58,7 +58,11 @@ export function answeredInWindow(input: {
   if (!input.chosen) return false;
   const stamped = Number(input.stampedAt);
   if (!Number.isFinite(stamped)) return false;
-  return stamped < windowFor(input.startedAt, input.index, input.questionCount).answerEnd;
+  // answersCloseAt, not answerEnd: the countdown the student sees ends at
+  // answerEnd, and ANSWER_GRACE_MS after it covers the flight time of a ping
+  // already in the air. See the invariant on those constants — this grace is
+  // only safe because the reveal cannot arrive inside it.
+  return stamped < windowFor(input.startedAt, input.index, input.questionCount).answersCloseAt;
 }
 
 /**
@@ -132,9 +136,16 @@ export function acceptableAnswers(input: {
 /** The last round whose answering window has closed; -1 before the first one.
  *  While the room is answering, that is the round before the live one; during a
  *  break — and once the quiz is done — it is the live index itself. */
-export function closedRoundIndex(round: { index: number; phase: string } | null | undefined): number {
+export function closedRoundIndex(
+  round: { index: number; answersCloseAt: number } | null | undefined,
+  now: number
+): number {
   if (!round) return -1;
-  return round.phase === "answering" ? round.index - 1 : round.index;
+  // A round is closed for REPORTING once it can no longer take an answer, not
+  // when its countdown hits zero. Those are two seconds apart, and reporting a
+  // round as settled while an answer for it could still land would break the
+  // one thing settleRoom's room total rests on: settled means final.
+  return Number(now) >= round.answersCloseAt ? round.index : round.index - 1;
 }
 
 /** The question ids an attempt was dealt, in dealt order — index k is round k
@@ -215,8 +226,12 @@ export function settleAttempt(input: {
   for (let k = 0; k < questions.length; k += 1) {
     const window = windowFor(input.startedAt, k, input.questionCount);
     // Still open — nothing about this round is decided yet, and nothing about it
-    // is described. The break's reveal reads `rounds`.
-    if (input.now < window.answerEnd) break;
+    // is described. The break's reveal reads `rounds`. The test is
+    // answersCloseAt rather than answerEnd so that "settled" means no answer for
+    // this round can arrive any more; otherwise a round could be settled at
+    // 40.0s and change at 41.5s, and two callers reading a second apart would
+    // report different totals.
+    if (input.now < window.answersCloseAt) break;
     settledThrough = k;
 
     const question = questions[k];
