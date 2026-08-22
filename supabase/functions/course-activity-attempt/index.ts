@@ -7,6 +7,7 @@ import { secondsForQuestion } from "../_shared/question-timing.ts";
 import { pickRacerName } from "../_shared/racer-names.ts";
 import { OPEN_INSTANCE_STATES, withinSubmitGrace } from "../_shared/quiz-close.ts";
 import { podiumCut, rankAttempts } from "../_shared/quiz-rank.ts";
+import { shuffle, dealQuestions, QUOTA } from "../_shared/shuffle.ts";
 
 type Db = ReturnType<typeof adminClient>;
 
@@ -949,7 +950,10 @@ async function loadQuestionsForInstance(db: Db, instance: Record<string, unknown
   const asked = await askedQuestionIds(db, instance.class_session_id);
   const pool = withoutAsked(questions || [], asked, (question) => String(question.id));
 
-  const selectedQuestions = selectQuestions(pool, Number(instance.question_count || 0), String(instance.randomization_policy || "none"));
+  // The class quiz is always the 4/3/3 mix in a shuffled order. `question_count`
+  // stays on the instance for the schedule and the piñata's denominator, but it
+  // no longer decides the deal — the quota does.
+  const selectedQuestions = dealQuestions(pool, QUOTA);
   const questionIds = selectedQuestions.map((question) => question.id);
   if (!questionIds.length) return [];
 
@@ -973,10 +977,9 @@ async function loadQuestionsForInstance(db: Db, instance: Record<string, unknown
   });
 
   return selectedQuestions.map((question) => {
-    const options = maybeShuffle(
-      optionsByQuestion.get(String(question.id)) || [],
-      String(instance.randomization_policy || "none").includes("options")
-    );
+    // Options are always shuffled for a class quiz, with a real shuffle: two
+    // students on the same question never see the same letter order.
+    const options = shuffle(optionsByQuestion.get(String(question.id)) || []);
     return {
       id: question.id,
       prompt: question.prompt,
@@ -996,42 +999,6 @@ async function loadQuestionsForInstance(db: Db, instance: Record<string, unknown
       options
     };
   });
-}
-
-// A graded quiz must mix difficulty tiers — never all easy, never all hard.
-// Draw round-robin across easy/medium/hard so `count` questions come out as
-// even a split as the pool allows, shuffled within each tier first.
-function selectQuestions(questions: Record<string, unknown>[], count: number, policy: string) {
-  const shouldShuffle = policy.includes("shuffle") || policy.includes("random");
-  if (count <= 0) return shouldShuffle ? maybeShuffle(questions, true) : [...questions];
-
-  const tiers: Record<string, Record<string, unknown>[]> = { easy: [], medium: [], hard: [] };
-  const other: Record<string, unknown>[] = [];
-  for (const question of questions) {
-    const bucket = tiers[String(question.difficulty)];
-    if (bucket) bucket.push(question);
-    else other.push(question);
-  }
-  const order = ["easy", "medium", "hard"] as const;
-  const pools = order.map((tier) => (shouldShuffle ? maybeShuffle(tiers[tier], true) : tiers[tier]));
-  const otherPool = shouldShuffle ? maybeShuffle(other, true) : other;
-
-  const picked: Record<string, unknown>[] = [];
-  let round = 0;
-  while (picked.length < count && (pools.some((pool) => round < pool.length) || round < otherPool.length)) {
-    for (const pool of pools) {
-      if (picked.length >= count) break;
-      if (round < pool.length) picked.push(pool[round]);
-    }
-    if (picked.length < count && round < otherPool.length) picked.push(otherPool[round]);
-    round += 1;
-  }
-  return picked;
-}
-
-function maybeShuffle<T>(values: T[], shouldShuffle: boolean) {
-  if (!shouldShuffle) return [...values];
-  return [...values].sort(() => Math.random() - 0.5);
 }
 
 async function loadAttempt(db: Db, attemptId: string, profileId: string) {
