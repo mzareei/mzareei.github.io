@@ -257,7 +257,12 @@ async function submitAttempt(db: Db, profile: Record<string, unknown>, input: {
       }).map((row) => ({ ...row, response_json: {} }))
     : null;
 
-  const gradedBase = await gradeResponses(db, serverResponses ?? input.responses);
+  // Passed regardless of whether `clock` is set: `serverResponses` (room-clock
+  // path) is already bounded to this same list, but the standalone-activity
+  // path (no class_session_id, `clock` null) grades `input.responses` as sent
+  // — this is what stops a crafted payload from naming a question outside
+  // this attempt's own frozen deal and reading its correct option back out.
+  const gradedBase = await gradeResponses(db, serverResponses ?? input.responses, dealtQuestionIds(attempt.questions_json));
   const submittedAt = new Date().toISOString();
   const speedBonus = calculateSpeedBonus({
     scorePercent: gradedBase.score_percent,
@@ -383,7 +388,11 @@ async function submitAttempt(db: Db, profile: Record<string, unknown>, input: {
     // from this same grading pass — never from `input.responses` — so a
     // student can only ever learn the answer key for the attempt the server
     // just graded, after it closed.
-    correct: graded.correct
+    correct: graded.correct,
+    // question_id -> explanation, in both languages, from the same grading
+    // pass. start_attempt's questions carry no explanation field at all (see
+    // loadQuestionsForInstance) — this is the only door it ever comes through.
+    explanations: graded.explanations
   };
 }
 
@@ -1087,7 +1096,7 @@ async function loadQuestionsForInstance(db: Db, instance: Record<string, unknown
 
   const { data: questions, error: questionError } = await db
     .from("questions")
-    .select("id, prompt, prompt_es, question_type, difficulty, topic_tags, points, explanation, explanation_es")
+    .select("id, prompt, prompt_es, question_type, difficulty, topic_tags, points")
     .in("question_bank_id", bankIds)
     .eq("status", "active");
   if (questionError) throw questionError;
@@ -1136,12 +1145,13 @@ async function loadQuestionsForInstance(db: Db, instance: Record<string, unknown
       difficulty: question.difficulty,
       topic_tags: question.topic_tags || [],
       points: question.points,
-      // Never shown during the quiz — Player.tsx only reaches for these once
-      // the attempt is submitted and graded, for the post-quiz review list.
-      // Sent here rather than fetched again there because the deal is already
-      // frozen per attempt; a second lookup could drift from the bank.
-      explanation: question.explanation,
-      explanation_es: question.explanation_es,
+      // NEVER add explanation / explanation_es here. This is start_attempt's
+      // payload — the first response of the quiz, before question 1 is even on
+      // screen — and an explanation states which option is right and why, same
+      // as `is_correct` on the options above (deliberately never selected in
+      // this query). A review round found exactly that leak here once; the
+      // explanation now travels only through submit_attempt's response, built
+      // fresh in gradeResponses from the `questions` table at grading time.
       // The phone holds no timing rule of its own. Two repos deploy
       // independently, so a constant kept on both sides drifts silently — the
       // server decides and the player obeys.
@@ -1192,14 +1202,23 @@ function clientAnswerMap(responses: Record<string, unknown>[]): Record<string, s
   return out;
 }
 
-async function gradeResponses(db: Db, responses: Record<string, unknown>[]) {
+async function gradeResponses(db: Db, responses: Record<string, unknown>[], dealtIds: string[]) {
+  // Every response is checked against this attempt's OWN frozen deal before
+  // anything else runs. `serverResponses` (the room-clock path) already only
+  // ever names questions from `clock.questionIds`, itself a slice of the same
+  // dealt list — so this is a no-op there. It is not a no-op on the
+  // standalone-activity path, where `roomClockFor` returns null and grading
+  // used to run directly on `input.responses` with nothing stopping a crafted
+  // payload from naming a question this attempt was never dealt, to read that
+  // question's correct option back out of the response.
+  const allowed = new Set(dealtIds);
   const cleaned = responses
     .map((response) => ({
       question_id: cleanUuid(response.question_id, "question id"),
       selected_option_id: response.selected_option_id ? cleanUuid(response.selected_option_id, "selected option id") : null,
       response_json: normalizeResponseJson(response.response_json)
     }))
-    .filter((response) => response.question_id);
+    .filter((response) => response.question_id && allowed.has(response.question_id));
 
   const questionIds = Array.from(new Set(cleaned.map((response) => response.question_id)));
   const optionIds = Array.from(new Set(cleaned.map((response) => response.selected_option_id).filter(Boolean))) as string[];
@@ -1207,7 +1226,11 @@ async function gradeResponses(db: Db, responses: Record<string, unknown>[]) {
   const [{ data: questions, error: questionError }, { data: options, error: optionError }, { data: correctOptions, error: correctError }] = await Promise.all([
     db
       .from("questions")
-      .select("id, points")
+      // explanation / explanation_es are fetched here and only here — after
+      // grading, for submit_attempt's response. start_attempt never selects
+      // them (see loadQuestionsForInstance); this is what keeps them off the
+      // wire until the quiz this attempt belongs to has already been graded.
+      .select("id, points, explanation, explanation_es")
       .in("id", questionIds),
     optionIds.length
       ? db
@@ -1245,6 +1268,16 @@ async function gradeResponses(db: Db, responses: Record<string, unknown>[]) {
   for (const option of correctOptions || []) {
     correctByQuestion[String(option.question_id)] = String(option.id);
   }
+  // question_id -> why the correct option is right, in both languages. Same
+  // rule as correctByQuestion above: built here, from the `questions` table,
+  // at grading time, and returned only from submit_attempt.
+  const explanationsByQuestion: Record<string, { explanation: string | null; explanation_es: string | null }> = {};
+  for (const question of (questions || []) as Record<string, unknown>[]) {
+    explanationsByQuestion[String(question.id)] = {
+      explanation: (question.explanation as string | null) ?? null,
+      explanation_es: (question.explanation_es as string | null) ?? null
+    };
+  }
   let scoreRaw = 0;
   let totalPoints = 0;
 
@@ -1272,7 +1305,8 @@ async function gradeResponses(db: Db, responses: Record<string, unknown>[]) {
     score_raw: scoreRaw,
     total_points: totalPoints,
     score_percent: totalPoints ? Math.round((scoreRaw / totalPoints) * 1000) / 10 : 0,
-    correct: correctByQuestion
+    correct: correctByQuestion,
+    explanations: explanationsByQuestion
   };
 }
 
