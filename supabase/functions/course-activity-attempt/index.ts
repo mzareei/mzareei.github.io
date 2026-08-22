@@ -378,7 +378,12 @@ async function submitAttempt(db: Db, profile: Record<string, unknown>, input: {
       percent: graded.score_percent,
       speed_bonus: graded.speed_bonus,
       final: graded.score_final
-    }
+    },
+    // question_id -> correct option id, for the post-submit review list. Built
+    // from this same grading pass — never from `input.responses` — so a
+    // student can only ever learn the answer key for the attempt the server
+    // just graded, after it closed.
+    correct: graded.correct
   };
 }
 
@@ -1082,7 +1087,7 @@ async function loadQuestionsForInstance(db: Db, instance: Record<string, unknown
 
   const { data: questions, error: questionError } = await db
     .from("questions")
-    .select("id, prompt, prompt_es, question_type, difficulty, topic_tags, points")
+    .select("id, prompt, prompt_es, question_type, difficulty, topic_tags, points, explanation, explanation_es")
     .in("question_bank_id", bankIds)
     .eq("status", "active");
   if (questionError) throw questionError;
@@ -1131,6 +1136,12 @@ async function loadQuestionsForInstance(db: Db, instance: Record<string, unknown
       difficulty: question.difficulty,
       topic_tags: question.topic_tags || [],
       points: question.points,
+      // Never shown during the quiz — Player.tsx only reaches for these once
+      // the attempt is submitted and graded, for the post-quiz review list.
+      // Sent here rather than fetched again there because the deal is already
+      // frozen per attempt; a second lookup could drift from the bank.
+      explanation: question.explanation,
+      explanation_es: question.explanation_es,
       // The phone holds no timing rule of its own. Two repos deploy
       // independently, so a constant kept on both sides drifts silently — the
       // server decides and the player obeys.
@@ -1193,7 +1204,7 @@ async function gradeResponses(db: Db, responses: Record<string, unknown>[]) {
   const questionIds = Array.from(new Set(cleaned.map((response) => response.question_id)));
   const optionIds = Array.from(new Set(cleaned.map((response) => response.selected_option_id).filter(Boolean))) as string[];
 
-  const [{ data: questions, error: questionError }, { data: options, error: optionError }] = await Promise.all([
+  const [{ data: questions, error: questionError }, { data: options, error: optionError }, { data: correctOptions, error: correctError }] = await Promise.all([
     db
       .from("questions")
       .select("id, points")
@@ -1203,13 +1214,37 @@ async function gradeResponses(db: Db, responses: Record<string, unknown>[]) {
           .from("question_options")
           .select("id, question_id, is_correct")
           .in("id", optionIds)
+      : Promise.resolve({ data: [], error: null }),
+    // The review list shown after submit needs the correct option for every
+    // question this attempt was DEALT, not just the ones it answered — a
+    // skipped question still has a right answer worth showing, and it has no
+    // row in `options` above, which is scoped to what was selected. Queried
+    // by question rather than reusing `options`: a bad bank row with no
+    // correct option marked leaves that question out of the map instead of
+    // throwing, and the review list already treats a missing entry as "don't
+    // show a correct answer" rather than crashing.
+    questionIds.length
+      ? db
+          .from("question_options")
+          .select("id, question_id")
+          .in("question_id", questionIds)
+          .eq("is_correct", true)
       : Promise.resolve({ data: [], error: null })
   ]);
   if (questionError) throw questionError;
   if (optionError) throw optionError;
+  if (correctError) throw correctError;
 
   const questionById = new Map((questions || []).map((question) => [question.id, question]));
   const optionById = new Map((options || []).map((option) => [option.id, option]));
+  // question_id -> the id of its correct option. Never sent to the phone until
+  // submit_attempt returns it — start_attempt's questions never carry
+  // is_correct at all, which is what keeps a running quiz's answer key off the
+  // wire.
+  const correctByQuestion: Record<string, string> = {};
+  for (const option of correctOptions || []) {
+    correctByQuestion[String(option.question_id)] = String(option.id);
+  }
   let scoreRaw = 0;
   let totalPoints = 0;
 
@@ -1236,7 +1271,8 @@ async function gradeResponses(db: Db, responses: Record<string, unknown>[]) {
     rows,
     score_raw: scoreRaw,
     total_points: totalPoints,
-    score_percent: totalPoints ? Math.round((scoreRaw / totalPoints) * 1000) / 10 : 0
+    score_percent: totalPoints ? Math.round((scoreRaw / totalPoints) * 1000) / 10 : 0,
+    correct: correctByQuestion
   };
 }
 
