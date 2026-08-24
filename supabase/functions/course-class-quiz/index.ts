@@ -552,13 +552,32 @@ async function quizRace(
 
   // Settling happens on READ. A student who answers round 3 and then puts the
   // phone down would otherwise never have round 3 graded, so this poll grades
-  // every round whose window has passed. The screen needs every racer's
-  // per-round detail for the flash beat, so it asks for all of them; the phones
-  // call the same helper and land on the same room total.
+  // every round whose window has passed. The phones call the same helper and
+  // land on the same room total.
+  //
+  // `needDetailFor` is the screen asking for per-round detail it cannot get
+  // from the stored columns, and it costs a re-read of every frozen deal —
+  // prompt and four options, two languages, ten questions per attempt — plus a
+  // question_options fan-out. settle-room's behind-check exists so that read
+  // never runs for a whole room with nothing to settle, and naming every row
+  // unconditionally defeated it: `wanted` is seeded from this list BEFORE the
+  // check. Twenty-six attempts, every two seconds, thirty times a minute, on
+  // the one surface that must not stutter in front of the room.
+  //
+  // Exactly one thing here needs it: `roundCorrect` below. And the screen only
+  // prints that number once `roundCountIsSettled` is true, which is false for
+  // the whole answering phase. So ask during the break and the `done` phase and
+  // not while the room is answering.
+  //
+  // NOT narrower than that. Dropping it during the break would make
+  // `roundCorrect` fall to zero on the second and later polls of the same
+  // break, once the behind-check finds every attempt already settled and
+  // `results` comes back empty — the flash beat blanking out mid-break is
+  // exactly the failure this is trying not to trade for.
   const closedIndex = closedRoundIndex(round, now);
   const settled = await settleRoom(db, {
     rows,
-    needDetailFor: rows.map((row) => String(row.id)),
+    needDetailFor: round && round.phase !== "answering" ? rows.map((row) => String(row.id)) : [],
     startedAt,
     now,
     questionCount,

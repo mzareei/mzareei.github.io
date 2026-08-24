@@ -8,6 +8,7 @@ import { pickRacerName } from "../_shared/racer-names.ts";
 import { OPEN_INSTANCE_STATES, withinSubmitGrace } from "../_shared/quiz-close.ts";
 import { podiumCut, rankAttempts } from "../_shared/quiz-rank.ts";
 import { shuffle, dealQuestions, QUOTA } from "../_shared/shuffle.ts";
+import { roundAt } from "../_shared/rounds.ts";
 import {
   acceptableAnswers,
   committedAnswers,
@@ -222,6 +223,30 @@ async function submitAttempt(db: Db, profile: Record<string, unknown>, input: {
   // with the submit. It is never trusted for a round that has already closed.
   const clock = roomClockFor(attempt, instance);
   const submitAt = Date.now();
+
+  // AND THE ANSWER KEY LEAVES THIS FUNCTION ONLY ONCE THE ROOM IS PAST ITS
+  // QUESTIONS. `correct` and `explanations` at the bottom of this function are
+  // the whole key for all ten dealt questions, and submit_attempt is a public
+  // action: a phone holding its own attempt id and bearer token can call it at
+  // t=5s with `responses: []` and be handed the key for its entire deal. That
+  // costs the caller their own grade — and the pool is shared across the room,
+  // so those ten overlap heavily with every classmate's deal. One student
+  // trading their mark for the room's is a trade someone makes.
+  //
+  // Three clauses, each covering a case the others do not:
+  //   - !clock — a standalone activity has no rounds and never had this
+  //     problem; it keeps its old behaviour exactly.
+  //   - state === "closed" — the professor closed the quiz by hand mid-round.
+  //     The room is over even though the schedule says otherwise, and the
+  //     review list still has to work.
+  //   - phase === "done" — the normal path: every round has run.
+  //
+  // A student who submits early gets an empty map, and the player already
+  // treats that as "nothing to show" and hides the review list.
+  const roomOver = !clock
+    || String(instance.state) === "closed"
+    || roundAt(clock.startedAt, submitAt, clock.questionCount).phase === "done";
+
   const clientAnswers = clientAnswerMap(input.responses);
   const storedAnswers = stringMap(attempt.progress_answers);
   const storedTimes = numberMap(attempt.round_answer_times);
@@ -387,12 +412,14 @@ async function submitAttempt(db: Db, profile: Record<string, unknown>, input: {
     // question_id -> correct option id, for the post-submit review list. Built
     // from this same grading pass — never from `input.responses` — so a
     // student can only ever learn the answer key for the attempt the server
-    // just graded, after it closed.
-    correct: graded.correct,
+    // just graded. `roomOver` is what makes "after it closed" true of the ROOM
+    // and not merely of this attempt: see the gate where it is computed.
+    correct: roomOver ? graded.correct : {},
     // question_id -> explanation, in both languages, from the same grading
     // pass. start_attempt's questions carry no explanation field at all (see
-    // loadQuestionsForInstance) — this is the only door it ever comes through.
-    explanations: graded.explanations
+    // loadQuestionsForInstance) — this is the only door it ever comes through,
+    // and it is the same door, under the same gate.
+    explanations: roomOver ? graded.explanations : {}
   };
 }
 

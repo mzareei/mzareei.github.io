@@ -17,7 +17,7 @@ import { handleOptions, json } from "../_shared/cors.ts";
 import { assertCourseEmailAllowed, assertProfileMatchesAuthEmail } from "../_shared/identity.ts";
 import { assertCheckpointPushMatches } from "../_shared/pulse-checkpoint.ts";
 import { classDateFor, loadCheckInAt } from "../_shared/attendance.ts";
-import { roundAt, REVEAL_DELAY_MS } from "../_shared/rounds.ts";
+import { roundAt, revealDue } from "../_shared/rounds.ts";
 import { closedRoundIndex } from "../_shared/settle.ts";
 import { settleRoom } from "../_shared/settle-room.ts";
 import { pinataState } from "../_shared/pinata.ts";
@@ -1019,12 +1019,16 @@ async function loadMyRace(
   // straight back while the window was still open. Holding the reveal to three
   // seconds means an answer accepted in the grace provably predates it.
   //
-  // The second gate is structural rather than arithmetic: settleAttempt
+  // Both gates are `revealDue`, in _shared/rounds.ts, and not written out here:
+  // this file cannot be imported by a Node verifier (Deno, database client), so
+  // a predicate spelled inline could only ever be checked by matching its text
+  // — and the two ways of inverting it both match. There it is imported and run.
+  //
+  // The third gate is structural rather than arithmetic: settleAttempt
   // describes no round that can still take an answer, so a phone polling
   // mid-round has nothing to pull the answer out of however often it asks.
-  const breakRound = clock.round && clock.round.phase === "break" ? clock.round : null;
-  const revealDue = Boolean(breakRound) && clock.now >= (breakRound as { answerEnd: number }).answerEnd + REVEAL_DELAY_MS;
-  const revealed = breakRound && own && revealDue
+  const breakRound = clock.round && revealDue(clock.round, clock.now) ? clock.round : null;
+  const revealed = breakRound && own
     ? own.rounds.find((entry) => entry.index === breakRound.index) ?? null
     : null;
 

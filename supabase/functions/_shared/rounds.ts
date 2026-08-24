@@ -43,6 +43,26 @@ export const GOLDEN_SECONDS = 20;
 export const ANSWER_GRACE_MS = 2000;
 export const REVEAL_DELAY_MS = 3000;
 
+/**
+ * May this round's correct option be shown yet?
+ *
+ * The ordered pair above, written once, HERE — not in course-pulse, which is
+ * where it used to live. course-pulse imports Deno and a database client, so no
+ * Node verifier can import it, and the predicate could only ever be checked by
+ * matching its text. `answerEnd - REVEAL_DELAY_MS` and
+ * `answerEnd + REVEAL_DELAY_MS - 3000` both mention the constant and both
+ * invert the pair — silently. This module is pure, so the verifier imports this
+ * function and runs it, the same treatment answeredInWindow already gets.
+ *
+ * Both clauses are the gate: the phase, because a round still taking answers
+ * must never carry its own key; and the delay, because the grace keeps taking
+ * answers for ANSWER_GRACE_MS after the countdown and an answer accepted inside
+ * it has to provably predate the reveal.
+ */
+export function revealDue(window: RoundWindow, now: number): boolean {
+  return window.phase === "break" && Number(now) >= window.answerEnd + REVEAL_DELAY_MS;
+}
+
 export const CANDY_CORRECT = 1;
 export const CANDY_GOLDEN = 2;
 
