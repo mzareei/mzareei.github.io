@@ -1,9 +1,19 @@
 // Turning finished quiz attempts into places.
 //
-// Ranked on score_final, which already folds in the speed bonus — so a faster
-// correct answer wins on its own and no separate tiebreak rule is needed.
+// Ranked on score_final, which is correctness alone. It used to fold in a speed
+// bonus — this comment used to say a faster correct answer "wins on its own and
+// no separate tiebreak rule is needed" — and both stopped being true when the
+// room clock landed. Every student now gets the same forty seconds on the same
+// question, so speed measured nothing about the student; it moved out of the
+// grade and into candy, and maxSpeedBonusPercent is 0, so score_final equals
+// score_percent for every attempt graded since.
+//
+// What that changes here: equal correctness is now a genuine tie rather than
+// something the bonus quietly separated. Ties share a place, deliberately.
 // submitted_at only orders students WITHIN a shared place, so the display is
-// stable rather than arbitrary.
+// stable rather than arbitrary — it is not a tiebreak, and turning it into one
+// would re-introduce "the same answers right, ranked lower", which is the
+// reading removing the speed bonus was meant to prevent.
 //
 // Only finished work is ranked. A student who opened the quiz and abandoned it
 // is not ranked last — they are not ranked at all, and the "of 24" a student
