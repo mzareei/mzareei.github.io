@@ -26,7 +26,7 @@
   <section class="mission-card app-panel auth-panel" id="signedOutPanel">
     <span class="eyebrow">Institutional access</span>
     <h2>Sign in</h2>
-    <p class="lead auth-intro">We use passwordless sign-in. Enter your approved institutional email and we will send a secure link.</p>
+    <p class="lead auth-intro">We use passwordless sign-in. Enter your approved institutional email and we will email you a 6-digit code. The email has no link to click — the code is how you sign in.</p>
 
     <ol class="auth-steps">
       <li class="auth-step">
@@ -37,18 +37,18 @@
               Institutional email
               <input id="emailInput" type="email" autocomplete="email" placeholder="name@tec.mx">
             </label>
-            <button class="app-button" id="sendCodeBtn" type="button">Send sign-in email</button>
+            <button class="app-button" id="sendCodeBtn" type="button">Email me a sign-in code</button>
           </div>
         </div>
       </li>
       <li class="auth-step">
         <span class="auth-step__num" aria-hidden="true">2</span>
         <div class="auth-step__body">
-          <p class="auth-hint">Open the link in your inbox on this device. If your email shows a six digit code instead, enter it here.</p>
+          <p class="auth-hint">The email is from <strong>TC2007B Course Platform</strong> and its subject is <strong>“Your sign-in code”</strong>. It contains one large 6-digit number and no link. Type that number here. If it is not in your inbox within a minute, check Junk or Quarantine — it is sent from outside the university.</p>
           <div class="field-stack">
             <label>
-              Optional one-time code
-              <input id="otpInput" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="6 digit code, if shown">
+              6-digit code from your email
+              <input id="otpInput" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="123456">
             </label>
             <button class="app-button secondary" id="verifyCodeBtn" type="button">Verify code</button>
           </div>

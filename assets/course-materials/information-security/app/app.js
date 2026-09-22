@@ -68,7 +68,7 @@ els.sendCode.addEventListener("click", async () => {
   await run("Sending sign-in email...", async () => {
     await sendOtp(email);
     startSendCooldown(sendCooldownSeconds);
-    setStatus("Sign-in email sent. Click the link in your email, or enter the code here if one is shown.", "good");
+    setStatus("Sign-in email sent. It contains one 6-digit code and no link. Type that code below. Not there in a minute? Check Junk or Quarantine.", "good");
   });
 });
 
@@ -76,7 +76,7 @@ els.verifyCode.addEventListener("click", async () => {
   const email = cleanEmail(els.email.value);
   const token = els.otp.value.trim();
   if (!email || !token) {
-    setStatus("Enter your email and the six digit code if your email includes one.", "warn");
+    setStatus("Enter your email and the 6-digit code from the sign-in email.", "warn");
     return;
   }
   if (!isAllowedInstitutionalEmail(email)) {
