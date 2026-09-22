@@ -65,7 +65,7 @@ els.sendCode.addEventListener("click", async () => {
     updateSendCodeCooldown();
     return;
   }
-  await run("Sending sign-in email...", async () => {
+  await run("Sending your sign-in code...", async () => {
     await sendOtp(email);
     startSendCooldown(sendCooldownSeconds);
     setStatus("Sign-in email sent. It contains one 6-digit code and no link. Type that code below. Not there in a minute? Check Junk or Quarantine.", "good");
@@ -246,7 +246,7 @@ async function init() {
   });
 
   if (capturedTestAccessEmail && !currentSession) {
-    setStatus(`QA test access enabled on this device for ${capturedTestAccessEmail}. Send the sign-in email to continue.`, "good");
+    setStatus(`QA test access enabled on this device for ${capturedTestAccessEmail}. Request a sign-in code to continue.`, "good");
   }
 }
 
@@ -275,7 +275,7 @@ async function run(workingMessage, action) {
   } catch (error) {
     if (isRateLimitError(error)) {
       startSendCooldown(sendCooldownSeconds);
-      setStatus("Rate limit reached. Wait about 60 seconds, then request one new sign-in email.", "warn");
+      setStatus("Rate limit reached. Wait about 60 seconds, then request one new code.", "warn");
     } else {
       setStatus(error.message || "Something went wrong.", "danger");
     }
@@ -333,7 +333,7 @@ function updateSendCodeCooldown() {
     return;
   }
   els.sendCode.disabled = appBusy;
-  els.sendCode.textContent = "Send sign-in email";
+  els.sendCode.textContent = "Email me a sign-in code";
 }
 
 function isRateLimitError(error) {
