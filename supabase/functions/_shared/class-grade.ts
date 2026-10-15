@@ -13,6 +13,7 @@
 // computeGrade below, so a change to the rule cannot reach one screen and miss
 // the other.
 import { adminClient } from "./client.ts";
+import { inChunks } from "./in-chunks.ts";
 
 type Db = ReturnType<typeof adminClient>;
 
@@ -266,12 +267,12 @@ export async function loadEndOfClassRan(db: Db, sessionIds: string[]) {
     (id) => !ran.has(openAttemptToSession.get(id)!)
   );
   if (pending.length) {
-    const { data: responses, error: responseError } = await db
-      .from("student_responses")
-      .select("student_attempt_id")
-      .in("student_attempt_id", pending);
-    if (responseError) throw responseError;
-    for (const response of responses || []) {
+    // One id per open attempt across every session asked about: batched so a
+    // whole term of them cannot overflow the request URL.
+    const responses = await inChunks(pending, (chunk) =>
+      db.from("student_responses").select("student_attempt_id").in("student_attempt_id", chunk)
+    );
+    for (const response of responses) {
       const sessionId = openAttemptToSession.get(String(response.student_attempt_id));
       if (sessionId) ran.add(sessionId);
     }
@@ -412,14 +413,14 @@ async function loadStudentQuiz(db: Db, sessionIds: string[], profileId: string) 
   }
   if (!attemptToSession.size) return tally;
 
-  const { data: responses, error: responseError } = await db
-    .from("student_responses")
-    .select("student_attempt_id, is_correct")
-    .in("student_attempt_id", Array.from(attemptToSession.keys()));
-  if (responseError) throw responseError;
+  // One attempt id per class this student sat, for the whole term: batched so
+  // the list cannot overflow the request URL.
+  const responses = await inChunks(Array.from(attemptToSession.keys()), (chunk) =>
+    db.from("student_responses").select("student_attempt_id, is_correct").in("student_attempt_id", chunk)
+  );
 
   const answeredByAttempt = new Map<string, number>();
-  for (const response of responses || []) {
+  for (const response of responses) {
     const attemptId = String(response.student_attempt_id);
     answeredByAttempt.set(attemptId, (answeredByAttempt.get(attemptId) || 0) + 1);
     if (!response.is_correct) continue;

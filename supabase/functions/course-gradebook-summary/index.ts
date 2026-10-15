@@ -1,5 +1,6 @@
 import { adminClient } from "../_shared/client.ts";
 import { corsHeaders, handleOptions, json } from "../_shared/cors.ts";
+import { inChunks } from "../_shared/in-chunks.ts";
 
 type Db = ReturnType<typeof adminClient>;
 
@@ -655,36 +656,38 @@ async function loadGradebookRows(db: Db, courseId: string, filters: {
   const profileIds = unique((scores || []).map((score) => score.profile_id));
   const scoreIds = unique((scores || []).map((score) => score.id));
   const sourceAttemptIds = unique((scores || []).map((score) => score.source_attempt_id));
-  const [
-    { data: profiles, error: profileError },
-    { data: adjustments, error: adjustmentError },
-    { data: sourceAttempts, error: attemptError }
-  ] = await Promise.all([
+  // scoreIds and sourceAttemptIds hold one id per posted grade in the course,
+  // so they grow with every class taught; a single `.in(...)` over them
+  // overflows the request URL after about 400 (see _shared/in-chunks.ts).
+  // The profile list is bounded by the roster and stays a single request.
+  const [{ data: profiles, error: profileError }, adjustments, sourceAttempts] = await Promise.all([
     db
       .from("profiles")
       .select("id, institutional_email, student_identifier, full_name, preferred_name, status")
       .in("id", profileIds),
-    db
-      .from("grade_adjustments")
-      .select("id, gradebook_score_id, previous_score_final, new_score_final, reason, created_at")
-      .in("gradebook_score_id", scoreIds)
-      .order("created_at", { ascending: false }),
-    sourceAttemptIds.length
-      ? db
-          .from("student_attempts")
-          .select("id, attempt_number, started_at, submitted_at, status, speed_bonus")
-          .in("id", sourceAttemptIds)
-      : Promise.resolve({ data: [], error: null })
+    // Every adjustment of one score lands in the same batch, and each batch is
+    // newest-first, so "first row seen per score is the latest" still holds.
+    inChunks(scoreIds, (chunk) =>
+      db
+        .from("grade_adjustments")
+        .select("id, gradebook_score_id, previous_score_final, new_score_final, reason, created_at")
+        .in("gradebook_score_id", chunk)
+        .order("created_at", { ascending: false })
+    ),
+    inChunks(sourceAttemptIds, (chunk) =>
+      db
+        .from("student_attempts")
+        .select("id, attempt_number, started_at, submitted_at, status, speed_bonus")
+        .in("id", chunk)
+    )
   ]);
   if (profileError) throw profileError;
-  if (adjustmentError) throw adjustmentError;
-  if (attemptError) throw attemptError;
 
   const profileById = new Map((profiles || []).map((profile) => [profile.id, profile]));
-  const attemptById = new Map((sourceAttempts || []).map((attempt) => [attempt.id, attempt]));
+  const attemptById = new Map(sourceAttempts.map((attempt) => [attempt.id, attempt]));
   const itemById = new Map(filteredItems.map((item) => [item.id, item]));
   const adjustmentsByScore = new Map<string, { count: number; latest_reason: string; latest_at: string }>();
-  (adjustments || []).forEach((adjustment) => {
+  adjustments.forEach((adjustment) => {
     const key = String(adjustment.gradebook_score_id);
     const current = adjustmentsByScore.get(key) || { count: 0, latest_reason: "", latest_at: "" };
     current.count += 1;
